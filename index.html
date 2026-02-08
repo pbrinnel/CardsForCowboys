@@ -21,46 +21,66 @@
 
   <section class="hero">
     <h1>Cards For Cowboys</h1>
-    <p class="tagline">A deck-building showdown in the Wild West</p>
+    <p class="tagline">Push your luck. Build your deck. Wrangle the most Cows.</p>
+    <div class="hero-cards">
+      <img src="images/card-dollar1.png" alt="$1 Coin card">
+      <img src="images/card-bandit-cow1.png" alt="Bandit and Cow card">
+      <img src="images/card-dollar2.png" alt="$2 Coin card">
+    </div>
     <a href="#signup" class="btn">Back Us on Kickstarter</a>
   </section>
 
   <section id="about" class="about">
     <h2>About the Game</h2>
-    <p>Cards For Cowboys is a deck-building card game set in the rugged frontier. Build your deck, outsmart your rivals, and become the most legendary cowboy in the West.</p>
+    <p>Cards For Cowboys is a deck-building card game where luck meets strategy in the Wild West. Push your luck by drawing cards, but watch out for Bandits -- draw three and you bust! Spend your coins to buy powerful new cards from the solitaire-style store, grow your herd of Cows, and outscore your rivals across three thrilling Acts.</p>
+    <img src="images/setup-pyramid.jpg" alt="Solitaire pyramid card store setup" class="about-img">
     <div class="features">
       <div class="feature">
-        <h3>Build Your Deck</h3>
-        <p>Draft cards from the saloon to assemble a winning hand.</p>
-      </div>
-      <div class="feature">
-        <h3>Outplay Your Rivals</h3>
-        <p>Use strategy and bluffing to come out on top.</p>
-      </div>
-      <div class="feature">
         <h3>2-4 Players</h3>
-        <p>Quick games that play in 30-45 minutes.</p>
+        <p>Scales with player count using a unique solitaire pyramid store.</p>
+      </div>
+      <div class="feature">
+        <h3>Push Your Luck</h3>
+        <p>Draw cards for coins and cows, but three Bandits and you bust!</p>
+      </div>
+      <div class="feature">
+        <h3>Build Your Deck</h3>
+        <p>Buy cards from the store to strengthen your deck across 3 Acts.</p>
+      </div>
+      <div class="feature">
+        <h3>Risk vs. Reward</h3>
+        <p>Track card backs by cacti count -- 1 is safe, 3 is high risk, high reward.</p>
       </div>
     </div>
   </section>
 
   <section id="how-to-play" class="how-to-play">
     <h2>How to Play</h2>
-    <ol>
-      <li>Start with a basic deck of cowboy cards.</li>
-      <li>Each round, buy new cards from the saloon market.</li>
-      <li>Combine cards for powerful combos and actions.</li>
-      <li>The cowboy with the most points at the end wins!</li>
-    </ol>
+    <div class="steps">
+      <div class="step">
+        <h3>1. Draw Phase</h3>
+        <p>All players draw cards from their personal deck one at a time. Stop whenever you want -- but if you flip three Bandits, you bust and lose your turn!</p>
+      </div>
+      <div class="step">
+        <h3>2. Buy Phase</h3>
+        <p>Spend the coins you drew to buy a card from the solitaire store, adding it to your deck. Or burn a card to reveal what's hidden underneath.</p>
+      </div>
+      <div class="step">
+        <h3>3. Score Cows</h3>
+        <p>If you didn't bust, add any Cows you drew this round to your Herd. The player with the most Cows after all three Acts wins!</p>
+      </div>
+    </div>
   </section>
 
   <section id="signup" class="signup">
     <h2>Get Notified When We Launch</h2>
     <p>Be the first to know when our Kickstarter goes live.</p>
-    <form action="#" method="post">
-      <input type="email" placeholder="Enter your email" required>
+    <!-- Sign up at https://formspree.io and replace YOUR_FORM_ID below -->
+    <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+      <input type="email" name="email" placeholder="Enter your email" required>
       <button type="submit" class="btn">Notify Me</button>
     </form>
+    <p class="form-note" id="form-note"></p>
   </section>
 
   <footer>

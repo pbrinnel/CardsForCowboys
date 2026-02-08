@@ -63,6 +63,19 @@ nav a:hover {
   color: #e8c872;
 }
 
+.hero-cards {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.hero-cards img {
+  width: 120px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 /* Buttons */
 .btn {
   display: inline-block;
@@ -96,6 +109,14 @@ nav a:hover {
 .about > p {
   margin-bottom: 2rem;
   font-size: 1.1rem;
+}
+
+.about-img {
+  display: block;
+  max-width: 320px;
+  margin: 0 auto 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .features {
@@ -132,16 +153,29 @@ nav a:hover {
   margin-bottom: 1.5rem;
 }
 
-.how-to-play ol {
-  list-style-position: inside;
-  max-width: 500px;
+.steps {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 900px;
   margin: 0 auto;
+}
+
+.step {
+  flex: 1;
+  min-width: 220px;
+  max-width: 280px;
   text-align: left;
 }
 
-.how-to-play li {
-  margin-bottom: 0.75rem;
-  font-size: 1.1rem;
+.step h3 {
+  color: #e8c872;
+  margin-bottom: 0.5rem;
+}
+
+.step p {
+  font-size: 1rem;
 }
 
 /* Signup */
@@ -173,6 +207,11 @@ nav a:hover {
   border: 2px solid #5c3a1e;
   border-radius: 4px;
   width: 280px;
+}
+
+.form-note {
+  margin-top: 1rem;
+  font-size: 0.95rem;
 }
 
 /* Footer */
@@ -207,6 +246,14 @@ footer {
     font-size: 1rem;
   }
 
+  .hero-cards img {
+    width: 80px;
+  }
+
+  .about-img {
+    max-width: 240px;
+  }
+
   .about h2,
   .how-to-play h2,
   .signup h2 {
@@ -214,6 +261,10 @@ footer {
   }
 
   .feature {
+    max-width: 100%;
+  }
+
+  .step {
     max-width: 100%;
   }
 
