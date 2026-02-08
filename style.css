@@ -1,0 +1,232 @@
+/* Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1d0e;
+  background-color: #faf3e0;
+  line-height: 1.6;
+}
+
+/* Nav */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #3b2314;
+  color: #faf3e0;
+}
+
+nav .logo {
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+
+nav a {
+  color: #e8c872;
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 6rem 2rem;
+  background-color: #5c3a1e;
+  color: #faf3e0;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero .tagline {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  font-style: italic;
+  color: #e8c872;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background-color: #c0392b;
+  color: #fff;
+  text-decoration: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn:hover {
+  background-color: #a93226;
+}
+
+/* About */
+.about {
+  padding: 4rem 2rem;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.about h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.about > p {
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.features {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.feature {
+  flex: 1;
+  min-width: 200px;
+  max-width: 260px;
+  padding: 1.5rem;
+  background-color: #f0e2c0;
+  border-radius: 8px;
+}
+
+.feature h3 {
+  margin-bottom: 0.5rem;
+  color: #5c3a1e;
+}
+
+/* How to Play */
+.how-to-play {
+  padding: 4rem 2rem;
+  background-color: #3b2314;
+  color: #faf3e0;
+  text-align: center;
+}
+
+.how-to-play h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.how-to-play ol {
+  list-style-position: inside;
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.how-to-play li {
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+/* Signup */
+.signup {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.signup h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.signup p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.signup form {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.signup input[type="email"] {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #5c3a1e;
+  border-radius: 4px;
+  width: 280px;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  background-color: #3b2314;
+  color: #a08060;
+  font-size: 0.9rem;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  nav {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  nav ul {
+    gap: 1rem;
+  }
+
+  .hero {
+    padding: 4rem 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero .tagline {
+    font-size: 1rem;
+  }
+
+  .about h2,
+  .how-to-play h2,
+  .signup h2 {
+    font-size: 1.5rem;
+  }
+
+  .feature {
+    max-width: 100%;
+  }
+
+  .signup input[type="email"] {
+    width: 100%;
+  }
+
+  .signup form {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .signup .btn {
+    width: 280px;
+  }
+}
