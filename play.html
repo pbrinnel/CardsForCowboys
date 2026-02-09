@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Play - Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+
+  <!-- Start Screen -->
+  <div id="start-screen" class="overlay">
+    <div class="overlay-content">
+      <h1>Cards For Cowboys</h1>
+      <p class="start-tagline">Push your luck. Build your deck. Wrangle the most Cows.</p>
+      <button id="btn-start" class="btn btn-large" onclick="startGame()">Start Game</button>
+      <a href="index.html" class="back-link">Back to Home</a>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameover-screen" class="overlay hidden">
+    <div class="overlay-content">
+      <h1 id="gameover-title">Game Over</h1>
+      <div id="gameover-scores"></div>
+      <button class="btn btn-large" onclick="startGame()">Play Again</button>
+      <a href="index.html" class="back-link">Back to Home</a>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div id="rules-modal" class="overlay hidden">
+    <div class="overlay-content rules-content">
+      <h2>How to Play</h2>
+      <button class="close-btn" onclick="closeRules()">&times;</button>
+      <div class="rules-body">
+        <h3>Draw Phase</h3>
+        <p>Draw cards one at a time from your deck. Each card may give you coins ($), cows, or bandits. Stop whenever you want -- but draw 3 bandits and you BUST! (Lose your turn.)</p>
+        <h3>Buy Phase</h3>
+        <p>Spend coins to buy one card from the store pyramid, adding it to your deck. Or burn a card (free) to remove it and reveal hidden cards. The player with more $ buys first.</p>
+        <h3>Scoring</h3>
+        <p>If you didn't bust, cows drawn this round are added to your permanent Herd. The player with the most cows after 3 Acts wins!</p>
+        <h3>Card Backs</h3>
+        <p>1 Cactus = safe. 2 Cacti = mixed. 3 Cacti = risky but rewarding.</p>
+        <h3>Special Cards</h3>
+        <p><strong>Jail:</strong> Trash to negate 1 bandit.<br>
+        <strong>Copy Next Card:</strong> Doubles the next card's effects.<br>
+        <strong>Draw 3:</strong> Immediately draw 3 more cards.<br>
+        <strong>Lose Cow:</strong> Subtracts 1 from your herd.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Special Card Modal (for choices like rearrange, replay, etc.) -->
+  <div id="special-modal" class="overlay hidden">
+    <div class="overlay-content" id="special-modal-content">
+    </div>
+  </div>
+
+  <!-- Main Game Area -->
+  <div id="game" class="hidden">
+
+    <!-- Header -->
+    <header id="game-header">
+      <div class="header-left">
+        <span id="act-display">Act 1</span>
+        <span class="sep">|</span>
+        <span id="round-display">Round 1</span>
+      </div>
+      <div class="header-right">
+        <button class="btn-small" onclick="showRules()">Rules</button>
+        <button class="btn-small" onclick="restartGame()">Restart</button>
+      </div>
+    </header>
+
+    <!-- AI Zone -->
+    <div id="ai-zone">
+      <div class="zone-label">Cowboy AI</div>
+      <div class="player-info">
+        <span class="herd-display">Herd: <strong id="ai-herd">0</strong></span>
+        <span class="deck-display">Deck: <strong id="ai-deck-count">10</strong></span>
+        <span class="discard-display">Discard: <strong id="ai-discard-count">0</strong></span>
+      </div>
+      <div id="ai-round-stats" class="round-stats hidden">
+        <span>$<strong id="ai-round-dollars">0</strong></span>
+        <span>Cows: <strong id="ai-round-cows">0</strong></span>
+        <span>Bandits: <strong id="ai-round-bandits">0</strong></span>
+      </div>
+      <div id="ai-hand" class="hand"></div>
+    </div>
+
+    <!-- Store Pyramid -->
+    <div id="pyramid-zone">
+      <div class="zone-label">Store</div>
+      <div id="pyramid"></div>
+    </div>
+
+    <!-- Message & Actions -->
+    <div id="action-zone">
+      <div id="message">Welcome to Cards For Cowboys!</div>
+      <div id="actions"></div>
+    </div>
+
+    <!-- Player Zone -->
+    <div id="player-zone">
+      <div class="hand-row">
+        <div id="player-deck-preview"></div>
+        <div id="player-hand" class="hand"></div>
+      </div>
+      <div id="player-round-stats" class="round-stats hidden">
+        <span>$<strong id="player-round-dollars">0</strong></span>
+        <span>Cows: <strong id="player-round-cows">0</strong></span>
+        <span>Bandits: <strong id="player-round-bandits">0</strong></span>
+      </div>
+      <div class="player-info">
+        <span class="herd-display">Herd: <strong id="player-herd">0</strong></span>
+        <span class="deck-display">Deck: <strong id="player-deck-count">10</strong></span>
+        <span class="discard-display">Discard: <strong id="player-discard-count">0</strong></span>
+      </div>
+      <div class="zone-label">You</div>
+    </div>
+
+    <!-- Game Log -->
+    <div id="log-zone">
+      <div class="zone-label">Game Log</div>
+      <div id="game-log"></div>
+    </div>
+
+  </div>
+
+  <script src="play.js"></script>
+</body>
+</html>

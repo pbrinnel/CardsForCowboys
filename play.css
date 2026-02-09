@@ -1,0 +1,678 @@
+/* Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1d0e;
+  background-color: #faf3e0;
+  line-height: 1.4;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Overlays (start, game over, rules, special) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 29, 14, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-content {
+  background: #faf3e0;
+  border-radius: 12px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.overlay-content h1 {
+  font-size: 2.2rem;
+  color: #5c3a1e;
+  margin-bottom: 0.5rem;
+}
+
+.start-tagline {
+  font-style: italic;
+  color: #8b6914;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.back-link {
+  display: block;
+  margin-top: 1rem;
+  color: #8b6914;
+  font-size: 0.9rem;
+}
+
+.rules-content {
+  max-width: 600px;
+  text-align: left;
+}
+
+.rules-content h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.rules-body h3 {
+  color: #5c3a1e;
+  margin: 1rem 0 0.3rem;
+}
+
+.rules-body p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #5c3a1e;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn, .btn-large, .btn-small {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background-color: #c0392b;
+  color: #fff;
+  text-decoration: none;
+  border: none;
+  font-size: 1rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn:hover, .btn-large:hover, .btn-small:hover {
+  background-color: #a93226;
+}
+
+.btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.btn-large {
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+}
+
+.btn-small {
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  background-color: #5c3a1e;
+}
+
+.btn-small:hover {
+  background-color: #3b2314;
+}
+
+.btn-secondary {
+  background-color: #5c3a1e;
+}
+
+.btn-secondary:hover {
+  background-color: #3b2314;
+}
+
+.btn-burn {
+  background-color: #d4860b;
+}
+
+.btn-burn:hover {
+  background-color: #b37209;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Game Layout */
+#game {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 0.5rem;
+}
+
+/* Header */
+#game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.5rem;
+  background: #3b2314;
+  color: #faf3e0;
+  border-radius: 0 0 8px 8px;
+  margin-bottom: 0.5rem;
+}
+
+.header-left {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.header-left .sep {
+  margin: 0 0.4rem;
+  opacity: 0.5;
+}
+
+.header-right {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Zone labels */
+.zone-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8b6914;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+/* Player info bars */
+.player-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.herd-display {
+  color: #2b6e2b;
+}
+
+.round-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  background: #f0e2c0;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+}
+
+/* Hand row (deck preview + drawn cards) */
+.hand-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.hand-row .hand {
+  min-width: 0;
+}
+
+#player-deck-preview {
+  flex-shrink: 0;
+}
+
+#player-deck-preview .card {
+  opacity: 0.85;
+}
+
+.deck-label {
+  font-size: 0.6rem;
+  text-align: center;
+  color: #8b6914;
+  margin-top: 2px;
+}
+
+/* AI Zone */
+#ai-zone {
+  padding: 0.5rem;
+  background: #f0e2c0;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* Hand (drawn cards) */
+.hand {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  min-height: 70px;
+  padding: 0.25rem 0;
+  align-items: flex-start;
+}
+
+/* Card */
+.card {
+  width: 60px;
+  height: 84px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+  transition: transform 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card.clickable {
+  cursor: pointer;
+}
+
+.card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.card.affordable {
+  box-shadow: 0 0 0 2px #e8c872, 0 0 8px rgba(232, 200, 114, 0.5);
+}
+
+.card.selected {
+  box-shadow: 0 0 0 3px #c0392b, 0 0 12px rgba(192, 57, 43, 0.5);
+  transform: translateY(-4px);
+}
+
+.card.dimmed {
+  opacity: 0.4;
+}
+
+.card.busted {
+  opacity: 0.5;
+  filter: sepia(0.5) saturate(2) hue-rotate(-30deg);
+}
+
+.card-cost {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  background: rgba(0,0,0,0.7);
+  color: #e8c872;
+  font-size: 0.6rem;
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-weight: bold;
+}
+
+.card-slot {
+  width: 60px;
+  height: 84px;
+  border: 2px dashed #ccc;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Card flip animation */
+.card.flipping {
+  animation: cardFlip 0.4s ease-in-out;
+}
+
+@keyframes cardFlip {
+  0% { transform: scaleX(1); }
+  50% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+.card.draw-anim {
+  animation: cardDraw 0.3s ease-out;
+}
+
+@keyframes cardDraw {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pyramid */
+#pyramid-zone {
+  padding: 0.5rem;
+  background: #5c3a1e;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+#pyramid-zone .zone-label {
+  color: #e8c872;
+}
+
+#pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+}
+
+.pyramid-row {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+/* Pyramid cards are slightly smaller */
+.pyramid-row .card {
+  width: 55px;
+  height: 77px;
+}
+
+/* Action Zone */
+#action-zone {
+  padding: 0.75rem;
+  background: #3b2314;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+#message {
+  color: #e8c872;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  min-height: 1.4em;
+}
+
+#actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Player Zone */
+#player-zone {
+  padding: 0.5rem;
+  background: #f0e2c0;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Game Log */
+#log-zone {
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+#game-log {
+  font-size: 0.75rem;
+  color: #666;
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+#game-log div {
+  padding: 1px 0;
+  border-bottom: 1px solid #eee;
+}
+
+#game-log .log-bust {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+#game-log .log-buy {
+  color: #2b6e2b;
+}
+
+#game-log .log-burn {
+  color: #d4860b;
+}
+
+#game-log .log-score {
+  color: #5c3a1e;
+  font-weight: bold;
+}
+
+/* Score animation */
+.score-popup {
+  position: fixed;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2b6e2b;
+  pointer-events: none;
+  animation: scoreFloat 1.5s ease-out forwards;
+  z-index: 50;
+}
+
+@keyframes scoreFloat {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-60px); }
+}
+
+/* Act transition overlay */
+.act-transition {
+  animation: fadeInOut 2.5s ease-in-out forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Special modal cards (for rearrange, replay) */
+.modal-cards {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.modal-cards .card {
+  width: 80px;
+  height: 112px;
+  cursor: pointer;
+}
+
+.modal-cards .card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.modal-cards .card.selected {
+  box-shadow: 0 0 0 3px #c0392b;
+}
+
+.order-number {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #c0392b;
+  color: white;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  #game {
+    padding: 0 0.25rem;
+  }
+
+  .card {
+    width: 50px;
+    height: 70px;
+  }
+
+  .card-slot {
+    width: 50px;
+    height: 70px;
+  }
+
+  .pyramid-row .card {
+    width: 44px;
+    height: 62px;
+  }
+
+  .hand {
+    min-height: 56px;
+  }
+
+  .hand-row {
+    gap: 0.35rem;
+  }
+
+  #message {
+    font-size: 0.9rem;
+  }
+
+  .player-info {
+    font-size: 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .round-stats {
+    font-size: 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .btn, .btn-large, .btn-small {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-large {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+  }
+
+  #actions {
+    gap: 0.4rem;
+  }
+
+  #actions .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .overlay-content {
+    padding: 1.5rem;
+  }
+
+  .overlay-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .modal-cards .card {
+    width: 65px;
+    height: 91px;
+  }
+}
+
+@media (max-width: 400px) {
+  .card {
+    width: 42px;
+    height: 59px;
+  }
+
+  .card-slot {
+    width: 42px;
+    height: 59px;
+  }
+
+  .pyramid-row .card {
+    width: 38px;
+    height: 53px;
+  }
+
+  .pyramid-row {
+    gap: 0.2rem;
+  }
+
+  .hand {
+    gap: 0.2rem;
+  }
+
+  .hand-row {
+    gap: 0.25rem;
+  }
+
+  .card-cost {
+    font-size: 0.5rem;
+  }
+
+  .deck-label {
+    font-size: 0.5rem;
+  }
+
+  #game-header {
+    font-size: 0.85rem;
+  }
+
+  .btn-small {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  #actions .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .overlay-content {
+    padding: 1rem;
+    width: 95%;
+  }
+
+  .overlay-content h1 {
+    font-size: 1.4rem;
+  }
+
+  .modal-cards .card {
+    width: 55px;
+    height: 77px;
+  }
+
+  .rules-body p {
+    font-size: 0.85rem;
+  }
+
+  .rules-body h3 {
+    font-size: 0.95rem;
+  }
+}
