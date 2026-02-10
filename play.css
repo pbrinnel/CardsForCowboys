@@ -146,6 +146,14 @@ body {
   background-color: #b37209;
 }
 
+.btn-special {
+  background-color: #2980b9;
+}
+
+.btn-special:hover {
+  background-color: #1f6da0;
+}
+
 .hidden {
   display: none !important;
 }

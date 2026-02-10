@@ -410,7 +410,7 @@ function renderPlayerZone(player, prefix) {
   const handEl = document.getElementById(prefix + '-hand');
   handEl.innerHTML = '';
 
-  const showFaceUp = player.isHuman || G.phase === 'buy' || G.phase === 'score' || player.busted || player.stoppedDrawing;
+  const showFaceUp = true;
 
   for (const card of player.hand) {
     const el = renderCardEl(card, showFaceUp, player.busted ? 'busted' : '');
@@ -568,13 +568,33 @@ function startRound() {
   G.selectedPyramidCard = null;
   G.phase = 'draw';
   G.roundNumber = G.roundNumber;
+  G.playerDrawDone = false;
+  G.aiDrawDone = false;
 
   addLog(`Round ${G.roundNumber} - Draw Phase`);
   render();
+  // Start both players drawing simultaneously
   startPlayerDraw();
+  G.aiDrawPromise = aiDrawPhase();
 }
 
 // --- DRAW PHASE ---
+
+const ACTIVATABLE_SPECIALS = ['trash_for_2', 'trash_buy_burn_first', 'look3_rearrange', 'replay_discard'];
+
+function getActivatableCards(player) {
+  return player.hand.filter(c => c.special && ACTIVATABLE_SPECIALS.includes(c.special));
+}
+
+function getSpecialLabel(special) {
+  switch (special) {
+    case 'trash_for_2': return 'Trash for $2';
+    case 'trash_buy_burn_first': return 'Trash for Priority';
+    case 'look3_rearrange': return 'Trash & Rearrange Top 3';
+    case 'replay_discard': return 'Trash & Replay Discard';
+    default: return 'Use';
+  }
+}
 
 function startPlayerDraw() {
   G.phase = 'draw';
@@ -587,11 +607,23 @@ function startPlayerDraw() {
     return;
   }
 
-  setMessage('Draw a card or stop drawing.');
-  setActions([
+  const activatable = getActivatableCards(player);
+  const buttons = [
     { text: 'Draw Card', onClick: () => playerDraw() },
-    { text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary' },
-  ]);
+  ];
+
+  for (const card of activatable) {
+    buttons.push({
+      text: getSpecialLabel(card.special),
+      onClick: () => activateSpecialCard(player, card),
+      className: 'btn-special',
+    });
+  }
+
+  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary' });
+
+  setMessage('Draw a card or stop drawing.');
+  setActions(buttons);
   render();
 }
 
@@ -696,34 +728,6 @@ async function playerDraw() {
     return;
   }
 
-  // Handle special: trash_for_2
-  if (card.special === 'trash_for_2') {
-    G.busy = false;
-    await handleTrashFor2(player, card);
-    return;
-  }
-
-  // Handle special: trash_buy_burn_first
-  if (card.special === 'trash_buy_burn_first') {
-    G.busy = false;
-    await handleTrashBuyBurnFirst(player, card);
-    return;
-  }
-
-  // Handle special: look3_rearrange
-  if (card.special === 'look3_rearrange') {
-    G.busy = false;
-    await handleTrashLook3(player, card);
-    return;
-  }
-
-  // Handle special: replay_discard
-  if (card.special === 'replay_discard') {
-    G.busy = false;
-    await handleReplayDiscard(player, card);
-    return;
-  }
-
   G.busy = false;
   startPlayerDraw();
 }
@@ -744,10 +748,18 @@ function playerStopDraw() {
 }
 
 function onPlayerDrawDone() {
+  G.playerDrawDone = true;
   clearActions();
-  setMessage('AI is drawing...');
   render();
-  setTimeout(() => aiDrawPhase(), 600);
+  checkDrawPhaseComplete();
+}
+
+function checkDrawPhaseComplete() {
+  if (G.playerDrawDone && G.aiDrawDone) {
+    onDrawPhaseComplete();
+  } else if (G.playerDrawDone) {
+    setMessage('Waiting for AI to finish drawing...');
+  }
 }
 
 // --- AI DRAW PHASE ---
@@ -755,10 +767,13 @@ function onPlayerDrawDone() {
 async function aiDrawPhase() {
   const ai = G.players[1];
 
+  await delay(500); // slight stagger so first draws don't land at exact same instant
+
   if (ai.deck.length === 0 && ai.discard.length === 0) {
     ai.stoppedDrawing = true;
     addLog('AI has no cards to draw.');
-    onDrawPhaseComplete();
+    G.aiDrawDone = true;
+    checkDrawPhaseComplete();
     return;
   }
 
@@ -773,7 +788,7 @@ async function aiDrawPhase() {
     ai.hand.push(card);
     applyCardEffects(ai, card, isFirst);
 
-    addLog(`AI drew a card. (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
+    addLog(`AI drew: ${card.id.replace(/_/g, ' ')} (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
     render();
     await delay(800);
 
@@ -797,12 +812,11 @@ async function aiDrawPhase() {
 
     // Handle jail auto-use
     if (card.special === 'trash_to_use' && ai.roundBandits >= 2) {
-      // AI always uses jail when at 2+ bandits
       const idx = ai.hand.indexOf(card);
       if (idx >= 0) {
         ai.hand.splice(idx, 1);
         ai.roundBandits = Math.max(0, ai.roundBandits - 1);
-        ai.roundCows -= card.cows; // remove jail card's cow effect
+        ai.roundCows -= card.cows;
         addLog('AI used Jail to negate a bandit!', 'log-burn');
         render();
         await delay(500);
@@ -811,10 +825,9 @@ async function aiDrawPhase() {
 
     // Handle trash_for_2
     if (card.special === 'trash_for_2') {
-      // AI trashes if it would help afford a better card
       const bestCost = getBestAffordableCost();
       if (ai.roundDollars + 1 >= bestCost && ai.roundDollars < bestCost) {
-        ai.roundDollars += 1; // extra $1 from trashing ($2 instead of $1)
+        ai.roundDollars += 1;
         const idx = ai.hand.indexOf(card);
         if (idx >= 0) ai.hand.splice(idx, 1);
         addLog('AI trashed a card for $2.');
@@ -822,9 +835,19 @@ async function aiDrawPhase() {
       }
     }
 
+    // Handle look3_rearrange for AI
+    if (card.special === 'look3_rearrange' && ai.deck.length >= 2) {
+      const idx = ai.hand.indexOf(card);
+      if (idx >= 0) ai.hand.splice(idx, 1);
+      const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
+      top3.sort((a, b) => a.bandits - b.bandits);
+      ai.deck.unshift(...top3);
+      addLog('AI trashed to rearrange top cards.', 'log-burn');
+      render();
+    }
+
     // Handle look3_immediate for AI
     if (card.special === 'look3_immediate' && ai.deck.length >= 2) {
-      // AI rearranges: bandits to bottom
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
       ai.deck.unshift(...top3);
@@ -842,9 +865,13 @@ async function aiDrawPhase() {
       ai.stoppedDrawing = true;
       addLog('AI stopped drawing.');
     }
+
+    await delay(400); // pace between draws
   }
 
-  onDrawPhaseComplete();
+  G.aiDrawDone = true;
+  render();
+  checkDrawPhaseComplete();
 }
 
 function aiShouldDraw(ai) {
@@ -881,6 +908,25 @@ function getBestAffordableCost() {
   const available = getAvailablePyramidCards(G.pyramid);
   if (available.length === 0) return 99;
   return Math.max(...available.map(a => a.slot.card.cost));
+}
+
+// --- ACTIVATE SPECIAL FROM HAND ---
+
+async function activateSpecialCard(player, card) {
+  switch (card.special) {
+    case 'trash_for_2':
+      await handleTrashFor2(player, card);
+      break;
+    case 'trash_buy_burn_first':
+      await handleTrashBuyBurnFirst(player, card);
+      break;
+    case 'look3_rearrange':
+      await handleTrashLook3(player, card);
+      break;
+    case 'replay_discard':
+      await handleReplayDiscard(player, card);
+      break;
+  }
 }
 
 // --- BUST ---
