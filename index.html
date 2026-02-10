@@ -12,7 +12,7 @@
   <!-- Open Graph (Facebook, LinkedIn, Discord, etc.) -->
   <meta property="og:title" content="Cards For Cowboys - A Wild West Deck Building Card Game">
   <meta property="og:description" content="Push your luck. Build your deck. Wrangle the most Cows. A deck-building card game for 2-4 players. Coming soon to Kickstarter.">
-  <meta property="og:image" content="https://cardsforcowboys.com/og-image.jpg">
+  <meta property="og:image" content="https://cardsforcowboys.com/assets/cards/backs/back-2cac.png">
   <meta property="og:url" content="https://cardsforcowboys.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Cards For Cowboys">
@@ -21,7 +21,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Cards For Cowboys - A Wild West Deck Building Card Game">
   <meta name="twitter:description" content="Push your luck. Build your deck. Wrangle the most Cows. Coming soon to Kickstarter.">
-  <meta name="twitter:image" content="https://cardsforcowboys.com/og-image.jpg">
+  <meta name="twitter:image" content="https://cardsforcowboys.com/assets/cards/backs/back-2cac.png">
 
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -44,10 +44,8 @@
   <section class="hero">
     <h1>Cards For Cowboys</h1>
     <p class="tagline">Push your luck. Build your deck. Wrangle the most Cows.</p>
-    <div class="hero-cards">
-      <img src="images/card-dollar1.png" alt="$1 Coin card">
-      <img src="images/card-bandit-cow1.png" alt="Bandit and Cow card">
-      <img src="images/card-dollar2.png" alt="$2 Coin card">
+    <div class="card-slideshow">
+      <div class="card-track" id="card-track"></div>
     </div>
     <a href="play.html" class="btn" style="margin-right:1rem">Play Free Demo</a>
     <a href="#signup" class="btn">Back Us on Kickstarter</a>
@@ -110,5 +108,62 @@
     <p>&copy; 2026 Cards For Cowboys. All rights reserved.</p>
   </footer>
 
+  <script>
+    const cardImages = [
+      'assets/cards/act1/1d_0c_0b_3cost_1cac_a.jpg',
+      'assets/cards/act1/0d_1c_0b_4cost_1cac_a.jpg',
+      'assets/cards/act1/0d_1c_0b_2cost_2cac_a.jpg',
+      'assets/cards/act1/0d_1c_0b_3cost_2cac_2cow_if_first.jpg',
+      'assets/cards/act1/0d_0c_0b_2cost_2cac_trash_buy_burn_first.jpg',
+      'assets/cards/act1/1d_2c_0b_5cost_2cac_a.jpg',
+      'assets/cards/act1/2d_0c_0b_3cost_2cac_a.jpg',
+      'assets/cards/act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg',
+      'assets/cards/act2/0d_2c_0b_4cost_2cac_a.jpg',
+      'assets/cards/act2/0d_3c_2b_4cost_3cac.jpg',
+      'assets/cards/act2/1d_1c_0b_4cost_1cac_a.jpg',
+      'assets/cards/act2/3d_0c_0b_5cost_3cac_a.jpg',
+      'assets/cards/act2/3d_0c_1b_3cost_2cac_a.jpg',
+      'assets/cards/act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg',
+      'assets/cards/act2/0d_2c_0b_5cost_2cac_draw3.jpg',
+      'assets/cards/act2/2d_0c_0b_4cost_2cac_copy_next.jpg',
+      'assets/cards/act2/1d_0c_0b_2cost_2cac_trash_for_2.jpg',
+      'assets/cards/act3/4d_0c_0b_8cost_1cac.jpg',
+      'assets/cards/act3/2d_3c_0b_9cost_1cac.jpg',
+      'assets/cards/act3/0d_3c_0b_7cost_1cac_a.jpg',
+      'assets/cards/act3/3d_0c_0b_6cost_1cac.jpg',
+      'assets/cards/act3/0d_4c_0b_8cost_3cac_a.jpg',
+      'assets/cards/act3/0d_3c_1b_9cost_3cac.jpg',
+      'assets/cards/act3/0d_5c_0b_11cost_3cac.jpg',
+      'assets/cards/act3/3d_3c_0b_10cost_3cac.jpg',
+      'assets/cards/starters/1d_0c_0b_1cac_a.jpg',
+      'assets/cards/starters/0d_1c_1b_3cac_a.jpg',
+      'assets/cards/starters/1d_1c_0b_2cac.jpg',
+      'assets/cards/starters/2d_0c_0b_3cac.jpg',
+      'assets/cards/backs/back-1cac.png',
+      'assets/cards/backs/back-2cac.png',
+      'assets/cards/backs/back-3cac.png',
+    ];
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    const track = document.getElementById('card-track');
+    const shuffled = shuffle(cardImages);
+    // Double the cards so the loop is seamless
+    const cards = [...shuffled, ...shuffled];
+    cards.forEach(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Game card';
+      img.draggable = false;
+      track.appendChild(img);
+    });
+  </script>
 </body>
 </html>

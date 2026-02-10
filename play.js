@@ -8,84 +8,79 @@ const CARD_IMG_PATH = 'assets/cards/';
 
 const STARTER_TEMPLATES = [
   { id: 'starter_dollar1', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 4,
-    imgs: ['starter_dollar1_a.jpg','starter_dollar1_b.jpg','starter_dollar1_c.jpg','starter_dollar1_d.jpg'] },
+    imgs: ['starters/1d_0c_0b_1cac_a.jpg','starters/1d_0c_0b_1cac_b.jpg','starters/1d_0c_0b_1cac_c.jpg','starters/1d_0c_0b_1cac_d.jpg'] },
   { id: 'starter_dollar1cow', dollars: 1, cows: 1, bandits: 0, cacti: 2, count: 1,
-    imgs: ['starter_dollar1cow.jpg'] },
+    imgs: ['starters/1d_1c_0b_2cac.jpg'] },
   { id: 'starter_bandit', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 2,
-    imgs: ['starter_bandit.jpg','starter_bandit.jpg'] },
+    imgs: ['starters/0d_0c_1b_2cac.jpg','starters/0d_0c_1b_2cac.jpg'] },
   { id: 'starter_banditcow', dollars: 0, cows: 1, bandits: 1, cacti: 3, count: 2,
-    imgs: ['act3_banditcow_a.jpg','act3_banditcow_a.jpg'] },
+    imgs: ['starters/0d_1c_1b_3cac_a.jpg','starters/0d_1c_1b_3cac_b.jpg'] },
   { id: 'starter_dollar2', dollars: 2, cows: 0, bandits: 0, cacti: 3, count: 1,
-    imgs: ['starter_dollar2.jpg'] },
+    imgs: ['starters/2d_0c_0b_3cac.jpg'] },
 ];
 
 const STORE_CARDS = [
   // --- ACT 1 ---
-  { id: 'act1_dollar1_a', img: 'act1_dollar1_a.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_dollar1_b', img: 'act1_dollar1_b.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_dollar1_c', img: 'act1_dollar1_c.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_cow_a', img: 'act1_cow_a.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_cow_b', img: 'act1_cow_b.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_dollar1cow_a', img: 'act1_dollar1cow_a.jpg', act: 1, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act1_dollar1cow_b', img: 'act1_dollar1cow_b.jpg', act: 1, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act1_dollar1cow_c', img: 'act1_dollar1cow_c.jpg', act: 1, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act1_2cows', img: 'act1_2cows.jpg', act: 1, dollars: 0, cows: 2, bandits: 0, cost: 6, cacti: 1, special: null },
-  { id: 'act1_jail_losecow_a', img: 'act1_jail_losecow_a.jpg', act: 1, dollars: 0, cows: -1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
-  { id: 'act1_jail_losecow_b', img: 'act1_jail_losecow_b.jpg', act: 1, dollars: 0, cows: -1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
-  { id: 'act1_dollar3', img: 'act1_dollar3.jpg', act: 1, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 1, special: null },
-  { id: 'act1_3cows_a', img: 'act1_3cows_a.jpg', act: 1, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
-  { id: 'act1_3cows_b', img: 'act1_3cows_b.jpg', act: 1, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
-  { id: 'act1_dollar4', img: 'act1_dollar4.jpg', act: 1, dollars: 4, cows: 0, bandits: 0, cost: 8, cacti: 1, special: null },
-  { id: 'act1_dollar2cow', img: 'act1_dollar2cow.jpg', act: 1, dollars: 2, cows: 1, bandits: 0, cost: 9, cacti: 1, special: null },
-  { id: 'act1_dollar3_losecow_a', img: 'act1_dollar3_losecow_a.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 1, special: 'lose_cow' },
-  { id: 'act1_dollar3_losecow_b', img: 'act1_dollar3_losecow_b.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 1, special: 'lose_cow' },
+  { id: 'act1_1d_3cost_1cac_a', img: 'act1/1d_0c_0b_3cost_1cac_a.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
+  { id: 'act1_1d_3cost_1cac_b', img: 'act1/1d_0c_0b_3cost_1cac_b.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
+  { id: 'act1_1d_3cost_1cac_c', img: 'act1/1d_0c_0b_3cost_1cac_c.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
+  { id: 'act1_1c_4cost_1cac_a', img: 'act1/0d_1c_0b_4cost_1cac_a.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
+  { id: 'act1_1c_4cost_1cac_b', img: 'act1/0d_1c_0b_4cost_1cac_b.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
+  { id: 'act1_1c_2cost_2cac_a', img: 'act1/0d_1c_0b_2cost_2cac_a.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
+  { id: 'act1_1c_2cost_2cac_b', img: 'act1/0d_1c_0b_2cost_2cac_b.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
+  { id: 'act1_1c_2cost_2cac_c', img: 'act1/0d_1c_0b_2cost_2cac_c.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
+  { id: 'act1_2cow_if_first', img: 'act1/0d_1c_0b_3cost_2cac_2cow_if_first.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 3, cacti: 2, special: '2cow_if_first' },
+  { id: 'act1_trash_buy_burn', img: 'act1/0d_0c_0b_2cost_2cac_trash_buy_burn_first.jpg', act: 1, dollars: 0, cows: 0, bandits: 0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
+  { id: 'act1_1d_2cost_2cac', img: 'act1/1d_0c_0b_2cost_2cac.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: null },
+  { id: 'act1_1d2c_5cost_2cac_a', img: 'act1/1d_2c_0b_5cost_2cac_a.jpg', act: 1, dollars: 1, cows: 2, bandits: 0, cost: 5, cacti: 2, special: null },
+  { id: 'act1_1d2c_5cost_2cac_b', img: 'act1/1d_2c_0b_5cost_2cac_b.jpg', act: 1, dollars: 1, cows: 2, bandits: 0, cost: 5, cacti: 2, special: null },
+  { id: 'act1_2d_3cost_2cac_a', img: 'act1/2d_0c_0b_3cost_2cac_a.jpg', act: 1, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
+  { id: 'act1_2d_3cost_2cac_b', img: 'act1/2d_0c_0b_3cost_2cac_b.jpg', act: 1, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
+  { id: 'act1_3d_losecow_a', img: 'act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 2, special: 'lose_cow' },
+  { id: 'act1_3d_losecow_b', img: 'act1/3d_0c_0b_3cost_2cac_lose_cow_b.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 2, special: 'lose_cow' },
 
   // --- ACT 2 ---
-  { id: 'act2_dollar3_losecow', img: 'act2_dollar3_losecow.jpg', act: 2, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 2, special: 'lose_cow' },
-  { id: 'act2_dollar2_a', img: 'act2_dollar2_a.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act2_dollar2_b', img: 'act2_dollar2_b.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act2_dollar1cow_a', img: 'act2_dollar1cow_a.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act2_dollar1cow_b', img: 'act2_dollar1cow_b.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act2_2bandit2cow', img: 'act2_2bandit2cow.jpg', act: 2, dollars: 0, cows: 2, bandits: 2, cost: 4, cacti: 2, special: null },
-  { id: 'act2_jail_trash_a', img: 'act2_jail_trash_a.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'trash_to_use' },
-  { id: 'act2_dollar3_a', img: 'act2_dollar3_a.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act2_dollar3_b', img: 'act2_dollar3_b.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act2_draw3_2cow', img: 'act2_draw3_2cow.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 5, cacti: 2, special: 'draw3' },
-  { id: 'act2_4cows', img: 'act2_4cows.jpg', act: 2, dollars: 0, cows: 4, bandits: 0, cost: 11, cacti: 2, special: null },
-  { id: 'act2_dollar2_c', img: 'act2_dollar2_c.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act2_dollar1_a', img: 'act2_dollar1_a.jpg', act: 2, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act2_trashbuyburn', img: 'act2_trashbuyburn.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
-  { id: 'act2_2cowif1st', img: 'act2_2cowif1st.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 3, cacti: 2, special: '2cow_if_first' },
-  { id: 'act2_dollar1_cost2', img: 'act2_dollar1_cost2.jpg', act: 2, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act2_cow_cost2_a', img: 'act2_cow_cost2_a.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act2_cow_cost2_b', img: 'act2_cow_cost2_b.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act2_cow_cost2_c', img: 'act2_cow_cost2_c.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act2_trashfor2', img: 'act2_trashfor2.jpg', act: 2, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: 'trash_for_2' },
-  { id: 'act2_dollar3_c', img: 'act2_dollar3_c.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act2_putontop', img: 'act2_putontop.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'put_on_top' },
-  { id: 'act2_trashlook3', img: 'act2_trashlook3.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'look3_rearrange' },
-  { id: 'act2_cow_cost4', img: 'act2_cow_cost4.jpg', act: 2, dollars: 0, cows: 1, bandits: 0, cost: 4, cacti: 2, special: null },
-  { id: 'act2_copynext', img: 'act2_copynext.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'copy_next' },
-  { id: 'act2_jail_trash_b', img: 'act2_jail_trash_b.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'trash_to_use' },
+  { id: 'act2_2c_4cost_2cac', img: 'act2/0d_2c_0b_4cost_2cac_a.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 4, cacti: 2, special: null },
+  { id: 'act2_2c_6cost_1cac', img: 'act2/0d_2c_0b_6cost_1cac.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 6, cacti: 1, special: null },
+  { id: 'act2_3c2b_4cost_3cac', img: 'act2/0d_3c_2b_4cost_3cac.jpg', act: 2, dollars: 0, cows: 3, bandits: 2, cost: 4, cacti: 3, special: null },
+  { id: 'act2_1d1c_4cost_1cac_a', img: 'act2/1d_1c_0b_4cost_1cac_a.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
+  { id: 'act2_1d1c_4cost_1cac_b', img: 'act2/1d_1c_0b_4cost_1cac_b.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
+  { id: 'act2_1d1c_4cost_1cac_c', img: 'act2/1d_1c_0b_4cost_1cac_c.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
+  { id: 'act2_3d_5cost_3cac_a', img: 'act2/3d_0c_0b_5cost_3cac_a.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
+  { id: 'act2_3d_5cost_3cac_b', img: 'act2/3d_0c_0b_5cost_3cac_b.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
+  { id: 'act2_3d1b_3cost_2cac', img: 'act2/3d_0c_1b_3cost_2cac_a.jpg', act: 2, dollars: 3, cows: 0, bandits: 1, cost: 3, cacti: 2, special: null },
+  { id: 'act2_trash_to_use_a', img: 'act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'trash_to_use' },
+  { id: 'act2_trash_to_use_b', img: 'act2/0d_0c_0b_5cost_2cac_trash_to_use_b.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'trash_to_use' },
+  { id: 'act2_draw3', img: 'act2/0d_2c_0b_5cost_2cac_draw3.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 5, cacti: 2, special: 'draw3' },
+  { id: 'act2_put_on_top', img: 'act2/0d_0c_0b_5cost_2cac_put_on_top.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'put_on_top' },
+  { id: 'act2_trash_for_2', img: 'act2/1d_0c_0b_2cost_2cac_trash_for_2.jpg', act: 2, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: 'trash_for_2' },
+  { id: 'act2_look3_rearrange', img: 'act2/0d_0c_0b_4cost_2cac_look3_rearrange.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'look3_rearrange' },
+  { id: 'act2_copy_next', img: 'act2/2d_0c_0b_4cost_2cac_copy_next.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'copy_next' },
+  { id: 'act2_trash_replay', img: 'act2/0d_0c_0b_5cost_2cac_trash_replay.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'replay_discard' },
+  { id: 'act2_3d_dollar1_other', img: 'act2/3d_0c_0b_6cost_2cac_dollar1_other.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 2, special: 'dollar1_other' },
 
   // --- ACT 3 ---
-  { id: 'act3_3cows_a', img: 'act3_3cows_a.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 8, cacti: 3, special: null },
-  { id: 'act3_dollar3cow', img: 'act3_dollar3cow.jpg', act: 3, dollars: 3, cows: 1, bandits: 0, cost: 10, cacti: 3, special: null },
-  { id: 'act3_4cows', img: 'act3_4cows.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 11, cacti: 3, special: null },
-  { id: 'act3_3cows_b', img: 'act3_3cows_b.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 8, cacti: 3, special: null },
-  { id: 'act3_3cows_c', img: 'act3_3cows_c.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 8, cacti: 3, special: null },
-  { id: 'act3_bandit3cow', img: 'act3_bandit3cow.jpg', act: 3, dollars: 0, cows: 3, bandits: 1, cost: 9, cacti: 3, special: null },
-  { id: 'act3_banditcow_a', img: 'act3_banditcow_a.jpg', act: 3, dollars: 0, cows: 1, bandits: 1, cost: 9, cacti: 3, special: null },
-  { id: 'act3_replay', img: 'act3_replay.jpg', act: 3, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 3, special: 'replay_discard' },
-  { id: 'act3_dollar3_a', img: 'act3_dollar3_a.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 3, special: null },
-  { id: 'act3_jailcow', img: 'act3_jailcow.jpg', act: 3, dollars: 0, cows: 1, bandits: 0, cost: 10, cacti: 3, special: 'trash_to_use' },
-  { id: 'act3_dollar3_b', img: 'act3_dollar3_b.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
-  { id: 'act3_dollar3_c', img: 'act3_dollar3_c.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
-  { id: 'act3_2cows', img: 'act3_2cows.jpg', act: 3, dollars: 0, cows: 2, bandits: 0, cost: 6, cacti: 3, special: null },
-  { id: 'act3_2cows_b', img: 'act3_2cows_b.jpg', act: 3, dollars: 0, cows: 2, bandits: 0, cost: 6, cacti: 3, special: null },
-  { id: 'act3_bandit2cow', img: 'act3_bandit2cow.jpg', act: 3, dollars: 0, cows: 2, bandits: 1, cost: 7, cacti: 3, special: null },
-  { id: 'act3_look3', img: 'act3_look3.jpg', act: 3, dollars: 0, cows: 0, bandits: 0, cost: 8, cacti: 3, special: 'look3_immediate' },
-  { id: 'act3_3cows_d', img: 'act3_3cows_d.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 9, cacti: 3, special: null },
+  { id: 'act3_1c_trash_to_use_a', img: 'act3/0d_1c_0b_5cost_1cac_trash_to_use_a.jpg', act: 3, dollars: 0, cows: 1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
+  { id: 'act3_1c_trash_to_use_b', img: 'act3/0d_1c_0b_5cost_1cac_trash_to_use_b.jpg', act: 3, dollars: 0, cows: 1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
+  { id: 'act3_4d_8cost_1cac', img: 'act3/4d_0c_0b_8cost_1cac.jpg', act: 3, dollars: 4, cows: 0, bandits: 0, cost: 8, cacti: 1, special: null },
+  { id: 'act3_2d3c_9cost_1cac', img: 'act3/2d_3c_0b_9cost_1cac.jpg', act: 3, dollars: 2, cows: 3, bandits: 0, cost: 9, cacti: 1, special: null },
+  { id: 'act3_3c_7cost_1cac_a', img: 'act3/0d_3c_0b_7cost_1cac_a.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
+  { id: 'act3_3c_7cost_1cac_b', img: 'act3/0d_3c_0b_7cost_1cac_b.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
+  { id: 'act3_3d_6cost_1cac', img: 'act3/3d_0c_0b_6cost_1cac.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 1, special: null },
+  { id: 'act3_3d_5cost_2cac_a', img: 'act3/3d_0c_0b_5cost_2cac_a.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
+  { id: 'act3_3d_5cost_2cac_b', img: 'act3/3d_0c_0b_5cost_2cac_b.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
+  { id: 'act3_3c_6cost_2cac_a', img: 'act3/0d_3c_0b_6cost_2cac_a.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 6, cacti: 2, special: null },
+  { id: 'act3_3c_6cost_2cac_b', img: 'act3/0d_3c_0b_6cost_2cac_b.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 6, cacti: 2, special: null },
+  { id: 'act3_3c1b_7cost_2cac', img: 'act3/0d_3c_1b_7cost_2cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 1, cost: 7, cacti: 2, special: null },
+  { id: 'act3_look3_immediate', img: 'act3/0d_0c_0b_8cost_2cac_look3_immediate.jpg', act: 3, dollars: 0, cows: 0, bandits: 0, cost: 8, cacti: 2, special: 'look3_immediate' },
+  { id: 'act3_4c_9cost_2cac', img: 'act3/0d_4c_0b_9cost_2cac.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 9, cacti: 2, special: null },
+  { id: 'act3_2c_trash_to_use', img: 'act3/0d_2c_0b_10cost_2cac_trash_to_use.jpg', act: 3, dollars: 0, cows: 2, bandits: 0, cost: 10, cacti: 2, special: 'trash_to_use' },
+  { id: 'act3_3c2b_4cost_3cac', img: 'act3/0d_3c_2b_4cost_3cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 2, cost: 4, cacti: 3, special: null },
+  { id: 'act3_3d3c_10cost_3cac', img: 'act3/3d_3c_0b_10cost_3cac.jpg', act: 3, dollars: 3, cows: 3, bandits: 0, cost: 10, cacti: 3, special: null },
+  { id: 'act3_4c_8cost_3cac_a', img: 'act3/0d_4c_0b_8cost_3cac_a.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 8, cacti: 3, special: null },
+  { id: 'act3_4c_8cost_3cac_b', img: 'act3/0d_4c_0b_8cost_3cac_b.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 8, cacti: 3, special: null },
+  { id: 'act3_3c1b_9cost_3cac', img: 'act3/0d_3c_1b_9cost_3cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 1, cost: 9, cacti: 3, special: null },
+  { id: 'act3_5c_11cost_3cac', img: 'act3/0d_5c_0b_11cost_3cac.jpg', act: 3, dollars: 0, cows: 5, bandits: 0, cost: 11, cacti: 3, special: null },
 ];
 
 // Build lookup
@@ -363,7 +358,7 @@ function addLog(text, className) {
 
 function cardImgSrc(card, faceUp) {
   if (!faceUp) {
-    return CARD_IMG_PATH + 'back_' + card.cacti + '.png';
+    return CARD_IMG_PATH + 'backs/back-' + card.cacti + 'cac.png';
   }
   return CARD_IMG_PATH + card.img;
 }
@@ -621,7 +616,10 @@ async function playerDraw() {
       onPlayerDrawDone();
       return;
     }
-    G.busy = true;
+    // After reshuffle, return to draw prompt so player can see the new deck
+    render();
+    startPlayerDraw();
+    return;
   }
 
   const card = drawFromDeck(player);
@@ -1469,7 +1467,7 @@ function preloadImages() {
     imgs.add(CARD_IMG_PATH + card.img);
   }
   for (let i = 1; i <= 3; i++) {
-    imgs.add(CARD_IMG_PATH + 'back_' + i + '.png');
+    imgs.add(CARD_IMG_PATH + 'backs/back-' + i + 'cac.png');
   }
   for (const src of imgs) {
     const img = new Image();

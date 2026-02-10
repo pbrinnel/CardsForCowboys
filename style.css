@@ -69,17 +69,30 @@ nav a:hover {
   color: #e8c872;
 }
 
-.hero-cards {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
+.card-slideshow {
+  overflow: hidden;
   margin-bottom: 2rem;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }
 
-.hero-cards img {
+.card-track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: scroll-cards 40s linear infinite;
+}
+
+.card-track img {
   width: 120px;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+@keyframes scroll-cards {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 /* Buttons */
@@ -252,13 +265,12 @@ footer {
     font-size: 1rem;
   }
 
-  .hero-cards {
-    gap: 0.5rem;
+  .card-track img {
+    width: 90px;
   }
 
-  .hero-cards img {
-    width: 28%;
-    max-width: 80px;
+  .card-track {
+    animation-duration: 30s;
   }
 
   .about-img {
