@@ -3,140 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cards For Cowboys - A Wild West Deck Building Card Game</title>
-  <meta name="description" content="Cards For Cowboys is a push-your-luck deck-building card game for 2-4 players set in the Wild West. Draw cards, dodge Bandits, and wrangle the most Cows to win. Play the free demo online!">
-  <meta name="keywords" content="Cards For Cowboys, deck building, card game, board game, push your luck, Wild West, tabletop game, free demo">
-  <meta name="author" content="Cards For Cowboys">
-  <link rel="canonical" href="https://cardsforcowboys.com/">
-
-  <!-- Open Graph (Facebook, LinkedIn, Discord, etc.) -->
-  <meta property="og:title" content="Cards For Cowboys - A Wild West Deck Building Card Game">
-  <meta property="og:description" content="Push your luck. Build your deck. Wrangle the most Cows. A deck-building card game for 2-4 players. Play the free demo online!">
-  <meta property="og:image" content="https://cardsforcowboys.com/assets/cards/backs/back-2cac.png">
-  <meta property="og:url" content="https://cardsforcowboys.com/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Cards For Cowboys">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Cards For Cowboys - A Wild West Deck Building Card Game">
-  <meta name="twitter:description" content="Push your luck. Build your deck. Wrangle the most Cows. Play the free demo online!">
-  <meta name="twitter:image" content="https://cardsforcowboys.com/assets/cards/backs/back-2cac.png">
-
+  <title>Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #faf3e0;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #2b1d0e;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #8b6914;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
-
-  <header>
-    <nav>
-      <a href="index.html" class="logo">Cards For Cowboys</a>
-      <ul>
-        <li><a href="play.html">Play Demo</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="rules.html">Rules</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <section class="hero">
+  <div>
     <h1>Cards For Cowboys</h1>
-    <p class="tagline">Push your luck. Build your deck. Wrangle the most Cows.</p>
-    <div class="card-slideshow">
-      <div class="card-track" id="card-track"></div>
-    </div>
-    <a href="play.html" class="btn">Play Free Demo</a>
-  </section>
-
-  <section id="about" class="about">
-    <h2>About the Game</h2>
-    <p>Every round is a gamble. Draw cards from your deck to earn Coins and Cows -- but Bandits are lurking. Flip three and you bust, losing everything you drew. Know when to push and when to stop, because the cards you don't draw are just as important as the ones you do.</p>
-    <img src="images/setup-pyramid.jpg" alt="Solitaire pyramid card store setup" class="about-img">
-    <p>Between draws, spend your Coins on powerful new cards from a shared solitaire pyramid store. Every purchase reshapes your deck, shifting the odds for future rounds. Over three Acts the stakes climb, the cards get wilder, and one wrong draw can flip the whole game.</p>
-    <div class="features">
-      <div class="feature">
-        <h3>2-4 Players</h3>
-        <p>Quick to teach, plays in 20-30 minutes. A solitaire pyramid store scales the card pool to your group size.</p>
-      </div>
-      <div class="feature">
-        <h3>Push Your Luck</h3>
-        <p>Every card you draw could be Coins, Cows, or a Bandit. Three Bandits and you bust -- but stopping early means leaving money on the table.</p>
-      </div>
-      <div class="feature">
-        <h3>Build Your Deck</h3>
-        <p>Buy cards with special abilities -- Jail a Bandit, copy your next draw, peek at upcoming cards, or trash dead weight to slim your deck.</p>
-      </div>
-      <div class="feature">
-        <h3>Read the Backs</h3>
-        <p>Every card shows its risk on its back. One cactus means safe. Three cacti means danger -- and big rewards. Use this to count your odds before you draw.</p>
-      </div>
-    </div>
-    <div class="about-cta">
-      <a href="rules.html" class="btn btn-secondary">Read the Full Rules</a>
-    </div>
-  </section>
-
-  <footer>
-    <p>&copy; 2026 Cards For Cowboys. All rights reserved.</p>
-  </footer>
-
-  <script>
-    const cardImages = [
-      'assets/cards/act1/1d_0c_0b_3cost_1cac_a.jpg',
-      'assets/cards/act1/0d_1c_0b_4cost_1cac_a.jpg',
-      'assets/cards/act1/0d_1c_0b_2cost_2cac_a.jpg',
-      'assets/cards/act1/0d_1c_0b_3cost_2cac_2cow_if_first.jpg',
-      'assets/cards/act1/0d_0c_0b_2cost_2cac_trash_buy_burn_first.jpg',
-      'assets/cards/act1/1d_2c_0b_5cost_2cac_a.jpg',
-      'assets/cards/act1/2d_0c_0b_3cost_2cac_a.jpg',
-      'assets/cards/act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg',
-      'assets/cards/act2/0d_2c_0b_4cost_2cac_a.jpg',
-      'assets/cards/act2/0d_3c_2b_4cost_3cac.jpg',
-      'assets/cards/act2/1d_1c_0b_4cost_1cac_a.jpg',
-      'assets/cards/act2/3d_0c_0b_5cost_3cac_a.jpg',
-      'assets/cards/act2/3d_0c_1b_3cost_2cac_a.jpg',
-      'assets/cards/act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg',
-      'assets/cards/act2/0d_2c_0b_5cost_2cac_draw3.jpg',
-      'assets/cards/act2/2d_0c_0b_4cost_2cac_copy_next.jpg',
-      'assets/cards/act2/1d_0c_0b_2cost_2cac_trash_for_2.jpg',
-      'assets/cards/act3/4d_0c_0b_8cost_1cac.jpg',
-      'assets/cards/act3/2d_3c_0b_9cost_1cac.jpg',
-      'assets/cards/act3/0d_3c_0b_7cost_1cac_a.jpg',
-      'assets/cards/act3/3d_0c_0b_6cost_1cac.jpg',
-      'assets/cards/act3/0d_4c_0b_8cost_3cac_a.jpg',
-      'assets/cards/act3/0d_3c_1b_9cost_3cac.jpg',
-      'assets/cards/act3/0d_5c_0b_11cost_3cac.jpg',
-      'assets/cards/act3/3d_3c_0b_10cost_3cac.jpg',
-      'assets/cards/starters/1d_0c_0b_1cac_a.jpg',
-      'assets/cards/starters/0d_1c_1b_3cac_a.jpg',
-      'assets/cards/starters/1d_1c_0b_2cac.jpg',
-      'assets/cards/starters/2d_0c_0b_3cac.jpg',
-      'assets/cards/backs/back-1cac.png',
-      'assets/cards/backs/back-2cac.png',
-      'assets/cards/backs/back-3cac.png',
-    ];
-
-    function shuffle(arr) {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    const track = document.getElementById('card-track');
-    const shuffled = shuffle(cardImages);
-    // Double the cards so the loop is seamless
-    const cards = [...shuffled, ...shuffled];
-    cards.forEach(src => {
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'Game card';
-      img.draggable = false;
-      track.appendChild(img);
-    });
-  </script>
+    <p>Coming Soon!</p>
+  </div>
 </body>
 </html>
