@@ -52,6 +52,15 @@
     </div>
   </div>
 
+  <!-- My Deck Modal -->
+  <div id="deck-modal" class="overlay hidden">
+    <div class="overlay-content deck-content">
+      <h2>My Deck</h2>
+      <button class="close-btn" onclick="closeDeck()">&times;</button>
+      <div id="deck-modal-body"></div>
+    </div>
+  </div>
+
   <!-- Special Card Modal (for choices like rearrange, replay, etc.) -->
   <div id="special-modal" class="overlay hidden">
     <div class="overlay-content" id="special-modal-content">
@@ -69,6 +78,7 @@
         <span id="round-display">Round 1</span>
       </div>
       <div class="header-right">
+        <button class="btn-small" onclick="showDeck()">My Deck</button>
         <button class="btn-small" onclick="showRules()">Rules</button>
         <button class="btn-small" onclick="restartGame()">Restart</button>
       </div>
@@ -87,7 +97,10 @@
         <span>Cows: <strong id="ai-round-cows">0</strong></span>
         <span>Bandits: <strong id="ai-round-bandits">0</strong></span>
       </div>
-      <div id="ai-hand" class="hand"></div>
+      <div class="hand-row">
+        <div id="ai-deck-preview"></div>
+        <div id="ai-hand" class="hand"></div>
+      </div>
     </div>
 
     <!-- Store Pyramid -->

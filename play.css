@@ -240,11 +240,13 @@ body {
   min-width: 0;
 }
 
-#player-deck-preview {
+#player-deck-preview,
+#ai-deck-preview {
   flex-shrink: 0;
 }
 
-#player-deck-preview .card {
+#player-deck-preview .card,
+#ai-deck-preview .card {
   opacity: 0.85;
 }
 
@@ -515,6 +517,34 @@ body {
   box-shadow: 0 0 0 3px #c0392b;
 }
 
+/* Deck viewer modal */
+.deck-content {
+  max-width: 600px;
+  text-align: left;
+}
+
+.deck-content h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.deck-content h3 {
+  color: #5c3a1e;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.deck-grid {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.deck-grid .card {
+  width: 65px;
+  height: 91px;
+}
+
 .order-number {
   position: absolute;
   top: 2px;
@@ -608,6 +638,11 @@ body {
     width: 65px;
     height: 91px;
   }
+
+  .deck-grid .card {
+    width: 55px;
+    height: 77px;
+  }
 }
 
 @media (max-width: 400px) {
@@ -674,6 +709,11 @@ body {
   .modal-cards .card {
     width: 55px;
     height: 77px;
+  }
+
+  .deck-grid .card {
+    width: 46px;
+    height: 64px;
   }
 
   .rules-body p {

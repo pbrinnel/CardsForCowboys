@@ -11,10 +11,12 @@ const STARTER_TEMPLATES = [
     imgs: ['starters/1d_0c_0b_1cac_a.jpg','starters/1d_0c_0b_1cac_b.jpg','starters/1d_0c_0b_1cac_c.jpg','starters/1d_0c_0b_1cac_d.jpg'] },
   { id: 'starter_dollar1cow', dollars: 1, cows: 1, bandits: 0, cacti: 2, count: 1,
     imgs: ['starters/1d_1c_0b_2cac.jpg'] },
-  { id: 'starter_bandit', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 2,
-    imgs: ['starters/0d_0c_1b_2cac.jpg','starters/0d_0c_1b_2cac.jpg'] },
+  { id: 'starter_bandit', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 1,
+    imgs: ['starters/0d_0c_1b_2cac.jpg'] },
   { id: 'starter_banditcow', dollars: 0, cows: 1, bandits: 1, cacti: 3, count: 2,
     imgs: ['starters/0d_1c_1b_3cac_a.jpg','starters/0d_1c_1b_3cac_b.jpg'] },
+  { id: 'starter_bandit2cow2', dollars: 0, cows: 2, bandits: 2, cacti: 3, count: 1,
+    imgs: ['starters/0d_2c_2b_3cac.jpg'] },
   { id: 'starter_dollar2', dollars: 2, cows: 0, bandits: 0, cacti: 3, count: 1,
     imgs: ['starters/2d_0c_0b_3cac.jpg'] },
 ];
@@ -417,14 +419,12 @@ function renderPlayerZone(player, prefix) {
     handEl.appendChild(el);
   }
 
-  // Deck preview (show back of next card) - human player only
-  if (prefix === 'player') {
-    renderDeckPreview(player);
-  }
+  // Deck preview (show back of next card)
+  renderDeckPreview(player, prefix);
 }
 
-function renderDeckPreview(player) {
-  const previewEl = document.getElementById('player-deck-preview');
+function renderDeckPreview(player, prefix) {
+  const previewEl = document.getElementById(prefix + '-deck-preview');
   previewEl.innerHTML = '';
 
   if (player.deck.length > 0 && G.phase === 'draw' && !player.busted && !player.stoppedDrawing) {
@@ -433,7 +433,7 @@ function renderDeckPreview(player) {
     previewEl.appendChild(el);
     const label = document.createElement('div');
     label.className = 'deck-label';
-    label.textContent = 'Next';
+    label.textContent = prefix === 'player' ? 'Next' : `Deck (${player.deck.length})`;
     previewEl.appendChild(label);
   } else if (player.deck.length > 0) {
     // Show deck pile indicator even when not drawing
@@ -1498,6 +1498,44 @@ function showRules() {
 
 function closeRules() {
   document.getElementById('rules-modal').classList.add('hidden');
+}
+
+// --- DECK VIEWER ---
+
+function showDeck() {
+  if (!G) return;
+  const player = G.players[0];
+  const allCards = [...player.deck, ...player.discard, ...player.hand];
+
+  const body = document.getElementById('deck-modal-body');
+  body.innerHTML = '';
+
+  // Group cards: starters vs purchased (by act)
+  const starters = allCards.filter(c => c.act === 0);
+  const purchased = allCards.filter(c => c.act > 0);
+
+  function renderGroup(label, cards) {
+    if (cards.length === 0) return;
+    const heading = document.createElement('h3');
+    heading.textContent = label + ' (' + cards.length + ')';
+    body.appendChild(heading);
+    const grid = document.createElement('div');
+    grid.className = 'deck-grid';
+    for (const card of cards) {
+      const el = renderCardEl(card, true);
+      grid.appendChild(el);
+    }
+    body.appendChild(grid);
+  }
+
+  renderGroup('Starter Cards', starters);
+  renderGroup('Purchased Cards', purchased);
+
+  document.getElementById('deck-modal').classList.remove('hidden');
+}
+
+function closeDeck() {
+  document.getElementById('deck-modal').classList.add('hidden');
 }
 
 // --- IMAGE PRELOADER ---
