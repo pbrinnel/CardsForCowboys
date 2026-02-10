@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rules - Cards For Cowboys</title>
+  <meta name="description" content="Official rules for Cards For Cowboys, a push-your-luck deck-building card game for 2-4 players.">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="rules-page.css">
+</head>
+<body>
+
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Cards For Cowboys</a>
+      <ul>
+        <li><a href="play.html">Play Demo</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="rules.html" class="active">Rules</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="rules-page">
+    <h1>Rules</h1>
+
+    <!-- SETUP -->
+    <section>
+      <h2>Setup</h2>
+      <ul>
+        <li>Each player begins with a personal 10-card starter deck.</li>
+        <li>For a <strong>2-player</strong> game, put away all cards marked "3+P" or "4+P".</li>
+        <li>For a <strong>3-player</strong> game, put away all cards marked "4+P".</li>
+        <li>For each Act, build a face-down solitaire pyramid with all cards for that Act (see the cowboy hat number at bottom-right = Act 1/2/3).</li>
+        <li>The top row has 1 card, and each row below adds one more:
+          <ul>
+            <li>5 rows for 2 players</li>
+            <li>6 rows for 3 players</li>
+            <li>7 rows for 4 players</li>
+          </ul>
+        </li>
+        <li>Flip the bottom row of cards face-up.</li>
+      </ul>
+    </section>
+
+    <!-- DRAW PHASE -->
+    <section>
+      <h2>Sequence of Play</h2>
+
+      <h3>1. Draw Phase</h3>
+      <ul>
+        <li>All players draw cards from the top of their personal deck, one at a time. (Players may draw simultaneously.)</li>
+        <li>Players may stop drawing at any time.</li>
+        <li>If a player draws <strong>3 or more Bandits</strong>, they <strong>bust</strong> immediately &mdash; their turn is over and all drawn cards go to the discard pile.</li>
+        <li>When your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
+      </ul>
+    </section>
+
+    <!-- BUY PHASE -->
+    <section>
+      <h3>2. Buy Phase</h3>
+      <ul>
+        <li>Players who did not bust add any Cows they drew this round to their Herd.</li>
+        <li>Each non-busted player may <strong>buy one card</strong> from the Store using the total coins drawn this round. Place the purchased card and all drawn cards into your discard pile.</li>
+        <li>When a card is purchased or burned, reveal any cards underneath that are no longer covered.</li>
+        <li>Instead of buying, a player may <strong>burn one card</strong> &mdash; removing it from the game and revealing card(s) underneath.</li>
+      </ul>
+
+      <h4>Buy Order</h4>
+      <ol>
+        <li>The player with the most $ chooses who buys first.</li>
+        <li>If tied: most Cows this round.</li>
+        <li>If still tied: most drawn cards.</li>
+        <li>If still tied: compare sell value of drawn cards in order.</li>
+        <li>If still tied: rock-paper-scissors.</li>
+      </ol>
+      <p>Buying proceeds clockwise from the first player.</p>
+
+      <ul>
+        <li>Once all eligible players have bought/passed, discard all drawn cards and begin a new round.</li>
+        <li>When the last card is bought or burned from the Store, the round ends immediately. All non-busted players still score Cows, even if they didn't get to buy.</li>
+        <li>Set up Acts 2 &amp; 3 the same way. Shuffle all discarded cards back into your draw deck.</li>
+      </ul>
+    </section>
+
+    <!-- WINNING -->
+    <section>
+      <h3>3. Winning</h3>
+      <p>The player with the most Cows in their Herd at the end of Act 3 wins!</p>
+    </section>
+
+    <!-- SYMBOLS -->
+    <section>
+      <h2>Symbols on Cards</h2>
+      <div class="symbols-grid">
+        <div class="symbol-row">
+          <img src="assets/cards/starters/1d_0c_0b_1cac_a.jpg" alt="Dollar card">
+          <p><strong>$</strong> &mdash; Value that can be spent to purchase other cards.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/cards/act1/0d_1c_0b_4cost_1cac_a.jpg" alt="Cow card">
+          <p><strong>Cow</strong> &mdash; Add the number of Cows shown to your Herd (if you don't bust).</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/cards/starters/0d_0c_1b_2cac.jpg" alt="Bandit card">
+          <p><strong>Bandit</strong> &mdash; Caution! Draw 3 Bandits and you bust immediately.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/cards/act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg" alt="Jail card">
+          <p><strong>Jail</strong> &mdash; Trash to negate 1 Bandit (doesn't count toward your total this round).</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/cards/act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg" alt="Lose cow card">
+          <p><strong>Lose Cow</strong> &mdash; Subtract 1 Cow from your Herd (if you don't bust).</p>
+        </div>
+      </div>
+
+      <h3>Card Backs &amp; Cacti</h3>
+      <div class="cacti-row">
+        <div class="cacti-item">
+          <img src="assets/cards/backs/back-1cac.png" alt="1 cactus back">
+          <span>1 Cactus = Safe</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/cards/backs/back-2cac.png" alt="2 cacti back">
+          <span>2 Cacti = Mixed</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/cards/backs/back-3cac.png" alt="3 cacti back">
+          <span>3 Cacti = High Risk / High Reward</span>
+        </div>
+      </div>
+      <p>The number of cacti is visible on both the front and back of each card.</p>
+    </section>
+
+    <!-- ERRATA -->
+    <section>
+      <h2>Errata</h2>
+      <ul>
+        <li>You may freely check the card backs in your draw pile.</li>
+        <li>You may <strong>not</strong> look through your discard pile.</li>
+        <li><strong>Trash</strong> = Return card to the game box (removed from game).</li>
+        <li><strong>Draw</strong> = Draw from the top of your personal deck.</li>
+        <li>"Return card(s) to top of deck before buy phase" means do not use any $ or Cows from that card before returning it.</li>
+        <li>"Look at top 3 cards" is done after drawing.</li>
+        <li>"Trash to Jail a Bandit" cards must be used <em>before</em> busting.</li>
+        <li>If you run out of cards in both your draw and discard pile, stop drawing for the round.</li>
+      </ul>
+    </section>
+
+    <!-- STRATEGY -->
+    <section>
+      <h2>Strategy Tips</h2>
+      <ul>
+        <li>Pay attention to card back colors:
+          <ul>
+            <li><strong>1 Cactus</strong> &mdash; generally safe (fewer or no Bandits).</li>
+            <li><strong>2 Cacti</strong> &mdash; moderate risk (may contain 1 Bandit).</li>
+            <li><strong>3 Cacti</strong> &mdash; high risk (may contain 1&ndash;2 Bandits).</li>
+          </ul>
+        </li>
+        <li>Tracking which cards you haven't drawn gives you a big edge. Start by remembering whether you've drawn your double-Bandit card yet.</li>
+        <li>Balance the risk of busting against the reward of gaining more $ and Cows.</li>
+        <li>It's not always best to draw as many cards as possible. If you have enough $ for this round, consider stopping to set up a strong hand next round.</li>
+      </ul>
+    </section>
+
+    <div class="rules-footer">
+      <a href="play.html" class="btn">Play Free Demo</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Cards For Cowboys. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

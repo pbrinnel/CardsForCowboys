@@ -554,7 +554,6 @@ function clearActions() {
 
 function startGame() {
   G = initState();
-  document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('gameover-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   setupAct(1);
@@ -1612,3 +1611,4 @@ function preloadImages() {
 
 // --- INIT ---
 preloadImages();
+startGame();

@@ -32,6 +32,8 @@ nav .logo {
   font-size: 1.4rem;
   font-weight: bold;
   letter-spacing: 1px;
+  color: #faf3e0;
+  text-decoration: none;
 }
 
 nav ul {
@@ -159,78 +161,17 @@ nav a:hover {
   color: #5c3a1e;
 }
 
-/* How to Play */
-.how-to-play {
-  padding: 4rem 2rem;
+/* About CTA */
+.about-cta {
+  margin-top: 2rem;
+}
+
+.btn-secondary {
+  background-color: #5c3a1e;
+}
+
+.btn-secondary:hover {
   background-color: #3b2314;
-  color: #faf3e0;
-  text-align: center;
-}
-
-.how-to-play h2 {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-}
-
-.steps {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.step {
-  flex: 1;
-  min-width: 220px;
-  max-width: 280px;
-  text-align: left;
-}
-
-.step h3 {
-  color: #e8c872;
-  margin-bottom: 0.5rem;
-}
-
-.step p {
-  font-size: 1rem;
-}
-
-/* Signup */
-.signup {
-  padding: 4rem 2rem;
-  text-align: center;
-}
-
-.signup h2 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.signup p {
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
-}
-
-.signup form {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.signup input[type="email"] {
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 2px solid #5c3a1e;
-  border-radius: 4px;
-  width: 280px;
-}
-
-.form-note {
-  margin-top: 1rem;
-  font-size: 0.95rem;
 }
 
 /* Footer */
@@ -277,9 +218,7 @@ footer {
     max-width: 80%;
   }
 
-  .about h2,
-  .how-to-play h2,
-  .signup h2 {
+  .about h2 {
     font-size: 1.5rem;
   }
 
@@ -287,23 +226,4 @@ footer {
     max-width: 100%;
   }
 
-  .step {
-    max-width: 100%;
-  }
-
-  .signup input[type="email"] {
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .signup form {
-    flex-direction: column;
-    align-items: center;
-    padding: 0 1rem;
-  }
-
-  .signup .btn {
-    width: 100%;
-    max-width: 280px;
-  }
 }
