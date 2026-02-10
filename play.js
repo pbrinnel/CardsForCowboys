@@ -374,6 +374,12 @@ function renderCardEl(card, faceUp, extraClasses) {
   img.alt = card.id;
   img.draggable = false;
   div.appendChild(img);
+  if (faceUp) {
+    div.onclick = (e) => {
+      e.stopPropagation();
+      showCardZoom(cardImgSrc(card, true));
+    };
+  }
   return div;
 }
 
@@ -1552,6 +1558,19 @@ function showDeck() {
 
 function closeDeck() {
   document.getElementById('deck-modal').classList.add('hidden');
+}
+
+// --- CARD ZOOM ---
+
+function showCardZoom(imgSrc) {
+  const overlay = document.getElementById('card-zoom');
+  const img = document.getElementById('card-zoom-img');
+  img.src = imgSrc;
+  overlay.classList.remove('hidden');
+}
+
+function closeCardZoom() {
+  document.getElementById('card-zoom').classList.add('hidden');
 }
 
 // --- COLLAPSIBLE SECTIONS ---
