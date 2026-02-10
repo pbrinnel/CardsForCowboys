@@ -398,14 +398,30 @@ function renderPlayerZone(player, prefix) {
   document.getElementById(prefix + '-discard-count').textContent = player.discard.length;
 
   // Round stats
-  const statsEl = document.getElementById(prefix + '-round-stats');
-  if (player.hand.length > 0 || G.phase === 'buy') {
-    statsEl.classList.remove('hidden');
-    document.getElementById(prefix + '-round-dollars').textContent = player.roundDollars;
-    document.getElementById(prefix + '-round-cows').textContent = player.roundCows;
-    document.getElementById(prefix + '-round-bandits').textContent = player.roundBandits;
+  const hasRoundStats = player.hand.length > 0 || G.phase === 'buy';
+
+  if (prefix === 'ai') {
+    // AI uses inline stats in the summary bar
+    const inlineStats = document.getElementById('ai-round-stats-inline');
+    if (hasRoundStats) {
+      inlineStats.classList.remove('hidden');
+      document.getElementById('ai-round-dollars').textContent = player.roundDollars;
+      document.getElementById('ai-round-cows').textContent = player.roundCows;
+      document.getElementById('ai-round-bandits').textContent = player.roundBandits;
+    } else {
+      inlineStats.classList.add('hidden');
+    }
   } else {
-    statsEl.classList.add('hidden');
+    // Player uses the standard round-stats bar
+    const statsEl = document.getElementById('player-round-stats');
+    if (hasRoundStats) {
+      statsEl.classList.remove('hidden');
+      document.getElementById('player-round-dollars').textContent = player.roundDollars;
+      document.getElementById('player-round-cows').textContent = player.roundCows;
+      document.getElementById('player-round-bandits').textContent = player.roundBandits;
+    } else {
+      statsEl.classList.add('hidden');
+    }
   }
 
   // Hand
@@ -1536,6 +1552,22 @@ function showDeck() {
 
 function closeDeck() {
   document.getElementById('deck-modal').classList.add('hidden');
+}
+
+// --- COLLAPSIBLE SECTIONS ---
+
+function toggleAiZone() {
+  const detail = document.getElementById('ai-detail');
+  const toggle = document.getElementById('ai-toggle');
+  detail.classList.toggle('collapsed');
+  toggle.textContent = detail.classList.contains('collapsed') ? '\u25BC' : '\u25B2';
+}
+
+function toggleLog() {
+  const detail = document.getElementById('log-detail');
+  const toggle = document.getElementById('log-toggle');
+  detail.classList.toggle('collapsed');
+  toggle.textContent = detail.classList.contains('collapsed') ? '\u25BC' : '\u25B2';
 }
 
 // --- IMAGE PRELOADER ---

@@ -84,22 +84,30 @@
       </div>
     </header>
 
-    <!-- AI Zone -->
+    <!-- AI Zone (collapsible) -->
     <div id="ai-zone">
-      <div class="zone-label">Cowboy AI</div>
-      <div class="player-info">
-        <span class="herd-display">Herd: <strong id="ai-herd">0</strong></span>
-        <span class="deck-display">Deck: <strong id="ai-deck-count">10</strong></span>
-        <span class="discard-display">Discard: <strong id="ai-discard-count">0</strong></span>
+      <div class="ai-summary" onclick="toggleAiZone()">
+        <div class="ai-summary-left">
+          <span class="zone-label" style="margin:0">Cowboy AI</span>
+          <span class="herd-display">Herd: <strong id="ai-herd">0</strong></span>
+          <span class="deck-display">Deck: <strong id="ai-deck-count">10</strong></span>
+          <span id="ai-round-stats-inline" class="ai-inline-stats hidden">
+            <span class="sep">|</span>
+            $<strong id="ai-round-dollars">0</strong>
+            <span class="ai-stat-cow">🐄<strong id="ai-round-cows">0</strong></span>
+            <span class="ai-stat-bandit">B:<strong id="ai-round-bandits">0</strong></span>
+          </span>
+        </div>
+        <span id="ai-toggle" class="collapse-toggle">&#9660;</span>
       </div>
-      <div id="ai-round-stats" class="round-stats hidden">
-        <span>$<strong id="ai-round-dollars">0</strong></span>
-        <span>Cows: <strong id="ai-round-cows">0</strong></span>
-        <span>Bandits: <strong id="ai-round-bandits">0</strong></span>
-      </div>
-      <div class="hand-row">
-        <div id="ai-deck-preview"></div>
-        <div id="ai-hand" class="hand"></div>
+      <div id="ai-detail" class="collapsible collapsed">
+        <div class="player-info">
+          <span class="discard-display">Discard: <strong id="ai-discard-count">0</strong></span>
+        </div>
+        <div class="hand-row">
+          <div id="ai-deck-preview"></div>
+          <div id="ai-hand" class="hand"></div>
+        </div>
       </div>
     </div>
 
@@ -134,10 +142,15 @@
       <div class="zone-label">You</div>
     </div>
 
-    <!-- Game Log -->
+    <!-- Game Log (collapsible, collapsed by default) -->
     <div id="log-zone">
-      <div class="zone-label">Game Log</div>
-      <div id="game-log"></div>
+      <div class="log-summary" onclick="toggleLog()">
+        <span class="zone-label" style="margin:0">Game Log</span>
+        <span id="log-toggle" class="collapse-toggle">&#9660;</span>
+      </div>
+      <div id="log-detail" class="collapsible collapsed">
+        <div id="game-log"></div>
+      </div>
     </div>
 
   </div>
