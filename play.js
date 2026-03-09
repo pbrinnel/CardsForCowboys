@@ -98,6 +98,29 @@ const MP = (() => {
     };
   }
 
+  // Push my full draw state (hand + stats) after every draw action
+  async function pushDrawState(player) {
+    if (!initialized) return;
+    await fbSet(gameRef(`drawState/${myIdx}`), {
+      hand: player.hand.map(c => c.id),
+      dollars: player.roundDollars,
+      cows: player.roundCows,
+      bandits: player.roundBandits,
+      busted: player.busted,
+      stoppedDrawing: player.stoppedDrawing,
+    });
+  }
+
+  // Live listener for opponent's draw state — calls callback on every update
+  function watchOpponentDrawState(callback) {
+    if (!initialized) return;
+    const unsub = fbOnValue(gameRef(`drawState/${oppIdx}`), (snap) => {
+      const val = snap.val();
+      if (val) callback(val);
+    });
+    unsubscribers.push(unsub);
+  }
+
   // Signal that my draw phase is done, including my round stats
   async function signalDrawDone(player) {
     if (!initialized) return;
@@ -129,6 +152,7 @@ const MP = (() => {
     if (!initialized) return;
     await fbUpdate(dbRef, {
       drawDone: { 0: null, 1: null },
+      drawState: { 0: null, 1: null },
       buyAction: null,
       buyOrder: null,
     });
@@ -227,6 +251,8 @@ const MP = (() => {
     code, role, myName, myIdx, oppIdx,
     init,
     pushMyState,
+    pushDrawState,
+    watchOpponentDrawState,
     signalDrawDone,
     waitForOpponentDraw,
     resetRound,
@@ -811,6 +837,11 @@ function clearActions() {
   document.getElementById('actions').innerHTML = '';
 }
 
+// Push local player's draw state to Firebase (MP only, no-op otherwise)
+function mpSyncDraw() {
+  if (MP.active) MP.pushDrawState(G.players[0]);
+}
+
 // --- GAME FLOW ---
 
 async function startGame() {
@@ -910,15 +941,25 @@ async function startRound() {
     // In MP, "opponent draw" is signaled via Firebase; no local AI
     startPlayerDraw();
     // Set up listener for when opponent signals done
-    MP.waitForOpponentDraw((stats) => {
-      // Apply opponent's draw results so buy-order logic sees accurate state
+    // Live updates: show opponent's hand as they draw
+    MP.watchOpponentDrawState((state) => {
       const opp = G.players[1];
-      opp.roundDollars  = stats.dollars;
-      opp.roundCows     = stats.cows;
-      opp.roundBandits  = stats.bandits;
-      opp.busted        = stats.busted;
-      G.aiDrawDone = true;
+      // Reconstruct opponent hand from card IDs
+      opp.hand = (state.hand || []).map(id => {
+        const tmpl = STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
+        return tmpl ? createCardInstance(tmpl) : null;
+      }).filter(Boolean);
+      opp.roundDollars  = state.dollars;
+      opp.roundCows     = state.cows;
+      opp.roundBandits  = state.bandits;
+      opp.busted        = state.busted;
+      opp.stoppedDrawing = state.stoppedDrawing;
       render();
+    });
+
+    MP.waitForOpponentDraw((stats) => {
+      // Final stats already applied by watchOpponentDrawState; just advance phase
+      G.aiDrawDone = true;
       checkDrawPhaseComplete();
     });
   } else {
@@ -1028,6 +1069,7 @@ async function playerDraw() {
   addLog(`You drew: ${card.id.replace(/_/g, ' ')} -${effectText}`);
 
   render();
+  mpSyncDraw();
 
   // Handle special: draw4
   if (card.special === 'draw4') {
@@ -1041,6 +1083,7 @@ async function playerDraw() {
       player.hand.push(extraCard);
       applyCardEffects(player, extraCard, false);
       render();
+      mpSyncDraw();
       // Check bust after each draw
       if (player.roundBandits >= 3) {
         await handleBust(player);
@@ -1292,6 +1335,7 @@ async function handleBust(player) {
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   setMessage(player.name + ' busted!');
   render();
+  if (player.isHuman) mpSyncDraw();
   await delay(1500);
 
   // Move all drawn cards to discard
@@ -1300,6 +1344,7 @@ async function handleBust(player) {
   player.roundDollars = 0;
   player.roundCows = 0;
   render();
+  if (player.isHuman) mpSyncDraw();
 
   if (player.isHuman) {
     onPlayerDrawDone();
@@ -1320,6 +1365,7 @@ async function handleJailPrompt(player, card) {
       player.roundCows -= card.cows;
       addLog('You used Jail to negate a bandit!', 'log-burn');
       render();
+      mpSyncDraw();
       if (player.roundBandits >= 3) {
         handleBust(player);
       } else {
@@ -1345,6 +1391,7 @@ async function handleTrashFor2(player, card) {
       if (idx >= 0) player.hand.splice(idx, 1);
       addLog('You trashed a card for $2 total.', 'log-burn');
       render();
+      mpSyncDraw();
       startPlayerDraw();
     }},
     { text: 'Keep for $1', onClick: () => {
@@ -1363,6 +1410,7 @@ async function handleTrashBuyBurnFirst(player, card) {
       player.roundCows -= card.cows;
       addLog('You trashed for first buy priority!', 'log-burn');
       render();
+      mpSyncDraw();
       startPlayerDraw();
     }},
     { text: 'Keep Card', onClick: () => {
@@ -1417,6 +1465,7 @@ async function handleLook3(player) {
           modal.classList.add('hidden');
           addLog('You rearranged the top cards of your deck.');
           render();
+          mpSyncDraw();
           resolve();
         };
         content.appendChild(btn);
@@ -1475,6 +1524,7 @@ async function handleReplayDiscard(player, card) {
           addLog(`You replayed: ${discardCard.id.replace(/_/g, ' ')}`, 'log-buy');
           modal.classList.add('hidden');
           render();
+          mpSyncDraw();
           startPlayerDraw();
         };
         cardsDiv.appendChild(el);
@@ -1512,6 +1562,7 @@ function handlePutOnTop(player, putOnTopCard) {
 
       addLog(`You returned ${card.id.replace(/_/g, ' ')} to top of deck.`);
       render();
+      mpSyncDraw();
       onPlayerDrawDone();
     };
     handEl.appendChild(el);
