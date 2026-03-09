@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Play Online - Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #2b1d0e;
+      background-color: #faf3e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-ui {
+      background: #fff8ed;
+      border-radius: 12px;
+      padding: 2.5rem;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 4px 24px rgba(43,29,14,0.15);
+      text-align: center;
+    }
+    h1 { font-size: 1.8rem; color: #5c3a1e; margin-bottom: 0.25rem; }
+    .subtitle { color: #8b6914; font-style: italic; margin-bottom: 2rem; font-size: 0.95rem; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.9rem;
+      margin-bottom: 0.75rem;
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+    }
+    .btn:hover { background: #a93226; }
+    .btn-secondary { background: #5c3a1e; }
+    .btn-secondary:hover { background: #3b2314; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #d4b896;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      background: #faf3e0;
+      color: #2b1d0e;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    input[type="text"]:focus { outline: none; border-color: #5c3a1e; }
+    .divider {
+      border: none;
+      border-top: 1px solid #d4b896;
+      margin: 1.5rem 0;
+    }
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b6914;
+      margin-bottom: 1rem;
+    }
+    .status {
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .status.info { background: #e8f4fd; color: #1a6fa8; }
+    .status.error { background: #fdecea; color: #c0392b; }
+    .status.success { background: #eafaea; color: #1f7a1f; }
+    .game-code {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #5c3a1e;
+      letter-spacing: 6px;
+      padding: 0.5rem;
+      background: #f0e2c0;
+      border-radius: 6px;
+      margin: 0.75rem 0;
+    }
+    .share-link {
+      font-size: 0.75rem;
+      color: #8b6914;
+      word-break: break-all;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .back-link {
+      display: block;
+      margin-top: 1.5rem;
+      color: #8b6914;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .back-link:hover { color: #5c3a1e; }
+    .waiting-dots::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%   { content: '.'; }
+      33%  { content: '..'; }
+      66%  { content: '...'; }
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="card-ui">
+  <h1>Cards For Cowboys</h1>
+  <p class="subtitle">Play Online</p>
+
+  <!-- Screen 1: Name entry -->
+  <div id="screen-name">
+    <p class="section-label">Enter your name to start</p>
+    <input type="text" id="name-input" placeholder="Your name" maxlength="20" autocomplete="off" />
+    <button class="btn" id="btn-create">Create Game</button>
+    <hr class="divider">
+    <p class="section-label">Or join a friend's game</p>
+    <input type="text" id="code-input" placeholder="Enter game code" maxlength="6"
+           style="text-transform:uppercase;letter-spacing:4px" autocomplete="off" />
+    <button class="btn btn-secondary" id="btn-join">Join Game</button>
+    <a href="game.html" class="back-link">← Back to home</a>
+  </div>
+
+  <!-- Screen 2: Waiting for opponent (host) -->
+  <div id="screen-waiting" class="hidden">
+    <p class="section-label">Game created! Share this code:</p>
+    <div class="game-code" id="display-code"></div>
+    <div class="share-link" id="share-link" onclick="copyShareLink()">Click to copy invite link</div>
+    <div class="status info">
+      Waiting for opponent<span class="waiting-dots"></span>
+    </div>
+    <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
+  </div>
+
+  <!-- Screen 3: Status message (joining) -->
+  <div id="screen-joining" class="hidden">
+    <div class="status info" id="join-status">Joining game<span class="waiting-dots"></span></div>
+    <button class="btn btn-secondary" id="btn-cancel-join">Cancel</button>
+  </div>
+
+  <!-- Error display -->
+  <div id="screen-error" class="hidden">
+    <div class="status error" id="error-msg"></div>
+    <button class="btn" id="btn-error-back">Try Again</button>
+  </div>
+</div>
+
+<script type="module" src="lobby.js"></script>
+</body>
+</html>

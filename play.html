@@ -14,8 +14,8 @@
     <div class="overlay-content">
       <h1 id="gameover-title">Game Over</h1>
       <div id="gameover-scores"></div>
-      <button class="btn btn-large" onclick="startGame()">Play Again</button>
-      <a href="index.html" class="back-link">Back to Home</a>
+      <button class="btn btn-large" onclick="restartGame()">Play Again</button>
+      <a href="game.html" class="back-link">Back to Home</a>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
     <div id="ai-zone">
       <div class="ai-summary" onclick="toggleAiZone()">
         <div class="ai-summary-left">
-          <span class="zone-label" style="margin:0">Cowboy AI</span>
+          <span class="zone-label" style="margin:0" id="ai-name">Cowboy AI</span>
           <span class="herd-display">Herd: <strong id="ai-herd">0</strong></span>
           <span class="deck-display">Deck: <strong id="ai-deck-count">10</strong></span>
           <span id="ai-round-stats-inline" class="ai-inline-stats hidden">

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #faf3e0;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #2b1d0e;
+    }
+    .home {
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2.8rem;
+      color: #5c3a1e;
+      margin-bottom: 0.4rem;
+    }
+    .tagline {
+      font-size: 1.1rem;
+      color: #8b6914;
+      font-style: italic;
+      margin-bottom: 2.5rem;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn {
+      display: inline-block;
+      padding: 1rem 3rem;
+      background-color: #c0392b;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      font-size: 1.1rem;
+      font-family: Georgia, 'Times New Roman', serif;
+      cursor: pointer;
+      border-radius: 6px;
+      min-width: 220px;
+      transition: background 0.15s;
+    }
+    .btn:hover { background-color: #a93226; }
+    .btn-secondary {
+      background-color: #5c3a1e;
+    }
+    .btn-secondary:hover { background-color: #3b2314; }
+    .btn-ghost {
+      background: none;
+      color: #8b6914;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid #d4b896;
+      min-width: auto;
+    }
+    .btn-ghost:hover { background: #f0e2c0; color: #5c3a1e; }
+    .divider {
+      width: 60px;
+      border: none;
+      border-top: 1px solid #d4b896;
+      margin: 0.5rem auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="home">
+    <h1>Cards For Cowboys</h1>
+    <p class="tagline">A deck-busting card game of the Wild West</p>
+    <div class="btn-group">
+      <a href="play.html" class="btn">Play vs AI</a>
+      <a href="lobby.html" class="btn btn-secondary">Play Online</a>
+      <hr class="divider">
+      <a href="rules.html" class="btn btn-ghost">Rules</a>
+    </div>
+  </div>
+</body>
+</html>

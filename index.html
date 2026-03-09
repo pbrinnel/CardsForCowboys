@@ -6,8 +6,8 @@
   <title>Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -15,23 +15,27 @@
       background-color: #faf3e0;
       font-family: Georgia, 'Times New Roman', serif;
       color: #2b1d0e;
+    }
+    .home {
       text-align: center;
+      padding: 2rem;
     }
     h1 {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
+      font-size: 2.8rem;
+      color: #5c3a1e;
+      margin-bottom: 0.4rem;
     }
-    p {
-      font-size: 1.2rem;
+    .tagline {
+      font-size: 1.1rem;
       color: #8b6914;
       font-style: italic;
     }
   </style>
 </head>
 <body>
-  <div>
+  <div class="home">
     <h1>Cards For Cowboys</h1>
-    <p>Coming Soon!</p>
+    <p class="tagline">A deck-busting card game of the Wild West</p>
   </div>
 </body>
 </html>
