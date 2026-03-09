@@ -98,19 +98,27 @@ const MP = (() => {
     };
   }
 
-  // Signal that my draw phase is done
-  async function signalDrawDone() {
+  // Signal that my draw phase is done, including my round stats
+  async function signalDrawDone(player) {
     if (!initialized) return;
-    await fbSet(gameRef(`drawDone/${myIdx}`), true);
+    await fbSet(gameRef(`drawDone/${myIdx}`), {
+      done: true,
+      dollars: player.roundDollars,
+      cows: player.roundCows,
+      bandits: player.roundBandits,
+      busted: player.busted,
+      handCount: player.hand.length,
+    });
   }
 
-  // Wait for opponent's draw done signal, then call callback
+  // Wait for opponent's draw done signal, then call callback with their stats
   function waitForOpponentDraw(callback) {
     if (!initialized) return;
     const unsub = fbOnValue(gameRef(`drawDone/${oppIdx}`), (snap) => {
-      if (snap.val() === true) {
+      const val = snap.val();
+      if (val && val.done === true) {
         unsub();
-        callback();
+        callback(val);
       }
     });
     unsubscribers.push(unsub);
@@ -120,7 +128,7 @@ const MP = (() => {
   async function resetRound() {
     if (!initialized) return;
     await fbUpdate(dbRef, {
-      drawDone: { 0: false, 1: false },
+      drawDone: { 0: null, 1: null },
       buyAction: null,
       buyOrder: null,
     });
@@ -902,8 +910,15 @@ async function startRound() {
     // In MP, "opponent draw" is signaled via Firebase; no local AI
     startPlayerDraw();
     // Set up listener for when opponent signals done
-    MP.waitForOpponentDraw(() => {
+    MP.waitForOpponentDraw((stats) => {
+      // Apply opponent's draw results so buy-order logic sees accurate state
+      const opp = G.players[1];
+      opp.roundDollars  = stats.dollars;
+      opp.roundCows     = stats.cows;
+      opp.roundBandits  = stats.bandits;
+      opp.busted        = stats.busted;
       G.aiDrawDone = true;
+      render();
       checkDrawPhaseComplete();
     });
   } else {
@@ -1089,7 +1104,7 @@ function onPlayerDrawDone() {
 
   if (MP.active) {
     setMessage('Waiting for opponent to finish drawing...');
-    MP.signalDrawDone(); // fire-and-forget is fine
+    MP.signalDrawDone(G.players[0]); // fire-and-forget is fine
   }
 
   checkDrawPhaseComplete();
