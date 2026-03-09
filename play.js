@@ -2,87 +2,98 @@
 // Cards For Cowboys - Game Engine
 // ============================================================
 
-const CARD_IMG_PATH = 'assets/cards/';
+const CARD_IMG_PATH = 'assets/cards/All-Cards/';
+const BACK_IMG_PATH = 'assets/backs/';
+const CACTI_BACK = { 1: 'Blue Inline-01.jpg', 2: 'Yellow Inline-01.jpg', 3: 'Red Inline-01.jpg' };
 
 // --- CARD DATABASE ---
 
+// --- STARTERS (IDs 26-29 River, 54-57 Rattlesnake, 93-94 Cactus) ---
+// River=1 cacti, Cactus=2 cacti, Rattlesnake=3 cacti
 const STARTER_TEMPLATES = [
-  { id: 'starter_dollar1', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 4,
-    imgs: ['starters/1d_0c_0b_1cac_a.jpg','starters/1d_0c_0b_1cac_b.jpg','starters/1d_0c_0b_1cac_c.jpg','starters/1d_0c_0b_1cac_d.jpg'] },
-  { id: 'starter_dollar1cow', dollars: 1, cows: 1, bandits: 0, cacti: 2, count: 1,
-    imgs: ['starters/1d_1c_0b_2cac.jpg'] },
-  { id: 'starter_bandit', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 1,
-    imgs: ['starters/0d_0c_1b_2cac.jpg'] },
-  { id: 'starter_banditcow', dollars: 0, cows: 1, bandits: 1, cacti: 3, count: 2,
-    imgs: ['starters/0d_1c_1b_3cac_a.jpg','starters/0d_1c_1b_3cac_b.jpg'] },
-  { id: 'starter_bandit2cow2', dollars: 0, cows: 2, bandits: 2, cacti: 3, count: 1,
-    imgs: ['starters/0d_2c_2b_3cac.jpg'] },
-  { id: 'starter_dollar2', dollars: 2, cows: 0, bandits: 0, cacti: 3, count: 1,
-    imgs: ['starters/2d_0c_0b_3cac.jpg'] },
+  { id: 'starter_26', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 1, img: 'Card_26.jpg' },
+  { id: 'starter_27', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 1, img: 'Card_27.jpg' },
+  { id: 'starter_28', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 1, img: 'Card_28.jpg' },
+  { id: 'starter_29', dollars: 1, cows: 0, bandits: 0, cacti: 1, count: 1, img: 'Card_29.jpg' },
+  { id: 'starter_54', dollars: 0, cows: 1, bandits: 1, cacti: 3, count: 1, img: 'Card_54.jpg' },
+  { id: 'starter_55', dollars: 0, cows: 1, bandits: 1, cacti: 3, count: 1, img: 'Card_55.jpg' },
+  { id: 'starter_56', dollars: 0, cows: 2, bandits: 2, cacti: 3, count: 1, img: 'Card_56.jpg' },
+  { id: 'starter_57', dollars: 2, cows: 0, bandits: 0, cacti: 3, count: 1, img: 'Card_57.jpg' },
+  { id: 'starter_93', dollars: 1, cows: 1, bandits: 0, cacti: 2, count: 1, img: 'Card_93.jpg' },
+  { id: 'starter_94', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 1, img: 'Card_94.jpg' },
 ];
 
+// --- STORE CARDS (2-player set; 3+P and 4+P cards excluded) ---
+// Derived from CSV. Color→Cacti: River(Blue)=1, Cactus(Yellow)=2, Rattlesnake(Red)=3
 const STORE_CARDS = [
-  // --- ACT 1 ---
-  { id: 'act1_1d_3cost_1cac_a', img: 'act1/1d_0c_0b_3cost_1cac_a.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_1d_3cost_1cac_b', img: 'act1/1d_0c_0b_3cost_1cac_b.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_1d_3cost_1cac_c', img: 'act1/1d_0c_0b_3cost_1cac_c.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 3, cacti: 1, special: null },
-  { id: 'act1_1c_4cost_1cac_a', img: 'act1/0d_1c_0b_4cost_1cac_a.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act1_1c_4cost_1cac_b', img: 'act1/0d_1c_0b_4cost_1cac_b.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act1_1c_2cost_2cac_a', img: 'act1/0d_1c_0b_2cost_2cac_a.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act1_1c_2cost_2cac_b', img: 'act1/0d_1c_0b_2cost_2cac_b.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act1_1c_2cost_2cac_c', img: 'act1/0d_1c_0b_2cost_2cac_c.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act1_2cow_if_first', img: 'act1/0d_1c_0b_3cost_2cac_2cow_if_first.jpg', act: 1, dollars: 0, cows: 1, bandits: 0, cost: 3, cacti: 2, special: '2cow_if_first' },
-  { id: 'act1_trash_buy_burn', img: 'act1/0d_0c_0b_2cost_2cac_trash_buy_burn_first.jpg', act: 1, dollars: 0, cows: 0, bandits: 0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
-  { id: 'act1_1d_2cost_2cac', img: 'act1/1d_0c_0b_2cost_2cac.jpg', act: 1, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: null },
-  { id: 'act1_1d2c_5cost_2cac_a', img: 'act1/1d_2c_0b_5cost_2cac_a.jpg', act: 1, dollars: 1, cows: 2, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act1_1d2c_5cost_2cac_b', img: 'act1/1d_2c_0b_5cost_2cac_b.jpg', act: 1, dollars: 1, cows: 2, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act1_2d_3cost_2cac_a', img: 'act1/2d_0c_0b_3cost_2cac_a.jpg', act: 1, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act1_2d_3cost_2cac_b', img: 'act1/2d_0c_0b_3cost_2cac_b.jpg', act: 1, dollars: 2, cows: 0, bandits: 0, cost: 3, cacti: 2, special: null },
-  { id: 'act1_3d_losecow_a', img: 'act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 2, special: 'lose_cow' },
-  { id: 'act1_3d_losecow_b', img: 'act1/3d_0c_0b_3cost_2cac_lose_cow_b.jpg', act: 1, dollars: 3, cows: -1, bandits: 0, cost: 3, cacti: 2, special: 'lose_cow' },
+  // --- ACT 1 (Tier 1, no player restriction) ---
+  // River (Blue) – 1 cacti
+  { id: 'card_8',  img: 'Card_8.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_9',  img: 'Card_9.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_10', img: 'Card_10.jpg', act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_11', img: 'Card_11.jpg', act: 1, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_12', img: 'Card_12.jpg', act: 1, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_13', img: 'Card_13.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_14', img: 'Card_14.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_15', img: 'Card_15.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_16', img: 'Card_16.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_17', img: 'Card_17.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_18', img: 'Card_18.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_40', img: 'Card_40.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_41', img: 'Card_41.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_42', img: 'Card_42.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_69', img: 'Card_69.jpg', act: 1, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_70', img: 'Card_70.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_71', img: 'Card_71.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_72', img: 'Card_72.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_73', img: 'Card_73.jpg', act: 1, dollars: 0, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
+  { id: 'card_74', img: 'Card_74.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
+  { id: 'card_75', img: 'Card_75.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
 
-  // --- ACT 2 ---
-  { id: 'act2_2c_4cost_2cac', img: 'act2/0d_2c_0b_4cost_2cac_a.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 4, cacti: 2, special: null },
-  { id: 'act2_2c_6cost_1cac', img: 'act2/0d_2c_0b_6cost_1cac.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 6, cacti: 1, special: null },
-  { id: 'act2_3c2b_4cost_3cac', img: 'act2/0d_3c_2b_4cost_3cac.jpg', act: 2, dollars: 0, cows: 3, bandits: 2, cost: 4, cacti: 3, special: null },
-  { id: 'act2_1d1c_4cost_1cac_a', img: 'act2/1d_1c_0b_4cost_1cac_a.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act2_1d1c_4cost_1cac_b', img: 'act2/1d_1c_0b_4cost_1cac_b.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act2_1d1c_4cost_1cac_c', img: 'act2/1d_1c_0b_4cost_1cac_c.jpg', act: 2, dollars: 1, cows: 1, bandits: 0, cost: 4, cacti: 1, special: null },
-  { id: 'act2_3d_5cost_3cac_a', img: 'act2/3d_0c_0b_5cost_3cac_a.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
-  { id: 'act2_3d_5cost_3cac_b', img: 'act2/3d_0c_0b_5cost_3cac_b.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 3, special: null },
-  { id: 'act2_3d1b_3cost_2cac', img: 'act2/3d_0c_1b_3cost_2cac_a.jpg', act: 2, dollars: 3, cows: 0, bandits: 1, cost: 3, cacti: 2, special: null },
-  { id: 'act2_trash_to_use_a', img: 'act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'trash_to_use' },
-  { id: 'act2_trash_to_use_b', img: 'act2/0d_0c_0b_5cost_2cac_trash_to_use_b.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'trash_to_use' },
-  { id: 'act2_draw3', img: 'act2/0d_2c_0b_5cost_2cac_draw3.jpg', act: 2, dollars: 0, cows: 2, bandits: 0, cost: 5, cacti: 2, special: 'draw3' },
-  { id: 'act2_put_on_top', img: 'act2/0d_0c_0b_5cost_2cac_put_on_top.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'put_on_top' },
-  { id: 'act2_trash_for_2', img: 'act2/1d_0c_0b_2cost_2cac_trash_for_2.jpg', act: 2, dollars: 1, cows: 0, bandits: 0, cost: 2, cacti: 2, special: 'trash_for_2' },
-  { id: 'act2_look3_rearrange', img: 'act2/0d_0c_0b_4cost_2cac_look3_rearrange.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'look3_rearrange' },
-  { id: 'act2_copy_next', img: 'act2/2d_0c_0b_4cost_2cac_copy_next.jpg', act: 2, dollars: 2, cows: 0, bandits: 0, cost: 4, cacti: 2, special: 'copy_next' },
-  { id: 'act2_trash_replay', img: 'act2/0d_0c_0b_5cost_2cac_trash_replay.jpg', act: 2, dollars: 0, cows: 0, bandits: 0, cost: 5, cacti: 2, special: 'replay_discard' },
-  { id: 'act2_3d_dollar1_other', img: 'act2/3d_0c_0b_6cost_2cac_dollar1_other.jpg', act: 2, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 2, special: 'dollar1_other' },
+  // --- ACT 2 (Tier 2, no player restriction) ---
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_44', img: 'Card_44.jpg', act: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'trash_to_use' },
+  { id: 'card_45', img: 'Card_45.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
+  { id: 'card_46', img: 'Card_46.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
+  { id: 'card_47', img: 'Card_47.jpg', act: 2, dollars: 0, cows:  3, bandits:  0, cost: 5, cacti: 3, special: 'draw4' },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_76', img: 'Card_76.jpg', act: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_for_2' },
+  { id: 'card_77', img: 'Card_77.jpg', act: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
+  { id: 'card_78', img: 'Card_78.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
+  { id: 'card_79', img: 'Card_79.jpg', act: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
+  { id: 'card_80', img: 'Card_80.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
+  { id: 'card_81', img: 'Card_81.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'put_on_top' },
+  { id: 'card_82', img: 'Card_82.jpg', act: 2, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'trash_to_use' },
+  { id: 'card_83', img: 'Card_83.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
+  { id: 'card_84', img: 'Card_84.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
 
-  // --- ACT 3 ---
-  { id: 'act3_1c_trash_to_use_a', img: 'act3/0d_1c_0b_5cost_1cac_trash_to_use_a.jpg', act: 3, dollars: 0, cows: 1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
-  { id: 'act3_1c_trash_to_use_b', img: 'act3/0d_1c_0b_5cost_1cac_trash_to_use_b.jpg', act: 3, dollars: 0, cows: 1, bandits: 0, cost: 5, cacti: 1, special: 'trash_to_use' },
-  { id: 'act3_4d_8cost_1cac', img: 'act3/4d_0c_0b_8cost_1cac.jpg', act: 3, dollars: 4, cows: 0, bandits: 0, cost: 8, cacti: 1, special: null },
-  { id: 'act3_2d3c_9cost_1cac', img: 'act3/2d_3c_0b_9cost_1cac.jpg', act: 3, dollars: 2, cows: 3, bandits: 0, cost: 9, cacti: 1, special: null },
-  { id: 'act3_3c_7cost_1cac_a', img: 'act3/0d_3c_0b_7cost_1cac_a.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
-  { id: 'act3_3c_7cost_1cac_b', img: 'act3/0d_3c_0b_7cost_1cac_b.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 7, cacti: 1, special: null },
-  { id: 'act3_3d_6cost_1cac', img: 'act3/3d_0c_0b_6cost_1cac.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 6, cacti: 1, special: null },
-  { id: 'act3_3d_5cost_2cac_a', img: 'act3/3d_0c_0b_5cost_2cac_a.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act3_3d_5cost_2cac_b', img: 'act3/3d_0c_0b_5cost_2cac_b.jpg', act: 3, dollars: 3, cows: 0, bandits: 0, cost: 5, cacti: 2, special: null },
-  { id: 'act3_3c_6cost_2cac_a', img: 'act3/0d_3c_0b_6cost_2cac_a.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 6, cacti: 2, special: null },
-  { id: 'act3_3c_6cost_2cac_b', img: 'act3/0d_3c_0b_6cost_2cac_b.jpg', act: 3, dollars: 0, cows: 3, bandits: 0, cost: 6, cacti: 2, special: null },
-  { id: 'act3_3c1b_7cost_2cac', img: 'act3/0d_3c_1b_7cost_2cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 1, cost: 7, cacti: 2, special: null },
-  { id: 'act3_look3_immediate', img: 'act3/0d_0c_0b_8cost_2cac_look3_immediate.jpg', act: 3, dollars: 0, cows: 0, bandits: 0, cost: 8, cacti: 2, special: 'look3_immediate' },
-  { id: 'act3_4c_9cost_2cac', img: 'act3/0d_4c_0b_9cost_2cac.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 9, cacti: 2, special: null },
-  { id: 'act3_2c_trash_to_use', img: 'act3/0d_2c_0b_10cost_2cac_trash_to_use.jpg', act: 3, dollars: 0, cows: 2, bandits: 0, cost: 10, cacti: 2, special: 'trash_to_use' },
-  { id: 'act3_3c2b_4cost_3cac', img: 'act3/0d_3c_2b_4cost_3cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 2, cost: 4, cacti: 3, special: null },
-  { id: 'act3_3d3c_10cost_3cac', img: 'act3/3d_3c_0b_10cost_3cac.jpg', act: 3, dollars: 3, cows: 3, bandits: 0, cost: 10, cacti: 3, special: null },
-  { id: 'act3_4c_8cost_3cac_a', img: 'act3/0d_4c_0b_8cost_3cac_a.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 8, cacti: 3, special: null },
-  { id: 'act3_4c_8cost_3cac_b', img: 'act3/0d_4c_0b_8cost_3cac_b.jpg', act: 3, dollars: 0, cows: 4, bandits: 0, cost: 8, cacti: 3, special: null },
-  { id: 'act3_3c1b_9cost_3cac', img: 'act3/0d_3c_1b_9cost_3cac.jpg', act: 3, dollars: 0, cows: 3, bandits: 1, cost: 9, cacti: 3, special: null },
-  { id: 'act3_5c_11cost_3cac', img: 'act3/0d_5c_0b_11cost_3cac.jpg', act: 3, dollars: 0, cows: 5, bandits: 0, cost: 11, cacti: 3, special: null },
+  // --- ACT 3 (Tier 3, no player restriction) ---
+  // River (Blue) – 1 cacti
+  { id: 'card_19', img: 'Card_19.jpg', act: 3, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
+  { id: 'card_20', img: 'Card_20.jpg', act: 3, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
+  { id: 'card_21', img: 'Card_21.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
+  { id: 'card_22', img: 'Card_22.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_23', img: 'Card_23.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_24', img: 'Card_24.jpg', act: 3, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
+  { id: 'card_25', img: 'Card_25.jpg', act: 3, dollars: 2, cows:  3, bandits:  0, cost:  9, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_48', img: 'Card_48.jpg', act: 3, dollars: 3, cows:  3, bandits:  0, cost: 10, cacti: 3, special: null },
+  { id: 'card_49', img: 'Card_49.jpg', act: 3, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
+  { id: 'card_50', img: 'Card_50.jpg', act: 3, dollars: 0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
+  { id: 'card_51', img: 'Card_51.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_52', img: 'Card_52.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_53', img: 'Card_53.jpg', act: 3, dollars: 0, cows:  5, bandits:  1, cost:  9, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_85', img: 'Card_85.jpg', act: 3, dollars: 0, cows:  2, bandits: -1, cost: 10, cacti: 2, special: null },
+  { id: 'card_86', img: 'Card_86.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
+  { id: 'card_87', img: 'Card_87.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
+  { id: 'card_88', img: 'Card_88.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_89', img: 'Card_89.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_90', img: 'Card_90.jpg', act: 3, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
+  { id: 'card_91', img: 'Card_91.jpg', act: 3, dollars: 0, cows:  0, bandits:  0, cost:  8, cacti: 2, special: 'look3_immediate' },
+  { id: 'card_92', img: 'Card_92.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
 ];
 
 // Build lookup
@@ -138,7 +149,7 @@ function createStarterDeck() {
   const deck = [];
   for (const tmpl of STARTER_TEMPLATES) {
     for (let i = 0; i < tmpl.count; i++) {
-      const imgFile = tmpl.imgs ? tmpl.imgs[i % tmpl.imgs.length] : tmpl.img;
+      const imgFile = tmpl.img;
       deck.push(createCardInstance(tmpl, imgFile));
     }
   }
@@ -337,8 +348,6 @@ function applyCardEffects(player, card, isFirstCard) {
     player.copyNextActive = true;
   }
 
-  // Special: lose_cow (the cow reduction happens at scoring, tracked via roundCows)
-
   // Special: trash_buy_burn_first
   if (card.special === 'trash_buy_burn_first') {
     // Will handle in UI - player can choose to trash for priority
@@ -360,7 +369,7 @@ function addLog(text, className) {
 
 function cardImgSrc(card, faceUp) {
   if (!faceUp) {
-    return CARD_IMG_PATH + 'backs/back-' + card.cacti + 'cac.png';
+    return BACK_IMG_PATH + (CACTI_BACK[card.cacti] || 'Blue Inline-01.jpg');
   }
   return CARD_IMG_PATH + card.img;
 }
@@ -700,11 +709,11 @@ async function playerDraw() {
 
   render();
 
-  // Handle special: draw3
-  if (card.special === 'draw3') {
-    addLog('Draw 3 more cards!');
+  // Handle special: draw4
+  if (card.special === 'draw4') {
+    addLog('Draw 4 more cards!');
     G.busy = false;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       await delay(400);
       if (player.busted) break;
       const extraCard = drawFromDeck(player);
@@ -813,9 +822,9 @@ async function aiDrawPhase() {
     render();
     await delay(800);
 
-    // Handle draw3
-    if (card.special === 'draw3' && !ai.busted) {
-      for (let i = 0; i < 3; i++) {
+    // Handle draw4
+    if (card.special === 'draw4' && !ai.busted) {
+      for (let i = 0; i < 4; i++) {
         if (ai.busted) break;
         const extra = drawFromDeck(ai);
         if (!extra) break;
@@ -1435,7 +1444,12 @@ function scoreCardForAI(card) {
   score -= card.bandits * 2;
   if (card.special === 'trash_to_use') score += 2;
   if (card.special === 'copy_next') score += 3;
-  if (card.special === 'draw3') score += 2;
+  if (card.special === 'draw4') score += 2;
+  if (card.special === 'look3_rearrange') score += 1.5;
+  if (card.special === 'replay_discard') score += 2;
+  if (card.special === 'put_on_top') score += 1;
+  if (card.special === 'trash_buy_burn_first') score += 1;
+  if (card.special === 'dollar1_other') score -= 0.5;
   if (card.cows < 0) score -= 2;
   if (G.currentAct === 3) score += card.cows * 2;
   return score;
@@ -1593,15 +1607,13 @@ function toggleLog() {
 function preloadImages() {
   const imgs = new Set();
   for (const tmpl of STARTER_TEMPLATES) {
-    for (const img of tmpl.imgs) {
-      imgs.add(CARD_IMG_PATH + img);
-    }
+    imgs.add(CARD_IMG_PATH + tmpl.img);
   }
   for (const card of STORE_CARDS) {
     imgs.add(CARD_IMG_PATH + card.img);
   }
-  for (let i = 1; i <= 3; i++) {
-    imgs.add(CARD_IMG_PATH + 'backs/back-' + i + 'cac.png');
+  for (const back of Object.values(CACTI_BACK)) {
+    imgs.add(BACK_IMG_PATH + back);
   }
   for (const src of imgs) {
     const img = new Image();

@@ -1,5 +1,5 @@
 'Cards For Cowboys' Rules.pdf
 .DS_Store
-.DS_Store
-.DS_Store
-.DS_Store
+sim/results/*.csv
+sim/results/*.txt
+ref/Deck Buster Cards - Cards.csv
