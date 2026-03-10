@@ -280,19 +280,24 @@
 
   <script>
     // --- AI name pools keyed by personality ---
+    // All 16 names are unique; no first-name clashes across pools.
     const AI_NAME_POOLS = {
       sheriff:  ['The Sheriff', 'Marshal Colt', 'Judge Roy', 'Deputy Dawes'],
-      wild_bill:['Wild Bill', 'Jesse James', 'Reckless Roy', 'Maverick'],
+      wild_bill:['Wild Bill', 'Jesse James', 'Reckless Red', 'Maverick'],
       rancher:  ['Cattle Kate', 'Rancher Hank', 'Big Bo', 'Prairie Pete'],
-      banker:   ['Silver Sam', 'Gold Rush Gus', 'Banker Bill', 'Honest Abe'],
+      banker:   ['Silver Sam', 'Gold Rush Gus', 'Dollar Dan', 'Honest Abe'],
     };
 
-    function pickAiPersonality() {
-      const keys = Object.keys(AI_NAME_POOLS);
-      const p = keys[Math.floor(Math.random() * keys.length)];
-      const pool = AI_NAME_POOLS[p];
-      const name = pool[Math.floor(Math.random() * pool.length)];
-      return { personality: p, name };
+    // Returns `count` AI assignments, each with a distinct personality and name.
+    // Shuffles the four personality keys and takes the first `count`, so no two
+    // AI players in the same game share a personality or a name.
+    function pickAiPersonalities(count) {
+      const keys = Object.keys(AI_NAME_POOLS).sort(() => Math.random() - 0.5);
+      return keys.slice(0, count).map(p => {
+        const pool = AI_NAME_POOLS[p];
+        const name = pool[Math.floor(Math.random() * pool.length)];
+        return { personality: p, name };
+      });
     }
 
     let playerCount = 2;
@@ -326,7 +331,7 @@
     function startGame() {
       if (playerCount === 2) {
         if (p2Type === 'ai') {
-          const ai = pickAiPersonality();
+          const [ai] = pickAiPersonalities(1);
           sessionStorage.setItem('player_count', '2');
           sessionStorage.setItem('player_defs', JSON.stringify([
             { name: 'You', isHuman: true },
@@ -338,7 +343,11 @@
         }
         return;
       }
-      // 3P / 4P: build slot defs
+      // 3P / 4P: build slot defs — pre-assign all AI personalities at once
+      const aiCount = [...Array(playerCount - 1)].filter((_, i) =>
+        slotTypes[playerCount][i + 2] !== 'human').length;
+      const aiPool = pickAiPersonalities(aiCount);
+      let aiIdx = 0;
       const defs = [{ name: 'You', isHuman: true }];
       let anyHuman = false;
       for (let i = 2; i <= playerCount; i++) {
@@ -347,7 +356,7 @@
         if (isHuman) {
           defs.push({ name: '', isHuman: true });
         } else {
-          const ai = pickAiPersonality();
+          const ai = aiPool[aiIdx++];
           defs.push({ name: ai.name, isHuman: false, personality: ai.personality });
         }
       }
