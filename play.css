@@ -352,6 +352,7 @@ body {
   background: #f0e2c0;
   border-radius: 8px;
   overflow: hidden;
+  transition: box-shadow 0.3s ease;
 }
 
 .ai-summary {
@@ -561,6 +562,35 @@ body {
   margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
+  transition: box-shadow 0.3s ease;
+}
+
+/* --- Draw-phase leader indicator: gold border + crown icon --- */
+@keyframes crownPop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60%  { transform: scale(1.35) rotate(8deg);  opacity: 1; }
+  80%  { transform: scale(0.9)  rotate(-3deg); opacity: 1; }
+  100% { transform: scale(1)    rotate(0deg);  opacity: 1; }
+}
+
+#player-zone.draw-leader,
+.opp-zone.draw-leader {
+  box-shadow: 0 0 0 2px #c9a227, 0 0 10px 3px rgba(201,162,39,0.3);
+}
+
+.draw-crown {
+  display: none;
+  font-size: 0.95rem;
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45));
+}
+
+.draw-crown.crown-visible {
+  display: inline-block;
+  animation: crownPop 0.4s ease-out both;
 }
 
 /* Game Log */

@@ -764,6 +764,38 @@ function renderCardEl(card, faceUp, extraClasses) {
   return div;
 }
 
+// Returns indices of all non-busted players currently leading on dollars
+// (then cows as tiebreak). Only meaningful during the draw phase.
+function getDrawLeaders() {
+  if (!G || G.phase !== 'draw') return [];
+  const active = G.players
+    .map((p, i) => ({ p, i }))
+    .filter(c => !c.p.busted && c.p.hand.length > 0);
+  if (active.length === 0) return [];
+  const maxDollars = Math.max(...active.map(c => c.p.roundDollars));
+  let leaders = active.filter(c => c.p.roundDollars === maxDollars);
+  if (leaders.length > 1) {
+    const maxCows = Math.max(...leaders.map(c => c.p.roundCows));
+    leaders = leaders.filter(c => c.p.roundCows === maxCows);
+  }
+  return leaders.map(c => c.i);
+}
+
+// Adds/removes .draw-leader and .crown-visible based on who is currently leading.
+function updateLeaderCrowns() {
+  const leaders = getDrawLeaders();
+  for (let i = 0; i < G.numPlayers; i++) {
+    const prefix  = i === 0 ? 'player' : 'opp-' + i;
+    const crownEl = document.getElementById(prefix + '-crown');
+    const zoneEl  = i === 0
+      ? document.getElementById('player-zone')
+      : document.getElementById('opp-zone-' + i);
+    const isLeader = leaders.includes(i);
+    if (crownEl) crownEl.classList.toggle('crown-visible', isLeader);
+    if (zoneEl)  zoneEl.classList.toggle('draw-leader', isLeader);
+  }
+}
+
 function render() {
   if (!G || G.phase === 'start') return;
 
@@ -789,6 +821,9 @@ function render() {
 
   // Pyramid
   renderPyramid();
+
+  // Leader crown (draw phase only; clears automatically when phase changes)
+  updateLeaderCrowns();
 }
 
 function renderPlayerZone(player, prefix) {
@@ -2310,7 +2345,9 @@ function ensureOpponentZone(i, container) {
   div.innerHTML =
     '<div class="ai-summary" onclick="toggleOppZone(' + i + ')">' +
       '<div class="ai-summary-left">' +
-        '<span class="zone-label" style="margin:0">' + G.players[i].name + '</span>' +
+        '<span class="zone-label" style="margin:0">' + G.players[i].name +
+          ' <span id="' + prefix + '-crown" class="draw-crown">\uD83D\uDC51</span>' +
+        '</span>' +
         '<span class="herd-display">Herd: <strong id="' + prefix + '-herd">0</strong></span>' +
         '<span class="deck-display">Deck: <strong id="' + prefix + '-deck-count">10</strong></span>' +
         '<span id="' + prefix + '-round-stats-inline" class="ai-inline-stats hidden">' +
