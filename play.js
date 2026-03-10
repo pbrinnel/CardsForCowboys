@@ -1196,7 +1196,7 @@ function getDrawButtonClass(player) {
 }
 
 function getDrawPhaseMessage(player) {
-  if (player.hand.length === 0)  return 'Draw a card or stop drawing.';
+  if (player.hand.length === 0)  return 'Draw your first card.';
   if (player.roundBandits >= 2)  return 'Two bandits in hand.';
   if (player.roundBandits === 1) return 'One bandit in hand.';
   return 'Keep drawing or bank what you have.';
@@ -1226,7 +1226,7 @@ function startPlayerDraw() {
     });
   }
 
-  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary' });
+  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0 });
 
   setMessage(getDrawPhaseMessage(player));
   setActions(buttons);
