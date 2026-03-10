@@ -1146,6 +1146,27 @@ function getSpecialLabel(special) {
   }
 }
 
+function getDrawButtonText(player) {
+  if (player.hand.length === 0) return 'Draw Card';
+  if (player.roundBandits >= 2)  return 'One more\u2026';
+  if (player.roundBandits === 1) return 'Keep going?';
+  if (player.hand.length >= 4)   return 'Push your luck\u2026';
+  return 'Draw again?';
+}
+
+function getDrawButtonClass(player) {
+  if (player.roundBandits >= 2)  return 'btn-draw btn-draw-danger';
+  if (player.roundBandits === 1) return 'btn-draw btn-draw-warn';
+  return 'btn-draw';
+}
+
+function getDrawPhaseMessage(player) {
+  if (player.hand.length === 0)  return 'Draw a card or stop drawing.';
+  if (player.roundBandits >= 2)  return 'Two bandits in hand.';
+  if (player.roundBandits === 1) return 'One bandit in hand.';
+  return 'Keep drawing or bank what you have.';
+}
+
 function startPlayerDraw() {
   G.phase = 'draw';
   const player = G.players[0];
@@ -1159,7 +1180,7 @@ function startPlayerDraw() {
 
   const activatable = getActivatableCards(player);
   const buttons = [
-    { text: 'Draw Card', onClick: () => playerDraw() },
+    { text: getDrawButtonText(player), onClick: () => playerDraw(), className: getDrawButtonClass(player) },
   ];
 
   for (const card of activatable) {
@@ -1172,7 +1193,7 @@ function startPlayerDraw() {
 
   buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary' });
 
-  setMessage('Draw a card or stop drawing.');
+  setMessage(getDrawPhaseMessage(player));
   setActions(buttons);
   render();
 }

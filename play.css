@@ -132,6 +132,75 @@ body {
   background-color: #3b2314;
 }
 
+/* --- Draw Card button: shimmer + outward glow, escalates with bandit risk --- */
+@keyframes drawShimmer {
+  0%   { background-position: 220% center; }
+  100% { background-position: -80% center; }
+}
+
+@keyframes drawGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+  50%       { box-shadow: 0 0 12px 4px rgba(192,57,43,0.4); }
+}
+
+@keyframes drawGlowWarn {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(190,95,0,0); }
+  50%       { box-shadow: 0 0 16px 6px rgba(190,95,0,0.55); }
+}
+
+@keyframes drawGlowDanger {
+  0%, 100% { box-shadow: 0 0 4px 2px rgba(192,57,43,0.25); }
+  50%       { box-shadow: 0 0 22px 10px rgba(192,57,43,0.7); }
+}
+
+/* Safe (0 bandits) — gentle red shimmer, slow pulse */
+.btn-draw {
+  background: linear-gradient(
+    105deg,
+    #c0392b 0%, #c0392b 38%,
+    #d9534f 47%, #ea7570 52%,
+    #d9534f 57%, #c0392b 66%,
+    #c0392b 100%
+  );
+  background-size: 300% auto;
+  animation: drawShimmer 3.5s linear infinite,
+             drawGlow 2.5s ease-in-out infinite;
+  transition: filter 0.15s;
+}
+
+.btn.btn-draw:hover {
+  background-color: transparent;
+  filter: brightness(1.15);
+}
+
+/* 1 bandit — amber, quicker */
+.btn-draw.btn-draw-warn {
+  background: linear-gradient(
+    105deg,
+    #9e5200 0%, #9e5200 38%,
+    #bf6d0a 47%, #d4860b 52%,
+    #bf6d0a 57%, #9e5200 66%,
+    #9e5200 100%
+  );
+  background-size: 300% auto;
+  animation: drawShimmer 2.4s linear infinite,
+             drawGlowWarn 1.8s ease-in-out infinite;
+}
+
+/* 2 bandits — dark crimson, fast urgent pulse */
+.btn-draw.btn-draw-danger {
+  background: linear-gradient(
+    105deg,
+    #6b160a 0%, #6b160a 28%,
+    #a82018 44%, #c0392b 52%,
+    #a82018 58%, #6b160a 74%,
+    #6b160a 100%
+  );
+  background-size: 300% auto;
+  animation: drawShimmer 1.6s linear infinite,
+             drawGlowDanger 1s ease-in-out infinite;
+}
+
 .btn-burn {
   background-color: #d4860b;
 }
