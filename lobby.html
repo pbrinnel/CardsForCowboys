@@ -149,16 +149,24 @@
   <h1>Cards For Cowboys</h1>
   <p class="subtitle">Play Online</p>
 
-  <!-- Screen 1: Name entry -->
+  <!-- Screen 1: Name entry (normal mode) -->
   <div id="screen-name">
-    <p class="section-label">Enter your name to start</p>
+    <p class="section-label" id="name-label">Enter your name to start</p>
     <input type="text" id="name-input" placeholder="Your name" maxlength="20" autocomplete="off" />
-    <button class="btn" id="btn-create">Create Game</button>
-    <hr class="divider">
-    <p class="section-label">Or join a friend's game</p>
-    <input type="text" id="code-input" placeholder="Enter game code" maxlength="6"
-           style="text-transform:uppercase;letter-spacing:4px" autocomplete="off" />
-    <button class="btn btn-secondary" id="btn-join">Join Game</button>
+
+    <!-- Invite mode: single Join button (shown when arriving via ?join=CODE) -->
+    <button class="btn hidden" id="btn-join-invite">Join Game</button>
+
+    <!-- Normal mode: Create + Join-by-code (hidden in invite mode) -->
+    <div id="create-join-section">
+      <button class="btn" id="btn-create">Create Game</button>
+      <hr class="divider">
+      <p class="section-label">Or join a friend's game</p>
+      <input type="text" id="code-input" placeholder="Enter game code" maxlength="6"
+             style="text-transform:uppercase;letter-spacing:4px" autocomplete="off" />
+      <button class="btn btn-secondary" id="btn-join">Join Game</button>
+    </div>
+
     <a href="game.html" class="back-link">← Back to home</a>
   </div>
 

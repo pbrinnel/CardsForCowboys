@@ -247,12 +247,18 @@ function checkUrlCode() {
   const joinCode = params.get('join');
   if (joinCode) {
     document.getElementById('code-input').value = joinCode.toUpperCase();
+    // Switch to invite mode: hide create/join UI, show a single focused join prompt
+    document.getElementById('name-label').textContent = "You've been invited — enter your name:";
+    document.getElementById('create-join-section').classList.add('hidden');
+    document.getElementById('btn-join-invite').classList.remove('hidden');
+    document.getElementById('name-input').focus();
   }
 }
 
 // --- Wire up buttons ---
 document.getElementById('btn-create').addEventListener('click', createGame);
 document.getElementById('btn-join').addEventListener('click', () => joinGame(null));
+document.getElementById('btn-join-invite').addEventListener('click', () => joinGame(null));
 document.getElementById('btn-cancel-host').addEventListener('click', cancelHost);
 document.getElementById('btn-cancel-join').addEventListener('click', cancelJoin);
 document.getElementById('btn-error-back').addEventListener('click', () => {
@@ -264,7 +270,10 @@ document.getElementById('code-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') joinGame(null);
 });
 document.getElementById('name-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('btn-create').click();
+  if (e.key !== 'Enter') return;
+  const inviteMode = !document.getElementById('btn-join-invite').classList.contains('hidden');
+  if (inviteMode) joinGame(null);
+  else document.getElementById('btn-create').click();
 });
 
 checkUrlCode();
