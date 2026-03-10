@@ -191,12 +191,10 @@
         <button class="count-btn active" id="count-2" onclick="selectCount(2)">2</button>
       </div>
       <div class="count-wrap">
-        <button class="count-btn" id="count-3" disabled>3</button>
-        <span class="soon-label">Soon</span>
+        <button class="count-btn" id="count-3" onclick="selectCount(3)">3</button>
       </div>
       <div class="count-wrap">
-        <button class="count-btn" id="count-4" disabled>4</button>
-        <span class="soon-label">Soon</span>
+        <button class="count-btn" id="count-4" onclick="selectCount(4)">4</button>
       </div>
     </div>
 
@@ -218,9 +216,50 @@
       </div>
     </div>
 
-    <!-- 3/4 player placeholder -->
-    <div id="slots-soon" class="slots hidden">
-      <p class="soon-msg">3 and 4 player support is coming soon!</p>
+    <!-- 3-player slots -->
+    <div id="slots-3" class="slots hidden">
+      <div class="slot">
+        <span class="slot-num">Player 1</span>
+        <span class="slot-you">You</span>
+      </div>
+      <div class="slot">
+        <span class="slot-num">Player 2</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active">AI</button>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="slot-num">Player 3</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active">AI</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4-player slots -->
+    <div id="slots-4" class="slots hidden">
+      <div class="slot">
+        <span class="slot-num">Player 1</span>
+        <span class="slot-you">You</span>
+      </div>
+      <div class="slot">
+        <span class="slot-num">Player 2</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active">AI</button>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="slot-num">Player 3</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active">AI</button>
+        </div>
+      </div>
+      <div class="slot">
+        <span class="slot-num">Player 4</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active">AI</button>
+        </div>
+      </div>
     </div>
 
     <button class="btn" onclick="startGame()">Start Game</button>
@@ -236,11 +275,11 @@
     function selectCount(n) {
       playerCount = n;
       [2, 3, 4].forEach(i => {
-        const btn = document.getElementById('count-' + i);
-        if (btn) btn.classList.toggle('active', i === n);
+        document.getElementById('count-' + i).classList.toggle('active', i === n);
       });
       document.getElementById('slots-2').classList.toggle('hidden', n !== 2);
-      document.getElementById('slots-soon').classList.toggle('hidden', n === 2);
+      document.getElementById('slots-3').classList.toggle('hidden', n !== 3);
+      document.getElementById('slots-4').classList.toggle('hidden', n !== 4);
     }
 
     function setP2(type) {
@@ -251,8 +290,18 @@
     }
 
     function startGame() {
-      if (playerCount !== 2) return;
-      window.location.href = p2Type === 'ai' ? 'play.html' : 'lobby.html';
+      if (playerCount === 2) {
+        window.location.href = p2Type === 'ai' ? 'play.html' : 'lobby.html';
+        return;
+      }
+      // 3P / 4P: all opponents are AI for now
+      const defs = [{ name: 'You', isHuman: true }];
+      for (let i = 2; i <= playerCount; i++) {
+        defs.push({ name: 'Cowboy ' + (i - 1), isHuman: false });
+      }
+      sessionStorage.setItem('player_count', playerCount);
+      sessionStorage.setItem('player_defs', JSON.stringify(defs));
+      window.location.href = 'play.html';
     }
   </script>
 </body>

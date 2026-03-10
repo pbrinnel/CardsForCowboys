@@ -234,13 +234,11 @@ body {
   min-width: 0;
 }
 
-#player-deck-preview,
-#ai-deck-preview {
+[id$="-deck-preview"] {
   flex-shrink: 0;
 }
 
-#player-deck-preview .card,
-#ai-deck-preview .card {
+[id$="-deck-preview"] .card {
   opacity: 0.85;
 }
 
@@ -272,11 +270,18 @@ body {
   flex-shrink: 0;
 }
 
-/* AI Zone */
-#ai-zone {
+/* Opponents Zone */
+#opponents-zone {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.opp-zone {
+  flex: 1;
+  min-width: 0;
   background: #f0e2c0;
   border-radius: 8px;
-  margin-bottom: 0.5rem;
   overflow: hidden;
 }
 
@@ -318,11 +323,11 @@ body {
   color: #c0392b;
 }
 
-#ai-detail {
+.opp-zone .collapsible {
   padding: 0 0.5rem 0.5rem;
 }
 
-#ai-detail .hand {
+.opp-zone .collapsible .hand {
   min-height: 50px;
 }
 
@@ -654,12 +659,12 @@ body {
 }
 
 /* ─── Zone ordering (flex order within #game column) ─── */
-#game-header  { order: 1; }
-#ai-zone      { order: 2; }
-#pyramid-zone { order: 3; }
-#action-zone  { order: 4; }
-#player-zone  { order: 5; }
-#log-zone     { order: 6; }
+#game-header     { order: 1; }
+#opponents-zone  { order: 2; }
+#pyramid-zone    { order: 3; }
+#action-zone     { order: 4; }
+#player-zone     { order: 5; }
+#log-zone        { order: 6; }
 
 /* ─── Pyramid: always-on vertical overlap ─── */
 #pyramid {
@@ -691,6 +696,8 @@ body {
 .pyramid-row:nth-child(3) { z-index: 3; margin-top: -55px; }
 .pyramid-row:nth-child(4) { z-index: 4; margin-top: -55px; }
 .pyramid-row:nth-child(5) { z-index: 5; margin-top: -55px; }
+.pyramid-row:nth-child(6) { z-index: 6; margin-top: -55px; }
+.pyramid-row:nth-child(7) { z-index: 7; margin-top: -55px; }
 
 /* ─── Selected card preview (buy phase) ─── */
 #card-preview {
@@ -801,8 +808,12 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     font-size: 0.75rem;
   }
 
-  #ai-detail .hand {
+  .opp-zone .collapsible .hand {
     min-height: 40px;
+  }
+
+  #opponents-zone {
+    flex-direction: column;
   }
 
   .btn, .btn-large, .btn-small {

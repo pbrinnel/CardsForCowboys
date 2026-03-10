@@ -306,79 +306,120 @@ const STARTER_TEMPLATES = [
   { id: 'starter_94', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 1, img: 'Card_94.jpg' },
 ];
 
-// --- STORE CARDS (2-player set; 3+P and 4+P cards excluded) ---
+// --- STORE CARDS (all player counts; minPlayers field controls inclusion) ---
 // Derived from CSV. Color→Cacti: River(Blue)=1, Cactus(Yellow)=2, Rattlesnake(Red)=3
+// minPlayers: 2=all, 3=3+P games, 4=4+P games only
 const STORE_CARDS = [
-  // --- ACT 1 (Tier 1, no player restriction) ---
-  // River (Blue) – 1 cacti  [IDs 8-14]
-  { id: 'card_8',  img: 'Card_8.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_9',  img: 'Card_9.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_10', img: 'Card_10.jpg', act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_11', img: 'Card_11.jpg', act: 1, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_12', img: 'Card_12.jpg', act: 1, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_13', img: 'Card_13.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_14', img: 'Card_14.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_15', img: 'Card_15.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_16', img: 'Card_16.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_17', img: 'Card_17.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_18', img: 'Card_18.jpg', act: 2, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
-  // Rattlesnake (Red) – 3 cacti
-  { id: 'card_40', img: 'Card_40.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_41', img: 'Card_41.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_42', img: 'Card_42.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
-  // Cactus (Yellow) – 2 cacti
-  { id: 'card_69', img: 'Card_69.jpg', act: 1, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_70', img: 'Card_70.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_71', img: 'Card_71.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_72', img: 'Card_72.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_73', img: 'Card_73.jpg', act: 1, dollars: 0, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
-  { id: 'card_74', img: 'Card_74.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
-  { id: 'card_75', img: 'Card_75.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
+  // --- ACT 1 (Tier 1) ---
+  // River (Blue) – 1 cacti  [2P: IDs 8-14]
+  { id: 'card_8',  img: 'Card_8.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_9',  img: 'Card_9.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_10', img: 'Card_10.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_11', img: 'Card_11.jpg', act: 1, minPlayers: 2, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_12', img: 'Card_12.jpg', act: 1, minPlayers: 2, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_13', img: 'Card_13.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_14', img: 'Card_14.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  // River (Blue) – 1 cacti  [3+P: IDs 1-2]
+  { id: 'card_1',  img: 'Card_1.jpg',  act: 1, minPlayers: 3, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_2',  img: 'Card_2.jpg',  act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  // River (Blue) – 1 cacti  [4+P: IDs 3-4]
+  { id: 'card_3',  img: 'Card_3.jpg',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_4',  img: 'Card_4.jpg',  act: 1, minPlayers: 4, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti  [2P: IDs 40-42]
+  { id: 'card_40', img: 'Card_40.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_41', img: 'Card_41.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_42', img: 'Card_42.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
+  // Rattlesnake (Red) – 3 cacti  [3+P: IDs 30-31]
+  { id: 'card_30', img: 'Card_30.jpg', act: 1, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_31', img: 'Card_31.jpg', act: 1, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  // Rattlesnake (Red) – 3 cacti  [4+P: ID 34]
+  { id: 'card_34', img: 'Card_34.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti  [2P: IDs 69-75]
+  { id: 'card_69', img: 'Card_69.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_70', img: 'Card_70.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_71', img: 'Card_71.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_72', img: 'Card_72.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_73', img: 'Card_73.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_buy_burn_first' },
+  { id: 'card_74', img: 'Card_74.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
+  { id: 'card_75', img: 'Card_75.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
+  // Cactus (Yellow) – 2 cacti  [4+P: IDs 59-62]
+  { id: 'card_59', img: 'Card_59.jpg', act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_60', img: 'Card_60.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
+  { id: 'card_61', img: 'Card_61.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
+  { id: 'card_62', img: 'Card_62.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
 
-  // --- ACT 2 (Tier 2, no player restriction) ---
-  // River (Blue) – 1 cacti  [cards 15-18 physically listed above but act:2]
-  // Rattlesnake (Red) – 3 cacti
-  { id: 'card_43', img: 'Card_43.jpg', act: 2, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
-  { id: 'card_44', img: 'Card_44.jpg', act: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'trash_to_use' },
-  { id: 'card_45', img: 'Card_45.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
-  { id: 'card_46', img: 'Card_46.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
-  { id: 'card_47', img: 'Card_47.jpg', act: 2, dollars: 0, cows:  3, bandits:  0, cost: 5, cacti: 3, special: 'draw4' },
-  // Cactus (Yellow) – 2 cacti
-  { id: 'card_76', img: 'Card_76.jpg', act: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_for_2' },
-  { id: 'card_77', img: 'Card_77.jpg', act: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
-  { id: 'card_78', img: 'Card_78.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
-  { id: 'card_79', img: 'Card_79.jpg', act: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
-  { id: 'card_80', img: 'Card_80.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
-  { id: 'card_81', img: 'Card_81.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'put_on_top' },
-  { id: 'card_82', img: 'Card_82.jpg', act: 2, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'trash_to_use' },
-  { id: 'card_83', img: 'Card_83.jpg', act: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
-  { id: 'card_84', img: 'Card_84.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
+  // --- ACT 2 (Tier 2) ---
+  // River (Blue) – 1 cacti  [2P: IDs 15-18]
+  { id: 'card_15', img: 'Card_15.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_16', img: 'Card_16.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_17', img: 'Card_17.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_18', img: 'Card_18.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti  [2P: IDs 43-47]
+  { id: 'card_43', img: 'Card_43.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
+  { id: 'card_44', img: 'Card_44.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'trash_to_use' },
+  { id: 'card_45', img: 'Card_45.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
+  { id: 'card_46', img: 'Card_46.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
+  { id: 'card_47', img: 'Card_47.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost: 5, cacti: 3, special: 'draw4' },
+  // Rattlesnake (Red) – 3 cacti  [3+P: IDs 32-33]
+  { id: 'card_32', img: 'Card_32.jpg', act: 2, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
+  { id: 'card_33', img: 'Card_33.jpg', act: 2, minPlayers: 3, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'trash_to_use' },
+  // Rattlesnake (Red) – 3 cacti  [4+P: IDs 35-37]
+  { id: 'card_35', img: 'Card_35.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
+  { id: 'card_36', img: 'Card_36.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
+  { id: 'card_37', img: 'Card_37.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti  [2P: IDs 76-84]
+  { id: 'card_76', img: 'Card_76.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_for_2' },
+  { id: 'card_77', img: 'Card_77.jpg', act: 2, minPlayers: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
+  { id: 'card_78', img: 'Card_78.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
+  { id: 'card_79', img: 'Card_79.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
+  { id: 'card_80', img: 'Card_80.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
+  { id: 'card_81', img: 'Card_81.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'put_on_top' },
+  { id: 'card_82', img: 'Card_82.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'trash_to_use' },
+  { id: 'card_83', img: 'Card_83.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
+  { id: 'card_84', img: 'Card_84.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
+  // Cactus (Yellow) – 2 cacti  [3+P: ID 58]
+  { id: 'card_58', img: 'Card_58.jpg', act: 2, minPlayers: 3, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
+  // Cactus (Yellow) – 2 cacti  [4+P: IDs 63-66]
+  { id: 'card_63', img: 'Card_63.jpg', act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_for_2' },
+  { id: 'card_64', img: 'Card_64.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 2, special: null },
+  { id: 'card_65', img: 'Card_65.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
+  { id: 'card_66', img: 'Card_66.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'trash_to_use' },
 
-  // --- ACT 3 (Tier 3, no player restriction) ---
-  // River (Blue) – 1 cacti
-  { id: 'card_19', img: 'Card_19.jpg', act: 3, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
-  { id: 'card_20', img: 'Card_20.jpg', act: 3, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
-  { id: 'card_21', img: 'Card_21.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
-  { id: 'card_22', img: 'Card_22.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
-  { id: 'card_23', img: 'Card_23.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
-  { id: 'card_24', img: 'Card_24.jpg', act: 3, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
-  { id: 'card_25', img: 'Card_25.jpg', act: 3, dollars: 2, cows:  3, bandits:  0, cost:  9, cacti: 1, special: null },
-  // Rattlesnake (Red) – 3 cacti
-  { id: 'card_48', img: 'Card_48.jpg', act: 3, dollars: 3, cows:  3, bandits:  0, cost: 10, cacti: 3, special: null },
-  { id: 'card_49', img: 'Card_49.jpg', act: 3, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
-  { id: 'card_50', img: 'Card_50.jpg', act: 3, dollars: 0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
-  { id: 'card_51', img: 'Card_51.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
-  { id: 'card_52', img: 'Card_52.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
-  { id: 'card_53', img: 'Card_53.jpg', act: 3, dollars: 0, cows:  5, bandits:  1, cost:  9, cacti: 3, special: null },
-  // Cactus (Yellow) – 2 cacti
-  { id: 'card_85', img: 'Card_85.jpg', act: 3, dollars: 0, cows:  2, bandits: -1, cost: 10, cacti: 2, special: null },
-  { id: 'card_86', img: 'Card_86.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
-  { id: 'card_87', img: 'Card_87.jpg', act: 3, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
-  { id: 'card_88', img: 'Card_88.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
-  { id: 'card_89', img: 'Card_89.jpg', act: 3, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
-  { id: 'card_90', img: 'Card_90.jpg', act: 3, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
-  { id: 'card_91', img: 'Card_91.jpg', act: 3, dollars: 0, cows:  0, bandits:  0, cost:  8, cacti: 2, special: 'look3_immediate' },
-  { id: 'card_92', img: 'Card_92.jpg', act: 3, dollars: 0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
+  // --- ACT 3 (Tier 3) ---
+  // River (Blue) – 1 cacti  [2P: IDs 19-25]
+  { id: 'card_19', img: 'Card_19.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
+  { id: 'card_20', img: 'Card_20.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
+  { id: 'card_21', img: 'Card_21.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
+  { id: 'card_22', img: 'Card_22.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_23', img: 'Card_23.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_24', img: 'Card_24.jpg', act: 3, minPlayers: 2, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
+  { id: 'card_25', img: 'Card_25.jpg', act: 3, minPlayers: 2, dollars: 2, cows:  3, bandits:  0, cost:  9, cacti: 1, special: null },
+  // River (Blue) – 1 cacti  [4+P: IDs 5-7]
+  { id: 'card_5',  img: 'Card_5.jpg',  act: 3, minPlayers: 4, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
+  { id: 'card_6',  img: 'Card_6.jpg',  act: 3, minPlayers: 4, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_7',  img: 'Card_7.jpg',  act: 3, minPlayers: 4, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti  [2P: IDs 48-53]
+  { id: 'card_48', img: 'Card_48.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  3, bandits:  0, cost: 10, cacti: 3, special: null },
+  { id: 'card_49', img: 'Card_49.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
+  { id: 'card_50', img: 'Card_50.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
+  { id: 'card_51', img: 'Card_51.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_52', img: 'Card_52.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_53', img: 'Card_53.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  1, cost:  9, cacti: 3, special: null },
+  // Rattlesnake (Red) – 3 cacti  [4+P: IDs 38-39]
+  { id: 'card_38', img: 'Card_38.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
+  { id: 'card_39', img: 'Card_39.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti  [2P: IDs 85-92]
+  { id: 'card_85', img: 'Card_85.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  2, bandits: -1, cost: 10, cacti: 2, special: null },
+  { id: 'card_86', img: 'Card_86.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
+  { id: 'card_87', img: 'Card_87.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
+  { id: 'card_88', img: 'Card_88.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_89', img: 'Card_89.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_90', img: 'Card_90.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
+  { id: 'card_91', img: 'Card_91.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost:  8, cacti: 2, special: 'look3_immediate' },
+  { id: 'card_92', img: 'Card_92.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
+  // Cactus (Yellow) – 2 cacti  [4+P: IDs 67-68]
+  { id: 'card_67', img: 'Card_67.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
+  { id: 'card_68', img: 'Card_68.jpg', act: 3, minPlayers: 4, dollars: 3, cows:  2, bandits:  0, cost:  8, cacti: 2, special: null },
 ];
 
 // Build lookup
@@ -386,7 +427,7 @@ const CARD_DB = {};
 STORE_CARDS.forEach(c => CARD_DB[c.id] = c);
 
 function getActPool(act) {
-  return STORE_CARDS.filter(c => c.act === act);
+  return STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
 }
 
 // --- UTILITY ---
@@ -460,9 +501,10 @@ function createPlayer(name, isHuman) {
 }
 
 
-function initState(players) {
+function initState(numPlayers, players) {
   uidCounter = 0;
   return {
+    numPlayers: numPlayers || 2,
     currentAct: 1,
     phase: 'start',
     roundNumber: 1,
@@ -471,6 +513,7 @@ function initState(players) {
     log: [],
     buyOrder: [],
     currentBuyerIdx: 0,
+    drawsDone: {},
     selectedPyramidCard: null,
     busy: false,
   };
@@ -480,8 +523,8 @@ function initState(players) {
 
 // Build pyramid from act pool; if cardIds provided (MP), use that fixed order
 function buildPyramid(act, cardIds) {
-  const numRows = 5; // 2 players
-  const needed = (numRows * (numRows + 1)) / 2; // 15
+  const numRows = G.numPlayers + 3; // 2P→5, 3P→6, 4P→7
+  const needed = (numRows * (numRows + 1)) / 2;
 
   let selected;
   if (cardIds) {
@@ -646,6 +689,13 @@ function applyCardEffects(player, card, isFirstCard) {
     // Will handle in UI - player can choose to trash for priority
   }
 
+  // Special: dollar1_other — gives $1 to each other player
+  if (card.special === 'dollar1_other' && G) {
+    for (let i = 0; i < G.numPlayers; i++) {
+      if (G.players[i] !== player) G.players[i].roundDollars += 1;
+    }
+  }
+
   return { dollars, cows, bandits };
 }
 
@@ -702,7 +752,12 @@ function render() {
 
   // Players
   renderPlayerZone(G.players[0], 'player');
-  renderPlayerZone(G.players[1], 'ai');
+  const oz = document.getElementById('opponents-zone');
+  oz.innerHTML = '';
+  for (let i = 1; i < G.numPlayers; i++) {
+    ensureOpponentZone(i, oz);
+    renderPlayerZone(G.players[i], 'opp-' + i);
+  }
 
   // Pyramid
   renderPyramid();
@@ -716,14 +771,14 @@ function renderPlayerZone(player, prefix) {
   // Round stats
   const hasRoundStats = player.hand.length > 0 || G.phase === 'buy';
 
-  if (prefix === 'ai') {
-    // AI uses inline stats in the summary bar
-    const inlineStats = document.getElementById('ai-round-stats-inline');
+  if (prefix !== 'player') {
+    // Opponents use inline stats in their summary bar
+    const inlineStats = document.getElementById(prefix + '-round-stats-inline');
     if (hasRoundStats) {
       inlineStats.classList.remove('hidden');
-      document.getElementById('ai-round-dollars').textContent = player.roundDollars;
-      document.getElementById('ai-round-cows').textContent = player.roundCows;
-      document.getElementById('ai-round-bandits').textContent = player.roundBandits;
+      document.getElementById(prefix + '-round-dollars').textContent = player.roundDollars;
+      document.getElementById(prefix + '-round-cows').textContent = player.roundCows;
+      document.getElementById(prefix + '-round-bandits').textContent = player.roundBandits;
     } else {
       inlineStats.classList.add('hidden');
     }
@@ -903,12 +958,17 @@ async function startGame() {
     // MP.myIdx tracks actual host/guest index for Firebase sync
     const myPlayer  = createPlayer(MP.myName, true);
     const oppPlayer = createPlayer(oppName, false);
-    G = initState([myPlayer, oppPlayer]);
-    // Rename the 'ai' zone label to show opponent name
-    const aiNameEl = document.getElementById('ai-name');
-    if (aiNameEl) aiNameEl.textContent = oppName;
+    G = initState(2, [myPlayer, oppPlayer]);
   } else {
-    G = initState();
+    // Read player config from sessionStorage (set by game.html for 3P/4P)
+    const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
+    const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
+    if (storedDefs && storedDefs.length >= 2) {
+      const players = storedDefs.map(d => createPlayer(d.name, d.isHuman));
+      G = initState(storedCount, players);
+    } else {
+      G = initState(2);
+    }
   }
 
   await setupAct(1);
@@ -970,8 +1030,8 @@ async function startRound() {
   }
   G.selectedPyramidCard = null;
   G.phase = 'draw';
-  G.playerDrawDone = false;
-  G.aiDrawDone = false;
+  G.drawsDone = {};
+  for (let i = 0; i < G.numPlayers; i++) G.drawsDone[i] = false;
 
   addLog(`Round ${G.roundNumber} - Draw Phase`);
   render();
@@ -1004,13 +1064,15 @@ async function startRound() {
 
     MP.waitForOpponentDraw((stats) => {
       // Final stats already applied by watchOpponentDrawState; just advance phase
-      G.aiDrawDone = true;
+      G.drawsDone[1] = true;
       checkDrawPhaseComplete();
     });
   } else {
-    // Start both players drawing simultaneously
+    // Start all players drawing simultaneously
     startPlayerDraw();
-    G.aiDrawPromise = aiDrawPhase();
+    for (let i = 1; i < G.numPlayers; i++) {
+      aiDrawPhase(i); // fire-and-forget, each runs independently
+    }
   }
 }
 
@@ -1186,7 +1248,7 @@ function playerStopDraw() {
 }
 
 function onPlayerDrawDone() {
-  G.playerDrawDone = true;
+  G.drawsDone[0] = true;
   clearActions();
   render();
 
@@ -1199,24 +1261,29 @@ function onPlayerDrawDone() {
 }
 
 function checkDrawPhaseComplete() {
-  if (G.playerDrawDone && G.aiDrawDone) {
+  const allDone = G.players.every((_, i) => G.drawsDone[i]);
+  if (allDone) {
     onDrawPhaseComplete();
-  } else if (G.playerDrawDone) {
-    setMessage(MP.active ? 'Waiting for opponent to finish drawing...' : 'Waiting for AI to finish drawing...');
+  } else if (G.drawsDone[0]) {
+    const waiting = G.numPlayers - 1;
+    setMessage(MP.active
+      ? 'Waiting for opponent to finish drawing...'
+      : `Waiting for ${waiting > 1 ? 'opponents' : 'AI'} to finish drawing...`);
   }
 }
 
 // --- AI DRAW PHASE ---
 
-async function aiDrawPhase() {
-  const ai = G.players[1];
+async function aiDrawPhase(playerIdx) {
+  const ai = G.players[playerIdx];
+  const aiLabel = ai.name;
 
-  await delay(500); // slight stagger so first draws don't land at exact same instant
+  await delay(400 + playerIdx * 150); // slight stagger per AI
 
   if (ai.deck.length === 0 && ai.discard.length === 0) {
     ai.stoppedDrawing = true;
-    addLog('AI has no cards to draw.');
-    G.aiDrawDone = true;
+    addLog(`${aiLabel} has no cards to draw.`);
+    G.drawsDone[playerIdx] = true;
     checkDrawPhaseComplete();
     return;
   }
@@ -1232,7 +1299,7 @@ async function aiDrawPhase() {
     ai.hand.push(card);
     applyCardEffects(ai, card, isFirst);
 
-    addLog(`AI drew: ${card.id.replace(/_/g, ' ')} (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
+    addLog(`${aiLabel} drew: ${card.id.replace(/_/g, ' ')} (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
     render();
     await delay(800);
 
@@ -1261,7 +1328,7 @@ async function aiDrawPhase() {
         ai.hand.splice(idx, 1);
         ai.roundBandits = Math.max(0, ai.roundBandits - 1);
         ai.roundCows -= card.cows;
-        addLog('AI used Jail to negate a bandit!', 'log-burn');
+        addLog(`${aiLabel} used Jail to negate a bandit!`, 'log-burn');
         render();
         await delay(500);
       }
@@ -1274,7 +1341,7 @@ async function aiDrawPhase() {
         ai.roundDollars += 1;
         const idx = ai.hand.indexOf(card);
         if (idx >= 0) ai.hand.splice(idx, 1);
-        addLog('AI trashed a card for $2.');
+        addLog(`${aiLabel} trashed a card for $2.`);
         render();
       }
     }
@@ -1286,7 +1353,7 @@ async function aiDrawPhase() {
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
       ai.deck.unshift(...top3);
-      addLog('AI trashed to rearrange top cards.', 'log-burn');
+      addLog(`${aiLabel} trashed to rearrange top cards.`, 'log-burn');
       render();
     }
 
@@ -1295,7 +1362,7 @@ async function aiDrawPhase() {
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
       ai.deck.unshift(...top3);
-      addLog('AI rearranged top cards.');
+      addLog(`${aiLabel} rearranged top cards.`);
     }
 
     // Check bust
@@ -1307,13 +1374,13 @@ async function aiDrawPhase() {
     // AI decision to continue
     if (!aiShouldDraw(ai)) {
       ai.stoppedDrawing = true;
-      addLog('AI stopped drawing.');
+      addLog(`${aiLabel} stopped drawing.`);
     }
 
     await delay(400); // pace between draws
   }
 
-  G.aiDrawDone = true;
+  G.drawsDone[playerIdx] = true;
   render();
   checkDrawPhaseComplete();
 }
@@ -1626,129 +1693,158 @@ function handlePutOnTop(player, putOnTopCard) {
 function onDrawPhaseComplete() {
   G.phase = 'buy';
 
-  const me = G.players[0];   // local human
-  const opp = G.players[1];  // opponent (AI or remote)
-
-  // Check hasBuyBurnFirst (special card overrides)
-  if (me.hasBuyBurnFirst && !me.busted) {
-    G.buyOrder = [0, 1];
-    addLog('--- Buy Phase --- (You have first buy priority!)');
-    G.currentBuyerIdx = 0;
-    render();
-    startBuyPhaseMP([0, 1]);
-    return;
-  } else if (opp.hasBuyBurnFirst && !opp.busted) {
-    G.buyOrder = [1, 0];
-    addLog(`--- Buy Phase --- (${opp.name} has first buy priority!)`);
-    G.currentBuyerIdx = 0;
-    render();
-    startBuyPhaseMP([1, 0]);
+  // Check hasBuyBurnFirst (special card overrides normal order)
+  const priorityIdx = G.players.findIndex((p, i) => p.hasBuyBurnFirst && !p.busted);
+  if (priorityIdx >= 0) {
+    const lbl = priorityIdx === 0 ? 'You have' : `${G.players[priorityIdx].name} has`;
+    addLog(`--- Buy Phase --- (${lbl} first buy priority!)`);
+    startBuyPhase(priorityIdx);
     return;
   }
 
-  // Determine who CHOOSES the buy order, with tiebreaker chain
-  let chooserIsMe;
-  let reason = '';
-  let tieLog = null; // set when a tiebreaker beyond $ is used
+  // N-player tiebreaker: narrow candidates to a single winner
+  let candidates = G.players.map((p, i) => ({p, i})).filter(c => !c.p.busted);
 
-  if (me.busted && !opp.busted) {
-    chooserIsMe = false;
-    reason = "opponent didn't bust";
-  } else if (opp.busted && !me.busted) {
-    chooserIsMe = true;
-    reason = "you didn't bust";
-  } else if (me.busted && opp.busted) {
-    // Both busted, no meaningful choice
-    G.buyOrder = [0, 1];
-    G.currentBuyerIdx = 0;
-    addLog('--- Buy Phase --- (Both busted!)');
-    render();
-    startBuyPhaseMP([0, 1]);
+  if (candidates.length === 0) {
+    addLog(`--- Buy Phase --- (All players busted!)`);
+    startBuyPhase(0);
     return;
-  } else if (me.roundDollars !== opp.roundDollars) {
-    chooserIsMe = me.roundDollars > opp.roundDollars;
-    reason = `most $ ($${me.roundDollars} vs $${opp.roundDollars})`;
-  } else if (me.roundCows !== opp.roundCows) {
-    chooserIsMe = me.roundCows > opp.roundCows;
-    reason = 'most cows';
-    tieLog = `Tied on $${me.roundDollars} — most cows breaks tie (${Math.max(me.roundCows, opp.roundCows)} vs ${Math.min(me.roundCows, opp.roundCows)})`;
-  } else if (me.hand.length !== opp.hand.length) {
-    chooserIsMe = me.hand.length > opp.hand.length;
-    reason = 'most cards drawn';
-    tieLog = `Tied on $${me.roundDollars} and cows — most cards breaks tie (${Math.max(me.hand.length, opp.hand.length)} vs ${Math.min(me.hand.length, opp.hand.length)})`;
-  } else {
-    // Card-by-card cost tiebreaker: compare each drawn card in order
-    const maxLen = Math.max(me.hand.length, opp.hand.length);
+  }
+
+  let reason = '';
+  let tieLog = null;
+
+  function narrowBy(scoreFn) {
+    if (candidates.length <= 1) return;
+    const best = Math.max(...candidates.map(scoreFn));
+    candidates = candidates.filter(c => scoreFn(c) === best);
+  }
+
+  const preBust = candidates.length;
+  // Track $ leader before narrowing
+  const maxDollars = Math.max(...candidates.map(c => c.p.roundDollars));
+  narrowBy(c => c.p.roundDollars);
+  if (candidates.length < preBust || candidates.length === 1) {
+    reason = `most $ ($${maxDollars})`;
+  }
+
+  if (candidates.length > 1) {
+    const prev = candidates.slice();
+    const maxCows = Math.max(...candidates.map(c => c.p.roundCows));
+    narrowBy(c => c.p.roundCows);
+    if (candidates.length < prev.length) {
+      tieLog = `Tied on $${maxDollars} — most cows breaks tie`;
+      reason = 'most cows';
+    }
+  }
+
+  if (candidates.length > 1) {
+    const prev = candidates.slice();
+    const maxCards = Math.max(...candidates.map(c => c.p.hand.length));
+    narrowBy(c => c.p.hand.length);
+    if (candidates.length < prev.length) {
+      tieLog = `Tied on $ and cows — most cards drawn breaks tie`;
+      reason = 'most cards drawn';
+    }
+  }
+
+  if (candidates.length > 1) {
     const ordinal = n => n === 0 ? '1st' : n === 1 ? '2nd' : n === 2 ? '3rd' : `${n+1}th`;
+    const maxLen = Math.max(...candidates.map(c => c.p.hand.length));
     let resolved = false;
     for (let i = 0; i < maxLen; i++) {
-      const myCost = (me.hand[i] && me.hand[i].cost) || 0;
-      const oppCost = (opp.hand[i] && opp.hand[i].cost) || 0;
-      if (myCost !== oppCost) {
-        chooserIsMe = myCost > oppCost;
+      const prev = candidates.slice();
+      narrowBy(c => (c.p.hand[i] && c.p.hand[i].cost) || 0);
+      if (candidates.length < prev.length) {
+        tieLog = `Tied on $, cows, and cards — ${ordinal(i)} card cost breaks tie`;
         reason = `${ordinal(i)} card cost`;
-        tieLog = `Tied on $, cows, and cards — ${ordinal(i)} card cost breaks tie ($${Math.max(myCost, oppCost)} vs $${Math.min(myCost, oppCost)})`;
         resolved = true;
         break;
       }
     }
     if (!resolved) {
-      chooserIsMe = MP.active ? (MP.role === 'host') : Math.random() < 0.5;
-      reason = 'random';
+      candidates = [candidates[MP.active ? (MP.role === 'host' ? 0 : candidates.length - 1) : Math.floor(Math.random() * candidates.length)]];
       tieLog = 'Complete tie — buy order decided randomly';
+      reason = 'random';
     }
   }
 
-  const oppLabel = MP.active ? opp.name : 'AI';
-  const winnerLabel = chooserIsMe ? 'You' : oppLabel;
-
+  const winner = candidates[0];
   if (tieLog) addLog(tieLog, 'log-tie');
 
-  if (chooserIsMe) {
+  // Non-busted player indices available for "who goes first" choice
+  const nonBusted = G.players.map((p, i) => ({p, i})).filter(c => !c.p.busted).map(c => c.i);
+
+  if (winner.i === 0) {
+    // Human wins the tiebreaker — they choose
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
-    setMessage(`Buy Phase — ${reason}. Who buys first?`);
-    setActions([
-      { text: 'I Buy First', onClick: () => {
-        addLog('You chose to buy first.');
-        startBuyPhaseMP([0, 1]);
-      }},
-      { text: `${oppLabel} Buys First`, onClick: () => {
-        addLog(`You chose ${oppLabel} to buy first.`);
-        startBuyPhaseMP([1, 0]);
-      }, className: 'btn-secondary' },
-    ]);
-    render();
-  } else {
-    if (!MP.active) {
-      // AI always buys first when it has the choice
-      addLog(`--- Buy Phase --- ${oppLabel} chooses buy order (${reason}) and buys first.`);
-      startBuyPhaseMP([1, 0]);
+    if (G.numPlayers === 2 && MP.active) {
+      // 2P MP: show 2-button UI, push result to Firebase
+      const oppLabel = G.players[1].name;
+      setMessage(`Buy Phase — ${reason}. Who buys first?`);
+      setActions([
+        { text: 'I Buy First', onClick: () => {
+          addLog('You chose to buy first.');
+          startBuyPhaseMP([0, 1]);
+        }},
+        { text: `${oppLabel} Buys First`, onClick: () => {
+          addLog(`You chose ${oppLabel} to buy first.`);
+          startBuyPhaseMP([1, 0]);
+        }, className: 'btn-secondary' },
+      ]);
+      render();
     } else {
-      // In MP: opponent (remote) has the choice — we wait for their buy order signal
-      addLog(`--- Buy Phase --- ${opp.name} chooses buy order (${reason}).`);
-      setMessage(`Waiting for ${opp.name} to choose who buys first...`);
+      // AI mode (any N): show one button per non-busted player
+      showChooseFirstUI(nonBusted);
+    }
+  } else {
+    // AI (or MP remote) wins
+    if (!MP.active) {
+      addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}) and goes first.`);
+      startBuyPhase(winner.i);
+    } else {
+      // 2P MP: wait for remote player's buy order signal
+      addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}).`);
+      setMessage(`Waiting for ${winner.p.name} to choose who buys first...`);
       clearActions();
       render();
-      // Opponent will push their order; we listen
       MP.waitForBuyOrder((firstIdx) => {
-        // firstIdx is 0 (host goes first) or 1 (guest goes first)
-        // Convert to local indices: my local idx is 0, opp is 1
         const myLocalFirst = (firstIdx === MP.myIdx);
         const order = myLocalFirst ? [0, 1] : [1, 0];
-        addLog(`${opp.name} chose ${myLocalFirst ? 'you' : opp.name} to buy first.`);
+        addLog(`${winner.p.name} chose ${myLocalFirst ? 'you' : winner.p.name} to buy first.`);
         applyBuyOrder(order);
       });
     }
   }
 }
 
-// Called after the buy order is determined (locally)
-// In MP, if I'm the chooser I also push the order so opponent can receive it
+function showChooseFirstUI(nonBustedIndices) {
+  setMessage('Buy Phase — Who goes first?');
+  setActions(nonBustedIndices.map(i => ({
+    text: i === 0 ? 'I Go First' : `${G.players[i].name} Goes First`,
+    onClick: () => {
+      addLog(i === 0 ? 'You chose to go first.' : `You chose ${G.players[i].name} to go first.`);
+      startBuyPhase(i);
+    },
+    className: i === 0 ? '' : 'btn-secondary',
+  })));
+  render();
+}
+
+// Build buy order starting from startIdx, rotating through all players
+function startBuyPhase(startIdx) {
+  const order = Array.from({length: G.numPlayers}, (_, k) => (startIdx + k) % G.numPlayers);
+  if (G.numPlayers === 2 && MP.active) {
+    startBuyPhaseMP(order);
+  } else {
+    applyBuyOrder(order);
+  }
+}
+
+// 2P MP only: push buy order to Firebase, then apply locally
 function startBuyPhaseMP(order) {
   if (MP.active) {
-    // Push order expressed as game-level firstIdx (0=host, 1=guest)
-    // order[0] is local first-buyer (0=me, 1=opp); convert to game idx
-    const localFirst = order[0]; // 0=me, 1=opp
+    const localFirst = order[0];
     const gameFirst = localFirst === 0 ? MP.myIdx : MP.oppIdx;
     MP.pushBuyOrder(gameFirst);
   }
@@ -2101,11 +2197,44 @@ function closeCardZoom() {
 
 // --- COLLAPSIBLE SECTIONS ---
 
-function toggleAiZone() {
-  const detail = document.getElementById('ai-detail');
-  const toggle = document.getElementById('ai-toggle');
+function toggleOppZone(i) {
+  const prefix = 'opp-' + i;
+  const detail = document.getElementById(prefix + '-detail');
+  const toggle = document.getElementById(prefix + '-toggle');
   detail.classList.toggle('collapsed');
   toggle.textContent = detail.classList.contains('collapsed') ? '\u25BC' : '\u25B2';
+}
+
+function ensureOpponentZone(i, container) {
+  const prefix = 'opp-' + i;
+  const div = document.createElement('div');
+  div.id = 'opp-zone-' + i;
+  div.className = 'opp-zone';
+  div.innerHTML =
+    '<div class="ai-summary" onclick="toggleOppZone(' + i + ')">' +
+      '<div class="ai-summary-left">' +
+        '<span class="zone-label" style="margin:0">' + G.players[i].name + '</span>' +
+        '<span class="herd-display">Herd: <strong id="' + prefix + '-herd">0</strong></span>' +
+        '<span class="deck-display">Deck: <strong id="' + prefix + '-deck-count">10</strong></span>' +
+        '<span id="' + prefix + '-round-stats-inline" class="ai-inline-stats hidden">' +
+          '<span class="sep">|</span>' +
+          '$<strong id="' + prefix + '-round-dollars">0</strong>' +
+          '<span class="ai-stat-cow">\uD83D\uDC04<strong id="' + prefix + '-round-cows">0</strong></span>' +
+          '<span class="ai-stat-bandit">B:<strong id="' + prefix + '-round-bandits">0</strong></span>' +
+        '</span>' +
+      '</div>' +
+      '<span id="' + prefix + '-toggle" class="collapse-toggle">\u25BC</span>' +
+    '</div>' +
+    '<div id="' + prefix + '-detail" class="collapsible collapsed">' +
+      '<div class="player-info">' +
+        '<span class="discard-display">Discard: <strong id="' + prefix + '-discard-count">0</strong></span>' +
+      '</div>' +
+      '<div class="hand-row">' +
+        '<div id="' + prefix + '-deck-preview"></div>' +
+        '<div id="' + prefix + '-hand" class="hand"></div>' +
+      '</div>' +
+    '</div>';
+  container.appendChild(div);
 }
 
 function toggleLog() {
