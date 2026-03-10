@@ -146,7 +146,7 @@ async function createGame() {
     if (allHumanSlotsFilled(data.slots)) {
       cleanup();
       onDisconnect(gameRef).cancel();
-      window.location.href = 'play.html?mp=1';
+      window.location.href = 'playgame.html?mp=1';
     }
   });
 }
@@ -207,7 +207,7 @@ async function joinGame(codeOverride) {
     renderSlotList(d.slots, d.numPlayers, 'joining-slot-list');
     if (allHumanSlotsFilled(d.slots)) {
       cleanup();
-      window.location.href = 'play.html?mp=1';
+      window.location.href = 'playgame.html?mp=1';
     }
   });
 }

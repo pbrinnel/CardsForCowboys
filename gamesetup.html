@@ -337,7 +337,7 @@
             { name: 'You', isHuman: true },
             { name: ai.name, isHuman: false, personality: ai.personality },
           ]));
-          window.location.href = 'play.html';
+          window.location.href = 'playgame.html';
         } else {
           window.location.href = 'lobby.html';
         }
@@ -362,7 +362,7 @@
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));
-      window.location.href = anyHuman ? 'lobby.html' : 'play.html';
+      window.location.href = anyHuman ? 'lobby.html' : 'playgame.html';
     }
   </script>
 </body>

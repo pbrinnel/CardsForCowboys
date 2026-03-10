@@ -29,13 +29,44 @@
       font-size: 1.1rem;
       color: #8b6914;
       font-style: italic;
+      margin-bottom: 2rem;
     }
+    .btn {
+      display: inline-block;
+      padding: 0.85rem 3rem;
+      background-color: #c0392b;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      font-size: 1.05rem;
+      font-family: Georgia, 'Times New Roman', serif;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s;
+      margin-bottom: 0.75rem;
+    }
+    .btn:hover { background-color: #a93226; }
+    .btn-ghost {
+      display: block;
+      background: none;
+      color: #8b6914;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid #d4b896;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: Georgia, 'Times New Roman', serif;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-ghost:hover { background: #f0e2c0; color: #5c3a1e; }
   </style>
 </head>
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
     <p class="tagline">A deck-busting card game of the Wild West</p>
+    <a href="gamesetup.html" class="btn">Play Free Demo</a>
+    <a href="rules.html" class="btn-ghost">Rules</a>
   </div>
 </body>
 </html>

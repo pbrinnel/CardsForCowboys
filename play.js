@@ -240,7 +240,7 @@ const MP = (() => {
 
   function showDisconnectMessage() {
     setMessage('A player disconnected. Game over.');
-    setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'game.html'; } }]);
+    setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'gamesetup.html'; } }]);
     cleanup();
   }
 
@@ -1073,7 +1073,7 @@ async function startGame() {
 function restartGame() {
   if (MP.active) {
     // In MP mode, can't restart — go back to lobby
-    window.location.href = 'game.html';
+    window.location.href = 'gamesetup.html';
     return;
   }
   startGame();

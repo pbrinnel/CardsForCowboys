@@ -377,6 +377,7 @@ body {
   border-radius: 8px;
   overflow: hidden;
   transition: box-shadow 0.3s ease;
+  position: relative;
 }
 
 .ai-summary {
@@ -474,8 +475,8 @@ body {
 }
 
 .card.dimmed {
-  opacity: 0.62;
-  filter: grayscale(0.35) brightness(0.88);
+  opacity: 0.85;
+  filter: grayscale(0.7) brightness(0.78) sepia(0.15);
 }
 
 .card.busted {
@@ -588,6 +589,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.3s ease;
+  position: relative;
 }
 
 /* --- Draw-phase leader indicator: gold border + crown icon --- */
@@ -618,10 +620,36 @@ body {
   animation: crownPop 0.4s ease-out both;
 }
 
-/* --- Busted zone: red border --- */
+/* --- Busted zone: red border + BUSTED stamp overlay --- */
 #player-zone.zone-busted,
 .opp-zone.zone-busted {
   box-shadow: 0 0 0 2px #8b1a0a, 0 0 10px 3px rgba(139,26,10,0.3);
+}
+
+#player-zone.zone-busted::after,
+.opp-zone.zone-busted::after {
+  content: 'BUSTED';
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 15, 5, 0.48);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  font-style: italic;
+  letter-spacing: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 16px rgba(200,50,30,0.8);
+}
+
+/* Smaller stamp for compact opponent zones */
+.opp-zone.zone-busted::after {
+  font-size: 1.2rem;
+  letter-spacing: 3px;
 }
 
 /* --- Active buyer zone: pulsing amber border --- */
