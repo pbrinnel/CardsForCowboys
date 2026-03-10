@@ -672,12 +672,18 @@ body {
   pointer-events: auto;
 }
 
+/* Hide empty slots in pyramid (cards already taken) */
+.pyramid-row .card-slot {
+  border: none;
+  background: transparent;
+}
+
 /* Bottom rows appear in front of top rows */
 .pyramid-row:nth-child(1) { z-index: 1; }
-.pyramid-row:nth-child(2) { z-index: 2; margin-top: -58px; }
-.pyramid-row:nth-child(3) { z-index: 3; margin-top: -58px; }
-.pyramid-row:nth-child(4) { z-index: 4; margin-top: -58px; }
-.pyramid-row:nth-child(5) { z-index: 5; margin-top: -58px; }
+.pyramid-row:nth-child(2) { z-index: 2; margin-top: -44px; }
+.pyramid-row:nth-child(3) { z-index: 3; margin-top: -44px; }
+.pyramid-row:nth-child(4) { z-index: 4; margin-top: -44px; }
+.pyramid-row:nth-child(5) { z-index: 5; margin-top: -44px; }
 
 /* ─── Draw phase layout ─── */
 /* Reorder: action + player cards front & center, pyramid shrinks to footer */
@@ -706,7 +712,7 @@ body.phase-draw .pyramid-row .card-slot {
 }
 
 body.phase-draw .pyramid-row:nth-child(n+2) {
-  margin-top: -47px; /* ~75% of 62px */
+  margin-top: -35px; /* ~56% of 62px */
 }
 
 /* Mobile */
