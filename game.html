@@ -279,6 +279,22 @@
   </div>
 
   <script>
+    // --- AI name pools keyed by personality ---
+    const AI_NAME_POOLS = {
+      sheriff:  ['The Sheriff', 'Marshal Colt', 'Judge Roy', 'Deputy Dawes'],
+      wild_bill:['Wild Bill', 'Jesse James', 'Reckless Roy', 'Maverick'],
+      rancher:  ['Cattle Kate', 'Rancher Hank', 'Big Bo', 'Prairie Pete'],
+      banker:   ['Silver Sam', 'Gold Rush Gus', 'Banker Bill', 'Honest Abe'],
+    };
+
+    function pickAiPersonality() {
+      const keys = Object.keys(AI_NAME_POOLS);
+      const p = keys[Math.floor(Math.random() * keys.length)];
+      const pool = AI_NAME_POOLS[p];
+      const name = pool[Math.floor(Math.random() * pool.length)];
+      return { personality: p, name };
+    }
+
     let playerCount = 2;
     let p2Type = 'ai';
     const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
@@ -310,6 +326,12 @@
     function startGame() {
       if (playerCount === 2) {
         if (p2Type === 'ai') {
+          const ai = pickAiPersonality();
+          sessionStorage.setItem('player_count', '2');
+          sessionStorage.setItem('player_defs', JSON.stringify([
+            { name: 'You', isHuman: true },
+            { name: ai.name, isHuman: false, personality: ai.personality },
+          ]));
           window.location.href = 'play.html';
         } else {
           window.location.href = 'lobby.html';
@@ -322,7 +344,12 @@
       for (let i = 2; i <= playerCount; i++) {
         const isHuman = slotTypes[playerCount][i] === 'human';
         if (isHuman) anyHuman = true;
-        defs.push({ name: isHuman ? '' : ('Cowboy ' + (i - 1)), isHuman });
+        if (isHuman) {
+          defs.push({ name: '', isHuman: true });
+        } else {
+          const ai = pickAiPersonality();
+          defs.push({ name: ai.name, isHuman: false, personality: ai.personality });
+        }
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));

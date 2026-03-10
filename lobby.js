@@ -109,7 +109,7 @@ async function createGame() {
   const gameSeed = generateSeed();
 
   const slots = {};
-  defs.forEach((d, i) => { slots[i] = { name: d.name || '', isHuman: d.isHuman }; });
+  defs.forEach((d, i) => { slots[i] = { name: d.name || '', isHuman: d.isHuman, personality: d.personality || null }; });
 
   await set(gameRef, {
     status: 'waiting',

@@ -507,11 +507,12 @@ function createStarterDeck(slotIdx, isHuman) {
   return shuffleForPlayer(deck, slotIdx, isHuman);
 }
 
-function createPlayer(name, isHuman, slotIdx = 0) {
+function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
   return {
     name,
     isHuman,
     slotIdx,
+    personality: isHuman ? null : (personality || 'rancher'),
     deck: createStarterDeck(slotIdx, isHuman),
     discard: [],
     hand: [],
@@ -1000,7 +1001,7 @@ async function startGame() {
 
     const players = G_playerOrder.map((slotIdx) => {
       const def = cfg.slotDefs[slotIdx];
-      return createPlayer(def.name, def.isHuman, slotIdx);
+      return createPlayer(def.name, def.isHuman, slotIdx, def.personality);
     });
 
     G = initState(cfg.numPlayers, players);
@@ -1010,7 +1011,7 @@ async function startGame() {
     const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
     const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
     if (storedDefs && storedDefs.length >= 2) {
-      const players = storedDefs.map((d, i) => createPlayer(d.name, d.isHuman, i));
+      const players = storedDefs.map((d, i) => createPlayer(d.name, d.isHuman, i, d.personality));
       G = initState(storedCount, players);
     } else {
       G = initState(2);
@@ -1436,7 +1437,48 @@ async function aiDrawPhase(playerIdx) {
   checkDrawPhaseComplete();
 }
 
+// --- AI Personality Configs ---
+// bustThreshold2/1: max bust-probability willing to accept with 2/1 bandits in hand
+// dollarBuffer: keeps drawing until dollars >= bestCost + buffer (999 = no target)
+// cowWeight / dollarWeight / banditPenalty: buy-phase scoring multipliers
+const AI_PERSONALITIES = {
+  sheriff: {
+    bustThreshold2: 0.05,  // almost never draws with 2 bandits
+    bustThreshold1: 0.15,  // very cautious at 1 bandit
+    dollarBuffer:   0,     // stops as soon as it can afford the best card
+    cowWeight:      3,
+    dollarWeight:   1.5,
+    banditPenalty:  4,     // despises bandits in buy scoring
+  },
+  wild_bill: {
+    bustThreshold2: 0.35,  // keeps drawing with 2 bandits often
+    bustThreshold1: 0.50,  // barely slows down at 1 bandit
+    dollarBuffer:   999,   // no dollar target — draws until bust or dry
+    cowWeight:      5,
+    dollarWeight:   0.5,
+    banditPenalty:  0.5,
+  },
+  rancher: {
+    bustThreshold2: 0.15,
+    bustThreshold1: 0.30,
+    dollarBuffer:   2,
+    cowWeight:      6,     // cows above everything
+    dollarWeight:   0.5,
+    banditPenalty:  2,
+  },
+  banker: {
+    bustThreshold2: 0.15,
+    bustThreshold1: 0.30,
+    dollarBuffer:   1,     // stops slightly earlier (wants exactly enough)
+    cowWeight:      1.5,
+    dollarWeight:   3,     // values income above cows
+    banditPenalty:  2,
+  },
+};
+
 function aiShouldDraw(ai) {
+  const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
+
   if (ai.hand.length >= 7) return false;
   if (ai.hand.length < 2) return true;
 
@@ -1445,21 +1487,19 @@ function aiShouldDraw(ai) {
 
   if (ai.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
-    const bustProb = banditsRemaining / cardsRemaining;
-    return bustProb < 0.15;
+    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2;
   }
 
   if (ai.roundBandits === 1) {
     if (cardsRemaining <= 1) return false;
     const bustProb = banditsRemaining / cardsRemaining;
-    const bestCost = getBestAffordableCost();
-    return bustProb < 0.3 && ai.roundDollars < bestCost;
+    if (bustProb >= cfg.bustThreshold1) return false;
+    if (cfg.dollarBuffer >= 999) return true;  // Wild Bill ignores dollar target
+    return ai.roundDollars < getBestAffordableCost();
   }
 
-  const bestCost = getBestAffordableCost();
-  if (ai.roundDollars >= bestCost + 2) return false;
-
-  return true;
+  // 0 bandits: keep drawing until dollars satisfy the target
+  return ai.roundDollars < getBestAffordableCost() + cfg.dollarBuffer;
 }
 
 function countBanditsInDeck(player) {
@@ -2034,7 +2074,7 @@ function executeBurnLocal(player, row, col) {
 // --- AI BUY ---
 
 async function aiBuyTurn(ai) {
-  setMessage('AI is buying...');
+  setMessage(`${ai.name} is buying\u2026`);
   clearActions();
   await delay(1000);
 
@@ -2046,7 +2086,7 @@ async function aiBuyTurn(ai) {
     let best = null;
     let bestScore = -Infinity;
     for (const a of affordable) {
-      const score = scoreCardForAI(a.slot.card);
+      const score = scoreCardForAI(a.slot.card, ai);
       if (score > bestScore) {
         bestScore = score;
         best = a;
@@ -2054,11 +2094,11 @@ async function aiBuyTurn(ai) {
     }
     executeBuy(ai, best.row, best.col);
   } else if (available.length > 0) {
-    // Burn cheapest card
+    // Burn lowest-scoring card
     let worst = available[0];
     let worstScore = Infinity;
     for (const a of available) {
-      const score = scoreCardForAI(a.slot.card);
+      const score = scoreCardForAI(a.slot.card, ai);
       if (score < worstScore) {
         worstScore = score;
         worst = a;
@@ -2066,17 +2106,19 @@ async function aiBuyTurn(ai) {
     }
     executeBurn(ai, worst.row, worst.col);
   } else {
-    addLog('AI has no available cards to buy or burn.');
+    addLog(`${ai.name} has no available cards to buy or burn.`);
     G.currentBuyerIdx++;
     processBuyTurn();
   }
 }
 
-function scoreCardForAI(card) {
+function scoreCardForAI(card, ai) {
+  const cfg = AI_PERSONALITIES[(ai && ai.personality)] || AI_PERSONALITIES.rancher;
   let score = 0;
-  score += card.cows * 3;
-  score += card.dollars * 1.5;
-  score -= card.bandits * 2;
+  score += card.cows * cfg.cowWeight;
+  score += card.dollars * cfg.dollarWeight;
+  score -= card.bandits * cfg.banditPenalty;
+  // Special ability bonuses (fixed; personality differences come from the weights above)
   if (card.special === 'trash_to_use') score += 2;
   if (card.special === 'copy_next') score += 3;
   if (card.special === 'draw4') score += 2;
@@ -2086,7 +2128,7 @@ function scoreCardForAI(card) {
   if (card.special === 'trash_buy_burn_first') score += 1;
   if (card.special === 'dollar1_other') score -= 0.5;
   if (card.cows < 0) score -= 2;
-  if (G.currentAct === 3) score += card.cows * 2;
+  if (G.currentAct === 3) score += card.cows * 2;  // universal Act 3 cow bonus
   return score;
 }
 
