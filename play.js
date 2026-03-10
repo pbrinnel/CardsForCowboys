@@ -1647,13 +1647,14 @@ function onDrawPhaseComplete() {
   // Determine who CHOOSES the buy order, with tiebreaker chain
   let chooserIsMe;
   let reason = '';
+  let tieLog = null; // set when a tiebreaker beyond $ is used
 
   if (me.busted && !opp.busted) {
     chooserIsMe = false;
-    reason = "you busted";
+    reason = "opponent didn't bust";
   } else if (opp.busted && !me.busted) {
     chooserIsMe = true;
-    reason = "opponent busted";
+    reason = "you didn't bust";
   } else if (me.busted && opp.busted) {
     // Both busted, no meaningful choice
     G.buyOrder = [0, 1];
@@ -1667,10 +1668,12 @@ function onDrawPhaseComplete() {
     reason = `most $ ($${me.roundDollars} vs $${opp.roundDollars})`;
   } else if (me.roundCows !== opp.roundCows) {
     chooserIsMe = me.roundCows > opp.roundCows;
-    reason = `most cows (tied on $${me.roundDollars})`;
+    reason = 'most cows';
+    tieLog = `Tied on $${me.roundDollars} — most cows breaks tie (${Math.max(me.roundCows, opp.roundCows)} vs ${Math.min(me.roundCows, opp.roundCows)})`;
   } else if (me.hand.length !== opp.hand.length) {
     chooserIsMe = me.hand.length > opp.hand.length;
-    reason = `most cards drawn (${Math.max(me.hand.length, opp.hand.length)} vs ${Math.min(me.hand.length, opp.hand.length)})`;
+    reason = 'most cards drawn';
+    tieLog = `Tied on $${me.roundDollars} and cows — most cards breaks tie (${Math.max(me.hand.length, opp.hand.length)} vs ${Math.min(me.hand.length, opp.hand.length)})`;
   } else {
     // Card-by-card cost tiebreaker: compare each drawn card in order
     const maxLen = Math.max(me.hand.length, opp.hand.length);
@@ -1681,19 +1684,23 @@ function onDrawPhaseComplete() {
       const oppCost = (opp.hand[i] && opp.hand[i].cost) || 0;
       if (myCost !== oppCost) {
         chooserIsMe = myCost > oppCost;
-        reason = `${ordinal(i)} card cost ($${Math.max(myCost, oppCost)} vs $${Math.min(myCost, oppCost)})`;
+        reason = `${ordinal(i)} card cost`;
+        tieLog = `Tied on $, cows, and cards — ${ordinal(i)} card cost breaks tie ($${Math.max(myCost, oppCost)} vs $${Math.min(myCost, oppCost)})`;
         resolved = true;
         break;
       }
     }
     if (!resolved) {
       chooserIsMe = MP.active ? (MP.role === 'host') : Math.random() < 0.5;
-      reason = 'complete tie — random';
+      reason = 'random';
+      tieLog = 'Complete tie — buy order decided randomly';
     }
   }
 
   const oppLabel = MP.active ? opp.name : 'AI';
   const winnerLabel = chooserIsMe ? 'You' : oppLabel;
+
+  if (tieLog) addLog(tieLog, 'log-tie');
 
   if (chooserIsMe) {
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
@@ -1717,7 +1724,7 @@ function onDrawPhaseComplete() {
     } else {
       // In MP: opponent (remote) has the choice — we wait for their buy order signal
       addLog(`--- Buy Phase --- ${opp.name} chooses buy order (${reason}).`);
-      setMessage(`Waiting for ${opp.name} to choose who buys first (${reason})...`);
+      setMessage(`Waiting for ${opp.name} to choose who buys first...`);
       clearActions();
       render();
       // Opponent will push their order; we listen

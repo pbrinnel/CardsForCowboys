@@ -539,6 +539,11 @@ body {
   font-weight: bold;
 }
 
+#game-log .log-tie {
+  color: #8b6914;
+  font-style: italic;
+}
+
 /* Score animation */
 .score-popup {
   position: fixed;
