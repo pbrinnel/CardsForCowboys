@@ -98,11 +98,12 @@ const MP = (() => {
     };
   }
 
-  // Push my full draw state (hand + stats) after every draw action
+  // Push my full draw state (hand + deck + stats) after every draw action
   async function pushDrawState(player) {
     if (!initialized) return;
     await fbSet(gameRef(`drawState/${myIdx}`), {
       hand: player.hand.map(c => c.id),
+      deck: player.deck.map(c => c.id),
       dollars: player.roundDollars,
       cows: player.roundCows,
       bandits: player.roundBandits,
@@ -961,9 +962,14 @@ async function startRound() {
     // Live updates: show opponent's hand as they draw
     MP.watchOpponentDrawState((state) => {
       const opp = G.players[1];
-      // Reconstruct opponent hand from card IDs
+      const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
+      // Reconstruct opponent hand and deck from card IDs
       opp.hand = (state.hand || []).map(id => {
-        const tmpl = STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
+        const tmpl = findCard(id);
+        return tmpl ? createCardInstance(tmpl) : null;
+      }).filter(Boolean);
+      opp.deck = (state.deck || []).map(id => {
+        const tmpl = findCard(id);
         return tmpl ? createCardInstance(tmpl) : null;
       }).filter(Boolean);
       opp.roundDollars  = state.dollars;
