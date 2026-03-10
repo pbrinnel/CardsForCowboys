@@ -137,10 +137,13 @@ const MP = (() => {
   // Wait for opponent's draw done signal, then call callback with their stats
   function waitForOpponentDraw(callback) {
     if (!initialized) return;
-    const unsub = fbOnValue(gameRef(`drawDone/${oppIdx}`), (snap) => {
+    let fired = false;
+    let unsub = null;
+    unsub = fbOnValue(gameRef(`drawDone/${oppIdx}`), (snap) => {
       const val = snap.val();
-      if (val && val.done === true) {
-        unsub();
+      if (val && val.done === true && !fired) {
+        fired = true;
+        if (unsub) unsub();
         callback(val);
       }
     });
@@ -173,10 +176,13 @@ const MP = (() => {
   // Listen for act setup (guest)
   function waitForActSetup(callback) {
     if (!initialized || role !== 'guest') return;
-    const unsub = fbOnValue(gameRef('actSetup'), (snap) => {
+    let fired = false;
+    let unsub = null;
+    unsub = fbOnValue(gameRef('actSetup'), (snap) => {
       const data = snap.val();
-      if (data) {
-        unsub();
+      if (data && !fired) {
+        fired = true;
+        if (unsub) unsub();
         callback(data);
       }
     });
@@ -192,10 +198,13 @@ const MP = (() => {
   // Listen for opponent's buy action
   function waitForBuyAction(callback) {
     if (!initialized) return;
-    const unsub = fbOnValue(gameRef('buyAction'), (snap) => {
+    let fired = false;
+    let unsub = null;
+    unsub = fbOnValue(gameRef('buyAction'), (snap) => {
       const data = snap.val();
-      if (data && data.playerIdx === oppIdx) {
-        unsub();
+      if (data && data.playerIdx === oppIdx && !fired) {
+        fired = true;
+        if (unsub) unsub();
         callback(data);
       }
     });
@@ -211,10 +220,13 @@ const MP = (() => {
   // Listen for buy order
   function waitForBuyOrder(callback) {
     if (!initialized) return;
-    const unsub = fbOnValue(gameRef('buyOrder'), (snap) => {
+    let fired = false;
+    let unsub = null;
+    unsub = fbOnValue(gameRef('buyOrder'), (snap) => {
       const data = snap.val();
-      if (data) {
-        unsub();
+      if (data && !fired) {
+        fired = true;
+        if (unsub) unsub();
         callback(data.firstIdx);
       }
     });
@@ -672,6 +684,11 @@ function renderCardEl(card, faceUp, extraClasses) {
 
 function render() {
   if (!G || G.phase === 'start') return;
+
+  // Phase class on body for CSS-driven layout switching
+  document.body.classList.remove('phase-draw', 'phase-buy');
+  if (G.phase === 'draw') document.body.classList.add('phase-draw');
+  else if (G.phase === 'buy' || G.phase === 'score') document.body.classList.add('phase-buy');
 
   // Header
   document.getElementById('act-display').textContent = 'Act ' + G.currentAct;

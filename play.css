@@ -648,6 +648,67 @@ body {
   font-weight: bold;
 }
 
+/* ─── Zone ordering (flex order within #game column) ─── */
+#game-header  { order: 1; }
+#ai-zone      { order: 2; }
+#pyramid-zone { order: 3; }
+#action-zone  { order: 4; }
+#player-zone  { order: 5; }
+#log-zone     { order: 6; }
+
+/* ─── Pyramid: always-on vertical overlap ─── */
+#pyramid {
+  gap: 0;
+  padding: 0.25rem 0;
+}
+
+.pyramid-row {
+  position: relative;
+  pointer-events: none; /* let clicks fall through empty row space */
+}
+
+.pyramid-row .card,
+.pyramid-row .card-slot {
+  pointer-events: auto;
+}
+
+/* Bottom rows appear in front of top rows */
+.pyramid-row:nth-child(1) { z-index: 1; }
+.pyramid-row:nth-child(2) { z-index: 2; margin-top: -58px; }
+.pyramid-row:nth-child(3) { z-index: 3; margin-top: -58px; }
+.pyramid-row:nth-child(4) { z-index: 4; margin-top: -58px; }
+.pyramid-row:nth-child(5) { z-index: 5; margin-top: -58px; }
+
+/* ─── Draw phase layout ─── */
+/* Reorder: action + player cards front & center, pyramid shrinks to footer */
+body.phase-draw #action-zone  { order: 3; }
+body.phase-draw #player-zone  { order: 4; }
+body.phase-draw #pyramid-zone { order: 5; }
+
+/* Big player hand cards during draw phase */
+body.phase-draw #player-zone .card,
+body.phase-draw #player-zone .card-slot,
+body.phase-draw #player-deck-preview .card {
+  width: 100px;
+  height: 140px;
+}
+
+body.phase-draw #player-zone .hand {
+  min-height: 140px;
+  gap: 0.5rem;
+}
+
+/* Smaller pyramid cards during draw phase */
+body.phase-draw .pyramid-row .card,
+body.phase-draw .pyramid-row .card-slot {
+  width: 44px;
+  height: 62px;
+}
+
+body.phase-draw .pyramid-row:nth-child(n+2) {
+  margin-top: -47px; /* ~75% of 62px */
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   #game {
@@ -743,6 +804,18 @@ body {
     width: 55px;
     height: 77px;
   }
+
+  /* Draw phase: medium player cards on tablet/phone */
+  body.phase-draw #player-zone .card,
+  body.phase-draw #player-zone .card-slot,
+  body.phase-draw #player-deck-preview .card {
+    width: 75px;
+    height: 105px;
+  }
+
+  body.phase-draw #player-zone .hand {
+    min-height: 105px;
+  }
 }
 
 @media (max-width: 400px) {
@@ -832,5 +905,17 @@ body {
 
   .rules-body h3 {
     font-size: 0.95rem;
+  }
+
+  /* Draw phase: smaller player cards on very small screens */
+  body.phase-draw #player-zone .card,
+  body.phase-draw #player-zone .card-slot,
+  body.phase-draw #player-deck-preview .card {
+    width: 60px;
+    height: 84px;
+  }
+
+  body.phase-draw #player-zone .hand {
+    min-height: 84px;
   }
 }
