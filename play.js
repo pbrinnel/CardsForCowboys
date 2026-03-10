@@ -753,7 +753,6 @@ function render() {
   // Players
   renderPlayerZone(G.players[0], 'player');
   const oz = document.getElementById('opponents-zone');
-  oz.innerHTML = '';
   for (let i = 1; i < G.numPlayers; i++) {
     ensureOpponentZone(i, oz);
     renderPlayerZone(G.players[i], 'opp-' + i);
@@ -942,6 +941,7 @@ function mpSyncDraw() {
 async function startGame() {
   document.getElementById('gameover-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
+  document.getElementById('opponents-zone').innerHTML = ''; // clear for fresh game
 
   if (MP.active) {
     setMessage('Connecting to game...');
@@ -2206,6 +2206,7 @@ function toggleOppZone(i) {
 }
 
 function ensureOpponentZone(i, container) {
+  if (document.getElementById('opp-zone-' + i)) return; // already present — preserve collapse state
   const prefix = 'opp-' + i;
   const div = document.createElement('div');
   div.id = 'opp-zone-' + i;
