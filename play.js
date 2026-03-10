@@ -2343,11 +2343,16 @@ function closeCardZoom() {
 // --- COLLAPSIBLE SECTIONS ---
 
 function toggleOppZone(i) {
-  const prefix = 'opp-' + i;
-  const detail = document.getElementById(prefix + '-detail');
-  const toggle = document.getElementById(prefix + '-toggle');
-  detail.classList.toggle('collapsed');
-  toggle.textContent = detail.classList.contains('collapsed') ? '\u25BC' : '\u25B2';
+  // Determine the new state from the clicked zone, then apply to all opponent zones
+  const clickedDetail = document.getElementById('opp-' + i + '-detail');
+  const nowCollapsed = !clickedDetail.classList.contains('collapsed');
+  for (let j = 1; j < G.numPlayers; j++) {
+    const detail = document.getElementById('opp-' + j + '-detail');
+    const toggle = document.getElementById('opp-' + j + '-toggle');
+    if (!detail) continue;
+    detail.classList.toggle('collapsed', nowCollapsed);
+    toggle.textContent = nowCollapsed ? '\u25BC' : '\u25B2';
+  }
 }
 
 function ensureOpponentZone(i, container) {
