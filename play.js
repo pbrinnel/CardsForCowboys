@@ -1668,6 +1668,9 @@ function onDrawPhaseComplete() {
   } else if (me.roundCows !== opp.roundCows) {
     chooserIsMe = me.roundCows > opp.roundCows;
     reason = `most cows (tied on $${me.roundDollars})`;
+  } else if (me.hand.length !== opp.hand.length) {
+    chooserIsMe = me.hand.length > opp.hand.length;
+    reason = `most cards drawn (${Math.max(me.hand.length, opp.hand.length)} vs ${Math.min(me.hand.length, opp.hand.length)})`;
   } else {
     // Card-by-card cost tiebreaker: compare each drawn card in order
     const maxLen = Math.max(me.hand.length, opp.hand.length);
