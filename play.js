@@ -686,6 +686,9 @@ function renderCardEl(card, faceUp, extraClasses) {
 function render() {
   if (!G || G.phase === 'start') return;
 
+  // Clear card preview whenever nothing is selected
+  if (!G.selectedPyramidCard) clearCardPreview();
+
   // Phase class on body for CSS-driven layout switching
   document.body.classList.remove('phase-draw', 'phase-buy');
   if (G.phase === 'draw') document.body.classList.add('phase-draw');
