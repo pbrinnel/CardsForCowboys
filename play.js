@@ -781,9 +781,17 @@ function getDrawLeaders() {
   return leaders.map(c => c.i);
 }
 
-// Adds/removes .draw-leader and .crown-visible based on who is currently leading.
-function updateLeaderCrowns() {
+// Updates all contextual zone indicators:
+//   draw phase  → gold crown + border on the current dollar leader
+//   buy phase   → pulsing amber border on the active buyer
+//   any phase   → red border on busted players
+function updateZoneStates() {
   const leaders = getDrawLeaders();
+  const activeBuyerPlayerIdx =
+    G.phase === 'buy' && G.buyOrder && G.currentBuyerIdx < G.buyOrder.length
+      ? G.buyOrder[G.currentBuyerIdx]
+      : -1;
+
   for (let i = 0; i < G.numPlayers; i++) {
     const prefix  = i === 0 ? 'player' : 'opp-' + i;
     const crownEl = document.getElementById(prefix + '-crown');
@@ -791,8 +799,14 @@ function updateLeaderCrowns() {
       ? document.getElementById('player-zone')
       : document.getElementById('opp-zone-' + i);
     const isLeader = leaders.includes(i);
+    const isBusted = G.players[i].busted;
+    const isBuying = activeBuyerPlayerIdx === i && !isBusted;
     if (crownEl) crownEl.classList.toggle('crown-visible', isLeader);
-    if (zoneEl)  zoneEl.classList.toggle('draw-leader', isLeader);
+    if (zoneEl) {
+      zoneEl.classList.toggle('draw-leader', isLeader);
+      zoneEl.classList.toggle('zone-busted',  isBusted);
+      zoneEl.classList.toggle('zone-buying',   isBuying);
+    }
   }
 }
 
@@ -822,8 +836,8 @@ function render() {
   // Pyramid
   renderPyramid();
 
-  // Leader crown (draw phase only; clears automatically when phase changes)
-  updateLeaderCrowns();
+  // Zone state indicators (crown, bust, active buyer)
+  updateZoneStates();
 }
 
 function renderPlayerZone(player, prefix) {

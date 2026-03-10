@@ -618,6 +618,23 @@ body {
   animation: crownPop 0.4s ease-out both;
 }
 
+/* --- Busted zone: red border --- */
+#player-zone.zone-busted,
+.opp-zone.zone-busted {
+  box-shadow: 0 0 0 2px #8b1a0a, 0 0 10px 3px rgba(139,26,10,0.3);
+}
+
+/* --- Active buyer zone: pulsing amber border --- */
+@keyframes buyPulse {
+  0%, 100% { box-shadow: 0 0 0 2px #b07c1a, 0 0  8px 2px rgba(176,124,26,0.25); }
+  50%       { box-shadow: 0 0 0 2px #b07c1a, 0 0 18px 6px rgba(176,124,26,0.55); }
+}
+
+#player-zone.zone-buying,
+.opp-zone.zone-buying {
+  animation: buyPulse 1.8s ease-in-out infinite;
+}
+
 /* Game Log */
 #log-zone {
   margin-bottom: 1rem;

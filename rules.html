@@ -51,7 +51,7 @@
       <h3>1. Draw Phase</h3>
       <ul>
         <li>All players draw cards from the top of their personal deck, one at a time. (Players may draw simultaneously.)</li>
-        <li>Players may stop drawing at any time.</li>
+        <li>Players must draw at least one card, then may stop at any time.</li>
         <li>If a player draws <strong>3 or more Bandits</strong>, they <strong>bust</strong> immediately &mdash; their turn is over and all drawn cards go to the discard pile.</li>
         <li>When your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
       </ul>
@@ -73,7 +73,7 @@
         <li>If tied: most Cows this round.</li>
         <li>If still tied: most drawn cards.</li>
         <li>If still tied: compare sell value of drawn cards in order.</li>
-        <li>If still tied: rock-paper-scissors.</li>
+        <li>If still tied: player order decides.</li>
       </ol>
       <p>Buying proceeds clockwise from the first player.</p>
 
@@ -95,43 +95,43 @@
       <h2>Symbols on Cards</h2>
       <div class="symbols-grid">
         <div class="symbol-row">
-          <img src="assets/cards/starters/1d_0c_0b_1cac_a.jpg" alt="Dollar card">
+          <img src="assets/cards/All-Cards/Card_26.jpg" alt="Dollar card">
           <p><strong>$</strong> &mdash; Value that can be spent to purchase other cards.</p>
         </div>
         <div class="symbol-row">
-          <img src="assets/cards/act1/0d_1c_0b_4cost_1cac_a.jpg" alt="Cow card">
+          <img src="assets/cards/All-Cards/Card_13.jpg" alt="Cow card">
           <p><strong>Cow</strong> &mdash; Add the number of Cows shown to your Herd (if you don't bust).</p>
         </div>
         <div class="symbol-row">
-          <img src="assets/cards/starters/0d_0c_1b_2cac.jpg" alt="Bandit card">
+          <img src="assets/cards/All-Cards/Card_94.jpg" alt="Bandit card">
           <p><strong>Bandit</strong> &mdash; Caution! Draw 3 Bandits and you bust immediately.</p>
         </div>
         <div class="symbol-row">
-          <img src="assets/cards/act2/0d_0c_0b_4cost_2cac_trash_to_use_a.jpg" alt="Jail card">
+          <img src="assets/cards/All-Cards/Card_44.jpg" alt="Jail card">
           <p><strong>Jail</strong> &mdash; Trash to negate 1 Bandit (doesn't count toward your total this round).</p>
         </div>
         <div class="symbol-row">
-          <img src="assets/cards/act1/3d_0c_0b_3cost_2cac_lose_cow_a.jpg" alt="Lose cow card">
+          <img src="assets/cards/All-Cards/Card_11.jpg" alt="Lose cow card">
           <p><strong>Lose Cow</strong> &mdash; Subtract 1 Cow from your Herd (if you don't bust).</p>
         </div>
       </div>
 
-      <h3>Card Backs &amp; Cacti</h3>
+      <h3>Card Backs &amp; Suits</h3>
+      <p>Every card belongs to one of three suits, visible on both the front and back. The suit tells you roughly how risky the card is to draw.</p>
       <div class="cacti-row">
         <div class="cacti-item">
-          <img src="assets/cards/backs/back-1cac.png" alt="1 cactus back">
-          <span>1 Cactus = Safe</span>
+          <img src="assets/backs/Blue Inline-01.jpg" alt="River card back">
+          <span><strong>River</strong> (1 cactus) &mdash; Generally safe; fewer or no Bandits.</span>
         </div>
         <div class="cacti-item">
-          <img src="assets/cards/backs/back-2cac.png" alt="2 cacti back">
-          <span>2 Cacti = Mixed</span>
+          <img src="assets/backs/Yellow Inline-01.jpg" alt="Cactus card back">
+          <span><strong>Cactus</strong> (2 cacti) &mdash; Moderate risk; may contain 1 Bandit.</span>
         </div>
         <div class="cacti-item">
-          <img src="assets/cards/backs/back-3cac.png" alt="3 cacti back">
-          <span>3 Cacti = High Risk / High Reward</span>
+          <img src="assets/backs/Red Inline-01.jpg" alt="Rattlesnake card back">
+          <span><strong>Rattlesnake</strong> (3 cacti) &mdash; High risk, high reward; may contain 1&ndash;2 Bandits.</span>
         </div>
       </div>
-      <p>The number of cacti is visible on both the front and back of each card.</p>
     </section>
 
     <!-- ERRATA -->
@@ -153,11 +153,11 @@
     <section>
       <h2>Strategy Tips</h2>
       <ul>
-        <li>Pay attention to card back colors:
+        <li>Pay attention to card back suits:
           <ul>
-            <li><strong>1 Cactus</strong> &mdash; generally safe (fewer or no Bandits).</li>
-            <li><strong>2 Cacti</strong> &mdash; moderate risk (may contain 1 Bandit).</li>
-            <li><strong>3 Cacti</strong> &mdash; high risk (may contain 1&ndash;2 Bandits).</li>
+            <li><strong>River</strong> (blue, 1 cactus) &mdash; generally safe to draw.</li>
+            <li><strong>Cactus</strong> (yellow, 2 cacti) &mdash; moderate risk.</li>
+            <li><strong>Rattlesnake</strong> (red, 3 cacti) &mdash; high risk, high reward.</li>
           </ul>
         </li>
         <li>Tracking which cards you haven't drawn gives you a big edge. Start by remembering whether you've drawn your double-Bandit card yet.</li>
