@@ -1966,21 +1966,21 @@ function showChooseFirstUI(nonBustedIndices) {
     text: i === 0 ? 'I Go First' : `${G.players[i].name} Goes First`,
     onClick: () => {
       addLog(i === 0 ? 'You chose to go first.' : `You chose ${G.players[i].name} to go first.`);
-      startBuyPhase(i);
+      startBuyPhase(i, true); // local player made this choice — always push to Firebase
     },
     className: i === 0 ? '' : 'btn-secondary',
   })));
   render();
 }
 
-// Build buy order starting from startIdx, rotating through all players
-function startBuyPhase(startIdx) {
+// Build buy order starting from startIdx, rotating through all players.
+// localIsChooser: true when the local human player made the choice (from showChooseFirstUI).
+// Needed because the push condition must fire even when they chose someone *else* first.
+function startBuyPhase(startIdx, localIsChooser = false) {
   const order = Array.from({length: G.numPlayers}, (_, k) => (startIdx + k) % G.numPlayers);
   if (MP.active) {
-    // Push Firebase slot order.
-    // Push when: local human wins (startIdx===0), or AI wins and we are host (one writer).
-    const winnerIsAI = startIdx > 0 && !G.players[startIdx].isHuman;
-    if (startIdx === 0 || (winnerIsAI && MP.isHost)) {
+    const winnerIsAI = !G.players[startIdx].isHuman;
+    if (localIsChooser || (winnerIsAI && MP.isHost)) {
       const slotOrder = order.map(i => G.playerOrder[i]);
       MP.pushBuyOrder(slotOrder);
     }

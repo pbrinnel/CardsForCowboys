@@ -275,6 +275,7 @@
     <button class="btn" onclick="startGame()">Start Game</button>
 
     <hr class="divider">
+    <a href="lobby.html" class="btn btn-ghost">Join a Lobby</a>
     <a href="rules.html" class="btn btn-ghost">Rules</a>
   </div>
 
@@ -339,7 +340,7 @@
           ]));
           window.location.href = 'playgame.html';
         } else {
-          window.location.href = 'lobby.html';
+          window.location.href = 'creategame.html';
         }
         return;
       }
@@ -362,7 +363,7 @@
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));
-      window.location.href = anyHuman ? 'lobby.html' : 'playgame.html';
+      window.location.href = anyHuman ? 'creategame.html' : 'playgame.html';
     }
   </script>
 </body>

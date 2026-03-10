@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Join Game - Cards For Cowboys</title>
+  <title>Create Game - Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -57,11 +57,6 @@
       text-align: center;
     }
     input[type="text"]:focus { outline: none; border-color: #5c3a1e; }
-    .divider {
-      border: none;
-      border-top: 1px solid #d4b896;
-      margin: 1.5rem 0;
-    }
     .section-label {
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -75,8 +70,25 @@
       font-size: 0.9rem;
       margin-bottom: 1rem;
     }
-    .status.info { background: #e8f4fd; color: #1a6fa8; }
     .status.error { background: #fdecea; color: #c0392b; }
+    .game-code {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #5c3a1e;
+      letter-spacing: 6px;
+      padding: 0.5rem;
+      background: #f0e2c0;
+      border-radius: 6px;
+      margin: 0.75rem 0;
+    }
+    .share-link {
+      font-size: 0.75rem;
+      color: #8b6914;
+      word-break: break-all;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
     .back-link {
       display: block;
       margin-top: 1.5rem;
@@ -127,31 +139,23 @@
 <body>
 <div class="card-ui">
   <h1>Cards For Cowboys</h1>
-  <p class="subtitle" id="page-subtitle">Join a Game</p>
+  <p class="subtitle">Create a Game</p>
 
-  <!-- Screen 1: Name + code entry -->
+  <!-- Screen 1: Name entry -->
   <div id="screen-name">
-    <p class="section-label" id="name-label">Enter your name to join</p>
+    <p class="section-label">Enter your name</p>
     <input type="text" id="name-input" placeholder="Your name" maxlength="20" autocomplete="off" />
-
-    <!-- Invite mode: single Join button (shown when arriving via ?join=CODE) -->
-    <button class="btn hidden" id="btn-join-invite">Join Game</button>
-
-    <!-- Normal mode: code entry -->
-    <div id="code-section">
-      <input type="text" id="code-input" placeholder="Enter game code" maxlength="6"
-             style="text-transform:uppercase;letter-spacing:4px" autocomplete="off" />
-      <button class="btn" id="btn-join">Join Game</button>
-    </div>
-
-    <a href="index.html" class="back-link">← Back to home</a>
+    <button class="btn" id="btn-create">Create Game</button>
+    <a href="gamesetup.html" class="back-link">← Back to setup</a>
   </div>
 
-  <!-- Screen 2: Waiting (joined, waiting for others) -->
-  <div id="screen-joining" class="hidden">
-    <div class="status info" id="join-status">Joining game<span class="waiting-dots"></span></div>
-    <div id="joining-slot-list" class="slot-list"></div>
-    <button class="btn btn-secondary" id="btn-cancel-join">Cancel</button>
+  <!-- Screen 2: Waiting for opponents (host) -->
+  <div id="screen-waiting" class="hidden">
+    <p class="section-label">Game created! Share this code:</p>
+    <div class="game-code" id="display-code"></div>
+    <div class="share-link" id="share-link" onclick="copyShareLink()">Click to copy invite link</div>
+    <div id="waiting-slot-list" class="slot-list"></div>
+    <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
   </div>
 
   <!-- Error display -->
@@ -161,6 +165,6 @@
   </div>
 </div>
 
-<script type="module" src="lobby.js"></script>
+<script type="module" src="creategame.js"></script>
 </body>
 </html>
