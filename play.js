@@ -1644,12 +1644,16 @@ function onDrawPhaseComplete() {
     return;
   }
 
-  // Determine who CHOOSES the buy order (most $ chooses, with tiebreakers)
+  // Determine who CHOOSES the buy order, with tiebreaker chain
   let chooserIsMe;
+  let reason = '';
+
   if (me.busted && !opp.busted) {
     chooserIsMe = false;
+    reason = "you busted";
   } else if (opp.busted && !me.busted) {
     chooserIsMe = true;
+    reason = "opponent busted";
   } else if (me.busted && opp.busted) {
     // Both busted, no meaningful choice
     G.buyOrder = [0, 1];
@@ -1658,28 +1662,39 @@ function onDrawPhaseComplete() {
     render();
     startBuyPhaseMP([0, 1]);
     return;
-  } else if (me.roundDollars > opp.roundDollars) {
-    chooserIsMe = true;
-  } else if (opp.roundDollars > me.roundDollars) {
-    chooserIsMe = false;
-  } else if (me.roundCows > opp.roundCows) {
-    chooserIsMe = true;
-  } else if (opp.roundCows > me.roundCows) {
-    chooserIsMe = false;
-  } else if (me.hand.length > opp.hand.length) {
-    chooserIsMe = true;
-  } else if (opp.hand.length > me.hand.length) {
-    chooserIsMe = false;
+  } else if (me.roundDollars !== opp.roundDollars) {
+    chooserIsMe = me.roundDollars > opp.roundDollars;
+    reason = `most $ ($${me.roundDollars} vs $${opp.roundDollars})`;
+  } else if (me.roundCows !== opp.roundCows) {
+    chooserIsMe = me.roundCows > opp.roundCows;
+    reason = `most cows (tied on $${me.roundDollars})`;
   } else {
-    // In MP: host always wins the tiebreak (deterministic, no random needed)
-    chooserIsMe = MP.active ? (MP.role === 'host') : Math.random() < 0.5;
+    // Card-by-card cost tiebreaker: compare each drawn card in order
+    const maxLen = Math.max(me.hand.length, opp.hand.length);
+    const ordinal = n => n === 0 ? '1st' : n === 1 ? '2nd' : n === 2 ? '3rd' : `${n+1}th`;
+    let resolved = false;
+    for (let i = 0; i < maxLen; i++) {
+      const myCost = (me.hand[i] && me.hand[i].cost) || 0;
+      const oppCost = (opp.hand[i] && opp.hand[i].cost) || 0;
+      if (myCost !== oppCost) {
+        chooserIsMe = myCost > oppCost;
+        reason = `${ordinal(i)} card cost ($${Math.max(myCost, oppCost)} vs $${Math.min(myCost, oppCost)})`;
+        resolved = true;
+        break;
+      }
+    }
+    if (!resolved) {
+      chooserIsMe = MP.active ? (MP.role === 'host') : Math.random() < 0.5;
+      reason = 'complete tie — random';
+    }
   }
 
   const oppLabel = MP.active ? opp.name : 'AI';
+  const winnerLabel = chooserIsMe ? 'You' : oppLabel;
 
   if (chooserIsMe) {
-    addLog(`--- Buy Phase --- You have the most $, choose who buys first.`);
-    setMessage(`Buy Phase - You have $${me.roundDollars} vs ${oppLabel}'s $${opp.roundDollars}. Who buys first?`);
+    addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
+    setMessage(`Buy Phase — ${reason}. Who buys first?`);
     setActions([
       { text: 'I Buy First', onClick: () => {
         addLog('You chose to buy first.');
@@ -1694,12 +1709,12 @@ function onDrawPhaseComplete() {
   } else {
     if (!MP.active) {
       // AI always buys first when it has the choice
-      addLog(`--- Buy Phase --- ${oppLabel} has the most $ and chooses to buy first.`);
+      addLog(`--- Buy Phase --- ${oppLabel} chooses buy order (${reason}) and buys first.`);
       startBuyPhaseMP([1, 0]);
     } else {
       // In MP: opponent (remote) has the choice — we wait for their buy order signal
-      addLog(`--- Buy Phase --- ${opp.name} has the most $ and chooses the buy order.`);
-      setMessage(`Waiting for ${opp.name} to choose who buys first...`);
+      addLog(`--- Buy Phase --- ${opp.name} chooses buy order (${reason}).`);
+      setMessage(`Waiting for ${opp.name} to choose who buys first (${reason})...`);
       clearActions();
       render();
       // Opponent will push their order; we listen
