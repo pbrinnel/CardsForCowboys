@@ -450,10 +450,10 @@ body {
   justify-content: center;
 }
 
-/* Pyramid cards are slightly smaller */
+/* Pyramid cards */
 .pyramid-row .card {
-  width: 55px;
-  height: 77px;
+  width: 70px;
+  height: 98px;
 }
 
 /* Action Zone */
@@ -672,18 +672,39 @@ body {
   pointer-events: auto;
 }
 
-/* Hide empty slots in pyramid (cards already taken) */
+/* Hide empty slots in pyramid (cards already taken); match card size */
 .pyramid-row .card-slot {
+  width: 70px;
+  height: 98px;
   border: none;
   background: transparent;
 }
 
 /* Bottom rows appear in front of top rows */
 .pyramid-row:nth-child(1) { z-index: 1; }
-.pyramid-row:nth-child(2) { z-index: 2; margin-top: -44px; }
-.pyramid-row:nth-child(3) { z-index: 3; margin-top: -44px; }
-.pyramid-row:nth-child(4) { z-index: 4; margin-top: -44px; }
-.pyramid-row:nth-child(5) { z-index: 5; margin-top: -44px; }
+.pyramid-row:nth-child(2) { z-index: 2; margin-top: -55px; }
+.pyramid-row:nth-child(3) { z-index: 3; margin-top: -55px; }
+.pyramid-row:nth-child(4) { z-index: 4; margin-top: -55px; }
+.pyramid-row:nth-child(5) { z-index: 5; margin-top: -55px; }
+
+/* ─── Selected card preview (buy phase) ─── */
+#card-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+#card-preview .preview-card {
+  width: 120px;
+  height: 168px;
+  cursor: default;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+#card-preview .preview-card:hover {
+  transform: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
 
 /* ─── Draw phase layout ─── */
 /* Reorder: action + player cards front & center, pyramid shrinks to footer */
@@ -735,6 +756,14 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     width: 44px;
     height: 62px;
   }
+
+  .pyramid-row .card-slot {
+    width: 44px;
+    height: 62px;
+  }
+
+  /* Recalculate overlap for smaller cards */
+  .pyramid-row:nth-child(n+2) { margin-top: -35px; }
 
   .hand {
     min-height: 56px;
@@ -839,6 +868,13 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     width: 38px;
     height: 53px;
   }
+
+  .pyramid-row .card-slot {
+    width: 38px;
+    height: 53px;
+  }
+
+  .pyramid-row:nth-child(n+2) { margin-top: -30px; }
 
   .pyramid-row {
     gap: 0.2rem;

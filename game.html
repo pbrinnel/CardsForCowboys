@@ -19,6 +19,8 @@
     .home {
       text-align: center;
       padding: 2rem;
+      max-width: 380px;
+      width: 100%;
     }
     h1 {
       font-size: 2.8rem;
@@ -29,33 +31,137 @@
       font-size: 1.1rem;
       color: #8b6914;
       font-style: italic;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2rem;
     }
-    .btn-group {
+    .section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8b6914;
+      margin-bottom: 0.8rem;
+    }
+
+    /* Player count buttons */
+    .count-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .count-wrap {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
       align-items: center;
+      gap: 0.35rem;
     }
+    .count-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid #5c3a1e;
+      background: none;
+      font-size: 1.6rem;
+      font-family: Georgia, serif;
+      color: #5c3a1e;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .count-btn.active {
+      background: #5c3a1e;
+      color: #faf3e0;
+    }
+    .count-btn:hover:not(.active):not(:disabled) { background: #f0e2c0; }
+    .count-btn:disabled {
+      border-color: #c8b89a;
+      color: #c8b89a;
+      cursor: not-allowed;
+    }
+    .soon-label {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b0946a;
+    }
+
+    /* Player slots */
+    .slots {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+    }
+    .slot {
+      display: flex;
+      align-items: center;
+      background: #f0e2c0;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      gap: 1rem;
+      min-height: 52px;
+    }
+    .slot-num {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b6914;
+      width: 68px;
+      text-align: left;
+      flex-shrink: 0;
+    }
+    .slot-you {
+      font-weight: bold;
+      color: #5c3a1e;
+    }
+    .toggle-row {
+      display: flex;
+      border: 1px solid #5c3a1e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .toggle-btn {
+      padding: 0.3rem 0.85rem;
+      border: none;
+      background: none;
+      color: #5c3a1e;
+      font-family: Georgia, serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .toggle-btn.active {
+      background: #5c3a1e;
+      color: #faf3e0;
+    }
+    .toggle-btn:hover:not(.active) { background: #e8d8b4; }
+    .invite-note {
+      font-size: 0.78rem;
+      color: #8b6914;
+      font-style: italic;
+      text-align: left;
+      padding: 0.1rem 0.25rem 0;
+    }
+    .soon-msg {
+      color: #8b6914;
+      font-style: italic;
+      padding: 0.75rem 0 1.25rem;
+    }
+
+    /* Buttons */
     .btn {
       display: inline-block;
-      padding: 1rem 3rem;
+      padding: 0.85rem 3rem;
       background-color: #c0392b;
       color: #fff;
       text-decoration: none;
       border: none;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-family: Georgia, 'Times New Roman', serif;
       cursor: pointer;
       border-radius: 6px;
-      min-width: 220px;
+      min-width: 200px;
       transition: background 0.15s;
     }
     .btn:hover { background-color: #a93226; }
-    .btn-secondary {
-      background-color: #5c3a1e;
-    }
-    .btn-secondary:hover { background-color: #3b2314; }
     .btn-ghost {
       background: none;
       color: #8b6914;
@@ -69,20 +175,85 @@
       width: 60px;
       border: none;
       border-top: 1px solid #d4b896;
-      margin: 0.5rem auto;
+      margin: 1rem auto;
     }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
     <p class="tagline">A deck-busting card game of the Wild West</p>
-    <div class="btn-group">
-      <a href="play.html" class="btn">Play vs AI</a>
-      <a href="lobby.html" class="btn btn-secondary">Play Online</a>
-      <hr class="divider">
-      <a href="rules.html" class="btn btn-ghost">Rules</a>
+
+    <div class="section-label">How many players?</div>
+    <div class="count-row">
+      <div class="count-wrap">
+        <button class="count-btn active" id="count-2" onclick="selectCount(2)">2</button>
+      </div>
+      <div class="count-wrap">
+        <button class="count-btn" id="count-3" disabled>3</button>
+        <span class="soon-label">Soon</span>
+      </div>
+      <div class="count-wrap">
+        <button class="count-btn" id="count-4" disabled>4</button>
+        <span class="soon-label">Soon</span>
+      </div>
     </div>
+
+    <!-- 2-player slots -->
+    <div id="slots-2" class="slots">
+      <div class="slot">
+        <span class="slot-num">Player 1</span>
+        <span class="slot-you">You</span>
+      </div>
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
+        <span class="slot-num">Player 2</span>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="p2-ai" onclick="setP2('ai')">AI</button>
+          <button class="toggle-btn" id="p2-human" onclick="setP2('human')">Human</button>
+        </div>
+        <p class="invite-note hidden" id="invite-note" style="width:100%;">
+          You'll get a game code to share after clicking Start.
+        </p>
+      </div>
+    </div>
+
+    <!-- 3/4 player placeholder -->
+    <div id="slots-soon" class="slots hidden">
+      <p class="soon-msg">3 and 4 player support is coming soon!</p>
+    </div>
+
+    <button class="btn" onclick="startGame()">Start Game</button>
+
+    <hr class="divider">
+    <a href="rules.html" class="btn btn-ghost">Rules</a>
   </div>
+
+  <script>
+    let playerCount = 2;
+    let p2Type = 'ai';
+
+    function selectCount(n) {
+      playerCount = n;
+      [2, 3, 4].forEach(i => {
+        const btn = document.getElementById('count-' + i);
+        if (btn) btn.classList.toggle('active', i === n);
+      });
+      document.getElementById('slots-2').classList.toggle('hidden', n !== 2);
+      document.getElementById('slots-soon').classList.toggle('hidden', n === 2);
+    }
+
+    function setP2(type) {
+      p2Type = type;
+      document.getElementById('p2-ai').classList.toggle('active', type === 'ai');
+      document.getElementById('p2-human').classList.toggle('active', type === 'human');
+      document.getElementById('invite-note').classList.toggle('hidden', type !== 'human');
+    }
+
+    function startGame() {
+      if (playerCount !== 2) return;
+      window.location.href = p2Type === 'ai' ? 'play.html' : 'lobby.html';
+    }
+  </script>
 </body>
 </html>

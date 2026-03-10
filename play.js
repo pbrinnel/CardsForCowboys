@@ -853,6 +853,23 @@ function setActions(buttons) {
 
 function clearActions() {
   document.getElementById('actions').innerHTML = '';
+  clearCardPreview();
+}
+
+function setCardPreview(card) {
+  const el = document.getElementById('card-preview');
+  el.innerHTML = '';
+  if (!card) { el.classList.add('hidden'); return; }
+  const cardEl = renderCardEl(card, true);
+  cardEl.classList.add('preview-card');
+  el.appendChild(cardEl);
+  el.classList.remove('hidden');
+}
+
+function clearCardPreview() {
+  const el = document.getElementById('card-preview');
+  el.innerHTML = '';
+  el.classList.add('hidden');
 }
 
 // Push local player's draw state to Firebase (MP only, no-op otherwise)
@@ -1789,11 +1806,14 @@ function onPyramidCardClick(row, col) {
 
   const canAfford = slot.card.cost <= player.roundDollars;
 
+  setCardPreview(slot.card);
+  setMessage(canAfford ? `Buy for $${slot.card.cost} or burn?` : `Can't afford — burn to remove?`);
+
   const buttons = [];
   if (canAfford) {
     buttons.push({ text: `Buy ($${slot.card.cost})`, onClick: () => executeBuy(player, row, col) });
   }
-  buttons.push({ text: 'Burn (Remove)', onClick: () => executeBurn(player, row, col), className: 'btn-burn' });
+  buttons.push({ text: 'Burn', onClick: () => executeBurn(player, row, col), className: 'btn-burn' });
   buttons.push({ text: 'Cancel', onClick: () => {
     G.selectedPyramidCard = null;
     humanBuyTurn(player);
