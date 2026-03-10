@@ -310,7 +310,7 @@ const STARTER_TEMPLATES = [
 // Derived from CSV. Color→Cacti: River(Blue)=1, Cactus(Yellow)=2, Rattlesnake(Red)=3
 const STORE_CARDS = [
   // --- ACT 1 (Tier 1, no player restriction) ---
-  // River (Blue) – 1 cacti
+  // River (Blue) – 1 cacti  [IDs 8-14]
   { id: 'card_8',  img: 'Card_8.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_9',  img: 'Card_9.jpg',  act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_10', img: 'Card_10.jpg', act: 1, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
@@ -318,10 +318,10 @@ const STORE_CARDS = [
   { id: 'card_12', img: 'Card_12.jpg', act: 1, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_13', img: 'Card_13.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   { id: 'card_14', img: 'Card_14.jpg', act: 1, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_15', img: 'Card_15.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_16', img: 'Card_16.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_17', img: 'Card_17.jpg', act: 1, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_18', img: 'Card_18.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
+  { id: 'card_15', img: 'Card_15.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_16', img: 'Card_16.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_17', img: 'Card_17.jpg', act: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
+  { id: 'card_18', img: 'Card_18.jpg', act: 2, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
   // Rattlesnake (Red) – 3 cacti
   { id: 'card_40', img: 'Card_40.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
   { id: 'card_41', img: 'Card_41.jpg', act: 1, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
@@ -336,7 +336,9 @@ const STORE_CARDS = [
   { id: 'card_75', img: 'Card_75.jpg', act: 1, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
 
   // --- ACT 2 (Tier 2, no player restriction) ---
+  // River (Blue) – 1 cacti  [cards 15-18 physically listed above but act:2]
   // Rattlesnake (Red) – 3 cacti
+  { id: 'card_43', img: 'Card_43.jpg', act: 2, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
   { id: 'card_44', img: 'Card_44.jpg', act: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'trash_to_use' },
   { id: 'card_45', img: 'Card_45.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
   { id: 'card_46', img: 'Card_46.jpg', act: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
