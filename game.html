@@ -222,17 +222,21 @@
         <span class="slot-num">Player 1</span>
         <span class="slot-you">You</span>
       </div>
-      <div class="slot">
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
         <span class="slot-num">Player 2</span>
         <div class="toggle-row">
-          <button class="toggle-btn active">AI</button>
+          <button class="toggle-btn active" id="s3-p2-ai" onclick="setSlot(3,2,'ai')">AI</button>
+          <button class="toggle-btn" id="s3-p2-human" onclick="setSlot(3,2,'human')">Human</button>
         </div>
+        <p class="invite-note hidden" id="s3-p2-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
-      <div class="slot">
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
         <span class="slot-num">Player 3</span>
         <div class="toggle-row">
-          <button class="toggle-btn active">AI</button>
+          <button class="toggle-btn active" id="s3-p3-ai" onclick="setSlot(3,3,'ai')">AI</button>
+          <button class="toggle-btn" id="s3-p3-human" onclick="setSlot(3,3,'human')">Human</button>
         </div>
+        <p class="invite-note hidden" id="s3-p3-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
     </div>
 
@@ -242,23 +246,29 @@
         <span class="slot-num">Player 1</span>
         <span class="slot-you">You</span>
       </div>
-      <div class="slot">
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
         <span class="slot-num">Player 2</span>
         <div class="toggle-row">
-          <button class="toggle-btn active">AI</button>
+          <button class="toggle-btn active" id="s4-p2-ai" onclick="setSlot(4,2,'ai')">AI</button>
+          <button class="toggle-btn" id="s4-p2-human" onclick="setSlot(4,2,'human')">Human</button>
         </div>
+        <p class="invite-note hidden" id="s4-p2-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
-      <div class="slot">
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
         <span class="slot-num">Player 3</span>
         <div class="toggle-row">
-          <button class="toggle-btn active">AI</button>
+          <button class="toggle-btn active" id="s4-p3-ai" onclick="setSlot(4,3,'ai')">AI</button>
+          <button class="toggle-btn" id="s4-p3-human" onclick="setSlot(4,3,'human')">Human</button>
         </div>
+        <p class="invite-note hidden" id="s4-p3-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
-      <div class="slot">
+      <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
         <span class="slot-num">Player 4</span>
         <div class="toggle-row">
-          <button class="toggle-btn active">AI</button>
+          <button class="toggle-btn active" id="s4-p4-ai" onclick="setSlot(4,4,'ai')">AI</button>
+          <button class="toggle-btn" id="s4-p4-human" onclick="setSlot(4,4,'human')">Human</button>
         </div>
+        <p class="invite-note hidden" id="s4-p4-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
     </div>
 
@@ -271,6 +281,7 @@
   <script>
     let playerCount = 2;
     let p2Type = 'ai';
+    const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
 
     function selectCount(n) {
       playerCount = n;
@@ -289,19 +300,33 @@
       document.getElementById('invite-note').classList.toggle('hidden', type !== 'human');
     }
 
+    function setSlot(n, i, type) {
+      slotTypes[n][i] = type;
+      document.getElementById('s' + n + '-p' + i + '-ai').classList.toggle('active', type === 'ai');
+      document.getElementById('s' + n + '-p' + i + '-human').classList.toggle('active', type === 'human');
+      document.getElementById('s' + n + '-p' + i + '-note').classList.toggle('hidden', type !== 'human');
+    }
+
     function startGame() {
       if (playerCount === 2) {
-        window.location.href = p2Type === 'ai' ? 'play.html' : 'lobby.html';
+        if (p2Type === 'ai') {
+          window.location.href = 'play.html';
+        } else {
+          window.location.href = 'lobby.html';
+        }
         return;
       }
-      // 3P / 4P: all opponents are AI for now
+      // 3P / 4P: build slot defs
       const defs = [{ name: 'You', isHuman: true }];
+      let anyHuman = false;
       for (let i = 2; i <= playerCount; i++) {
-        defs.push({ name: 'Cowboy ' + (i - 1), isHuman: false });
+        const isHuman = slotTypes[playerCount][i] === 'human';
+        if (isHuman) anyHuman = true;
+        defs.push({ name: isHuman ? '' : ('Cowboy ' + (i - 1)), isHuman });
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));
-      window.location.href = 'play.html';
+      window.location.href = anyHuman ? 'lobby.html' : 'play.html';
     }
   </script>
 </body>

@@ -26,12 +26,28 @@ function generateCode() {
   return code;
 }
 
+// --- Generate a random 32-bit game seed for AI RNG ---
+function generateSeed() {
+  return (Math.random() * 0xFFFFFFFF) >>> 0;
+}
+
 // --- State ---
 let myName = '';
-let myRole = ''; // 'host' or 'guest'
+let mySlot = -1;  // slot index (0 = host)
 let gameCode = '';
 let gameRef = null;
 let unsubscribe = null;
+
+// --- Read player_defs from sessionStorage ---
+// Returns array of { name, isHuman } for each slot.
+// Falls back to 2P human game if not set (index.html path).
+function getPlayerDefs() {
+  const raw = sessionStorage.getItem('player_defs');
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) {}
+  }
+  return [{ name: '', isHuman: true }, { name: '', isHuman: true }];
+}
 
 // --- Name validation ---
 function getName() {
@@ -40,55 +56,96 @@ function getName() {
   return val;
 }
 
+// --- Check if all human slots are filled ---
+function allHumanSlotsFilled(slotsData) {
+  for (const key of Object.keys(slotsData)) {
+    const slot = slotsData[key];
+    if (slot.isHuman && !slot.name) return false;
+  }
+  return true;
+}
+
+// --- Render slot list in a waiting/joining screen ---
+function renderSlotList(slotsData, numPlayers, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  let html = '';
+  for (let i = 0; i < numPlayers; i++) {
+    const slot = slotsData[i] || {};
+    const label = i === 0 ? 'Player 1 (Host)' : `Player ${i + 1}`;
+    let status;
+    if (!slot.isHuman) {
+      status = '<span class="slot-status ai">AI</span>';
+    } else if (slot.name) {
+      status = `<span class="slot-status filled">&#10003; ${slot.name}</span>`;
+    } else {
+      status = '<span class="slot-status waiting">Waiting&#8230;</span>';
+    }
+    html += `<div class="lobby-slot"><span class="lobby-slot-label">${label}</span>${status}</div>`;
+  }
+  el.innerHTML = html;
+}
+
 // --- Create Game (host) ---
 async function createGame() {
   myName = getName();
   if (!myName) return;
 
+  const defs = getPlayerDefs();
+  defs[0].name = myName;  // host fills slot 0
+
   gameCode = generateCode();
-  myRole = 'host';
+  mySlot = 0;
   gameRef = ref(db, `games/${gameCode}`);
 
-  // Check code isn't already in use (very unlikely but safe)
+  // Check code isn't already in use
   const snap = await get(gameRef);
   if (snap.exists()) {
-    gameCode = generateCode(); // try once more
+    gameCode = generateCode();
     gameRef = ref(db, `games/${gameCode}`);
   }
 
-  const gameData = {
+  const numPlayers = defs.length;
+  const gameSeed = generateSeed();
+
+  const slots = {};
+  defs.forEach((d, i) => { slots[i] = { name: d.name || '', isHuman: d.isHuman }; });
+
+  await set(gameRef, {
     status: 'waiting',
-    hostName: myName,
-    guestName: null,
+    numPlayers,
+    gameSeed,
+    slots,
     createdAt: Date.now(),
-  };
+  });
 
-  await set(gameRef, gameData);
-
-  // Clean up if host disconnects while waiting
+  // Remove game if host disconnects while waiting
   onDisconnect(gameRef).remove();
+
+  // Save session info before watching (so it's set even if navigation happens fast)
+  sessionStorage.setItem('mp_code', gameCode);
+  sessionStorage.setItem('mp_slot', '0');
+  sessionStorage.setItem('mp_name', myName);
+  sessionStorage.removeItem('player_defs');
 
   // Show waiting screen
   document.getElementById('display-code').textContent = gameCode;
   const link = `${location.origin}${location.pathname.replace('lobby.html', '')}lobby.html?join=${gameCode}`;
   document.getElementById('share-link').dataset.link = link;
   document.getElementById('share-link').textContent = link;
+  renderSlotList(slots, numPlayers, 'waiting-slot-list');
 
   hide('screen-name');
   show('screen-waiting');
 
-  // Listen for guest joining
+  // Watch for all human slots to be filled
   unsubscribe = onValue(gameRef, (snap) => {
     const data = snap.val();
-    if (!data) return; // removed
-    if (data.status === 'ready' && data.guestName) {
+    if (!data) return;
+    renderSlotList(data.slots, data.numPlayers, 'waiting-slot-list');
+    if (allHumanSlotsFilled(data.slots)) {
       cleanup();
-      // Cancel the waiting-phase onDisconnect before navigating
-      // (otherwise page unload triggers it and deletes the game)
       onDisconnect(gameRef).cancel();
-      sessionStorage.setItem('mp_code', gameCode);
-      sessionStorage.setItem('mp_role', 'host');
-      sessionStorage.setItem('mp_name', myName);
       window.location.href = 'play.html?mp=1';
     }
   });
@@ -102,7 +159,6 @@ async function joinGame(codeOverride) {
   gameCode = (codeOverride || document.getElementById('code-input').value.trim().toUpperCase());
   if (gameCode.length !== 6) { showError('Please enter a valid 6-character game code.'); return; }
 
-  myRole = 'guest';
   gameRef = ref(db, `games/${gameCode}`);
 
   hide('screen-name');
@@ -115,20 +171,45 @@ async function joinGame(codeOverride) {
   const data = snap.val();
   if (data.status !== 'waiting') { showError('That game is already in progress or has ended.'); return; }
 
-  // Join as guest
-  await update(gameRef, {
-    guestName: myName,
-    status: 'ready',
-  });
+  // Find first unclaimed human slot (index > 0, isHuman=true, name empty)
+  let claimedSlot = -1;
+  for (let i = 1; i < data.numPlayers; i++) {
+    const s = data.slots[i];
+    if (s && s.isHuman && !s.name) {
+      claimedSlot = i;
+      break;
+    }
+  }
+  if (claimedSlot === -1) {
+    showError('No open slots in this game.');
+    return;
+  }
 
-  // Cancel disconnect cleanup set by host (we're good now)
+  mySlot = claimedSlot;
+
+  // Claim the slot
+  await update(ref(db, `games/${gameCode}/slots/${claimedSlot}`), { name: myName });
+
+  // Cancel the host's disconnect-cleanup now that we've joined
   onDisconnect(gameRef).cancel();
 
-  cleanup();
+  // Save session info
   sessionStorage.setItem('mp_code', gameCode);
-  sessionStorage.setItem('mp_role', 'guest');
+  sessionStorage.setItem('mp_slot', String(mySlot));
   sessionStorage.setItem('mp_name', myName);
-  window.location.href = 'play.html?mp=1';
+
+  document.getElementById('join-status').textContent = 'Waiting for other players\u2026';
+
+  // Watch for all human slots to be filled
+  unsubscribe = onValue(gameRef, (snap) => {
+    const d = snap.val();
+    if (!d) return;
+    renderSlotList(d.slots, d.numPlayers, 'joining-slot-list');
+    if (allHumanSlotsFilled(d.slots)) {
+      cleanup();
+      window.location.href = 'play.html?mp=1';
+    }
+  });
 }
 
 // --- Cancel ---
@@ -153,7 +234,7 @@ function cleanup() {
 window.copyShareLink = function() {
   const link = document.getElementById('share-link').dataset.link;
   navigator.clipboard.writeText(link).then(() => {
-    document.getElementById('share-link').textContent = '✓ Copied!';
+    document.getElementById('share-link').textContent = '\u2713 Copied!';
     setTimeout(() => {
       document.getElementById('share-link').textContent = link;
     }, 2000);
@@ -179,7 +260,6 @@ document.getElementById('btn-error-back').addEventListener('click', () => {
   show('screen-name');
 });
 
-// Allow pressing Enter in code input to join
 document.getElementById('code-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') joinGame(null);
 });

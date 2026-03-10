@@ -115,6 +115,33 @@
       66%  { content: '...'; }
     }
     .hidden { display: none !important; }
+    /* Slot list in waiting / joining screens */
+    .slot-list {
+      margin: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      text-align: left;
+    }
+    .lobby-slot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      background: #f0e2c0;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .lobby-slot-label { color: #5c3a1e; }
+    .slot-status {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-style: italic;
+    }
+    .slot-status.filled { background: #d4edda; color: #1f7a1f; font-style: normal; font-weight: bold; }
+    .slot-status.waiting { background: #fff3cd; color: #856404; }
+    .slot-status.ai { background: #e0d8f0; color: #5a3e8a; }
   </style>
 </head>
 <body>
@@ -135,20 +162,19 @@
     <a href="game.html" class="back-link">← Back to home</a>
   </div>
 
-  <!-- Screen 2: Waiting for opponent (host) -->
+  <!-- Screen 2: Waiting for opponents (host) -->
   <div id="screen-waiting" class="hidden">
     <p class="section-label">Game created! Share this code:</p>
     <div class="game-code" id="display-code"></div>
     <div class="share-link" id="share-link" onclick="copyShareLink()">Click to copy invite link</div>
-    <div class="status info">
-      Waiting for opponent<span class="waiting-dots"></span>
-    </div>
+    <div id="waiting-slot-list" class="slot-list"></div>
     <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
   </div>
 
   <!-- Screen 3: Status message (joining) -->
   <div id="screen-joining" class="hidden">
     <div class="status info" id="join-status">Joining game<span class="waiting-dots"></span></div>
+    <div id="joining-slot-list" class="slot-list"></div>
     <button class="btn btn-secondary" id="btn-cancel-join">Cancel</button>
   </div>
 

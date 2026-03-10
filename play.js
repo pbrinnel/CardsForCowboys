@@ -13,31 +13,34 @@ const MP = (() => {
   const isMP = new URLSearchParams(location.search).has('mp');
   if (!isMP) return { active: false };
 
-  const code    = sessionStorage.getItem('mp_code');
-  const role    = sessionStorage.getItem('mp_role');   // 'host' | 'guest'
-  const myName  = sessionStorage.getItem('mp_name');
+  const code      = sessionStorage.getItem('mp_code');
+  const mySlotStr = sessionStorage.getItem('mp_slot');  // '0' = host, '1+' = guest
+  const myName    = sessionStorage.getItem('mp_name');
 
-  if (!code || !role || !myName) return { active: false };
+  if (!code || mySlotStr === null || !myName) return { active: false };
+
+  const mySlot = parseInt(mySlotStr, 10);
+  const isHost = mySlot === 0;
 
   // Dynamic Firebase import (ESM CDN)
-  let dbRef = null;      // Firebase ref to /games/{code}
+  let dbRef = null;
   let db    = null;
-  let fbMod = null;      // cached firebase-database module
+  let fbMod = null;
   let fbSet, fbUpdate, fbOnValue, fbOnDisconnect, fbRemove, fbGet, fbRef;
 
-  // My player index: host = 0, guest = 1
-  const myIdx = role === 'host' ? 0 : 1;
-  const oppIdx = 1 - myIdx;
-
   let unsubscribers = [];
-  let initialized = false;
+  let initialized   = false;
+
+  // Populated by buildPlayersConfig()
+  let _slotDefs   = [];
+  let _numPlayers = 0;
+  let _gameSeed   = 0;
 
   function gameRef(path) {
     return fbRef(db, `games/${code}${path ? '/' + path : ''}`);
   }
 
   async function init() {
-    // Load Firebase dynamically (play.html is not a module, so we import here)
     const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
 
@@ -65,43 +68,36 @@ const MP = (() => {
     dbRef = gameRef();
     initialized = true;
 
-    // Handle opponent disconnect
+    // Mark disconnected in Firebase if we leave unexpectedly
     fbOnDisconnect(dbRef).update({ status: 'disconnected' });
     const unsub = fbOnValue(dbRef, (snap) => {
       const data = snap.val();
       if (!data) return;
-      if (data.status === 'disconnected') {
-        showDisconnectMessage();
-      }
+      if (data.status === 'disconnected') showDisconnectMessage();
     });
     unsubscribers.push(unsub);
   }
 
-  // Write my player state to Firebase
-  async function pushMyState(player) {
-    if (!initialized) return;
-    await fbUpdate(gameRef(`players/${myIdx}`), serializePlayer(player));
+  // Read game config from Firebase: slotDefs, gameSeed, numPlayers
+  async function buildPlayersConfig() {
+    if (!initialized) return null;
+    const snap = await fbGet(dbRef);
+    const data = snap.val();
+    if (!data) return null;
+    _numPlayers = data.numPlayers || 2;
+    _gameSeed   = data.gameSeed   || 0;
+    _slotDefs   = [];
+    for (let i = 0; i < _numPlayers; i++) {
+      const s = (data.slots && data.slots[i]) || {};
+      _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false };
+    }
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers };
   }
 
-  // Serialize player state for Firebase (strip non-serializable bits)
-  function serializePlayer(player) {
-    return {
-      name: player.name,
-      herd: player.herd,
-      roundDollars: player.roundDollars,
-      roundCows: player.roundCows,
-      roundBandits: player.roundBandits,
-      busted: player.busted,
-      stoppedDrawing: player.stoppedDrawing,
-      handCount: player.hand.length,
-      deckCount: player.deck.length,
-    };
-  }
-
-  // Push my full draw state (hand + deck + stats) after every draw action
+  // Push local player's full draw state (hand + deck + stats) after every draw action
   async function pushDrawState(player) {
     if (!initialized) return;
-    await fbSet(gameRef(`drawState/${myIdx}`), {
+    await fbSet(gameRef(`drawState/${mySlot}`), {
       hand: player.hand.map(c => c.id),
       deck: player.deck.map(c => c.id),
       dollars: player.roundDollars,
@@ -112,20 +108,24 @@ const MP = (() => {
     });
   }
 
-  // Live listener for opponent's draw state — calls callback on every update
-  function watchOpponentDrawState(callback) {
+  // Live watch all human opponent draw states; callback(slotIdx, state) on every update
+  function watchOpponentDrawStates(callback) {
     if (!initialized) return;
-    const unsub = fbOnValue(gameRef(`drawState/${oppIdx}`), (snap) => {
-      const val = snap.val();
-      if (val) callback(val);
-    });
-    unsubscribers.push(unsub);
+    for (let s = 0; s < _numPlayers; s++) {
+      if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
+      const slotIdx = s;
+      const unsub = fbOnValue(gameRef(`drawState/${slotIdx}`), (snap) => {
+        const val = snap.val();
+        if (val) callback(slotIdx, val);
+      });
+      unsubscribers.push(unsub);
+    }
   }
 
-  // Signal that my draw phase is done, including my round stats
+  // Signal that my draw phase is done
   async function signalDrawDone(player) {
     if (!initialized) return;
-    await fbSet(gameRef(`drawDone/${myIdx}`), {
+    await fbSet(gameRef(`drawDone/${mySlot}`), {
       done: true,
       dollars: player.roundDollars,
       cows: player.roundCows,
@@ -135,31 +135,35 @@ const MP = (() => {
     });
   }
 
-  // Wait for opponent's draw done signal, then call callback with their stats
-  function waitForOpponentDraw(callback) {
+  // For each human opponent slot, fires slotDoneCallback(slotIdx) when they signal done
+  function waitForAllHumanDrawsDone(slotDoneCallback) {
     if (!initialized) return;
-    let fired = false;
-    let unsub = null;
-    unsub = fbOnValue(gameRef(`drawDone/${oppIdx}`), (snap) => {
-      const val = snap.val();
-      if (val && val.done === true && !fired) {
-        fired = true;
-        if (unsub) unsub();
-        callback(val);
-      }
-    });
-    unsubscribers.push(unsub);
+    for (let s = 0; s < _numPlayers; s++) {
+      if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
+      let fired = false;
+      let unsub = null;
+      const slotIdx = s;
+      unsub = fbOnValue(gameRef(`drawDone/${slotIdx}`), (snap) => {
+        const val = snap.val();
+        if (val && val.done === true && !fired) {
+          fired = true;
+          if (unsub) unsub();
+          slotDoneCallback(slotIdx);
+        }
+      });
+      unsubscribers.push(unsub);
+    }
   }
 
   // Reset all per-round signals at start of each round
   async function resetRound() {
     if (!initialized) return;
-    await fbUpdate(dbRef, {
-      drawDone: { 0: null, 1: null },
-      drawState: { 0: null, 1: null },
-      buyAction: null,
-      buyOrder: null,
-    });
+    const updates = { buyAction: null, buyOrder: null };
+    for (let i = 0; i < _numPlayers; i++) {
+      updates[`drawDone/${i}`]  = null;
+      updates[`drawState/${i}`] = null;
+    }
+    await fbUpdate(dbRef, updates);
   }
 
   // Clear actSetup (between acts)
@@ -168,15 +172,15 @@ const MP = (() => {
     await fbSet(gameRef('actSetup'), null);
   }
 
-  // Push act setup (host only) — shares pyramid card IDs so both clients build same pyramid
+  // Push act setup (host only) — shares pyramid card IDs so all clients build the same pyramid
   async function pushActSetup(act, cardIds) {
-    if (!initialized || role !== 'host') return;
+    if (!initialized || !isHost) return;
     await fbSet(gameRef('actSetup'), { act, cardIds, ts: Date.now() });
   }
 
-  // Listen for act setup (guest)
+  // Listen for act setup (non-host)
   function waitForActSetup(callback) {
-    if (!initialized || role !== 'guest') return;
+    if (!initialized || isHost) return;
     let fired = false;
     let unsub = null;
     unsub = fbOnValue(gameRef('actSetup'), (snap) => {
@@ -190,20 +194,20 @@ const MP = (() => {
     unsubscribers.push(unsub);
   }
 
-  // Push buy action (my action: buy or burn at row/col)
+  // Push local player's buy action (buy or burn at row/col)
   async function pushBuyAction(action, row, col) {
     if (!initialized) return;
-    await fbSet(gameRef('buyAction'), { playerIdx: myIdx, action, row, col, ts: Date.now() });
+    await fbSet(gameRef(`buyAction/${mySlot}`), { action, row, col, ts: Date.now() });
   }
 
-  // Listen for opponent's buy action
-  function waitForBuyAction(callback) {
+  // Listen for a specific slot's buy action
+  function waitForBuyAction(slotIdx, callback) {
     if (!initialized) return;
     let fired = false;
     let unsub = null;
-    unsub = fbOnValue(gameRef('buyAction'), (snap) => {
+    unsub = fbOnValue(gameRef(`buyAction/${slotIdx}`), (snap) => {
       const data = snap.val();
-      if (data && data.playerIdx === oppIdx && !fired) {
+      if (data && !fired) {
         fired = true;
         if (unsub) unsub();
         callback(data);
@@ -212,13 +216,13 @@ const MP = (() => {
     unsubscribers.push(unsub);
   }
 
-  // Push buy order (host decides who goes first)
-  async function pushBuyOrder(firstIdx) {
+  // Push buy order as array of Firebase slot indices [first, second, ...]
+  async function pushBuyOrder(slotOrder) {
     if (!initialized) return;
-    await fbSet(gameRef('buyOrder'), { firstIdx, ts: Date.now() });
+    await fbSet(gameRef('buyOrder'), { slotOrder, ts: Date.now() });
   }
 
-  // Listen for buy order
+  // Listen for buy order; callback receives the slotOrder array
   function waitForBuyOrder(callback) {
     if (!initialized) return;
     let fired = false;
@@ -228,23 +232,14 @@ const MP = (() => {
       if (data && !fired) {
         fired = true;
         if (unsub) unsub();
-        callback(data.firstIdx);
+        callback(data.slotOrder);
       }
     });
     unsubscribers.push(unsub);
   }
 
-  // Read opponent name from Firebase game record
-  async function getOpponentName() {
-    if (!initialized) return 'Opponent';
-    const snap = await fbGet(dbRef);
-    const data = snap.val();
-    if (!data) return 'Opponent';
-    return role === 'host' ? (data.guestName || 'Opponent') : (data.hostName || 'Opponent');
-  }
-
   function showDisconnectMessage() {
-    setMessage('Your opponent disconnected. Game over.');
+    setMessage('A player disconnected. Game over.');
     setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'game.html'; } }]);
     cleanup();
   }
@@ -252,8 +247,6 @@ const MP = (() => {
   function cleanup() {
     unsubscribers.forEach(u => u && u());
     unsubscribers = [];
-    // Cancel the onDisconnect so navigating away after game over
-    // doesn't falsely mark the game as disconnected
     if (initialized && dbRef) {
       fbOnDisconnect(dbRef).cancel();
     }
@@ -261,13 +254,14 @@ const MP = (() => {
 
   return {
     active: true,
-    code, role, myName, myIdx, oppIdx,
+    code, mySlot, isHost, myName,
+    slotToPlayer: {},  // slotIdx → G.players index; set in startGame()
     init,
-    pushMyState,
+    buildPlayersConfig,
     pushDrawState,
-    watchOpponentDrawState,
+    watchOpponentDrawStates,
     signalDrawDone,
-    waitForOpponentDraw,
+    waitForAllHumanDrawsDone,
     resetRound,
     clearActSetup,
     pushActSetup,
@@ -276,7 +270,6 @@ const MP = (() => {
     waitForBuyAction,
     pushBuyOrder,
     waitForBuyOrder,
-    getOpponentName,
     cleanup,
   };
 })();
@@ -444,6 +437,39 @@ function shuffle(arr) {
   return a;
 }
 
+// --- SEEDED RNG for AI deck shuffles in MP mode ---
+// Each AI slot gets an independent LCG seeded from gameSeed XOR slotIdx.
+// All clients initialize the same seeds, so AI draws are deterministic everywhere.
+let _aiRngs = {}; // slotIdx → { seed }
+
+function initAiRng(slotIdx, gameSeed) {
+  _aiRngs[slotIdx] = { seed: ((gameSeed ^ (slotIdx * 0x9e3779b9)) >>> 0) || 1 };
+}
+
+function _nextAiRng(slotIdx) {
+  const r = _aiRngs[slotIdx];
+  // Linear congruential generator (Numerical Recipes constants)
+  r.seed = (Math.imul(1664525, r.seed) + 1013904223) >>> 0;
+  return r.seed / 4294967296;
+}
+
+function _seededShuffle(arr, slotIdx) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(_nextAiRng(slotIdx) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Use seeded shuffle for AI slots in MP; regular shuffle otherwise
+function shuffleForPlayer(arr, slotIdx, isHuman) {
+  if (MP.active && !isHuman && _aiRngs[slotIdx] !== undefined) {
+    return _seededShuffle(arr, slotIdx);
+  }
+  return shuffle(arr);
+}
+
 function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
@@ -471,22 +497,22 @@ function createCardInstance(template, imgFile) {
   };
 }
 
-function createStarterDeck() {
+function createStarterDeck(slotIdx, isHuman) {
   const deck = [];
   for (const tmpl of STARTER_TEMPLATES) {
     for (let i = 0; i < tmpl.count; i++) {
-      const imgFile = tmpl.img;
-      deck.push(createCardInstance(tmpl, imgFile));
+      deck.push(createCardInstance(tmpl, tmpl.img));
     }
   }
-  return shuffle(deck);
+  return shuffleForPlayer(deck, slotIdx, isHuman);
 }
 
-function createPlayer(name, isHuman) {
+function createPlayer(name, isHuman, slotIdx = 0) {
   return {
     name,
     isHuman,
-    deck: createStarterDeck(),
+    slotIdx,
+    deck: createStarterDeck(slotIdx, isHuman),
     discard: [],
     hand: [],
     herd: 0,
@@ -503,12 +529,13 @@ function createPlayer(name, isHuman) {
 
 function initState(numPlayers, players) {
   uidCounter = 0;
+  const n = numPlayers || 2;
   return {
-    numPlayers: numPlayers || 2,
+    numPlayers: n,
     currentAct: 1,
     phase: 'start',
     roundNumber: 1,
-    players: players || [createPlayer('You', true), createPlayer('Cowboy AI', false)],
+    players: players || [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)],
     pyramid: [],
     log: [],
     buyOrder: [],
@@ -516,6 +543,7 @@ function initState(numPlayers, players) {
     drawsDone: {},
     selectedPyramidCard: null,
     busy: false,
+    playerOrder: Array.from({length: n}, (_, i) => i), // G.players[i] → Firebase slot index (SP default: identity)
   };
 }
 
@@ -606,7 +634,7 @@ function isPyramidEmpty(pyramid) {
 function drawFromDeck(player) {
   if (player.deck.length === 0) {
     if (player.discard.length === 0) return null;
-    player.deck = shuffle(player.discard);
+    player.deck = shuffleForPlayer(player.discard, player.slotIdx, player.isHuman);
     player.discard = [];
     // Cut: move top card to bottom
     if (player.deck.length > 1) {
@@ -953,18 +981,36 @@ async function startGame() {
       console.error(e);
       return;
     }
-    const oppName = await MP.getOpponentName();
-    // G.players[0] = me (human), G.players[1] = opponent
-    // MP.myIdx tracks actual host/guest index for Firebase sync
-    const myPlayer  = createPlayer(MP.myName, true);
-    const oppPlayer = createPlayer(oppName, false);
-    G = initState(2, [myPlayer, oppPlayer]);
+    const cfg = await MP.buildPlayersConfig();
+
+    // Initialize seeded RNG for each AI slot
+    cfg.slotDefs.forEach((def, slotIdx) => {
+      if (!def.isHuman) initAiRng(slotIdx, cfg.gameSeed);
+    });
+
+    // G.players[0] = local human; remaining slots in order skipping mySlot
+    const G_playerOrder = [MP.mySlot];
+    for (let s = 0; s < cfg.numPlayers; s++) {
+      if (s !== MP.mySlot) G_playerOrder.push(s);
+    }
+
+    // slotToPlayer: Firebase slot index → G.players index
+    MP.slotToPlayer = {};
+    G_playerOrder.forEach((slotIdx, i) => { MP.slotToPlayer[slotIdx] = i; });
+
+    const players = G_playerOrder.map((slotIdx) => {
+      const def = cfg.slotDefs[slotIdx];
+      return createPlayer(def.name, def.isHuman, slotIdx);
+    });
+
+    G = initState(cfg.numPlayers, players);
+    G.playerOrder = G_playerOrder;
   } else {
     // Read player config from sessionStorage (set by game.html for 3P/4P)
     const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
     const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
     if (storedDefs && storedDefs.length >= 2) {
-      const players = storedDefs.map(d => createPlayer(d.name, d.isHuman));
+      const players = storedDefs.map((d, i) => createPlayer(d.name, d.isHuman, i));
       G = initState(storedCount, players);
     } else {
       G = initState(2);
@@ -990,14 +1036,14 @@ async function setupAct(act) {
   // Between acts, merge everything back and reshuffle
   for (const player of G.players) {
     const allCards = [...player.deck, ...player.discard, ...player.hand];
-    player.deck = shuffle(allCards);
+    player.deck = shuffleForPlayer(allCards, player.slotIdx, player.isHuman);
     player.discard = [];
     player.hand = [];
     resetPlayerRound(player);
   }
 
   if (MP.active) {
-    if (MP.role === 'host') {
+    if (MP.isHost) {
       // Host builds pyramid and shares card IDs with guest
       G.pyramid = buildPyramid(act);
       const cardIds = G.pyramid.flatMap(row => row.map(slot => slot.card.id));
@@ -1038,14 +1084,18 @@ async function startRound() {
 
   if (MP.active) {
     await MP.resetRound();
-    // In MP, "opponent draw" is signaled via Firebase; no local AI
     startPlayerDraw();
-    // Set up listener for when opponent signals done
-    // Live updates: show opponent's hand as they draw
-    MP.watchOpponentDrawState((state) => {
-      const opp = G.players[1];
-      const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
-      // Reconstruct opponent hand and deck from card IDs
+
+    // Run AI draws locally (deterministic — same on all clients via seeded RNG)
+    for (let i = 1; i < G.numPlayers; i++) {
+      if (!G.players[i].isHuman) aiDrawPhase(i);
+    }
+
+    // Live watch remote human opponents' draw states
+    const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
+    MP.watchOpponentDrawStates((slotIdx, state) => {
+      const playerIdx = MP.slotToPlayer[slotIdx];
+      const opp = G.players[playerIdx];
       opp.hand = (state.hand || []).map(id => {
         const tmpl = findCard(id);
         return tmpl ? createCardInstance(tmpl) : null;
@@ -1054,17 +1104,18 @@ async function startRound() {
         const tmpl = findCard(id);
         return tmpl ? createCardInstance(tmpl) : null;
       }).filter(Boolean);
-      opp.roundDollars  = state.dollars;
-      opp.roundCows     = state.cows;
-      opp.roundBandits  = state.bandits;
-      opp.busted        = state.busted;
+      opp.roundDollars   = state.dollars;
+      opp.roundCows      = state.cows;
+      opp.roundBandits   = state.bandits;
+      opp.busted         = state.busted;
       opp.stoppedDrawing = state.stoppedDrawing;
       render();
     });
 
-    MP.waitForOpponentDraw((stats) => {
-      // Final stats already applied by watchOpponentDrawState; just advance phase
-      G.drawsDone[1] = true;
+    // One-shot done signal per remote human opponent
+    MP.waitForAllHumanDrawsDone((slotIdx) => {
+      const playerIdx = MP.slotToPlayer[slotIdx];
+      G.drawsDone[playerIdx] = true;
       checkDrawPhaseComplete();
     });
   } else {
@@ -1253,7 +1304,7 @@ function onPlayerDrawDone() {
   render();
 
   if (MP.active) {
-    setMessage('Waiting for opponent to finish drawing...');
+    setMessage('Waiting for other players to finish drawing...');
     MP.signalDrawDone(G.players[0]); // fire-and-forget is fine
   }
 
@@ -1267,7 +1318,7 @@ function checkDrawPhaseComplete() {
   } else if (G.drawsDone[0]) {
     const waiting = G.numPlayers - 1;
     setMessage(MP.active
-      ? 'Waiting for opponent to finish drawing...'
+      ? 'Waiting for other players to finish drawing...'
       : `Waiting for ${waiting > 1 ? 'opponents' : 'AI'} to finish drawing...`);
   }
 }
@@ -1763,8 +1814,8 @@ function onDrawPhaseComplete() {
       }
     }
     if (!resolved) {
-      candidates = [candidates[MP.active ? (MP.role === 'host' ? 0 : candidates.length - 1) : Math.floor(Math.random() * candidates.length)]];
-      tieLog = 'Complete tie — buy order decided randomly';
+      candidates = [candidates[0]]; // deterministic: first remaining candidate wins
+      tieLog = 'Complete tie — buy order decided by player order';
       reason = 'random';
     }
   }
@@ -1776,45 +1827,26 @@ function onDrawPhaseComplete() {
   const nonBusted = G.players.map((p, i) => ({p, i})).filter(c => !c.p.busted).map(c => c.i);
 
   if (winner.i === 0) {
-    // Human wins the tiebreaker — they choose
+    // Local human wins — they choose buy order
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
-    if (G.numPlayers === 2 && MP.active) {
-      // 2P MP: show 2-button UI, push result to Firebase
-      const oppLabel = G.players[1].name;
-      setMessage(`Buy Phase — ${reason}. Who buys first?`);
-      setActions([
-        { text: 'I Buy First', onClick: () => {
-          addLog('You chose to buy first.');
-          startBuyPhaseMP([0, 1]);
-        }},
-        { text: `${oppLabel} Buys First`, onClick: () => {
-          addLog(`You chose ${oppLabel} to buy first.`);
-          startBuyPhaseMP([1, 0]);
-        }, className: 'btn-secondary' },
-      ]);
-      render();
-    } else {
-      // AI mode (any N): show one button per non-busted player
-      showChooseFirstUI(nonBusted);
-    }
+    showChooseFirstUI(nonBusted);
+  } else if (!G.players[winner.i].isHuman) {
+    // AI wins — deterministic on all clients; host also pushes to Firebase for consistency
+    addLog(`--- Buy Phase --- ${winner.p.name} goes first (${reason}).`);
+    startBuyPhase(winner.i);
   } else {
-    // AI (or MP remote) wins
-    if (!MP.active) {
-      addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}) and goes first.`);
-      startBuyPhase(winner.i);
-    } else {
-      // 2P MP: wait for remote player's buy order signal
-      addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}).`);
-      setMessage(`Waiting for ${winner.p.name} to choose who buys first...`);
-      clearActions();
-      render();
-      MP.waitForBuyOrder((firstIdx) => {
-        const myLocalFirst = (firstIdx === MP.myIdx);
-        const order = myLocalFirst ? [0, 1] : [1, 0];
-        addLog(`${winner.p.name} chose ${myLocalFirst ? 'you' : winner.p.name} to buy first.`);
-        applyBuyOrder(order);
-      });
-    }
+    // Remote human wins — wait for their buy order push
+    addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}).`);
+    setMessage(`Waiting for ${winner.p.name} to choose who buys first...`);
+    clearActions();
+    render();
+    MP.waitForBuyOrder((slotOrder) => {
+      const localOrder = slotOrder.map(s => MP.slotToPlayer[s]);
+      const firstLocalIdx = localOrder[0];
+      const firstPlayer = G.players[firstLocalIdx];
+      addLog(`${winner.p.name} chose ${firstLocalIdx === 0 ? 'you' : firstPlayer.name} to buy first.`);
+      applyBuyOrder(localOrder);
+    });
   }
 }
 
@@ -1834,19 +1866,14 @@ function showChooseFirstUI(nonBustedIndices) {
 // Build buy order starting from startIdx, rotating through all players
 function startBuyPhase(startIdx) {
   const order = Array.from({length: G.numPlayers}, (_, k) => (startIdx + k) % G.numPlayers);
-  if (G.numPlayers === 2 && MP.active) {
-    startBuyPhaseMP(order);
-  } else {
-    applyBuyOrder(order);
-  }
-}
-
-// 2P MP only: push buy order to Firebase, then apply locally
-function startBuyPhaseMP(order) {
   if (MP.active) {
-    const localFirst = order[0];
-    const gameFirst = localFirst === 0 ? MP.myIdx : MP.oppIdx;
-    MP.pushBuyOrder(gameFirst);
+    // Push Firebase slot order.
+    // Push when: local human wins (startIdx===0), or AI wins and we are host (one writer).
+    const winnerIsAI = startIdx > 0 && !G.players[startIdx].isHuman;
+    if (startIdx === 0 || (winnerIsAI && MP.isHost)) {
+      const slotOrder = order.map(i => G.playerOrder[i]);
+      MP.pushBuyOrder(slotOrder);
+    }
   }
   applyBuyOrder(order);
 }
@@ -1879,13 +1906,15 @@ function processBuyTurn() {
     return;
   }
 
-  if (player.isHuman) {
+  if (playerIdx === 0) {
+    // Local human's turn
     humanBuyTurn(player);
-  } else if (MP.active) {
-    // Wait for opponent's buy action via Firebase
-    mpOpponentBuyTurn(player);
-  } else {
+  } else if (!player.isHuman) {
+    // AI player — run locally (deterministic on all clients)
     aiBuyTurn(player);
+  } else {
+    // Remote human — wait for their Firebase action (MP only)
+    mpOpponentBuyTurn(player);
   }
 }
 
@@ -1893,8 +1922,7 @@ function mpOpponentBuyTurn(opp) {
   setMessage(`Waiting for ${opp.name} to buy or burn...`);
   clearActions();
   render();
-  MP.waitForBuyAction((data) => {
-    // Apply opponent's action locally
+  MP.waitForBuyAction(opp.slotIdx, (data) => {
     if (data.action === 'buy') {
       executeBuyLocal(opp, data.row, data.col);
     } else {
@@ -1948,9 +1976,9 @@ function onPyramidCardClick(row, col) {
   setActions(buttons);
 }
 
-// Human buy: push to Firebase (MP) then apply locally
+// Human buy: push to Firebase (MP, local human only) then apply locally
 function executeBuy(player, row, col) {
-  if (MP.active) MP.pushBuyAction('buy', row, col);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col);
   executeBuyLocal(player, row, col);
 }
 
@@ -1977,9 +2005,9 @@ function executeBuyLocal(player, row, col) {
   }
 }
 
-// Human burn: push to Firebase (MP) then apply locally
+// Human burn: push to Firebase (MP, local human only) then apply locally
 function executeBurn(player, row, col) {
-  if (MP.active) MP.pushBuyAction('burn', row, col);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
   executeBurnLocal(player, row, col);
 }
 
@@ -2112,24 +2140,29 @@ async function endAct() {
 function gameOver() {
   G.phase = 'gameOver';
   const me = G.players[0];
-  const opp = G.players[1];
+
+  const maxHerd = Math.max(...G.players.map(p => p.herd));
+  const topPlayers = G.players.filter(p => p.herd === maxHerd);
 
   let title;
-  if (me.herd > opp.herd) {
+  if (topPlayers.length === 1 && topPlayers[0] === me) {
     title = 'You Win!';
-  } else if (opp.herd > me.herd) {
-    title = MP.active ? `${opp.name} Wins!` : 'AI Wins!';
+  } else if (topPlayers.some(p => p === me)) {
+    title = "It's a Tie!";
+  } else if (topPlayers.length === 1) {
+    title = `${topPlayers[0].name} Wins!`;
   } else {
-    title = 'It\'s a Tie!';
+    title = "It's a Tie!";
   }
 
   document.getElementById('gameover-title').textContent = title;
-  document.getElementById('gameover-scores').innerHTML =
-    `<p style="font-size:1.3rem;margin:1rem 0">Your Herd: <strong>${me.herd}</strong> cows</p>` +
-    `<p style="font-size:1.3rem;margin:1rem 0">${opp.name}'s Herd: <strong>${opp.herd}</strong> cows</p>`;
+  document.getElementById('gameover-scores').innerHTML = G.players.map(p =>
+    `<p style="font-size:1.1rem;margin:0.75rem 0">${p === me ? 'You' : p.name}: <strong>${p.herd}</strong> cows</p>`
+  ).join('');
 
   document.getElementById('gameover-screen').classList.remove('hidden');
-  addLog(`Game Over! You: ${me.herd} cows, ${opp.name}: ${opp.herd} cows.`, 'log-score');
+  const logParts = G.players.map(p => `${p === me ? 'You' : p.name}: ${p.herd}`).join(', ');
+  addLog(`Game Over! ${logParts}.`, 'log-score');
 
   if (MP.active) MP.cleanup();
 }
