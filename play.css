@@ -677,10 +677,11 @@ body {
   pointer-events: none; /* let clicks fall through empty row space */
 }
 
-.pyramid-row .card,
-.pyramid-row .card-slot {
+.pyramid-row .card {
   pointer-events: auto;
 }
+/* .card-slot must NOT have pointer-events:auto — empty slots in higher-z-index
+   rows would otherwise block clicks on face-up cards behind them */
 
 /* Hide empty slots in pyramid (cards already taken); match card size */
 .pyramid-row .card-slot {
