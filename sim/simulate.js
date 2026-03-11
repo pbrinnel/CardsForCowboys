@@ -4,10 +4,13 @@
 // ============================================================
 //
 // Usage:
-//   node sim/simulate.js                              # 1000 games, default vs default
+//   node sim/simulate.js                              # 1000 games, 2P default vs default
 //   node sim/simulate.js --games 5000                 # 5000 games
-//   node sim/simulate.js --p1 aggressive --p2 conservative
-//   node sim/simulate.js --tournament                 # all strategy combos
+//   node sim/simulate.js --players 3                  # 3-player game
+//   node sim/simulate.js --p1 reckless_cowFocused --p2 timid_balanced
+//   node sim/simulate.js --p1 bold_dollarFocused --p2 moderate_balanced --p3 timid_banditAverse
+//   node sim/simulate.js --tournament                 # all strategy combos (2P only)
+//   node sim/simulate.js --random                     # random strategies
 //   node sim/simulate.js --list                       # show available strategies
 //
 // ============================================================
@@ -15,6 +18,7 @@
 const core = require('./game-core');
 const ai = require('./ai-player');
 const { StatsCollector } = require('./stats');
+const { determineBuyWinner } = require('../shared/tiebreaker');
 
 // --- CLI ARGS ---
 
@@ -22,8 +26,11 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
     games: 1000,
+    players: 2,
     p1: 'default',
     p2: 'default',
+    p3: 'default',
+    p4: 'default',
     tournament: false,
     random: false,
     list: false,
@@ -35,11 +42,20 @@ function parseArgs() {
       case '--games': case '-n':
         opts.games = parseInt(args[++i]) || 1000;
         break;
+      case '--players':
+        opts.players = Math.min(4, Math.max(2, parseInt(args[++i]) || 2));
+        break;
       case '--p1':
         opts.p1 = args[++i] || 'default';
         break;
       case '--p2':
         opts.p2 = args[++i] || 'default';
+        break;
+      case '--p3':
+        opts.p3 = args[++i] || 'default';
+        break;
+      case '--p4':
+        opts.p4 = args[++i] || 'default';
         break;
       case '--tournament': case '-t':
         opts.tournament = true;
@@ -70,10 +86,13 @@ Usage:
 
 Options:
   --games N, -n N     Number of games to simulate (default: 1000)
+  --players N         Number of players (2-4, default: 2)
   --p1 STRATEGY       P1 strategy name (default: default)
   --p2 STRATEGY       P2 strategy name (default: default)
-  --tournament, -t    Run all strategy combos against each other
-  --random, -r        Random strategy pair each game
+  --p3 STRATEGY       P3 strategy name for 3P/4P (default: default)
+  --p4 STRATEGY       P4 strategy name for 4P (default: default)
+  --tournament, -t    Run all strategy combos against each other (2P only)
+  --random, -r        Random strategy pair/set each game
   --list, -l          List available strategies
   --verbose, -v       Print per-game results
   --help, -h          Show this help
@@ -82,35 +101,71 @@ Strategies: ${Object.keys(ai.STRATEGIES).join(', ')}
 `);
 }
 
+function resolveStrategy(key) {
+  if (key === 'default') key = 'moderate_balanced';
+  const s = ai.STRATEGIES[key];
+  if (!s) { console.error(`Unknown strategy: ${key}`); process.exit(1); }
+  return s;
+}
+
+// --- BUY ORDER ---
+
+// Returns player indices in buy order (non-busted only).
+// hasBuyBurnFirst players go first (sorted by player index = slot index in SP).
+// Remaining non-busted players ordered by determineBuyWinner tiebreaker.
+function computeBuyOrder(players) {
+  const nonBustedIdxs = players.map((_, i) => i).filter(i => !players[i].busted);
+
+  // In SP mode, playerOrder[i] = i (identity)
+  const playerOrder = players.map((_, i) => i);
+
+  const priorityIdxs = nonBustedIdxs
+    .filter(i => players[i].hasBuyBurnFirst)
+    .sort((a, b) => a - b);
+
+  const normalIdxs = nonBustedIdxs.filter(i => !players[i].hasBuyBurnFirst);
+
+  let normalSorted;
+  if (normalIdxs.length <= 1) {
+    normalSorted = normalIdxs;
+  } else {
+    const subPlayers = normalIdxs.map(i => players[i]);
+    const subOrder = normalIdxs.map(i => playerOrder[i]);
+    const { winnerIdx } = determineBuyWinner(subPlayers, subOrder);
+    const winnerGlobalIdx = normalIdxs[winnerIdx];
+    const rest = normalIdxs
+      .filter(i => i !== winnerGlobalIdx)
+      .sort((a, b) => a - b);
+    normalSorted = [winnerGlobalIdx, ...rest];
+  }
+
+  return [...priorityIdxs, ...normalSorted];
+}
+
 // --- SINGLE GAME SIMULATION ---
 
-function simulateGame(strategy1, strategy2, verbose) {
+function simulateGame(strategies, numPlayers, verbose) {
   core.resetUidCounter();
 
-  const p1 = core.createPlayer('P1');
-  const p2 = core.createPlayer('P2');
-  const players = [p1, p2];
-  const strategies = [strategy1, strategy2];
+  const players = [];
+  for (let i = 0; i < numPlayers; i++) {
+    players.push(core.createPlayer(`P${i + 1}`, strategies[i].name));
+  }
 
   const result = {
-    p1Herd: 0,
-    p2Herd: 0,
-    p1Busts: 0,
-    p2Busts: 0,
-    p1RoundsPlayed: 0,
-    p2RoundsPlayed: 0,
-    totalRounds: 0,
-    p1Purchases: [],
-    p2Purchases: [],
-    p1ActCows: [0, 0, 0],
-    p2ActCows: [0, 0, 0],
+    herds: new Array(numPlayers).fill(0),
+    busts: new Array(numPlayers).fill(0),
+    roundsPlayed: new Array(numPlayers).fill(0),
+    purchases: Array.from({ length: numPlayers }, () => []),
+    actCows: Array.from({ length: numPlayers }, () => [0, 0, 0]),
+    strategies: strategies.map(s => s.name),
     pyramidCards: [],
-    p1Strategy: strategy1.name,
-    p2Strategy: strategy2.name,
+    totalRounds: 0,
+    numPlayers,
   };
 
   for (let act = 1; act <= 3; act++) {
-    // Between acts: merge and reshuffle
+    // Between acts: merge and reshuffle all cards
     for (const player of players) {
       const allCards = [...player.deck, ...player.discard, ...player.hand];
       player.deck = core.shuffle(allCards);
@@ -118,9 +173,8 @@ function simulateGame(strategy1, strategy2, verbose) {
       player.hand = [];
     }
 
-    const pyramid = core.buildPyramid(act);
+    const pyramid = core.buildPyramid(act, numPlayers);
 
-    // Track which cards are in this pyramid
     for (const row of pyramid) {
       for (const slot of row) {
         result.pyramidCards.push(slot.card.id);
@@ -128,68 +182,66 @@ function simulateGame(strategy1, strategy2, verbose) {
     }
 
     let roundNum = 0;
-    const actStartHerd = [p1.herd, p2.herd];
+    const actStartHerd = players.map(p => p.herd);
 
     while (!core.isPyramidEmpty(pyramid)) {
       roundNum++;
       result.totalRounds++;
 
       // --- DRAW PHASE ---
-      for (let i = 0; i < 2; i++) {
-        const drawResult = ai.executeDrawPhase(players[i], strategies[i], pyramid);
-        if (drawResult.busted) {
-          if (i === 0) result.p1Busts++;
-          else result.p2Busts++;
-        }
-        if (i === 0) result.p1RoundsPlayed++;
-        else result.p2RoundsPlayed++;
+      for (let i = 0; i < numPlayers; i++) {
+        const drawResult = ai.executeDrawPhase(players[i], strategies[i], pyramid, act);
+        if (drawResult.busted) result.busts[i]++;
+        result.roundsPlayed[i]++;
       }
 
-      // Handle dollar1_other special (opponent loses $1)
-      for (let i = 0; i < 2; i++) {
+      // --- dollar1_other: all opponents of holder lose $1 ---
+      for (let i = 0; i < numPlayers; i++) {
         const hasIt = players[i].hand.some(c => c.special === 'dollar1_other');
         if (hasIt && !players[i].busted) {
-          const opp = players[1 - i];
-          opp.roundDollars = Math.max(0, opp.roundDollars - 1);
+          for (let j = 0; j < numPlayers; j++) {
+            if (j !== i) {
+              players[j].roundDollars = Math.max(0, players[j].roundDollars - 1);
+            }
+          }
+        }
+      }
+
+      // --- RESOLVE discard_to_player: pass to weakest opponent (smallest herd) ---
+      // Process in player-index order; card effects already applied during draw.
+      for (let pi = 0; pi < numPlayers; pi++) {
+        const fromPlayer = players[pi];
+        const passCards = fromPlayer.hand.filter(c => c.special === 'discard_to_player');
+        for (const card of passCards) {
+          // Find weakest opponent (smallest herd, index tiebreak)
+          const target = players
+            .map((p, i) => ({ p, i }))
+            .filter(c => c.i !== pi)
+            .sort((a, b) => {
+              const diff = a.p.herd - b.p.herd;
+              return diff !== 0 ? diff : a.i - b.i;
+            })[0];
+
+          // Remove from sender's hand and undo its stat contributions
+          const idx = fromPlayer.hand.indexOf(card);
+          if (idx >= 0) {
+            fromPlayer.hand.splice(idx, 1);
+            fromPlayer.roundDollars -= card.dollars;
+            fromPlayer.roundCows -= card.cows;
+            fromPlayer.roundBandits -= card.bandits;
+          }
+
+          // Add to recipient's discard (they draw it next round)
+          target.p.discard.push(card);
         }
       }
 
       // --- BUY PHASE ---
-      // Determine buy order
-      let buyOrder;
-      if (p1.hasBuyBurnFirst && !p1.busted) {
-        buyOrder = [0, 1];
-      } else if (p2.hasBuyBurnFirst && !p2.busted) {
-        buyOrder = [1, 0];
-      } else if (p1.busted && !p2.busted) {
-        buyOrder = [1, 0];
-      } else if (p2.busted && !p1.busted) {
-        buyOrder = [0, 1];
-      } else if (p1.busted && p2.busted) {
-        buyOrder = [0, 1];
-      } else {
-        // Compare dollars, cows, hand size
-        if (p1.roundDollars > p2.roundDollars) {
-          buyOrder = [0, 1]; // P1 has more $, chooses to go first
-        } else if (p2.roundDollars > p1.roundDollars) {
-          buyOrder = [1, 0]; // P2 goes first
-        } else if (p1.roundCows > p2.roundCows) {
-          buyOrder = [0, 1];
-        } else if (p2.roundCows > p1.roundCows) {
-          buyOrder = [1, 0];
-        } else if (p1.hand.length > p2.hand.length) {
-          buyOrder = [0, 1];
-        } else if (p2.hand.length > p1.hand.length) {
-          buyOrder = [1, 0];
-        } else {
-          buyOrder = Math.random() < 0.5 ? [0, 1] : [1, 0];
-        }
-      }
+      const buyOrder = computeBuyOrder(players);
 
       for (const playerIdx of buyOrder) {
         if (core.isPyramidEmpty(pyramid)) break;
         const player = players[playerIdx];
-        if (player.busted) continue;
 
         const decision = ai.chooseBuy(player, strategies[playerIdx], pyramid, act);
         if (decision.action === 'buy') {
@@ -198,15 +250,14 @@ function simulateGame(strategy1, strategy2, verbose) {
           player.discard.push(card);
           slot.removed = true;
           core.revealUncovered(pyramid);
-          if (playerIdx === 0) result.p1Purchases.push(card.id);
-          else result.p2Purchases.push(card.id);
+          result.purchases[playerIdx].push(card.id);
         } else if (decision.action === 'burn') {
           pyramid[decision.row][decision.col].removed = true;
           core.revealUncovered(pyramid);
         }
       }
 
-      // --- SCORE ---
+      // --- SCORE: add roundCows to herd ---
       for (const player of players) {
         if (!player.busted && player.roundCows !== 0) {
           player.herd = Math.max(0, player.herd + player.roundCows);
@@ -216,36 +267,34 @@ function simulateGame(strategy1, strategy2, verbose) {
       }
 
       if (verbose) {
-        console.log(`  Act ${act} R${roundNum}: P1=${p1.herd} P2=${p2.herd}`);
+        const herds = players.map((p, i) => `P${i + 1}=${p.herd}`).join(' ');
+        console.log(`  Act ${act} R${roundNum}: ${herds}`);
       }
     }
 
-    result.p1ActCows[act - 1] = p1.herd - actStartHerd[0];
-    result.p2ActCows[act - 1] = p2.herd - actStartHerd[1];
+    for (let i = 0; i < numPlayers; i++) {
+      result.actCows[i][act - 1] = players[i].herd - actStartHerd[i];
+    }
   }
 
-  result.p1Herd = p1.herd;
-  result.p2Herd = p2.herd;
+  for (let i = 0; i < numPlayers; i++) {
+    result.herds[i] = players[i].herd;
+  }
   return result;
 }
 
 // --- MAIN ---
 
-function runMatchup(p1Key, p2Key, numGames, verbose) {
-  const s1 = ai.STRATEGIES[p1Key];
-  const s2 = ai.STRATEGIES[p2Key];
-
-  if (!s1) { console.error(`Unknown strategy: ${p1Key}`); process.exit(1); }
-  if (!s2) { console.error(`Unknown strategy: ${p2Key}`); process.exit(1); }
-
-  const stats = new StatsCollector(s1.name, s2.name);
+function runMatchup(stratKeys, numPlayers, numGames, verbose) {
+  const strategies = stratKeys.map(resolveStrategy);
+  const stats = new StatsCollector(strategies.map(s => s.name));
 
   const startTime = Date.now();
   for (let i = 0; i < numGames; i++) {
     if (!verbose && i > 0 && i % 200 === 0) {
       process.stdout.write(`\r  Running... ${i}/${numGames}`);
     }
-    const result = simulateGame(s1, s2, verbose);
+    const result = simulateGame(strategies, numPlayers, verbose);
     stats.recordGame(result);
   }
   const elapsed = Date.now() - startTime;
@@ -275,29 +324,33 @@ function main() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
   if (opts.tournament) {
-    console.log(`\nTournament mode: ${opts.games} games per matchup\n`);
+    console.log(`\nTournament mode (2P): ${opts.games} games per matchup\n`);
     const keys = Object.keys(ai.STRATEGIES);
     const allResults = [];
 
     for (let i = 0; i < keys.length; i++) {
       for (let j = i; j < keys.length; j++) {
-        console.log(`\n${ai.STRATEGIES[keys[i]].name} vs ${ai.STRATEGIES[keys[j]].name}:`);
-        const stats = runMatchup(keys[i], keys[j], opts.games, opts.verbose);
+        const s1 = ai.STRATEGIES[keys[i]];
+        const s2 = ai.STRATEGIES[keys[j]];
+        console.log(`\n${s1.name} vs ${s2.name}:`);
+        const stats = runMatchup([keys[i], keys[j]], 2, opts.games, opts.verbose);
         const summary = stats.getSummary();
         allResults.push(summary);
         stats.printSummary();
       }
     }
 
-    // Print tournament leaderboard
+    // Tournament leaderboard (2P)
     const wins = {};
     for (const key of keys) wins[key] = 0;
 
     for (const r of allResults) {
-      // Find which key maps to which strategy name
       for (const key of keys) {
-        if (ai.STRATEGIES[key].name === r.p1Strategy && r.p1WinRate > r.p2WinRate) wins[key]++;
-        if (ai.STRATEGIES[key].name === r.p2Strategy && r.p2WinRate > r.p1WinRate) wins[key]++;
+        const name = ai.STRATEGIES[key].name;
+        const p0wr = r.playerWinRates[0];
+        const p1wr = r.playerWinRates[1];
+        if (r.strategyNames[0] === name && p0wr > p1wr) wins[key]++;
+        if (r.strategyNames[1] === name && p1wr > p0wr) wins[key]++;
       }
     }
 
@@ -311,18 +364,19 @@ function main() {
     console.log('');
 
   } else if (opts.random) {
-    console.log(`\nRandom mode: ${opts.games} games (random strategy pair each game)\n`);
+    const numPlayers = opts.players;
+    console.log(`\nRandom mode: ${opts.games} games (${numPlayers}P, random strategies each game)\n`);
     const keys = Object.keys(ai.STRATEGIES);
-    const stats = new StatsCollector('Random', 'Random');
+    const stats = new StatsCollector(Array(numPlayers).fill('Random'));
 
     const startTime = Date.now();
     for (let i = 0; i < opts.games; i++) {
       if (!opts.verbose && i > 0 && i % 200 === 0) {
         process.stdout.write(`\r  Running... ${i}/${opts.games}`);
       }
-      const k1 = keys[Math.floor(Math.random() * keys.length)];
-      const k2 = keys[Math.floor(Math.random() * keys.length)];
-      const result = simulateGame(ai.STRATEGIES[k1], ai.STRATEGIES[k2], opts.verbose);
+      const stratKeys = Array.from({ length: numPlayers }, () => keys[Math.floor(Math.random() * keys.length)]);
+      const strategies = stratKeys.map(k => ai.STRATEGIES[k]);
+      const result = simulateGame(strategies, numPlayers, opts.verbose);
       stats.recordGame(result);
     }
     const elapsed = Date.now() - startTime;
@@ -330,15 +384,18 @@ function main() {
     console.log(`  Completed ${opts.games} games in ${(elapsed / 1000).toFixed(2)}s (${(opts.games / elapsed * 1000).toFixed(0)} games/sec)`);
 
     stats.printSummary();
-    stats.writeCSV(`random_${timestamp}.csv`);
-    stats.writeSummary(`random_${timestamp}.txt`);
+    stats.writeCSV(`random_${numPlayers}p_${timestamp}.csv`);
+    stats.writeSummary(`random_${numPlayers}p_${timestamp}.txt`);
 
   } else {
-    console.log(`\nSimulating ${opts.games} games: ${opts.p1} vs ${opts.p2}\n`);
-    const stats = runMatchup(opts.p1, opts.p2, opts.games, opts.verbose);
+    const numPlayers = opts.players;
+    const stratKeys = [opts.p1, opts.p2, opts.p3, opts.p4].slice(0, numPlayers);
+    const stratNames = stratKeys.map(k => k === 'default' ? 'moderate_balanced' : k).join('_vs_');
+    console.log(`\nSimulating ${opts.games} games (${numPlayers}P): ${stratNames}\n`);
+    const stats = runMatchup(stratKeys, numPlayers, opts.games, opts.verbose);
     stats.printSummary();
-    stats.writeCSV(`${opts.p1}_vs_${opts.p2}_${timestamp}.csv`);
-    stats.writeSummary(`${opts.p1}_vs_${opts.p2}_${timestamp}.txt`);
+    stats.writeCSV(`${stratNames}_${numPlayers}p_${timestamp}.csv`);
+    stats.writeSummary(`${stratNames}_${numPlayers}p_${timestamp}.txt`);
   }
 }
 

@@ -2325,14 +2325,14 @@ function scoreCardForAI(card, ai) {
 
 // --- PASS CARD (discard_to_player) ---
 
-// AI picks the opponent with the largest herd to receive the card;
+// AI picks the opponent with the smallest herd to receive the card;
 // tiebreak by lowest Firebase slot index (deterministic on all clients).
 function aiPickPassTarget(fromPlayerIdx) {
   return G.players
     .map((p, i) => ({ p, i }))
     .filter(c => c.i !== fromPlayerIdx)
     .sort((a, b) => {
-      const herdDiff = b.p.herd - a.p.herd;
+      const herdDiff = a.p.herd - b.p.herd;
       if (herdDiff !== 0) return herdDiff;
       return G.playerOrder[a.i] - G.playerOrder[b.i];
     })[0].i;

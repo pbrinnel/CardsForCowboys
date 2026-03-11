@@ -57,8 +57,9 @@ const BUY_PREFERENCES = {
     cowWeight: 5,
     dollarWeight: 0.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 3, copy_next: 2, draw4: 3 },
+    specialBonuses: { trash_to_use: 3, copy_next: 2, draw4: 3, discard_to_player: 1 },
     negativeCowPenalty: -4,
+    act1DollarBonus: 0.5,
     act3CowBonus: 4,
   },
   balanced: {
@@ -66,8 +67,9 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2 },
+    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, discard_to_player: 1 },
     negativeCowPenalty: -2,
+    act1DollarBonus: 1,
     act3CowBonus: 2,
   },
   dollarFocused: {
@@ -75,8 +77,9 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 3,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 4, draw4: 2 },
+    specialBonuses: { trash_to_use: 2, copy_next: 4, draw4: 2, discard_to_player: 2 },
     negativeCowPenalty: -1,
+    act1DollarBonus: 2,
     act3CowBonus: 2,
   },
   banditFriendly: {
@@ -84,8 +87,9 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -0.5,
-    specialBonuses: { trash_to_use: 1, copy_next: 2, draw4: 3 },
+    specialBonuses: { trash_to_use: 1, copy_next: 2, draw4: 3, discard_to_player: 0 },
     negativeCowPenalty: -1,
+    act1DollarBonus: 1,
     act3CowBonus: 2,
   },
   banditAverse: {
@@ -93,8 +97,9 @@ const BUY_PREFERENCES = {
     cowWeight: 4,
     dollarWeight: 1,
     banditWeight: -4,
-    specialBonuses: { trash_to_use: 4, copy_next: 2, draw4: 1 },
+    specialBonuses: { trash_to_use: 4, copy_next: 2, draw4: 1, discard_to_player: 1 },
     negativeCowPenalty: -3,
+    act1DollarBonus: 0.5,
     act3CowBonus: 3,
   },
   specialHunter: {
@@ -102,8 +107,9 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 1,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, look3_rearrange: 3, replay_discard: 4, put_on_top: 3, look3_immediate: 3 },
+    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, look3_rearrange: 3, replay_discard: 4, put_on_top: 3, look3_immediate: 3, discard_to_player: 2 },
     negativeCowPenalty: -2,
+    act1DollarBonus: 0.5,
     act3CowBonus: 1,
   },
   cheapskate: {
@@ -111,8 +117,9 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2 },
+    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, discard_to_player: 1 },
     negativeCowPenalty: -2,
+    act1DollarBonus: 1,
     act3CowBonus: 2,
     preferCheap: true, // scored with cost penalty
   },
@@ -167,6 +174,9 @@ function scoreCard(card, strategy, currentAct) {
     score += strategy.specialBonuses[card.special];
   }
   if (card.cows < 0) score += strategy.negativeCowPenalty;
+  // Act 1: favour economy (dollar) cards to build buying power
+  if (currentAct === 1) score += card.dollars * (strategy.act1DollarBonus || 1);
+  // Act 3: heavily favour cow cards for end-game scoring
   if (currentAct === 3) score += card.cows * strategy.act3CowBonus;
   // Cheapskate penalizes expensive cards
   if (strategy.preferCheap && card.cost) {
@@ -175,17 +185,31 @@ function scoreCard(card, strategy, currentAct) {
   return score;
 }
 
-function shouldDraw(player, strategy, pyramid) {
+// Score-based: return cost of best-valued affordable card (not just most expensive)
+function getBestScoredCost(player, strategy, pyramid, currentAct) {
+  const available = core.getAvailablePyramidCards(pyramid);
+  if (available.length === 0) return 99;
+  let bestScore = -Infinity;
+  let bestCost = 0;
+  for (const a of available) {
+    const score = scoreCard(a.slot.card, strategy, currentAct);
+    if (score > bestScore) {
+      bestScore = score;
+      bestCost = a.slot.card.cost;
+    }
+  }
+  return bestCost;
+}
+
+function shouldDraw(player, strategy, pyramid, currentAct) {
   if (player.hand.length >= strategy.maxHandSize) return false;
   if (player.hand.length < strategy.minDraws) return true;
 
   const banditsRemaining = core.countBanditsInDeck(player);
   const cardsRemaining = player.deck.length;
 
-  const available = core.getAvailablePyramidCards(pyramid);
-  const bestCost = available.length > 0
-    ? Math.max(...available.map(a => a.slot.card.cost))
-    : 99;
+  // Score-based target: aim for best-valued card, not just most expensive
+  const bestCost = getBestScoredCost(player, strategy, pyramid, currentAct || 1);
 
   if (player.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
@@ -221,7 +245,7 @@ function chooseBuy(player, strategy, pyramid, currentAct) {
     return { action: 'buy', row: best.row, col: best.col };
   }
 
-  // Burn
+  // Burn worst card from pyramid
   if (available.length > 0) {
     let worst = available[0];
     let worstScore = Infinity;
@@ -246,12 +270,12 @@ function chooseBuyOrder(playerIdx) {
 
 // --- DRAW PHASE (complete draw loop for one player) ---
 
-function executeDrawPhase(player, strategy, pyramid) {
+function executeDrawPhase(player, strategy, pyramid, currentAct) {
   core.resetPlayerRound(player);
 
   if (player.deck.length === 0 && player.discard.length === 0) {
     player.stoppedDrawing = true;
-    return { busted: false, bustCount: 0 };
+    return { busted: false };
   }
 
   while (!player.busted && !player.stoppedDrawing) {
@@ -264,6 +288,7 @@ function executeDrawPhase(player, strategy, pyramid) {
     const isFirst = player.hand.length === 0;
     player.hand.push(card);
     core.applyCardEffects(player, card, isFirst);
+    // Note: bandits:-1 on card is already applied by applyCardEffects above
 
     // Handle draw4
     if (card.special === 'draw4' && !player.busted) {
@@ -281,13 +306,14 @@ function executeDrawPhase(player, strategy, pyramid) {
       if (player.busted) break;
     }
 
-    // Handle jail (trash_to_use) auto-use
-    if (card.special === 'trash_to_use' && player.roundBandits >= strategy.jailThreshold) {
+    // Handle trash_to_use: always trash (removes from hand; bandits already applied by card.bandits stat)
+    if (card.special === 'trash_to_use') {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) {
         player.hand.splice(idx, 1);
-        player.roundBandits = Math.max(0, player.roundBandits - 1);
         player.roundCows -= card.cows;
+        player.roundDollars -= card.dollars;
+        // card.bandits (-1) already applied on draw — do not subtract again
       }
     }
 
@@ -297,10 +323,7 @@ function executeDrawPhase(player, strategy, pyramid) {
       if (strategy.trashFor2 === 'always') {
         shouldTrash = true;
       } else if (strategy.trashFor2 === 'smart') {
-        const available = core.getAvailablePyramidCards(pyramid);
-        const bestCost = available.length > 0
-          ? Math.max(...available.map(a => a.slot.card.cost))
-          : 99;
+        const bestCost = getBestScoredCost(player, strategy, pyramid, currentAct || 1);
         shouldTrash = (player.roundDollars + 1 >= bestCost && player.roundDollars < bestCost);
       }
       if (shouldTrash) {
@@ -310,7 +333,7 @@ function executeDrawPhase(player, strategy, pyramid) {
       }
     }
 
-    // Handle look3_rearrange (trash to rearrange)
+    // Handle look3_rearrange (trash to rearrange top 3)
     if (card.special === 'look3_rearrange' && strategy.look3 === 'always' && player.deck.length >= 2) {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
@@ -319,7 +342,7 @@ function executeDrawPhase(player, strategy, pyramid) {
       player.deck.unshift(...top3);
     }
 
-    // Handle look3_immediate
+    // Handle look3_immediate (peek and rearrange without trashing)
     if (card.special === 'look3_immediate' && player.deck.length >= 2) {
       const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
@@ -330,11 +353,10 @@ function executeDrawPhase(player, strategy, pyramid) {
     if (card.special === 'replay_discard' && player.discard.length > 0 && strategy.replayDiscard === 'best') {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
-      // Pick best discard card
       let bestIdx = 0;
       let bestScore = -Infinity;
       for (let i = 0; i < player.discard.length; i++) {
-        const s = scoreCard(player.discard[i], strategy, 1);
+        const s = scoreCard(player.discard[i], strategy, currentAct || 1);
         if (s > bestScore) { bestScore = s; bestIdx = i; }
       }
       const replayed = player.discard.splice(bestIdx, 1)[0];
@@ -356,8 +378,8 @@ function executeDrawPhase(player, strategy, pyramid) {
       break;
     }
 
-    // Decision to continue
-    if (!shouldDraw(player, strategy, pyramid)) {
+    // Decision to continue drawing
+    if (!shouldDraw(player, strategy, pyramid, currentAct)) {
       player.stoppedDrawing = true;
     }
   }
