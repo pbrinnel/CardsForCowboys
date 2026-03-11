@@ -258,6 +258,46 @@ body {
   gap: 0.4rem;
 }
 
+/* Turn Order Bar */
+#turn-order-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: #2a1a0e;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+}
+
+#turn-order-bar .tor-player {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  color: #c8a96e;
+  white-space: nowrap;
+  opacity: 0.55;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+#turn-order-bar .tor-player.tor-active {
+  background: #7c4b1a;
+  color: #faf3e0;
+  font-weight: bold;
+  opacity: 1;
+}
+
+#turn-order-bar .tor-player.tor-busted {
+  text-decoration: line-through;
+  opacity: 0.3;
+}
+
+#turn-order-bar .tor-arrow {
+  color: #6b4a2a;
+  font-size: 0.65rem;
+}
+
 /* Zone labels */
 .zone-label {
   font-size: 0.75rem;
