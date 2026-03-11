@@ -1933,6 +1933,8 @@ function handlePutOnTop(player, putOnTopCard) {
 
 // --- BUY PHASE ---
 
+// determineBuyWinner() is defined in shared/tiebreaker.js (loaded via <script> before play.js)
+
 function onDrawPhaseComplete() {
   G.phase = 'buy';
 
@@ -1963,94 +1965,29 @@ function onDrawPhaseComplete() {
     return;
   }
 
-  // N-player tiebreaker: narrow candidates to a single winner
-  let candidates = G.players.map((p, i) => ({p, i})).filter(c => !c.p.busted);
+  const { winnerIdx, reason, tieLog } = determineBuyWinner(G.players, G.playerOrder);
 
-  if (candidates.length === 0) {
+  if (winnerIdx === 0 && G.players.every(p => p.busted)) {
     addLog(`--- Buy Phase --- (All players busted!)`);
     startBuyPhase(0);
     return;
   }
 
-  let reason = '';
-  let tieLog = null;
-
-  function narrowBy(scoreFn) {
-    if (candidates.length <= 1) return;
-    const best = Math.max(...candidates.map(scoreFn));
-    candidates = candidates.filter(c => scoreFn(c) === best);
-  }
-
-  const preBust = candidates.length;
-  // Track $ leader before narrowing
-  const maxDollars = Math.max(...candidates.map(c => c.p.roundDollars));
-  narrowBy(c => c.p.roundDollars);
-  if (candidates.length < preBust || candidates.length === 1) {
-    reason = `most $ ($${maxDollars})`;
-  }
-
-  if (candidates.length > 1) {
-    const prev = candidates.slice();
-    const maxCows = Math.max(...candidates.map(c => c.p.roundCows));
-    narrowBy(c => c.p.roundCows);
-    if (candidates.length < prev.length) {
-      tieLog = `Tied on $${maxDollars} — most cows breaks tie`;
-      reason = 'most cows';
-    }
-  }
-
-  if (candidates.length > 1) {
-    const prev = candidates.slice();
-    const maxCards = Math.max(...candidates.map(c => c.p.hand.length));
-    narrowBy(c => c.p.hand.length);
-    if (candidates.length < prev.length) {
-      tieLog = `Tied on $ and cows — most cards drawn breaks tie`;
-      reason = 'most cards drawn';
-    }
-  }
-
-  if (candidates.length > 1) {
-    const ordinal = n => n === 0 ? '1st' : n === 1 ? '2nd' : n === 2 ? '3rd' : `${n+1}th`;
-    const maxLen = Math.max(...candidates.map(c => c.p.hand.length));
-    let resolved = false;
-    for (let i = 0; i < maxLen; i++) {
-      const prev = candidates.slice();
-      narrowBy(c => (c.p.hand[i] && c.p.hand[i].cost) || 0);
-      if (candidates.length < prev.length) {
-        tieLog = `Tied on $, cows, and cards — ${ordinal(i)} card cost breaks tie`;
-        reason = `${ordinal(i)} card cost`;
-        resolved = true;
-        break;
-      }
-    }
-    if (!resolved) {
-      // Sort by Firebase slot index so ALL clients agree on the same winner
-      // regardless of local player ordering. In SP mode G.playerOrder[i]=i, same result.
-      candidates.sort((a, b) => G.playerOrder[a.i] - G.playerOrder[b.i]);
-      candidates = [candidates[0]];
-      tieLog = 'Complete tie — earliest player position decides';
-      reason = 'player position';
-    }
-  }
-
-  const winner = candidates[0];
   if (tieLog) addLog(tieLog, 'log-tie');
 
-  // Non-busted player indices available for "who goes first" choice
-  const nonBusted = G.players.map((p, i) => ({p, i})).filter(c => !c.p.busted).map(c => c.i);
+  const nonBusted = G.players.map((p, i) => ({ p, i })).filter(c => !c.p.busted).map(c => c.i);
+  const winnerName = G.players[winnerIdx].name;
 
-  if (winner.i === 0) {
-    // Local human wins — they choose buy order
+  if (winnerIdx === 0) {
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
     showChooseFirstUI(nonBusted);
-  } else if (!G.players[winner.i].isHuman) {
-    // AI wins — deterministic on all clients; host also pushes to Firebase for consistency
-    addLog(`--- Buy Phase --- ${winner.p.name} goes first (${reason}).`);
-    startBuyPhase(winner.i);
+  } else if (!G.players[winnerIdx].isHuman) {
+    addLog(`--- Buy Phase --- ${winnerName} goes first (${reason}).`);
+    startBuyPhase(winnerIdx);
   } else {
     // Remote human wins — wait for their buy order push
-    addLog(`--- Buy Phase --- ${winner.p.name} chooses buy order (${reason}).`);
-    setMessage(`Waiting for ${winner.p.name} to choose who buys first...`);
+    addLog(`--- Buy Phase --- ${winnerName} chooses buy order (${reason}).`);
+    setMessage(`Waiting for ${winnerName} to choose who buys first...`);
     clearActions();
     render();
     MP.waitForBuyOrder((slotOrder) => {
@@ -2058,7 +1995,7 @@ function onDrawPhaseComplete() {
       mpLog('waitForBuyOrder (remote winner chose) fired:', { slotOrder, localOrder, names: localOrder.map(i => G.players[i]?.name) });
       const firstLocalIdx = localOrder[0];
       const firstPlayer = G.players[firstLocalIdx];
-      addLog(`${winner.p.name} chose ${firstLocalIdx === 0 ? 'you' : firstPlayer.name} to buy first.`);
+      addLog(`${winnerName} chose ${firstLocalIdx === 0 ? 'you' : firstPlayer.name} to buy first.`);
       applyBuyOrder(localOrder);
     });
   }
@@ -2615,3 +2552,5 @@ startGame().catch(e => {
   console.error('Game init failed:', e);
   setMessage('Failed to start game. Please refresh.');
 });
+
+// determineBuyWinner is defined in shared/tiebreaker.js (loaded before this script)
