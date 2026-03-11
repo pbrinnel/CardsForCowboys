@@ -1540,7 +1540,7 @@ async function aiDrawPhase(playerIdx) {
 
     // Handle trash_for_2
     if (card.special === 'trash_for_2') {
-      const bestCost = getBestAffordableCost();
+      const bestCost = getBestAffordableCost(ai);
       if (ai.roundDollars + 1 >= bestCost && ai.roundDollars < bestCost) {
         ai.roundDollars += 1;
         const idx = ai.hand.indexOf(card);
@@ -1601,6 +1601,8 @@ const AI_PERSONALITIES = {
     cowWeight:      3,
     dollarWeight:   1.5,
     banditPenalty:  4,     // despises bandits in buy scoring
+    positionWeight: 0,     // methodical — ignores standings
+    denialBurn:     false,
   },
   wild_bill: {
     bustThreshold2: 0.35,  // keeps drawing with 2 bandits often
@@ -1609,6 +1611,8 @@ const AI_PERSONALITIES = {
     cowWeight:      5,
     dollarWeight:   0.5,
     banditPenalty:  0.5,
+    positionWeight: 0,     // pure chaos — doesn't track position
+    denialBurn:     false,
   },
   rancher: {
     bustThreshold2: 0.15,
@@ -1617,6 +1621,8 @@ const AI_PERSONALITIES = {
     cowWeight:      6,     // cows above everything
     dollarWeight:   0.5,
     banditPenalty:  2,
+    positionWeight: 0.4,   // somewhat adapts to standings
+    denialBurn:     false,
   },
   banker: {
     bustThreshold2: 0.15,
@@ -1625,6 +1631,28 @@ const AI_PERSONALITIES = {
     cowWeight:      1.5,
     dollarWeight:   3,     // values income above cows
     banditPenalty:  2,
+    positionWeight: 0.3,
+    denialBurn:     false,
+  },
+  outlaw: {
+    bustThreshold2: 0.20,  // medium base risk
+    bustThreshold1: 0.35,
+    dollarBuffer:   1,
+    cowWeight:      4,
+    dollarWeight:   1,
+    banditPenalty:  2,
+    positionWeight: 1.5,   // highly position-aware: draws aggressively when trailing, locks in when leading
+    denialBurn:     false,
+  },
+  deputy: {
+    bustThreshold2: 0.10,  // conservative draw
+    bustThreshold1: 0.20,
+    dollarBuffer:   0,
+    cowWeight:      2,
+    dollarWeight:   2,
+    banditPenalty:  3,
+    positionWeight: 0.3,
+    denialBurn:     true,  // burns the card most valuable to the current leader
   },
 };
 
@@ -1634,34 +1662,54 @@ function aiShouldDraw(ai) {
   if (ai.hand.length >= 7) return false;
   if (ai.hand.length < 2) return true;
 
+  // Position modifier: scale bust thresholds up when trailing (draw more aggressively),
+  // down when leading (lock in the advantage). positionWeight=0 disables this entirely.
+  let positionMult = 1.0;
+  if (cfg.positionWeight > 0 && G.numPlayers > 1) {
+    const opponents = G.players.filter(p => p !== ai);
+    const maxOpponentHerd = opponents.length > 0 ? Math.max(...opponents.map(p => p.herd)) : 0;
+    const herdDeficit = maxOpponentHerd - ai.herd; // positive = trailing, negative = leading
+    const rawMult = 1 + (herdDeficit / 10) * cfg.positionWeight;
+    positionMult = Math.max(0.5, Math.min(2.0, rawMult));
+  }
+
   const banditsRemaining = countBanditsInDeck(ai);
   const cardsRemaining = ai.deck.length;
 
   if (ai.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
-    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2;
+    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2 * positionMult;
   }
 
   if (ai.roundBandits === 1) {
     if (cardsRemaining <= 1) return false;
     const bustProb = banditsRemaining / cardsRemaining;
-    if (bustProb >= cfg.bustThreshold1) return false;
+    if (bustProb >= cfg.bustThreshold1 * positionMult) return false;
     if (cfg.dollarBuffer >= 999) return true;  // Wild Bill ignores dollar target
-    return ai.roundDollars < getBestAffordableCost();
+    return ai.roundDollars < getBestAffordableCost(ai);
   }
 
   // 0 bandits: keep drawing until dollars satisfy the target
-  return ai.roundDollars < getBestAffordableCost() + cfg.dollarBuffer;
+  return ai.roundDollars < getBestAffordableCost(ai) + cfg.dollarBuffer;
 }
 
 function countBanditsInDeck(player) {
   return player.deck.reduce((sum, c) => sum + c.bandits, 0);
 }
 
-function getBestAffordableCost() {
+// Returns the cost of the highest-scored available card for this AI.
+// Stops chasing cards the personality wouldn't actually want to buy.
+function getBestAffordableCost(ai) {
   const available = getAvailablePyramidCards(G.pyramid);
   if (available.length === 0) return 99;
-  return Math.max(...available.map(a => a.slot.card.cost));
+  if (!ai) return Math.max(...available.map(a => a.slot.card.cost));
+  let bestScore = -Infinity;
+  let bestCost  = 0;
+  for (const a of available) {
+    const score = scoreCardForAI(a.slot.card, ai);
+    if (score > bestScore) { bestScore = score; bestCost = a.slot.card.cost; }
+  }
+  return bestCost;
 }
 
 // --- ACTIVATE SPECIAL FROM HAND ---
@@ -2214,17 +2262,39 @@ async function aiBuyTurn(ai) {
     }
     executeBuy(ai, best.row, best.col);
   } else if (available.length > 0) {
-    // Burn lowest-scoring card
-    let worst = available[0];
-    let worstScore = Infinity;
-    for (const a of available) {
-      const score = scoreCardForAI(a.slot.card, ai);
-      if (score < worstScore) {
-        worstScore = score;
-        worst = a;
+    // Burn: denial personalities target the card most valuable to the current leader;
+    // all others burn the card with lowest value to themselves.
+    const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
+    let burnTarget = null;
+
+    if (cfg.denialBurn) {
+      // Find the current leader among opponents (tiebreak: lowest Firebase slot index)
+      const leader = G.players
+        .filter(p => p !== ai)
+        .sort((a, b) => {
+          const diff = b.herd - a.herd;
+          if (diff !== 0) return diff;
+          return G.playerOrder[G.players.indexOf(a)] - G.playerOrder[G.players.indexOf(b)];
+        })[0];
+      if (leader) {
+        let bestLeaderScore = -Infinity;
+        for (const a of available) {
+          const score = scoreCardForAI(a.slot.card, leader);
+          if (score > bestLeaderScore) { bestLeaderScore = score; burnTarget = a; }
+        }
       }
     }
-    executeBurn(ai, worst.row, worst.col);
+
+    if (!burnTarget) {
+      // Default: burn the card with lowest value to self
+      let worstScore = Infinity;
+      for (const a of available) {
+        const score = scoreCardForAI(a.slot.card, ai);
+        if (score < worstScore) { worstScore = score; burnTarget = a; }
+      }
+    }
+
+    executeBurn(ai, burnTarget.row, burnTarget.col);
   } else {
     addLog(`${ai.name} has no available cards to buy or burn.`);
     G.currentBuyerIdx++;
@@ -2248,7 +2318,8 @@ function scoreCardForAI(card, ai) {
   if (card.special === 'trash_buy_burn_first') score += 1;
   if (card.special === 'dollar1_other') score -= 0.5;
   if (card.cows < 0) score -= 2;
-  if (G.currentAct === 3) score += card.cows * 2;  // universal Act 3 cow bonus
+  if (G.currentAct === 1) score += card.dollars * 1;  // Act 1: favour economy cards
+  if (G.currentAct === 3) score += card.cows   * 2;  // Act 3: favour cow cards
   return score;
 }
 
