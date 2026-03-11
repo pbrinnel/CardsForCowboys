@@ -324,6 +324,272 @@ section('5. Edge cases');
 }
 
 // ============================================================
+// 6. winnerSlot === playerOrder[winnerIdx] INVARIANT
+// ============================================================
+section('6. winnerSlot === playerOrder[winnerIdx] invariant');
+
+{
+  // SP mode: playerOrder is identity, so winnerSlot should equal winnerIdx
+  const players = [p(3, 0), p(7, 0), p(5, 0)];
+  const r = determineBuyWinner(players, spOrder(3));
+  assert('SP: winnerSlot === winnerIdx when identity order', r.winnerSlot, r.winnerIdx);
+}
+
+{
+  // MP mode: slot 2 wins by $, but is at local index 0 (guest perspective)
+  const players = [p(9, 0), p(3, 0)]; // guest (slot 2) at idx 0, host (slot 0) at idx 1
+  const order   = [2, 0];
+  const r = determineBuyWinner(players, order);
+  assert('MP: winnerSlot === playerOrder[winnerIdx]', r.winnerSlot, order[r.winnerIdx]);
+  assert('MP: winner is slot 2 ($9)', r.winnerSlot, 2);
+  assert('MP: winner is local idx 0', r.winnerIdx, 0);
+}
+
+{
+  // 4P rotated: each client computes — winnerSlot always equals playerOrder[winnerIdx]
+  const statsBySlot = [
+    { dollars: 5, cows: 0 }, // slot 0
+    { dollars: 8, cows: 0 }, // slot 1 — wins
+    { dollars: 5, cows: 0 }, // slot 2
+    { dollars: 5, cows: 0 }, // slot 3
+  ];
+  const consistent = [0, 1, 2, 3].every(mySlot => {
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s => p(statsBySlot[s].dollars, statsBySlot[s].cows));
+    const r = determineBuyWinner(players, ordered);
+    return r.winnerSlot === ordered[r.winnerIdx];
+  });
+  assert('4P: winnerSlot === playerOrder[winnerIdx] for all rotations', consistent, true);
+}
+
+// ============================================================
+// 7. ZERO-COST AND SAME-COST CARD TIEBREAKERS
+// ============================================================
+section('7. Zero-cost and same-cost card tiebreakers');
+
+{
+  // All cards cost 0 — card cost loop doesn't resolve; falls to slot order
+  const players = [p(3, 2, hand(0, 0)), p(3, 2, hand(0, 0))];
+  const r = determineBuyWinner(players, spOrder(2));
+  assert('All zero-cost cards — falls to slot order', r.winnerSlot, 0);
+  assert('All zero-cost cards — reason is player position', r.reason, 'player position');
+}
+
+{
+  // 1st card tied at 0, 2nd card breaks tie
+  const players = [p(3, 2, hand(0, 0)), p(3, 2, hand(0, 5))];
+  const r = determineBuyWinner(players, spOrder(2));
+  assert('Zero 1st card, 2nd card breaks tie (idx 1)', r.winnerIdx, 1);
+  assert('2nd card cost reason', r.reason, '2nd card cost');
+}
+
+{
+  // 4P: all tied on $ + cows, 3rd card breaks it
+  const players = [
+    p(4, 3, hand(5, 5, 2)), // slot 0
+    p(4, 3, hand(5, 5, 2)), // slot 1
+    p(4, 3, hand(5, 5, 9)), // slot 2 — wins on 3rd card
+    p(4, 3, hand(5, 5, 2)), // slot 3
+  ];
+  const r = determineBuyWinner(players, spOrder(4));
+  assert('4P: 3rd card cost breaks tie (idx 2)', r.winnerIdx, 2);
+  assert('4P: 3rd card cost reason', r.reason, '3rd card cost');
+}
+
+{
+  // MP: 4P, 3rd card tie — all clients agree on same slot winner
+  const statsBySlot = [
+    { dollars: 4, cows: 3, cards: [5, 5, 2] },
+    { dollars: 4, cows: 3, cards: [5, 5, 2] },
+    { dollars: 4, cows: 3, cards: [5, 5, 9] }, // slot 2 wins
+    { dollars: 4, cows: 3, cards: [5, 5, 2] },
+  ];
+  const results = [0, 1, 2, 3].map(mySlot => {
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s =>
+      p(statsBySlot[s].dollars, statsBySlot[s].cows, hand(...statsBySlot[s].cards))
+    );
+    return determineBuyWinner(players, ordered).winnerSlot;
+  });
+  assert('MP 4P 3rd-card tie — all clients agree slot 2', results.every(s => s === 2), true);
+}
+
+// ============================================================
+// 8. MIXED BUSTED + TIE COMBINATIONS
+// ============================================================
+section('8. Mixed busted + tie combinations');
+
+{
+  // 3P: slot 0 busted, slots 1 and 2 tied — slot 1 (lower) wins
+  const players = [
+    p(5, 3, [], { busted: true }), // slot 0, busted
+    p(5, 3),                        // slot 1 — earliest non-busted
+    p(5, 3),                        // slot 2
+  ];
+  const r = determineBuyWinner(players, spOrder(3));
+  assert('3P: busted slot 0, tie → slot 1 wins by position', r.winnerSlot, 1);
+  assert('3P: reason is player position', r.reason, 'player position');
+}
+
+{
+  // 4P: slots 0 and 3 busted, slots 1 and 2 tied on everything — slot 1 wins
+  const players = [
+    p(5, 2, hand(4), { busted: true }), // slot 0, busted
+    p(5, 2, hand(4)),                    // slot 1
+    p(5, 2, hand(4)),                    // slot 2
+    p(5, 2, hand(4), { busted: true }), // slot 3, busted
+  ];
+  const r = determineBuyWinner(players, spOrder(4));
+  assert('4P: slots 0+3 busted, tie → slot 1 wins', r.winnerSlot, 1);
+}
+
+{
+  // 3P: two busted, sole survivor wins regardless of stats
+  const players = [
+    p(10, 10, hand(9), { busted: true }), // would have won
+    p(2, 1),                               // sole survivor
+    p(8, 8, hand(8), { busted: true }),   // would have won
+  ];
+  const r = determineBuyWinner(players, spOrder(3));
+  assert('3P: sole survivor wins despite bad stats', r.winnerIdx, 1);
+}
+
+{
+  // 4P MP: busted slots differ per client view but canonical slot still wins
+  const statsBySlot = [
+    { dollars: 6, cows: 2, busted: true  }, // slot 0 busted
+    { dollars: 6, cows: 2, busted: false }, // slot 1
+    { dollars: 6, cows: 2, busted: false }, // slot 2
+    { dollars: 6, cows: 2, busted: true  }, // slot 3 busted
+  ];
+  const results = [0, 1, 2, 3].map(mySlot => {
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s =>
+      p(statsBySlot[s].dollars, statsBySlot[s].cows, [], { busted: statsBySlot[s].busted })
+    );
+    return determineBuyWinner(players, ordered).winnerSlot;
+  });
+  assert('4P MP busted+tie — all clients agree slot 1 wins', results.every(s => s === 1), true);
+}
+
+// ============================================================
+// 9. hasBuyBurnFirst UPSTREAM CANONICALITY (DIAGNOSTIC)
+// ============================================================
+section('9. hasBuyBurnFirst upstream canonicality');
+
+// NOTE: hasBuyBurnFirst priority is handled UPSTREAM of determineBuyWinner, in
+// onDrawPhaseComplete(). The function itself ignores the flag (tested in section 5).
+//
+// The upstream code does:
+//   const priorityIdx = G.players.findIndex((p, i) => p.hasBuyBurnFirst && !p.busted);
+//   if (priorityIdx !== -1) { /* use priorityIdx as buy-order start */ }
+//
+// findIndex returns a LOCAL array index, not a Firebase slot. In a complete-tie
+// scenario where determineBuyWinner falls back to slot order, different clients
+// can disagree on who is at local index N — but hasBuyBurnFirst skips the
+// tiebreaker entirely, so the findIndex result IS the winner. This simulates
+// that logic to document the behaviour.
+
+function simulatePriorityFindIndex(players, playerOrder, useCanonical) {
+  // Simulates upstream priority lookup.
+  // useCanonical=true: sorts by slot first (proposed fix)
+  // useCanonical=false: raw findIndex on local array (current code)
+  const nonBusted = players
+    .map((p, i) => ({ p, i, slot: playerOrder[i] }))
+    .filter(c => !c.p.busted);
+
+  if (useCanonical) {
+    // Canonical: pick lowest-slot player with hasBuyBurnFirst
+    const priority = nonBusted
+      .filter(c => c.p.hasBuyBurnFirst)
+      .sort((a, b) => a.slot - b.slot)[0];
+    return priority ? priority.slot : -1;
+  } else {
+    // Non-canonical: first local index with hasBuyBurnFirst (current behavior)
+    const idx = players.findIndex(p => p.hasBuyBurnFirst && !p.busted);
+    return idx === -1 ? -1 : playerOrder[idx];
+  }
+}
+
+{
+  // Single hasBuyBurnFirst player: both approaches agree regardless of rotation.
+  const makeGame = (mySlot) => {
+    const slotHasPriority = [false, true, false, false]; // only slot 1
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s => ({
+      ...p(4, 2),
+      hasBuyBurnFirst: slotHasPriority[s],
+    }));
+    return {
+      naive:     simulatePriorityFindIndex(players, ordered, false),
+      canonical: simulatePriorityFindIndex(players, ordered, true),
+    };
+  };
+  const results = [0, 1, 2, 3].map(makeGame);
+  assert('Single hasBuyBurnFirst — naive agrees slot 1 (all rotations)',
+    results.every(r => r.naive === 1), true);
+  assert('Single hasBuyBurnFirst — canonical agrees slot 1 (all rotations)',
+    results.every(r => r.canonical === 1), true);
+}
+
+{
+  // TWO hasBuyBurnFirst players: naive findIndex is non-canonical (disagrees by rotation).
+  // canonical sort-by-slot always returns the lower-slot winner consistently.
+  const makeGame = (mySlot) => {
+    const slotHasPriority = [false, true, true, false]; // slots 1 AND 2
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s => ({
+      ...p(4, 2),
+      hasBuyBurnFirst: slotHasPriority[s],
+    }));
+    return {
+      naive:     simulatePriorityFindIndex(players, ordered, false),
+      canonical: simulatePriorityFindIndex(players, ordered, true),
+    };
+  };
+  const results = [0, 1, 2, 3].map(makeGame);
+
+  // Naive is non-canonical: each client picks whichever priority player is earliest
+  // in their local array. Slot-1 client (mySlot=1) sees slot 1 at idx 0 → picks slot 1.
+  // Slot-0 client (mySlot=0) sees slot 1 at idx 1, slot 2 at idx 2 → picks slot 1 too.
+  // But slot-2 client (mySlot=2) sees slot 2 at idx 0 → picks slot 2. DIVERGENCE.
+  const naiveResults = results.map(r => r.naive);
+  const naiveDiverges = new Set(naiveResults).size > 1;
+  assert('Two hasBuyBurnFirst — naive findIndex diverges across clients (KNOWN ISSUE)',
+    naiveDiverges, true);
+
+  // Canonical always picks lowest slot among priority players (slot 1 here)
+  assert('Two hasBuyBurnFirst — canonical always picks lowest slot (1)',
+    results.every(r => r.canonical === 1), true);
+}
+
+{
+  // Busted priority player: naive and canonical both skip busted slots
+  const makeGame = (mySlot) => {
+    const slotConfig = [
+      { priority: false, busted: false }, // slot 0
+      { priority: true,  busted: true  }, // slot 1: priority but busted → skipped
+      { priority: true,  busted: false }, // slot 2: priority, not busted → wins
+      { priority: false, busted: false }, // slot 3
+    ];
+    const ordered = [mySlot, ...[0,1,2,3].filter(s => s !== mySlot)];
+    const players = ordered.map(s => ({
+      ...p(4, 2, [], { busted: slotConfig[s].busted }),
+      hasBuyBurnFirst: slotConfig[s].priority,
+    }));
+    return {
+      naive:     simulatePriorityFindIndex(players, ordered, false),
+      canonical: simulatePriorityFindIndex(players, ordered, true),
+    };
+  };
+  const results = [0, 1, 2, 3].map(makeGame);
+  assert('Busted priority player skipped — naive picks slot 2 (all rotations)',
+    results.every(r => r.naive === 2), true);
+  assert('Busted priority player skipped — canonical picks slot 2 (all rotations)',
+    results.every(r => r.canonical === 2), true);
+}
+
+// ============================================================
 // SUMMARY
 // ============================================================
 console.log(`\n${'─'.repeat(48)}`);
