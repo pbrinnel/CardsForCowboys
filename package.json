@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test:mp": "node test/mp-lobby.test.js",
+    "test:mp:headed": "node test/mp-lobby.test.js --headed"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
+  }
+}

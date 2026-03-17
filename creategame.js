@@ -118,13 +118,13 @@ async function createGame() {
   hide('screen-name');
   show('screen-waiting');
 
-  unsubscribe = onValue(gameRef, (snap) => {
+  unsubscribe = onValue(gameRef, async (snap) => {
     const data = snap.val();
     if (!data) return;
     renderSlotList(data.slots, data.numPlayers, 'waiting-slot-list');
     if (allHumanSlotsFilled(data.slots)) {
       cleanup();
-      onDisconnect(gameRef).cancel();
+      await onDisconnect(gameRef).cancel();
       window.location.href = 'playgame.html?mp=1';
     }
   });

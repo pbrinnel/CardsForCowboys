@@ -127,6 +127,8 @@ const MP = (() => {
     if (!initialized) return;
     await fbSet(gameRef(`drawDone/${mySlot}`), {
       done: true,
+      round: G.roundNumber,
+      act: G.currentAct,
       dollars: player.roundDollars,
       cows: player.roundCows,
       bandits: player.roundBandits,
@@ -139,6 +141,8 @@ const MP = (() => {
   // For each human opponent slot, fires slotDoneCallback(slotIdx) when they signal done
   function waitForAllHumanDrawsDone(slotDoneCallback) {
     if (!initialized) return;
+    const expectedRound = G.roundNumber;
+    const expectedAct   = G.currentAct;
     for (let s = 0; s < _numPlayers; s++) {
       if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
       let fired = false;
@@ -146,7 +150,9 @@ const MP = (() => {
       const slotIdx = s;
       unsub = fbOnValue(gameRef(`drawDone/${slotIdx}`), (snap) => {
         const val = snap.val();
-        if (val && val.done === true && !fired) {
+        const matches = val && val.done === true
+                        && val.round === expectedRound && val.act === expectedAct;
+        if (matches && !fired) {
           fired = true;
           if (unsub) unsub();
           slotDoneCallback(slotIdx, val); // pass final stats to avoid race with drawState
@@ -181,11 +187,15 @@ const MP = (() => {
   // Reset all per-round signals at start of each round
   async function resetRound() {
     if (!initialized) return;
-    const updates = { buyAction: null, buyOrder: null };
+    // Only clear own draw slots — never clear opponents' done signals.
+    // If we cleared all slots here, a fast opponent who finishes before our
+    // resetRound fires would have their done signal wiped, causing a deadlock.
+    const updates = {
+      [`drawDone/${mySlot}`]:  null,
+      [`drawState/${mySlot}`]: null,
+    };
     for (let i = 0; i < _numPlayers; i++) {
-      updates[`drawDone/${i}`]  = null;
-      updates[`drawState/${i}`] = null;
-      updates[`passCard/${i}`]  = null;
+      updates[`passCard/${i}`] = null;
     }
     await fbUpdate(dbRef, updates);
   }
@@ -202,14 +212,15 @@ const MP = (() => {
     await fbSet(gameRef('actSetup'), { act, cardIds, ts: Date.now() });
   }
 
-  // Listen for act setup (non-host)
-  function waitForActSetup(callback) {
+  // Listen for act setup (non-host).
+  // Validates act number so stale Firebase data from a prior act is never consumed.
+  function waitForActSetup(expectedAct, callback) {
     if (!initialized || isHost) return;
     let fired = false;
     let unsub = null;
     unsub = fbOnValue(gameRef('actSetup'), (snap) => {
       const data = snap.val();
-      if (data && !fired) {
+      if (data && data.act === expectedAct && !fired) {
         fired = true;
         if (unsub) unsub();
         callback(data);
@@ -218,20 +229,36 @@ const MP = (() => {
     unsubscribers.push(unsub);
   }
 
-  // Push local player's buy action (buy or burn at row/col)
+  // Push local player's buy action (buy or burn at row/col).
+  // Stamps round+act so recipients can reject stale values from previous rounds.
   async function pushBuyAction(action, row, col) {
     if (!initialized) return;
-    await fbSet(gameRef(`buyAction/${mySlot}`), { action, row, col, ts: Date.now() });
+    await fbSet(gameRef(`buyAction/${mySlot}`), {
+      action, row, col, round: G.roundNumber, act: G.currentAct, ts: Date.now(),
+    });
   }
 
-  // Listen for a specific slot's buy action
+  // Clear an opponent's buy action after we've consumed it.
+  // This prevents the NEXT waitForBuyAction call for the same slot in the same
+  // round from immediately re-firing with the stale same-round value (which would
+  // hit slot.removed and silently skip processBuyTurn, hanging the buy phase).
+  async function clearBuyAction(slotIdx) {
+    if (!initialized) return;
+    await fbSet(gameRef(`buyAction/${slotIdx}`), null);
+  }
+
+  // Listen for a specific slot's buy action.
+  // Captures expected round+act so stale values from prior rounds are ignored.
   function waitForBuyAction(slotIdx, callback) {
     if (!initialized) return;
+    const expectedRound = G.roundNumber;
+    const expectedAct   = G.currentAct;
     let fired = false;
     let unsub = null;
     unsub = fbOnValue(gameRef(`buyAction/${slotIdx}`), (snap) => {
       const data = snap.val();
-      if (data && !fired) {
+      const matches = data && data.round === expectedRound && data.act === expectedAct;
+      if (matches && !fired) {
         fired = true;
         if (unsub) unsub();
         callback(data);
@@ -241,19 +268,27 @@ const MP = (() => {
   }
 
   // Push buy order as array of Firebase slot indices [first, second, ...]
+  // Stamps round+act so recipients can reject stale values from previous rounds.
   async function pushBuyOrder(slotOrder) {
     if (!initialized) return;
-    await fbSet(gameRef('buyOrder'), { slotOrder, ts: Date.now() });
+    await fbSet(gameRef('buyOrder'), {
+      slotOrder, round: G.roundNumber, act: G.currentAct, ts: Date.now(),
+    });
   }
 
-  // Listen for buy order; callback receives the slotOrder array
+  // Listen for buy order; callback receives the slotOrder array.
+  // Captures expected round+act at registration time so a stale value
+  // (from a prior round still in Firebase) is silently ignored.
   function waitForBuyOrder(callback) {
     if (!initialized) return;
+    const expectedRound = G.roundNumber;
+    const expectedAct   = G.currentAct;
     let fired = false;
     let unsub = null;
     unsub = fbOnValue(gameRef('buyOrder'), (snap) => {
       const data = snap.val();
-      if (data && !fired) {
+      const matches = data && data.round === expectedRound && data.act === expectedAct;
+      if (matches && !fired) {
         fired = true;
         if (unsub) unsub();
         callback(data.slotOrder);
@@ -291,6 +326,7 @@ const MP = (() => {
     pushActSetup,
     waitForActSetup,
     pushBuyAction,
+    clearBuyAction,
     waitForBuyAction,
     pushBuyOrder,
     waitForBuyOrder,
@@ -1176,7 +1212,7 @@ async function setupAct(act) {
       setMessage(`Waiting for opponent to set up Act ${act}...`);
       clearActions();
       await new Promise(resolve => {
-        MP.waitForActSetup((data) => {
+        MP.waitForActSetup(act, (data) => {
           G.pyramid = buildPyramid(act, data.cardIds);
           resolve();
         });
@@ -1465,6 +1501,7 @@ function onPlayerDrawDone() {
 }
 
 function checkDrawPhaseComplete() {
+  if (G.phase !== 'draw') return; // guard: only fire once, prevent re-entry
   const allDone = G.players.every((_, i) => G.drawsDone[i]);
   if (allDone) {
     onDrawPhaseComplete();
@@ -1741,9 +1778,11 @@ async function handleBust(player) {
   if (player.isHuman) mpSyncDraw();
   await delay(1500);
 
-  // Move all drawn cards to discard
-  player.discard.push(...player.hand);
-  player.hand = [];
+  // Move all drawn cards to discard, but keep discard_to_player cards in hand
+  // so resolvePassCards() can prompt the player to choose a recipient.
+  const toPass = player.hand.filter(c => c.special === 'discard_to_player');
+  player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
+  player.hand = toPass;
   player.roundDollars = 0;
   player.roundCows = 0;
   render();
@@ -2131,6 +2170,9 @@ function mpOpponentBuyTurn(opp) {
   render();
   MP.waitForBuyAction(opp.slotIdx, (data) => {
     mpLog('waitForBuyAction fired for', opp.name, data);
+    // Clear the consumed action so the NEXT waitForBuyAction for this slot in the
+    // same round doesn't immediately re-fire with this stale same-round value.
+    MP.clearBuyAction(opp.slotIdx);
     if (data.action === 'buy') {
       executeBuyLocal(opp, data.row, data.col);
     } else {
@@ -2367,7 +2409,7 @@ async function resolveSinglePassCard(fromIdx, card, findCardTemplate) {
     toIdx = await new Promise(resolve => {
       setActions(opponents.map(({ p, i }) => ({
         text: p.name,
-        cb: () => resolve(i),
+        onClick: () => resolve(i),
       })));
     });
     clearActions();
