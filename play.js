@@ -947,8 +947,53 @@ function render() {
   updateTurnOrderBar();
 }
 
+const HERD_TIERS = [
+  { max: 5,        size: '0.9rem', weight: 400, color: '#7aaa7a', shadow: 'none',                                                       spacing: '0px',   bump: 1.2,  dustW0: '10px', dustH0: '6px',  dustW1: '18px', dustH1: '11px', pulse: false },
+  { max: 15,       size: '1.2rem', weight: 600, color: '#3a8c3a', shadow: 'none',                                                       spacing: '0px',   bump: 1.28, dustW0: '12px', dustH0: '8px',  dustW1: '22px', dustH1: '14px', pulse: false },
+  { max: 35,       size: '1.6rem', weight: 700, color: '#2b7a2b', shadow: 'none',                                                       spacing: '0.5px', bump: 1.35, dustW0: '14px', dustH0: '9px',  dustW1: '26px', dustH1: '17px', pulse: false },
+  { max: 70,       size: '2.1rem', weight: 700, color: '#1a6e1a', shadow: '0 1px 4px rgba(26,94,26,0.25)',                              spacing: '0.5px', bump: 1.42, dustW0: '16px', dustH0: '10px', dustW1: '30px', dustH1: '20px', pulse: false },
+  { max: 110,      size: '2.6rem', weight: 800, color: '#145c14', shadow: '0 2px 8px rgba(20,92,20,0.35)',                              spacing: '1px',   bump: 1.5,  dustW0: '20px', dustH0: '13px', dustW1: '36px', dustH1: '24px', pulse: true  },
+  { max: Infinity, size: '3.1rem', weight: 900, color: '#0d4d0d', shadow: '0 0 12px rgba(46,204,113,0.5), 0 2px 6px rgba(13,77,13,0.4)', spacing: '1.5px', bump: 1.6,  dustW0: '24px', dustH0: '16px', dustW1: '44px', dustH1: '28px', pulse: true  },
+];
+
+function applyHerdTier(numEl, dustEl, n) {
+  const t = HERD_TIERS.find(tier => n <= tier.max);
+  numEl.style.setProperty('--herd-size',    t.size);
+  numEl.style.setProperty('--herd-weight',  t.weight);
+  numEl.style.setProperty('--herd-color',   t.color);
+  numEl.style.setProperty('--herd-shadow',  t.shadow);
+  numEl.style.setProperty('--herd-spacing', t.spacing);
+  numEl.style.setProperty('--bump-scale',   t.bump);
+  if (dustEl) {
+    dustEl.style.setProperty('--dust-w0', t.dustW0);
+    dustEl.style.setProperty('--dust-h0', t.dustH0);
+    dustEl.style.setProperty('--dust-w1', t.dustW1);
+    dustEl.style.setProperty('--dust-h1', t.dustH1);
+  }
+  if (t.pulse) {
+    numEl.classList.add('pulsing');
+  } else {
+    numEl.classList.remove('pulsing');
+  }
+}
+
+function triggerHerdBump(prefix) {
+  const numEl  = document.getElementById(prefix + '-herd');
+  const dustEl = document.getElementById(prefix + '-herd-dust');
+  if (!numEl) return;
+  numEl.classList.remove('bumping');
+  if (dustEl) dustEl.classList.remove('puffing');
+  void numEl.offsetWidth;
+  numEl.classList.add('bumping');
+  if (dustEl) dustEl.classList.add('puffing');
+  numEl.addEventListener('animationend', () => numEl.classList.remove('bumping'), { once: true });
+  if (dustEl) dustEl.addEventListener('animationend', () => dustEl.classList.remove('puffing'), { once: true });
+}
+
 function renderPlayerZone(player, prefix) {
-  document.getElementById(prefix + '-herd').textContent = player.herd;
+  const herdEl = document.getElementById(prefix + '-herd');
+  herdEl.textContent = player.herd;
+  applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), player.herd);
   document.getElementById(prefix + '-deck-count').textContent = player.deck.length;
   document.getElementById(prefix + '-discard-count').textContent = player.discard.length;
 
@@ -2449,12 +2494,14 @@ function endBuyPhase() {
 
 async function scoreRound() {
   // Score cows for non-busted players
-  for (const player of G.players) {
+  G.players.forEach((player, playerIdx) => {
     if (!player.busted && player.roundCows !== 0) {
       player.herd = Math.max(0, player.herd + player.roundCows);
       addLog(`${player.name} adds ${player.roundCows} cows to herd (total: ${player.herd}).`, 'log-score');
+      const prefix = playerIdx === 0 ? 'player' : `opp-${playerIdx}`;
+      triggerHerdBump(prefix);
     }
-  }
+  });
 
   // Resolve any discard_to_player cards before hands are cleared
   await resolvePassCards();
@@ -2610,7 +2657,13 @@ function ensureOpponentZone(i, container) {
         '<span class="zone-label" style="margin:0">' + G.players[i].name +
           ' <span id="' + prefix + '-crown" class="draw-crown">\uD83D\uDC51</span>' +
         '</span>' +
-        '<span class="herd-display">Herd: <strong id="' + prefix + '-herd">0</strong></span>' +
+        '<span class="herd-display">' +
+          '<span>Herd</span>' +
+          '<span class="herd-number-wrap">' +
+            '<strong id="' + prefix + '-herd" class="herd-number">0</strong>' +
+            '<span class="herd-dust" id="' + prefix + '-herd-dust"></span>' +
+          '</span>' +
+        '</span>' +
         '<span class="deck-display">Deck: <strong id="' + prefix + '-deck-count">10</strong></span>' +
         '<span id="' + prefix + '-round-stats-inline" class="ai-inline-stats hidden">' +
           '<span class="sep">|</span>' +

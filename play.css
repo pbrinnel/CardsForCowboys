@@ -319,10 +319,6 @@ body {
 
 .herd-display {
   color: #2b6e2b;
-}
-
-/* Herd number — the primary score, should dominate at a glance */
-#player-zone .herd-display {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -332,17 +328,66 @@ body {
   line-height: 1.1;
 }
 
-#player-zone .herd-display strong {
-  font-size: 2rem;
-  font-weight: bold;
-  line-height: 1;
-  color: #1a5c1a;
+.herd-number-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
-/* Opponent herd — a bit bigger than surrounding stats but still compact */
-.opp-zone .herd-display strong {
-  font-size: 1.15rem;
-  color: #1a5c1a;
+.herd-number {
+  display: inline-block;
+  font-size: var(--herd-size, 0.9rem);
+  font-weight: var(--herd-weight, 400);
+  color: var(--herd-color, #7aaa7a);
+  text-shadow: var(--herd-shadow, none);
+  letter-spacing: var(--herd-spacing, 0px);
+  transition: font-size 0.4s ease, color 0.4s ease, text-shadow 0.4s ease;
+  line-height: 1;
+}
+
+.herd-dust {
+  position: absolute;
+  left: 105%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  border-radius: 50%;
+  width: 0; height: 0;
+}
+
+/* Opponent herd — 60% of player size */
+.opp-zone .herd-number {
+  font-size: calc(var(--herd-size, 0.9rem) * 0.6);
+}
+
+@keyframes herdPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+.herd-number.pulsing {
+  animation: herdPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes herdBump {
+  0%   { transform: scale(1); filter: brightness(1); }
+  28%  { transform: scale(var(--bump-scale, 1.25)); filter: brightness(1.6); }
+  65%  { transform: scale(calc(1 + (var(--bump-scale, 1.25) - 1) * 0.4)); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.herd-number.bumping {
+  animation: herdBump 0.5s ease-out forwards !important;
+}
+
+@keyframes dustPuff {
+  0%   { opacity: 0.7; width: var(--dust-w0, 12px); height: var(--dust-h0, 8px);
+         background: rgba(139,105,20,0.45); filter: blur(2px);
+         transform: translateY(-50%) scale(1); }
+  100% { opacity: 0;   width: var(--dust-w1, 22px); height: var(--dust-h1, 14px);
+         background: rgba(139,105,20,0); filter: blur(5px);
+         transform: translateY(-50%) scale(1.7); }
+}
+.herd-dust.puffing {
+  animation: dustPuff 0.65s ease-out forwards;
 }
 
 .round-stats {
