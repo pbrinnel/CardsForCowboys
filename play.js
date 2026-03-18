@@ -3208,6 +3208,7 @@ async function startShowdown() {
           el.querySelector('img').src = cardImgSrc(card, true);
           el.onclick = (e) => { e.stopPropagation(); showCardZoom(cardImgSrc(card, true)); };
           el.classList.remove('card-flip-out');
+          void el.offsetWidth; // force reflow so card-flip-in registers as a new animation
           el.classList.add('card-flip-in');
           setTimeout(() => {
             el.classList.remove('card-flip-in');
