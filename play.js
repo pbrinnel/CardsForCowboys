@@ -2399,7 +2399,7 @@ async function handleBust(player) {
   }
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   render();
-  showBustAnimation();
+  if (player === G.players[0]) showBustAnimation();
   if (player.isHuman) mpSyncDraw();
   await delay(2000);
 

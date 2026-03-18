@@ -1008,7 +1008,7 @@ body.phase-draw #player-deck-preview {
 
 .bust-bandit-2 {
   left: calc(50% - 80px);
-  top: 12%;
+  bottom: 5%;
   width: 160px;
   height: 160px;
   animation: banditFly2 0.6s 0.18s cubic-bezier(0.15, 0.85, 0.35, 1.1) both;
