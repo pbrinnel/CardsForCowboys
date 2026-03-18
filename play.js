@@ -743,6 +743,7 @@ function clamp(val, min, max) {
 // --- GAME STATE ---
 
 let G = null; // global game state
+const pendingAnimCardUids = new Set(); // UIDs of cards drawn this tick, to receive flip-in animation
 
 function createCardInstance(template, imgFile) {
   return {
@@ -923,6 +924,7 @@ async function playerDrawWithReshuffleCheck() {
           }
           addLog(`You shuffled ${player.deck.length} cards from discard into a new deck.`, 'log-score');
           render();
+          mpSyncDraw();
           resolve(true);
         }},
         { text: 'Stop Drawing', onClick: () => {
@@ -1256,7 +1258,10 @@ function renderPlayerZone(player, prefix) {
   const showFaceUp = true;
 
   for (const card of player.hand) {
-    const el = renderCardEl(card, showFaceUp, player.busted ? 'busted' : '');
+    const isEntering = prefix === 'player' && pendingAnimCardUids.has(card.uid);
+    if (isEntering) pendingAnimCardUids.delete(card.uid);
+    const extraClass = [player.busted ? 'busted' : '', isEntering ? 'card-entering' : ''].filter(Boolean).join(' ');
+    const el = renderCardEl(card, showFaceUp, extraClass);
     handEl.appendChild(el);
   }
 
@@ -1373,6 +1378,7 @@ function setActions(buttons) {
     b.textContent = btn.text;
     b.onclick = btn.onClick;
     if (btn.disabled) b.disabled = true;
+    if (btn.style) b.style.cssText = btn.style;
     el.appendChild(b);
   }
 }
@@ -1437,7 +1443,7 @@ async function startGame() {
         return;
       }
       await reconstructG(state, cfg);
-      if (MP.isHost) document.getElementById('btn-spectate-link').classList.remove('hidden');
+      if (MP.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
       render();
       addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
       if (state.phase === 'draw') {
@@ -1488,8 +1494,8 @@ async function startGame() {
     }
   }
 
-  // Show spectator-link button for MP host
-  if (MP.active && MP.isHost) {
+  // Show spectator-link button for all MP players
+  if (MP.active) {
     document.getElementById('btn-spectate-link').classList.remove('hidden');
   }
 
@@ -1798,6 +1804,31 @@ function startPlayerDraw() {
     return;
   }
 
+  // Deck empty but discard available — show shuffle prompt directly
+  if (player.deck.length === 0 && player.discard.length > 0) {
+    setMessage(`Your deck is empty! Shuffle ${player.discard.length} cards from discard into a new deck?`);
+    setActions([
+      { text: 'Shuffle Discard', onClick: () => {
+        player.deck = shuffle(player.discard);
+        player.discard = [];
+        if (player.deck.length > 1) {
+          player.deck.push(player.deck.shift());
+        }
+        addLog(`You shuffled ${player.deck.length} cards from discard into a new deck.`, 'log-score');
+        render();
+        mpSyncDraw();
+        startPlayerDraw();
+      }},
+      { text: 'Stop Drawing', onClick: () => {
+        player.stoppedDrawing = true;
+        addLog('You stopped drawing.');
+        onPlayerDrawDone();
+      }, className: 'btn-secondary' },
+    ]);
+    render();
+    return;
+  }
+
   const activatable = getActivatableCards(player);
   const buttons = [
     { text: getDrawButtonText(player), onClick: () => playerDraw(), className: getDrawButtonClass(player) },
@@ -1811,7 +1842,7 @@ function startPlayerDraw() {
     });
   }
 
-  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0 });
+  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0, style: 'margin-left: auto' });
 
   setMessage(getDrawPhaseMessage(player));
   setActions(buttons);
@@ -1857,6 +1888,7 @@ async function playerDraw() {
 
   const isFirst = player.hand.length === 0;
   player.hand.push(card);
+  pendingAnimCardUids.add(card.uid);
 
   // Apply effects
   const effects = applyCardEffects(player, card, isFirst);
@@ -1880,11 +1912,12 @@ async function playerDraw() {
     addLog('Draw 4 more cards!');
     G.busy = false;
     for (let i = 0; i < 4; i++) {
-      await delay(400);
+      await delay(700);
       if (player.busted) break;
       const extraCard = drawFromDeck(player);
       if (!extraCard) break;
       player.hand.push(extraCard);
+      pendingAnimCardUids.add(extraCard.uid);
       applyCardEffects(player, extraCard, false);
       render();
       mpSyncDraw();
@@ -2251,6 +2284,7 @@ async function activateSpecialCard(player, card) {
 
 async function handleBust(player) {
   player.busted = true;
+  clearActions();
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   setMessage(player.name + ' busted!');
   render();
@@ -2338,7 +2372,10 @@ async function handleLook3(player) {
   return new Promise(resolve => {
     const modal = document.getElementById('special-modal');
     const content = document.getElementById('special-modal-content');
+    const peekRestore = document.getElementById('btn-peek-restore');
     let order = [];
+
+    peekRestore.onclick = () => modal.classList.remove('peeking');
 
     function renderModal() {
       content.innerHTML = '<h2>Rearrange Top Cards</h2><p>Click cards in the order you want them (top of deck first).</p>';
@@ -2371,6 +2408,7 @@ async function handleLook3(player) {
         btn.onclick = () => {
           const reordered = order.map(i => top3[i]);
           player.deck.unshift(...reordered);
+          modal.classList.remove('peeking');
           modal.classList.add('hidden');
           addLog('You rearranged the top cards of your deck.');
           render();
@@ -2379,6 +2417,13 @@ async function handleLook3(player) {
         };
         content.appendChild(btn);
       }
+
+      // Peek button — always shown at bottom
+      const peekBtn = document.createElement('button');
+      peekBtn.className = 'btn btn-secondary btn-small modal-peek-btn';
+      peekBtn.textContent = '👁 Peek at stats';
+      peekBtn.onclick = () => modal.classList.add('peeking');
+      content.appendChild(peekBtn);
     }
 
     renderModal();
@@ -2531,6 +2576,14 @@ function onDrawPhaseComplete() {
 
   const nonBusted = G.players.map((p, i) => ({ p, i })).filter(c => !c.p.busted).map(c => c.i);
   const winnerName = G.players[winnerIdx].name;
+
+  // Only one non-busted player — skip the order prompt entirely
+  if (nonBusted.length === 1) {
+    const soloIdx = nonBusted[0];
+    addLog(`--- Buy Phase --- ${soloIdx === 0 ? 'You go' : G.players[soloIdx].name + ' goes'} first (only non-busted player).`);
+    startBuyPhase(soloIdx, soloIdx === 0);
+    return;
+  }
 
   if (winnerIdx === 0) {
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
@@ -2703,6 +2756,7 @@ function executeBuy(player, row, col) {
 function executeBuyLocal(player, row, col) {
   const slot = G.pyramid[row][col];
   if (!slot || slot.removed) return;
+  clearActions();
   const card = slot.card;
 
   player.discard.push(card);
@@ -2733,6 +2787,7 @@ function executeBurn(player, row, col) {
 function executeBurnLocal(player, row, col) {
   const slot = G.pyramid[row][col];
   if (!slot || slot.removed) return;
+  clearActions();
   slot.removed = true;
   G.selectedPyramidCard = null;
 

@@ -609,6 +609,22 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Card draw flip-in animation */
+@keyframes cardFlipIn {
+  0%   { transform: rotateY(90deg) translateY(18px); opacity: 0; }
+  60%  { transform: rotateY(-8deg) translateY(0);   opacity: 1; }
+  100% { transform: rotateY(0deg)  translateY(0);   opacity: 1; }
+}
+
+.card.card-entering {
+  animation: cardFlipIn 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Perspective container for 3D card flip */
+#player-hand {
+  perspective: 800px;
+}
+
 /* Pyramid */
 #pyramid-zone {
   padding: 0.5rem;
@@ -661,7 +677,7 @@ body {
 #actions {
   display: flex;
   gap: 0.5rem;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
 }
 
@@ -853,6 +869,44 @@ body {
 
 .modal-cards .card.selected {
   box-shadow: 0 0 0 3px #c0392b;
+}
+
+/* Peek button inside rearrange modal */
+.modal-peek-btn {
+  display: block;
+  margin: 1rem auto 0;
+  font-size: 0.85rem;
+}
+
+/* Peek mode: hide form content, show restore bar */
+#special-modal.peeking #special-modal-content {
+  visibility: hidden;
+}
+
+#peek-restore-bar {
+  display: none;
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+}
+
+#special-modal.peeking #peek-restore-bar {
+  display: flex;
+}
+
+#btn-peek-restore {
+  background: #5c3a1e;
+  color: #faf3e0;
+  font-size: 1rem;
+  padding: 0.6rem 1.4rem;
+  border: 2px solid #e8c872;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+#btn-peek-restore:hover {
+  background: #7a4f2a;
 }
 
 /* Card zoom overlay */
