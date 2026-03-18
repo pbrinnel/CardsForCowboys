@@ -2372,9 +2372,11 @@ async function activateSpecialCard(player, card) {
 
 async function handleBust(player) {
   player.busted = true;
-  clearActions();
+  if (player.isHuman) {
+    clearActions();
+    setMessage(player.name + ' busted!');
+  }
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
-  setMessage(player.name + ' busted!');
   render();
   if (player.isHuman) mpSyncDraw();
   await delay(1500);
