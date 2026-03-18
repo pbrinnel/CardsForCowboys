@@ -110,9 +110,17 @@ async function createGame() {
 
   document.getElementById('display-code').textContent = gameCode;
   // Invite link points to lobby.html (join page)
-  const link = `${location.origin}${location.pathname.replace('creategame.html', '')}lobby.html?join=${gameCode}`;
+  const base = location.origin + location.pathname.replace('creategame.html', '');
+  const link = `${base}lobby.html?join=${gameCode}`;
   document.getElementById('share-link').dataset.link = link;
   document.getElementById('share-link').textContent = link;
+  // Spectator link
+  const spectateLink = `${base}spectate.html?code=${gameCode}`;
+  const spectateEl = document.getElementById('spectate-link');
+  if (spectateEl) {
+    spectateEl.dataset.link = spectateLink;
+    spectateEl.textContent = 'Copy spectator link';
+  }
   renderSlotList(slots, numPlayers, 'waiting-slot-list');
 
   hide('screen-name');
@@ -144,12 +152,22 @@ function cleanup() {
 
 // --- Copy invite link ---
 window.copyShareLink = function() {
-  const link = document.getElementById('share-link').dataset.link;
-  navigator.clipboard.writeText(link).then(() => {
-    document.getElementById('share-link').textContent = '\u2713 Copied!';
-    setTimeout(() => {
-      document.getElementById('share-link').textContent = link;
-    }, 2000);
+  const el = document.getElementById('share-link');
+  navigator.clipboard.writeText(el.dataset.link).then(() => {
+    const prev = el.textContent;
+    el.textContent = '\u2713 Copied!';
+    setTimeout(() => { el.textContent = prev; }, 2000);
+  });
+};
+
+// --- Copy spectator link ---
+window.copySpectateLink = function() {
+  const el = document.getElementById('spectate-link');
+  if (!el || !el.dataset.link) return;
+  navigator.clipboard.writeText(el.dataset.link).then(() => {
+    const prev = el.textContent;
+    el.textContent = '\u2713 Spectator link copied!';
+    setTimeout(() => { el.textContent = prev; }, 2000);
   });
 };
 

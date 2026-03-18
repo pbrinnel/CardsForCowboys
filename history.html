@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game History - Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #2b1d0e;
+      background-color: #faf3e0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #5c3a1e;
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #8b6914;
+      font-style: italic;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: #8b6914;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #5c3a1e; }
+    #status {
+      text-align: center;
+      color: #8b6914;
+      font-style: italic;
+      padding: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff8ed;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(43,29,14,0.1);
+      font-size: 0.9rem;
+    }
+    thead {
+      background: #5c3a1e;
+      color: #faf3e0;
+    }
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: normal;
+      letter-spacing: 0.5px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #e8d8b4;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fdf5e0; }
+    .winner-name {
+      font-weight: bold;
+      color: #5c3a1e;
+    }
+    .player-list {
+      line-height: 1.6;
+    }
+    .player-winner { font-weight: bold; }
+    .player-ai { color: #8b6914; font-style: italic; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+    }
+    .badge-mp  { background: #dde8f8; color: #1a4fa0; }
+    .badge-ai  { background: #e0d8f0; color: #5a3e8a; }
+    .tie-label { color: #8b6914; font-style: italic; }
+    @media (max-width: 600px) {
+      th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="index.html" class="back-link">← Back to home</a>
+  <h1>Game History</h1>
+  <p class="subtitle">All completed games, newest first</p>
+  <div id="status">Loading…</div>
+  <table id="history-table" style="display:none">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Mode</th>
+        <th>Players &amp; Scores</th>
+        <th>Winner</th>
+        <th>Acts / Rounds</th>
+      </tr>
+    </thead>
+    <tbody id="history-body"></tbody>
+  </table>
+</div>
+
+<script type="module">
+import { db } from './firebase-config.js';
+import {
+  ref, query, orderByChild, limitToLast, onValue
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const statusEl = document.getElementById('status');
+const tableEl  = document.getElementById('history-table');
+const bodyEl   = document.getElementById('history-body');
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+const q = query(ref(db, 'gameHistory'), orderByChild('ts'), limitToLast(100));
+
+onValue(q, (snap) => {
+  const rows = [];
+  snap.forEach(child => rows.push(child.val()));
+  rows.reverse(); // newest first
+
+  if (rows.length === 0) {
+    statusEl.textContent = 'No games recorded yet. Play a game to see history here!';
+    return;
+  }
+
+  statusEl.style.display = 'none';
+  tableEl.style.display = 'table';
+  bodyEl.innerHTML = '';
+
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+
+    // Date
+    const tdDate = document.createElement('td');
+    tdDate.textContent = r.ts ? formatDate(r.ts) : '—';
+    tr.appendChild(tdDate);
+
+    // Mode badge
+    const tdMode = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = r.mode === 'mp' ? 'badge badge-mp' : 'badge badge-ai';
+    badge.textContent = r.mode === 'mp' ? 'Online' : 'vs AI';
+    tdMode.appendChild(badge);
+    tr.appendChild(tdMode);
+
+    // Players & scores
+    const tdPlayers = document.createElement('td');
+    tdPlayers.className = 'player-list';
+    (r.players || []).forEach(p => {
+      const line = document.createElement('div');
+      const classes = [];
+      if (p.isWinner) classes.push('player-winner');
+      if (!p.isHuman) classes.push('player-ai');
+      if (classes.length) line.className = classes.join(' ');
+      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
+      tdPlayers.appendChild(line);
+    });
+    tr.appendChild(tdPlayers);
+
+    // Winner
+    const tdWinner = document.createElement('td');
+    if (r.winner) {
+      tdWinner.className = 'winner-name';
+      tdWinner.textContent = r.winner;
+    } else {
+      tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
+    }
+    tr.appendChild(tdWinner);
+
+    // Acts / Rounds
+    const tdRounds = document.createElement('td');
+    tdRounds.textContent = `Act ${r.actsCompleted || '?'} / Rd ${r.totalRounds || '?'}`;
+    tr.appendChild(tdRounds);
+
+    bodyEl.appendChild(tr);
+  }
+});
+</script>
+</body>
+</html>

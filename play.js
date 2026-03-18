@@ -8,6 +8,17 @@
 // When MP is inactive every function is a no-op.
 // ============================================================
 
+// Shared Firebase config — used by both the MP layer and the game history writer
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBegwDX84rtHfrYwuMVZcQkcLvaJ9MUOiQ",
+  authDomain: "cards-for-cowboys.firebaseapp.com",
+  databaseURL: "https://cards-for-cowboys-default-rtdb.firebaseio.com",
+  projectId: "cards-for-cowboys",
+  storageBucket: "cards-for-cowboys.firebasestorage.app",
+  messagingSenderId: "795777888512",
+  appId: "1:795777888512:web:560d415f8d34def96dc3e5"
+};
+
 const MP = (() => {
   // Detect if we arrived from the lobby
   const isMP = new URLSearchParams(location.search).has('mp');
@@ -28,8 +39,9 @@ const MP = (() => {
   let fbMod = null;
   let fbSet, fbUpdate, fbOnValue, fbOnDisconnect, fbRemove, fbGet, fbRef;
 
-  let unsubscribers = [];
-  let initialized   = false;
+  let unsubscribers     = [];
+  let initialized       = false;
+  let disconnectTimers  = {};  // slotIdx → setTimeout handle
 
   // Populated by buildPlayersConfig()
   let _slotDefs   = [];
@@ -44,17 +56,7 @@ const MP = (() => {
     const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBegwDX84rtHfrYwuMVZcQkcLvaJ9MUOiQ",
-      authDomain: "cards-for-cowboys.firebaseapp.com",
-      databaseURL: "https://cards-for-cowboys-default-rtdb.firebaseio.com",
-      projectId: "cards-for-cowboys",
-      storageBucket: "cards-for-cowboys.firebasestorage.app",
-      messagingSenderId: "795777888512",
-      appId: "1:795777888512:web:560d415f8d34def96dc3e5"
-    };
-
-    const app = fbApp.initializeApp(firebaseConfig);
+    const app = fbApp.initializeApp(FIREBASE_CONFIG);
     db = fbMod.getDatabase(app);
 
     fbRef       = (db_, path_) => fbMod.ref(db_, path_);
@@ -68,14 +70,48 @@ const MP = (() => {
     dbRef = gameRef();
     initialized = true;
 
-    // Mark disconnected in Firebase if we leave unexpectedly
-    fbOnDisconnect(dbRef).update({ status: 'disconnected' });
-    const unsub = fbOnValue(dbRef, (snap) => {
-      const data = snap.val();
-      if (!data) return;
-      if (data.status === 'disconnected') showDisconnectMessage();
-    });
-    unsubscribers.push(unsub);
+    // Per-slot presence: arm the onDisconnect now (before we mark ourselves connected
+    // in startPresence), so the server-side handler is registered before the game starts.
+    fbOnDisconnect(gameRef(`slots/${mySlot}/connected`)).set(false);
+  }
+
+  // Call after buildPlayersConfig() so _slotDefs and _numPlayers are populated.
+  // Marks this slot as connected and watches opponents for unexpected disconnects.
+  async function startPresence() {
+    if (!initialized) return;
+
+    // Announce ourselves as connected
+    await fbSet(gameRef(`slots/${mySlot}/connected`), true);
+
+    // Watch every other human slot for connection drops
+    for (let s = 0; s < _numPlayers; s++) {
+      if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
+      const slotIdx = s;
+      const playerName = _slotDefs[slotIdx].name || `Player ${slotIdx + 1}`;
+      const unsub = fbOnValue(gameRef(`slots/${slotIdx}/connected`), (snap) => {
+        const connected = snap.val();
+        if (connected === false) {
+          // Start 15-second grace period before declaring game over
+          if (!disconnectTimers[slotIdx]) {
+            setMessage(`${playerName} lost connection. Waiting 15 seconds…`);
+            disconnectTimers[slotIdx] = setTimeout(() => {
+              delete disconnectTimers[slotIdx];
+              showDisconnectMessage(playerName);
+            }, 15000);
+          }
+        } else if (connected === true) {
+          // Reconnected within grace period — cancel timer and resume silently
+          if (disconnectTimers[slotIdx]) {
+            clearTimeout(disconnectTimers[slotIdx]);
+            delete disconnectTimers[slotIdx];
+            // Restore game message via render (it will re-set the appropriate message)
+            render();
+          }
+        }
+        // connected === null means slot entry doesn't exist yet — ignore
+      });
+      unsubscribers.push(unsub);
+    }
   }
 
   // Read game config from Firebase: slotDefs, gameSeed, numPlayers
@@ -200,6 +236,55 @@ const MP = (() => {
     await fbUpdate(dbRef, updates);
   }
 
+  // Serialize a card object to the minimal data spectate.html needs
+  function serializeCard(c) {
+    if (!c) return null;
+    return {
+      id: c.id, img: c.img, cacti: c.cacti,
+      dollars: c.dollars, cows: c.cows, bandits: c.bandits,
+      special: c.special || null, cost: c.cost || 0,
+    };
+  }
+
+  // Push a full game-state snapshot for spectators (host only).
+  // Called at phase boundaries and after every buy/burn action.
+  async function pushSpectatorState() {
+    if (!initialized || !isHost || !G || G.phase === 'start') return;
+    try {
+      const state = {
+        phase: G.phase,
+        round: G.roundNumber,
+        act: G.currentAct,
+        numPlayers: G.numPlayers,
+        pyramid: G.pyramid.map(row => row.map(slot => ({
+          card: serializeCard(slot.card),
+          faceUp: slot.faceUp,
+          removed: slot.removed,
+        }))),
+        players: G.players.map(p => ({
+          slotIdx: p.slotIdx,
+          name: p.name,
+          isHuman: p.isHuman,
+          herd: p.herd,
+          roundDollars: p.roundDollars,
+          roundCows: p.roundCows,
+          roundBandits: p.roundBandits,
+          busted: p.busted,
+          stoppedDrawing: p.stoppedDrawing,
+          hand: p.hand.map(serializeCard),
+          deck: p.deck.map(c => ({ id: c.id, cacti: c.cacti })),
+        })),
+        buyOrder: G.buyOrder || [],
+        currentBuyerIdx: G.currentBuyerIdx || 0,
+        ts: Date.now(),
+      };
+      await fbSet(gameRef('spectatorState'), state);
+    } catch (e) {
+      // Non-critical — spectator state is best-effort
+      console.warn('[MP] pushSpectatorState failed:', e);
+    }
+  }
+
   // Clear actSetup (between acts)
   async function clearActSetup() {
     if (!initialized) return;
@@ -297,8 +382,9 @@ const MP = (() => {
     unsubscribers.push(unsub);
   }
 
-  function showDisconnectMessage() {
-    setMessage('A player disconnected. Game over.');
+  function showDisconnectMessage(playerName) {
+    const who = playerName ? `${playerName} disconnected.` : 'A player disconnected.';
+    setMessage(`${who} Game over.`);
     setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'gamesetup.html'; } }]);
     cleanup();
   }
@@ -306,8 +392,12 @@ const MP = (() => {
   function cleanup() {
     unsubscribers.forEach(u => u && u());
     unsubscribers = [];
+    // Cancel all pending grace-period timers
+    Object.values(disconnectTimers).forEach(t => clearTimeout(t));
+    disconnectTimers = {};
+    // Cancel server-side onDisconnect handler so normal navigation doesn't fire it
     if (initialized && dbRef) {
-      fbOnDisconnect(dbRef).cancel();
+      fbOnDisconnect(gameRef(`slots/${mySlot}/connected`)).cancel();
     }
   }
 
@@ -317,6 +407,7 @@ const MP = (() => {
     slotToPlayer: {},  // slotIdx → G.players index; set in startGame()
     init,
     buildPlayersConfig,
+    startPresence,
     pushDrawState,
     watchOpponentDrawStates,
     signalDrawDone,
@@ -332,6 +423,7 @@ const MP = (() => {
     waitForBuyOrder,
     pushPassCard,
     waitForPassCard,
+    pushSpectatorState,
     cleanup,
   };
 })();
@@ -339,6 +431,39 @@ const MP = (() => {
 // ============================================================
 // END MULTIPLAYER LAYER
 // ============================================================
+
+// ============================================================
+// GAME HISTORY — writes a record to Firebase on every game end
+// Works in both SP and MP mode (MP: host only to avoid duplicates)
+// ============================================================
+const HISTORY = (() => {
+  let db = null;
+  let _fbRef, _fbPush;
+  let initialized = false;
+
+  async function init() {
+    if (initialized) return;
+    const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    // Re-use existing default app if MP layer already initialised it, otherwise create one
+    const app = fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(FIREBASE_CONFIG);
+    db = fbMod.getDatabase(app);
+    _fbRef  = (path) => fbMod.ref(db, path);
+    _fbPush = (r, v) => fbMod.push(r, v);
+    initialized = true;
+  }
+
+  async function logGame(data) {
+    try {
+      await init();
+      await _fbPush(_fbRef('gameHistory'), data);
+    } catch (e) {
+      console.warn('[HISTORY] Failed to log game:', e);
+    }
+  }
+
+  return { logGame };
+})();
 
 // Verbose MP debug logging — toggle with ?mpDebug=1 in URL
 const MP_DEBUG = new URLSearchParams(location.search).has('mpDebug');
@@ -1076,9 +1201,12 @@ function renderDeckPreview(player, prefix) {
   const previewEl = document.getElementById(prefix + '-deck-preview');
   previewEl.innerHTML = '';
 
+  const canPeek = prefix === 'player' && G.phase === 'draw' && player.deck.length > 0;
+
   if (player.deck.length > 0 && G.phase === 'draw' && !player.busted && !player.stoppedDrawing) {
     const nextCard = player.deck[0];
     const el = renderCardEl(nextCard, false); // face-down shows the back
+    if (canPeek) el.classList.add('deck-peek-clickable');
     previewEl.appendChild(el);
     const label = document.createElement('div');
     label.className = 'deck-label';
@@ -1089,11 +1217,20 @@ function renderDeckPreview(player, prefix) {
     const nextCard = player.deck[0];
     const el = renderCardEl(nextCard, false);
     el.style.opacity = '0.4';
+    if (canPeek) el.classList.add('deck-peek-clickable');
     previewEl.appendChild(el);
     const label = document.createElement('div');
     label.className = 'deck-label';
     label.textContent = `Deck (${player.deck.length})`;
     previewEl.appendChild(label);
+  }
+
+  if (canPeek) {
+    previewEl.style.cursor = 'pointer';
+    previewEl.onclick = showDeckPeek;
+  } else {
+    previewEl.style.cursor = '';
+    previewEl.onclick = null;
   }
 }
 
@@ -1194,9 +1331,12 @@ function clearCardPreview() {
   el.classList.add('hidden');
 }
 
-// Push local player's draw state to Firebase (MP only, no-op otherwise)
+// Push local player's draw state to Firebase (MP only, no-op otherwise).
+// Host also pushes a full spectatorState snapshot so spectators see all players.
 function mpSyncDraw() {
-  if (MP.active) MP.pushDrawState(G.players[0]);
+  if (!MP.active) return;
+  MP.pushDrawState(G.players[0]);
+  MP.pushSpectatorState(); // no-op for non-hosts
 }
 
 // --- GAME FLOW ---
@@ -1217,6 +1357,7 @@ async function startGame() {
       return;
     }
     const cfg = await MP.buildPlayersConfig();
+    await MP.startPresence();
 
     // Initialize seeded RNG for each AI slot
     cfg.slotDefs.forEach((def, slotIdx) => {
@@ -1252,6 +1393,11 @@ async function startGame() {
     }
   }
 
+  // Show spectator-link button for MP host
+  if (MP.active && MP.isHost) {
+    document.getElementById('btn-spectate-link').classList.remove('hidden');
+  }
+
   await setupAct(1);
 }
 
@@ -1285,6 +1431,7 @@ async function setupAct(act) {
       // Clear previous actSetup first so guest listener fires fresh
       await MP.clearActSetup();
       await MP.pushActSetup(act, cardIds);
+      MP.pushSpectatorState(); // let spectators see the new pyramid immediately
     } else {
       // Guest waits for host's pyramid layout
       setMessage(`Waiting for opponent to set up Act ${act}...`);
@@ -1319,6 +1466,7 @@ async function startRound() {
 
   if (MP.active) {
     await MP.resetRound();
+    MP.pushSpectatorState(); // initial draw-phase state for spectators
     startPlayerDraw();
 
     // Run AI draws locally (deterministic — same on all clients via seeded RNG)
@@ -1346,6 +1494,7 @@ async function startRound() {
       opp.stoppedDrawing    = state.stoppedDrawing;
       opp.hasBuyBurnFirst   = state.hasBuyBurnFirst || false;
       render();
+      MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
     });
 
     // One-shot done signal per remote human opponent
@@ -2225,6 +2374,7 @@ function applyBuyOrder(order) {
   G.currentBuyerIdx = 0;
   mpLog('applyBuyOrder:', order.map(i => G.players[i]?.name));
   render();
+  if (MP.active) MP.pushSpectatorState(); // buy phase begins — spectators see buy order
   processBuyTurn();
 }
 
@@ -2343,6 +2493,7 @@ function executeBuyLocal(player, row, col) {
   addLog(`${player.name} bought ${cardLabel(card)} for $${card.cost}.`, 'log-buy');
   revealUncovered(G.pyramid);
   render();
+  if (MP.active) MP.pushSpectatorState();
 
   G.currentBuyerIdx++;
 
@@ -2369,6 +2520,7 @@ function executeBurnLocal(player, row, col) {
   addLog(`${player.name} burned ${cardLabel(slot.card)} ($${slot.card.cost}).`, 'log-burn');
   revealUncovered(G.pyramid);
   render();
+  if (MP.active) MP.pushSpectatorState();
 
   G.currentBuyerIdx++;
 
@@ -2567,6 +2719,7 @@ async function scoreRound() {
   }
 
   render();
+  if (MP.active) MP.pushSpectatorState(); // spectators see final scores for the round
   await delay(1000);
 
   // Check if pyramid empty (end of act)
@@ -2620,7 +2773,42 @@ function gameOver() {
   const logParts = G.players.map(p => `${p === me ? 'You' : p.name}: ${p.herd}`).join(', ');
   addLog(`Game Over! ${logParts}.`, 'log-score');
 
-  if (MP.active) MP.cleanup();
+  if (MP.active) {
+    MP.pushSpectatorState(); // spectators see final game-over state
+    MP.cleanup();
+  }
+
+  // Log game to global history (MP: host only; SP: always)
+  if (!MP.active || MP.isHost) {
+    const winnerName = topPlayers.length === 1 ? topPlayers[0].name : null;
+    HISTORY.logGame({
+      ts: Date.now(),
+      mode: MP.active ? 'mp' : 'ai',
+      numPlayers: G.numPlayers,
+      players: G.players.map(p => ({
+        name: p.name,
+        isHuman: p.isHuman,
+        herd: p.herd,
+        isWinner: topPlayers.includes(p),
+      })),
+      winner: winnerName,
+      actsCompleted: G.currentAct,
+      totalRounds: G.roundNumber,
+    });
+  }
+}
+
+// --- SPECTATOR LINK ---
+
+function copySpectateLink() {
+  if (!MP.active || !MP.code) return;
+  const url = `${location.origin}${location.pathname.replace('playgame.html', '')}spectate.html?code=${MP.code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('btn-spectate-link');
+    const prev = btn.textContent;
+    btn.textContent = '\u2713 Copied!';
+    setTimeout(() => { btn.textContent = prev; }, 2000);
+  });
 }
 
 // --- RULES MODAL ---
@@ -2669,6 +2857,45 @@ function showDeck() {
 
 function closeDeck() {
   document.getElementById('deck-modal').classList.add('hidden');
+}
+
+// --- DECK PEEK (draw phase only — shows ordered backs of draw pile) ---
+
+function showDeckPeek() {
+  if (!G || G.phase !== 'draw') return;
+  const player = G.players[0];
+  if (player.deck.length === 0) return;
+
+  document.getElementById('deck-peek-title').textContent =
+    `Draw Pile \u2014 ${player.deck.length} card${player.deck.length !== 1 ? 's' : ''}`;
+
+  const body = document.getElementById('deck-peek-body');
+  body.innerHTML = '';
+
+  const grid = document.createElement('div');
+  grid.className = 'deck-grid';
+
+  player.deck.forEach((card, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'deck-peek-slot';
+
+    const el = renderCardEl(card, false); // face-down back only
+    slot.appendChild(el);
+
+    const pos = document.createElement('div');
+    pos.className = 'deck-peek-pos';
+    pos.textContent = i === 0 ? 'Next' : `#${i + 1}`;
+    slot.appendChild(pos);
+
+    grid.appendChild(slot);
+  });
+
+  body.appendChild(grid);
+  document.getElementById('deck-peek-modal').classList.remove('hidden');
+}
+
+function closeDeckPeek() {
+  document.getElementById('deck-peek-modal').classList.add('hidden');
 }
 
 // --- CARD ZOOM ---

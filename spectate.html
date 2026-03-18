@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spectating - Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #faf3e0;
+      color: #2b1d0e;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    #spec-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #5c3a1e;
+      color: #faf3e0;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+    #spec-header .code-badge {
+      background: #c0392b;
+      color: #fff;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 2px;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
+    #spec-phase { color: #d4b896; font-style: italic; }
+
+    /* ── Layout ── */
+    #spec-main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* ── Loading / Error ── */
+    #spec-loading {
+      text-align: center;
+      padding: 3rem;
+      color: #8b6914;
+      font-style: italic;
+    }
+
+    /* ── Players grid ── */
+    #spec-players {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .spec-player {
+      background: #fff8ed;
+      border: 2px solid #d4b896;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      flex: 1 1 180px;
+      min-width: 160px;
+    }
+    .spec-player.active-buyer { border-color: #c0392b; background: #fff3e0; }
+    .spec-player.busted { opacity: 0.6; }
+    .spec-player-name {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #5c3a1e;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .spec-player-name .ai-badge {
+      font-size: 0.65rem;
+      background: #e0d8f0;
+      color: #5a3e8a;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-style: italic;
+    }
+    .spec-herd {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #2b7a1e;
+      margin-bottom: 0.25rem;
+    }
+    .spec-round-stats {
+      font-size: 0.75rem;
+      color: #5c3a1e;
+      margin-bottom: 0.4rem;
+      display: flex;
+      gap: 0.6rem;
+    }
+    .spec-status {
+      font-size: 0.7rem;
+      font-style: italic;
+      color: #c0392b;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ── Card rendering ── */
+    .spec-hand { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 0.35rem; }
+    .spec-card {
+      width: 42px;
+      height: 59px;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid #bbb;
+      flex-shrink: 0;
+    }
+    .spec-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .spec-deck-row {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.3rem;
+      font-size: 0.7rem;
+      color: #8b6914;
+    }
+    .spec-deck-backs { display: flex; flex-wrap: wrap; gap: 2px; }
+    .spec-deck-back {
+      width: 18px;
+      height: 25px;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid #bbb;
+    }
+    .spec-deck-back img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* ── Pyramid ── */
+    #spec-pyramid-zone {
+      background: #fff8ed;
+      border: 2px solid #d4b896;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    #spec-pyramid-zone .zone-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b6914;
+      margin-bottom: 0.5rem;
+    }
+    .spec-pyramid-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .spec-pyr-slot {
+      width: 55px;
+      height: 77px;
+    }
+    .spec-pyr-card {
+      width: 55px;
+      height: 77px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #bbb;
+      position: relative;
+    }
+    .spec-pyr-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .spec-pyr-card .cost-label {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: rgba(92,58,30,0.85);
+      color: #fff;
+      font-size: 0.55rem;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+    .spec-pyr-card.face-down { opacity: 0.7; }
+
+    /* ── Status bar ── */
+    #spec-status-bar {
+      background: #5c3a1e;
+      color: #faf3e0;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .spec-card { width: 34px; height: 48px; }
+      .spec-pyr-slot, .spec-pyr-card { width: 42px; height: 59px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="spec-header">
+  <div>
+    Cards For Cowboys
+    <span class="code-badge" id="spec-code">------</span>
+    <span style="margin-left:0.75rem" id="spec-actround"></span>
+  </div>
+  <div id="spec-phase">Connecting…</div>
+</div>
+
+<div id="spec-main">
+  <div id="spec-loading">Waiting for game data…</div>
+
+  <div id="spec-game" style="display:none">
+    <div id="spec-status-bar">Spectating</div>
+    <div id="spec-players"></div>
+    <div id="spec-pyramid-zone">
+      <div class="zone-label">Store Pyramid</div>
+      <div id="spec-pyramid"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { db } from './firebase-config.js';
+import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const CARD_IMG   = 'assets/cards/All-Cards/';
+const BACK_IMG   = 'assets/backs/';
+const CACTI_BACK = { 1: 'Blue Inline-01.jpg', 2: 'Yellow Inline-01.jpg', 3: 'Red Inline-01.jpg' };
+
+const params = new URLSearchParams(location.search);
+const code   = params.get('code');
+
+if (!code) {
+  document.getElementById('spec-loading').textContent = 'No game code in URL. Use a spectator link.';
+} else {
+  document.getElementById('spec-code').textContent = code;
+  startSpectating(code);
+}
+
+function cardImgSrc(card, faceUp) {
+  if (faceUp) return CARD_IMG + card.img;
+  return BACK_IMG + (CACTI_BACK[card.cacti] || CACTI_BACK[1]);
+}
+
+function makeCardEl(card, faceUp, w, h) {
+  const div = document.createElement('div');
+  div.className = faceUp ? 'spec-card' : 'spec-card face-down';
+  div.style.width = w + 'px'; div.style.height = h + 'px';
+  const img = document.createElement('img');
+  img.src = cardImgSrc(card, faceUp);
+  img.alt = faceUp ? card.id : 'card back';
+  div.appendChild(img);
+  return div;
+}
+
+function phaseLabel(s) {
+  const labels = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', gameOver: 'Game Over' };
+  return labels[s] || s || '';
+}
+
+function startSpectating(gameCode) {
+  // Subscribe only to spectatorState — not the whole game root — to avoid
+  // firing on every drawState/buyAction write during play.
+  const stateRef = ref(db, `games/${gameCode}/spectatorState`);
+
+  onValue(stateRef, (snap) => {
+    const state = snap.val();
+    if (!state) {
+      document.getElementById('spec-loading').textContent =
+        'Waiting for game to start… (spectator data will appear once the first round begins)';
+      return;
+    }
+
+    document.getElementById('spec-loading').style.display = 'none';
+    document.getElementById('spec-game').style.display = 'block';
+
+    renderSpectatorState(state);
+  });
+}
+
+function renderSpectatorState(state) {
+  // Header
+  document.getElementById('spec-actround').textContent =
+    `Act ${state.act} · Round ${state.round}`;
+  document.getElementById('spec-phase').textContent = phaseLabel(state.phase);
+
+  // Status bar
+  const statusEl = document.getElementById('spec-status-bar');
+  if (state.phase === 'buy' && state.buyOrder && state.buyOrder.length > 0) {
+    const idx = state.currentBuyerIdx;
+    if (idx < state.buyOrder.length) {
+      const buyerName = state.players[state.buyOrder[idx]]?.name || '?';
+      statusEl.textContent = `Buy Phase — ${buyerName}'s turn`;
+    } else {
+      statusEl.textContent = 'Buy Phase — Scoring…';
+    }
+  } else if (state.phase === 'draw') {
+    statusEl.textContent = 'Draw Phase — players are drawing cards';
+  } else if (state.phase === 'gameOver') {
+    const maxHerd = Math.max(...state.players.map(p => p.herd));
+    const winners = state.players.filter(p => p.herd === maxHerd).map(p => p.name);
+    statusEl.textContent = winners.length === 1
+      ? `Game Over — ${winners[0]} wins with ${maxHerd} cows!`
+      : `Game Over — Tie! (${winners.join(' & ')})`;
+  } else {
+    statusEl.textContent = phaseLabel(state.phase);
+  }
+
+  // Players
+  renderPlayers(state);
+
+  // Pyramid
+  renderPyramid(state);
+}
+
+function renderPlayers(state) {
+  const container = document.getElementById('spec-players');
+  container.innerHTML = '';
+
+  const activeBuyerIdx = state.phase === 'buy' &&
+    state.buyOrder && state.currentBuyerIdx < state.buyOrder.length
+    ? state.buyOrder[state.currentBuyerIdx] : -1;
+
+  state.players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'spec-player'
+      + (i === activeBuyerIdx ? ' active-buyer' : '')
+      + (p.busted ? ' busted' : '');
+
+    // Name row
+    const nameRow = document.createElement('div');
+    nameRow.className = 'spec-player-name';
+    nameRow.textContent = p.name;
+    if (!p.isHuman) {
+      const badge = document.createElement('span');
+      badge.className = 'ai-badge';
+      badge.textContent = 'AI';
+      nameRow.appendChild(badge);
+    }
+    div.appendChild(nameRow);
+
+    // Herd score
+    const herd = document.createElement('div');
+    herd.className = 'spec-herd';
+    herd.textContent = `🐄 ${p.herd}`;
+    div.appendChild(herd);
+
+    // Round stats (only meaningful during draw/buy phases)
+    if (state.phase === 'draw' || state.phase === 'buy') {
+      const stats = document.createElement('div');
+      stats.className = 'spec-round-stats';
+      stats.innerHTML = `<span>$${p.roundDollars}</span><span>🐄 ${p.roundCows}</span><span>⚡ ${p.roundBandits}</span>`;
+      div.appendChild(stats);
+    }
+
+    // Status flags
+    if (p.busted) {
+      const s = document.createElement('div');
+      s.className = 'spec-status';
+      s.textContent = 'BUSTED';
+      div.appendChild(s);
+    } else if (p.stoppedDrawing && state.phase === 'draw') {
+      const s = document.createElement('div');
+      s.className = 'spec-status';
+      s.style.color = '#1f7a1f';
+      s.textContent = 'Stopped drawing';
+      div.appendChild(s);
+    }
+
+    // Hand (face-up — spectators see everything)
+    if (p.hand && p.hand.length > 0) {
+      const handLabel = document.createElement('div');
+      handLabel.style.cssText = 'font-size:0.65rem;color:#8b6914;margin-top:0.3rem;margin-bottom:2px';
+      handLabel.textContent = `Hand (${p.hand.length})`;
+      div.appendChild(handLabel);
+
+      const handRow = document.createElement('div');
+      handRow.className = 'spec-hand';
+      p.hand.forEach(card => {
+        if (!card) return;
+        handRow.appendChild(makeCardEl(card, true, 42, 59));
+      });
+      div.appendChild(handRow);
+    }
+
+    // Deck (backs only, showing count and first few backs)
+    if (p.deck && p.deck.length > 0) {
+      const deckRow = document.createElement('div');
+      deckRow.className = 'spec-deck-row';
+      const deckLabel = document.createElement('span');
+      deckLabel.textContent = `Deck (${p.deck.length}):`;
+      deckRow.appendChild(deckLabel);
+
+      const backs = document.createElement('div');
+      backs.className = 'spec-deck-backs';
+      // Show up to 10 backs to avoid overflow
+      p.deck.slice(0, 10).forEach(c => {
+        if (!c) return;
+        const slot = document.createElement('div');
+        slot.className = 'spec-deck-back';
+        const img = document.createElement('img');
+        img.src = BACK_IMG + (CACTI_BACK[c.cacti] || CACTI_BACK[1]);
+        img.alt = 'deck card';
+        slot.appendChild(img);
+        backs.appendChild(slot);
+      });
+      if (p.deck.length > 10) {
+        const more = document.createElement('span');
+        more.style.cssText = 'font-size:0.65rem;color:#8b6914;align-self:center';
+        more.textContent = `+${p.deck.length - 10}`;
+        backs.appendChild(more);
+      }
+      deckRow.appendChild(backs);
+      div.appendChild(deckRow);
+    }
+
+    container.appendChild(div);
+  });
+}
+
+function renderPyramid(state) {
+  const container = document.getElementById('spec-pyramid');
+  container.innerHTML = '';
+
+  if (!state.pyramid || state.pyramid.length === 0) return;
+
+  state.pyramid.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'spec-pyramid-row';
+
+    row.forEach(slot => {
+      const slotDiv = document.createElement('div');
+      slotDiv.className = 'spec-pyr-slot';
+
+      if (!slot.removed) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'spec-pyr-card' + (slot.faceUp ? '' : ' face-down');
+
+        const img = document.createElement('img');
+        img.src = slot.faceUp
+          ? CARD_IMG + slot.card.img
+          : BACK_IMG + (CACTI_BACK[slot.card.cacti] || CACTI_BACK[1]);
+        img.alt = slot.faceUp ? slot.card.id : 'card back';
+        cardDiv.appendChild(img);
+
+        if (slot.faceUp && slot.card.cost) {
+          const cost = document.createElement('span');
+          cost.className = 'cost-label';
+          cost.textContent = '$' + slot.card.cost;
+          cardDiv.appendChild(cost);
+        }
+
+        slotDiv.appendChild(cardDiv);
+      }
+
+      rowDiv.appendChild(slotDiv);
+    });
+
+    container.appendChild(rowDiv);
+  });
+}
+</script>
+</body>
+</html>

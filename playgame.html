@@ -55,6 +55,16 @@
     </div>
   </div>
 
+  <!-- Deck Peek Modal -->
+  <div id="deck-peek-modal" class="overlay hidden" onclick="closeDeckPeek()">
+    <div class="overlay-content deck-content" onclick="event.stopPropagation()">
+      <h2 id="deck-peek-title">Draw Pile</h2>
+      <button class="close-btn" onclick="closeDeckPeek()">&times;</button>
+      <p class="deck-peek-hint">Card backs in draw order — faces stay secret!</p>
+      <div id="deck-peek-body"></div>
+    </div>
+  </div>
+
   <!-- Card Zoom Overlay -->
   <div id="card-zoom" class="overlay hidden" onclick="closeCardZoom()">
     <img id="card-zoom-img" src="" alt="Card zoom" />
@@ -79,6 +89,7 @@
       <div class="header-right">
         <button class="btn-small" onclick="showDeck()">My Deck</button>
         <button class="btn-small" onclick="showRules()">Rules</button>
+        <button class="btn-small hidden" id="btn-spectate-link" onclick="copySpectateLink()">Spectate Link</button>
         <button class="btn-small" onclick="restartGame()">Restart</button>
       </div>
     </header>
