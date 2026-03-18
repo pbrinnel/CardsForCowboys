@@ -1716,14 +1716,18 @@ async function startGame() {
     }
   }
 
-  // Show spectator-link button for all MP players
+  // Show spectator-link button for MP players; also shown for AI after AI_SPEC.start() sets the code
   if (MP.active) {
     document.getElementById('btn-spectate-link').classList.remove('hidden');
   }
 
   // Register this game as live so history.html can show it with a spectate button
   if (MP.active && MP.isHost) await MP.setLiveStatus('active');
-  else if (!MP.active) await AI_SPEC.start(G.players);
+  else if (!MP.active) {
+    await AI_SPEC.start(G.players);
+    // Now that we have a code, show the spectate link button
+    if (AI_SPEC.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
+  }
 
   await setupAct(1);
 }
@@ -3507,8 +3511,9 @@ function gameOver() {
 // --- SPECTATOR LINK ---
 
 function copySpectateLink() {
-  if (!MP.active || !MP.code) return;
-  const url = `${location.origin}${location.pathname.replace('playgame.html', '')}spectate.html?code=${MP.code}`;
+  const code = MP.active ? MP.code : AI_SPEC.code;
+  if (!code) return;
+  const url = `${location.origin}${location.pathname.replace('playgame.html', '')}spectate.html?code=${code}`;
   navigator.clipboard.writeText(url).then(() => {
     const btn = document.getElementById('btn-spectate-link');
     const prev = btn.textContent;
