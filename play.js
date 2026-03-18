@@ -1385,32 +1385,83 @@ function clearActions() {
   clearCardPreview();
 }
 
-// Two-phase flip animation for a drawn card.
-// Phase 1: swap img to card back, rotate to 90° (edge-on / invisible).
-// Phase 2: swap img to face at the midpoint, rotate back to 0° (face revealed).
+// Animate a drawn card: fly from the deck preview position to the hand slot,
+// then flip back-to-face. Falls back to flip-only if no deck card is visible.
 // rAF ensures we target the final DOM element after all synchronous renders.
 function animateDrawnCard(card) {
   requestAnimationFrame(() => {
-    const el = document.querySelector(`#player-hand [data-uid="${card.uid}"]`);
-    if (!el) return;
-    const img = el.querySelector('img');
+    const handCard = document.querySelector(`#player-hand [data-uid="${card.uid}"]`);
+    if (!handCard) return;
+    const img = handCard.querySelector('img');
     if (!img) return;
 
     const faceSrc = img.src;
     const backSrc = cardImgSrc(card, false);
 
-    img.src = backSrc;
-    el.classList.add('card-flip-out');
+    const deckCard = document.querySelector('#player-deck-preview .card');
+    if (deckCard) {
+      const deckRect = deckCard.getBoundingClientRect();
+      const handRect = handCard.getBoundingClientRect();
 
-    el.addEventListener('animationend', () => {
-      el.classList.remove('card-flip-out');
-      img.src = faceSrc;
-      el.classList.add('card-flip-in');
-      el.addEventListener('animationend', () => {
-        el.classList.remove('card-flip-in');
-      }, { once: true });
-    }, { once: true });
+      // Build a face-down flyer positioned over the deck card
+      const flyer = document.createElement('div');
+      const flyImg = document.createElement('img');
+      flyImg.src = backSrc;
+      flyImg.alt = card.id;
+      flyImg.draggable = false;
+      flyImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      flyer.appendChild(flyImg);
+      Object.assign(flyer.style, {
+        position: 'fixed',
+        left: `${deckRect.left}px`,
+        top: `${deckRect.top}px`,
+        width: `${deckRect.width}px`,
+        height: `${deckRect.height}px`,
+        zIndex: '500',
+        pointerEvents: 'none',
+        borderRadius: '6px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
+      });
+      document.body.appendChild(flyer);
+
+      // Hide the destination card slot while the flyer is in flight
+      handCard.style.visibility = 'hidden';
+
+      // Translate using center-to-center so scale (if sizes differ) stays aligned
+      const dx = (handRect.left + handRect.width / 2) - (deckRect.left + deckRect.width / 2);
+      const dy = (handRect.top + handRect.height / 2) - (deckRect.top + deckRect.height / 2);
+      const sx = handRect.width / deckRect.width;
+      const sy = handRect.height / deckRect.height;
+
+      const anim = flyer.animate([
+        { transform: 'translate(0,0) scale(1,1)' },
+        { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
+      ], { duration: 260, easing: 'cubic-bezier(0.4,0,0.2,1)', fill: 'forwards' });
+
+      anim.onfinish = () => {
+        flyer.remove();
+        handCard.style.visibility = '';
+        doCardFlip(handCard, img, backSrc, faceSrc);
+      };
+    } else {
+      // Deck is now empty — no preview to fly from, just flip
+      doCardFlip(handCard, img, backSrc, faceSrc);
+    }
   });
+}
+
+function doCardFlip(el, img, backSrc, faceSrc) {
+  img.src = backSrc;
+  el.classList.add('card-flip-out');
+  el.addEventListener('animationend', () => {
+    el.classList.remove('card-flip-out');
+    img.src = faceSrc;
+    el.classList.add('card-flip-in');
+    el.addEventListener('animationend', () => {
+      el.classList.remove('card-flip-in');
+    }, { once: true });
+  }, { once: true });
 }
 
 function setCardPreview(card) {
