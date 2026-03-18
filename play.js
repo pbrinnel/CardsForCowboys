@@ -187,6 +187,7 @@ const MP = (() => {
       busted: player.busted,
       handCount: player.hand.length,
       hasBuyBurnFirst: player.hasBuyBurnFirst || false,
+      hasExtraBuy: player.hasExtraBuy || false,
     });
   }
 
@@ -557,13 +558,13 @@ const STARTER_TEMPLATES = [
 // Derived from CSV. Color→Cacti: River(Blue)=1, Cactus(Yellow)=2, Rattlesnake(Red)=3
 // minPlayers: 2=all, 3=3+P games, 4=4+P games only
 const STORE_CARDS = [
-  // --- ACT 1 (Tier 1) ---
+  // --- ACT 1 ---
   // River (Blue) – 1 cacti  [2P: IDs 8-14]
   { id: 'card_8',  img: 'Cards_8.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_9',  img: 'Cards_9.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_10', img: 'Cards_10.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_11', img: 'Cards_11.jpg', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
-  { id: 'card_12', img: 'Cards_12.jpg', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'discard_to_player' },
+  { id: 'card_11', img: 'Cards_11.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_to_use' },
+  { id: 'card_12', img: 'Cards_12.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_to_use' },
   { id: 'card_13', img: 'Cards_13.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   { id: 'card_14', img: 'Cards_14.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   // River (Blue) – 1 cacti  [3+P: IDs 1-2]
@@ -571,7 +572,7 @@ const STORE_CARDS = [
   { id: 'card_2',  img: 'Cards_2.jpg',  act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   // River (Blue) – 1 cacti  [4+P: IDs 3-4]
   { id: 'card_3',  img: 'Cards_3.jpg',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_4',  img: 'Cards_4.jpg',  act: 1, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
+  { id: 'card_4',  img: 'Cards_4.jpg',  act: 1, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
   // Rattlesnake (Red) – 3 cacti  [2P: IDs 40-42]
   { id: 'card_40', img: 'Cards_40.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
   { id: 'card_41', img: 'Cards_41.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
@@ -595,7 +596,7 @@ const STORE_CARDS = [
   { id: 'card_61', img: 'Cards_61.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
   { id: 'card_62', img: 'Cards_62.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 2, special: null },
 
-  // --- ACT 2 (Tier 2) ---
+  // --- ACT 2 ---
   // River (Blue) – 1 cacti  [2P: IDs 15-18]
   { id: 'card_15', img: 'Cards_15.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   { id: 'card_16', img: 'Cards_16.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
@@ -621,7 +622,7 @@ const STORE_CARDS = [
   { id: 'card_79', img: 'Cards_79.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_80', img: 'Cards_80.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
   { id: 'card_81', img: 'Cards_81.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'put_on_top' },
-  { id: 'card_82', img: 'Cards_82.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'discard_to_player' },
+  { id: 'card_82', img: 'Cards_82.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'extra_buy' },
   { id: 'card_83', img: 'Cards_83.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
   { id: 'card_84', img: 'Cards_84.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
   // Cactus (Yellow) – 2 cacti  [3+P: ID 58]
@@ -632,7 +633,7 @@ const STORE_CARDS = [
   { id: 'card_65', img: 'Cards_65.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
   { id: 'card_66', img: 'Cards_66.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'discard_to_player' },
 
-  // --- ACT 3 (Tier 3) ---
+  // --- ACT 3 ---
   // River (Blue) – 1 cacti  [2P: IDs 19-25]
   { id: 'card_19', img: 'Cards_19.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
   { id: 'card_20', img: 'Cards_20.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
@@ -787,6 +788,8 @@ function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
     stoppedDrawing: false,
     copyNextActive: false,
     hasBuyBurnFirst: false,
+    hasExtraBuy: false,
+    extraBuyUsed: false,
   };
 }
 
@@ -947,6 +950,8 @@ function resetPlayerRound(player) {
   player.stoppedDrawing = false;
   player.copyNextActive = false;
   player.hasBuyBurnFirst = false;
+  player.hasExtraBuy = false;
+  player.extraBuyUsed = false;
 }
 
 // --- CARD EFFECTS ---
@@ -1673,6 +1678,7 @@ async function resumeDrawPhase() {
     opp.busted          = drawState.busted;
     opp.stoppedDrawing  = drawState.stoppedDrawing;
     opp.hasBuyBurnFirst = drawState.hasBuyBurnFirst || false;
+    opp.hasExtraBuy     = drawState.hasExtraBuy     || false;
     render();
     if (MP.isHost) MP.pushSpectatorState();
   });
@@ -1686,6 +1692,7 @@ async function resumeDrawPhase() {
       opp.roundBandits    = doneData.bandits;
       opp.busted          = doneData.busted;
       opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
+      opp.hasExtraBuy     = doneData.hasExtraBuy     || false;
     }
     G.drawsDone[playerIdx] = true;
     checkDrawPhaseComplete();
@@ -1794,6 +1801,7 @@ async function startRound() {
       opp.busted            = state.busted;
       opp.stoppedDrawing    = state.stoppedDrawing;
       opp.hasBuyBurnFirst   = state.hasBuyBurnFirst || false;
+      opp.hasExtraBuy       = state.hasExtraBuy     || false;
       render();
       MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
     });
@@ -1825,7 +1833,7 @@ async function startRound() {
 
 // --- DRAW PHASE ---
 
-const ACTIVATABLE_SPECIALS = ['trash_for_2', 'trash_buy_burn_first', 'look3_rearrange', 'replay_discard', 'trash_to_use'];
+const ACTIVATABLE_SPECIALS = ['trash_for_2', 'trash_buy_burn_first', 'look3_rearrange', 'replay_discard', 'trash_to_use', 'extra_buy'];
 
 function getActivatableCards(player) {
   return player.hand.filter(c => c.special && ACTIVATABLE_SPECIALS.includes(c.special));
@@ -1844,6 +1852,7 @@ function getSpecialLabel(card) {
       if (card.cows > 0) parts.push(`+${card.cows} Cow`);
       return `Activate (${parts.join(', ')})`;
     }
+    case 'extra_buy': return 'Trash for Extra Buy';
     default: return 'Use';
   }
 }
@@ -2353,6 +2362,9 @@ async function activateSpecialCard(player, card) {
     case 'replay_discard':
       await handleReplayDiscard(player, card);
       break;
+    case 'extra_buy':
+      await handleExtraBuy(player, card);
+      break;
   }
 }
 
@@ -2570,16 +2582,19 @@ async function handleReplayDiscard(player, card) {
 }
 
 function handlePutOnTop(player, putOnTopCard) {
-  setMessage('Choose a card to return to the top of your deck (its effects are removed).');
+  setMessage('Choose another drawn card to return to the top of your deck (its effects are removed).');
   const handEl = document.getElementById('player-hand');
   handEl.innerHTML = '';
 
   for (const card of player.hand) {
+    // Can't put the put_on_top card itself on top
+    if (card.uid === putOnTopCard.uid) {
+      const el = renderCardEl(card, true, 'dimmed');
+      handEl.appendChild(el);
+      continue;
+    }
     const el = renderCardEl(card, true, 'clickable');
     el.onclick = () => {
-      if (card.uid === putOnTopCard.uid) {
-        // Can't return the put_on_top card itself... actually you can
-      }
       // Remove card effects
       player.roundDollars -= card.dollars;
       player.roundCows -= card.cows;
@@ -2602,6 +2617,24 @@ function handlePutOnTop(player, putOnTopCard) {
     { text: 'Skip (Don\'t Return)', onClick: () => {
       addLog('You chose not to return a card.');
       onPlayerDrawDone();
+    }, className: 'btn-secondary' },
+  ]);
+}
+
+async function handleExtraBuy(player, card) {
+  setMessage('Trash this card to get an extra buy with your remaining $ after your first buy/burn?');
+  setActions([
+    { text: 'Trash for Extra Buy', onClick: () => {
+      const idx = player.hand.indexOf(card);
+      if (idx >= 0) player.hand.splice(idx, 1);
+      player.hasExtraBuy = true;
+      addLog('You trashed for an extra buy this round!', 'log-burn');
+      render();
+      mpSyncDraw();
+      startPlayerDraw();
+    }},
+    { text: 'Keep Card', onClick: () => {
+      startPlayerDraw();
     }, className: 'btn-secondary' },
   ]);
 }
@@ -2844,14 +2877,38 @@ function executeBuyLocal(player, row, col) {
   render();
   if (MP.active) MP.pushSpectatorState();
 
-  G.currentBuyerIdx++;
+  if (advanceOrExtraBuy(player)) return;
+}
 
+// After a buy/burn action: grant extra buy if eligible, otherwise advance to next buyer.
+// Returns true if the caller should return early (extra buy granted or pyramid empty mid-extra).
+function advanceOrExtraBuy(player) {
+  // Local human with extra buy available
+  if (player === G.players[0] && player.hasExtraBuy && !player.extraBuyUsed) {
+    if (!isPyramidEmpty(G.pyramid)) {
+      player.extraBuyUsed = true;
+      addLog(`Extra buy! Spend your remaining $${player.roundDollars}.`, 'log-buy');
+      humanBuyTurn(player);
+      return true;
+    }
+  }
+  // Remote human opponent with extra buy (MP only)
+  if (MP.active && player !== G.players[0] && player.isHuman && player.hasExtraBuy && !player.extraBuyUsed) {
+    if (!isPyramidEmpty(G.pyramid)) {
+      player.extraBuyUsed = true;
+      addLog(`${player.name} uses their extra buy!`, 'log-buy');
+      mpOpponentBuyTurn(player);
+      return true;
+    }
+  }
+  G.currentBuyerIdx++;
   if (isPyramidEmpty(G.pyramid)) {
     addLog('Store is empty! Round ends.', 'log-score');
     endBuyPhase();
   } else {
     processBuyTurn();
   }
+  return false;
 }
 
 // Human burn: push to Firebase (MP, local human only) then apply locally
@@ -2872,14 +2929,7 @@ function executeBurnLocal(player, row, col) {
   render();
   if (MP.active) MP.pushSpectatorState();
 
-  G.currentBuyerIdx++;
-
-  if (isPyramidEmpty(G.pyramid)) {
-    addLog('Store is empty! Round ends.', 'log-score');
-    endBuyPhase();
-  } else {
-    processBuyTurn();
-  }
+  advanceOrExtraBuy(player);
 }
 
 // --- AI BUY ---
