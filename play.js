@@ -1258,10 +1258,7 @@ function renderPlayerZone(player, prefix) {
   const showFaceUp = true;
 
   for (const card of player.hand) {
-    const isEntering = prefix === 'player' && pendingAnimCardUids.has(card.uid);
-    if (isEntering) pendingAnimCardUids.delete(card.uid);
-    const extraClass = [player.busted ? 'busted' : '', isEntering ? 'card-entering' : ''].filter(Boolean).join(' ');
-    const el = renderCardEl(card, showFaceUp, extraClass);
+    const el = renderCardEl(card, showFaceUp, player.busted ? 'busted' : '');
     handEl.appendChild(el);
   }
 
@@ -1386,6 +1383,16 @@ function setActions(buttons) {
 function clearActions() {
   document.getElementById('actions').innerHTML = '';
   clearCardPreview();
+}
+
+// Apply flip-in animation to a drawn card after all synchronous renders have completed.
+// Using rAF ensures this targets the final DOM element (not one that will be immediately
+// overwritten by startPlayerDraw's render), so the browser actually paints the animation.
+function animateDrawnCard(uid) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`#player-hand [data-uid="${uid}"]`);
+    if (el) el.classList.add('card-entering');
+  });
 }
 
 function setCardPreview(card) {
@@ -1888,7 +1895,6 @@ async function playerDraw() {
 
   const isFirst = player.hand.length === 0;
   player.hand.push(card);
-  pendingAnimCardUids.add(card.uid);
 
   // Apply effects
   const effects = applyCardEffects(player, card, isFirst);
@@ -1917,9 +1923,9 @@ async function playerDraw() {
       const extraCard = drawFromDeck(player);
       if (!extraCard) break;
       player.hand.push(extraCard);
-      pendingAnimCardUids.add(extraCard.uid);
       applyCardEffects(player, extraCard, false);
       render();
+      animateDrawnCard(extraCard.uid);
       mpSyncDraw();
       // Check bust after each draw
       if (player.roundBandits >= 3) {
@@ -1952,7 +1958,9 @@ async function playerDraw() {
   }
 
   G.busy = false;
+  const drawnUid = card.uid;
   startPlayerDraw();
+  animateDrawnCard(drawnUid);
 }
 
 function playerStopDraw() {
