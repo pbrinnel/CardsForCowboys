@@ -306,14 +306,21 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
       if (player.busted) break;
     }
 
-    // Handle trash_to_use: always trash (removes from hand; bandits already applied by card.bandits stat)
-    if (card.special === 'trash_to_use') {
-      const idx = player.hand.indexOf(card);
+    // Handle trash_to_use: activate based on situation (card contributed nothing on draw)
+    for (const tCard of player.hand.filter(c => c.special === 'trash_to_use')) {
+      let activate = false;
+      if (tCard.bandits < 0 && player.roundBandits >= strategy.jailThreshold) activate = true;
+      if (tCard.dollars > 0 && player.roundBandits >= 2) {
+        const bestCost = getBestScoredCost(player, strategy, pyramid, currentAct || 1);
+        if (player.roundDollars < bestCost) activate = true;
+      }
+      if (!activate) continue;
+      const idx = player.hand.indexOf(tCard);
       if (idx >= 0) {
         player.hand.splice(idx, 1);
-        player.roundCows -= card.cows;
-        player.roundDollars -= card.dollars;
-        // card.bandits (-1) already applied on draw — do not subtract again
+        player.roundDollars += tCard.dollars;
+        player.roundBandits = Math.max(0, player.roundBandits + tCard.bandits);
+        player.roundCows += tCard.cows;
       }
     }
 
@@ -380,6 +387,21 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
     // Decision to continue drawing
     if (!shouldDraw(player, strategy, pyramid, currentAct)) {
+      // Before stopping: activate $N trash_to_use cards if it helps afford a better card
+      for (const tCard of player.hand.filter(c => c.special === 'trash_to_use' && c.dollars > 0)) {
+        const avail = core.getAvailablePyramidCards(pyramid);
+        const unlocksBetter = avail.some(a =>
+          a.slot.card.cost > player.roundDollars && a.slot.card.cost <= player.roundDollars + tCard.dollars
+        );
+        if (unlocksBetter) {
+          const idx = player.hand.indexOf(tCard);
+          if (idx >= 0) {
+            player.hand.splice(idx, 1);
+            player.roundDollars += tCard.dollars;
+            player.roundCows += tCard.cows;
+          }
+        }
+      }
       player.stoppedDrawing = true;
     }
   }

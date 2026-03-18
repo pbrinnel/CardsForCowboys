@@ -378,7 +378,7 @@ const STORE_CARDS = [
   { id: 'card_8',  img: 'Cards_8.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_9',  img: 'Cards_9.jpg',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_10', img: 'Cards_10.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_11', img: 'Cards_11.jpg', act: 1, minPlayers: 2, dollars: 3, cows: -1, bandits:  0, cost: 3, cacti: 1, special: null },
+  { id: 'card_11', img: 'Cards_11.jpg', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
   { id: 'card_12', img: 'Cards_12.jpg', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'discard_to_player' },
   { id: 'card_13', img: 'Cards_13.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   { id: 'card_14', img: 'Cards_14.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
@@ -387,7 +387,7 @@ const STORE_CARDS = [
   { id: 'card_2',  img: 'Cards_2.jpg',  act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   // River (Blue) – 1 cacti  [4+P: IDs 3-4]
   { id: 'card_3',  img: 'Cards_3.jpg',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_4',  img: 'Cards_4.jpg',  act: 1, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'discard_to_player' },
+  { id: 'card_4',  img: 'Cards_4.jpg',  act: 1, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
   // Rattlesnake (Red) – 3 cacti  [2P: IDs 40-42]
   { id: 'card_40', img: 'Cards_40.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
   { id: 'card_41', img: 'Cards_41.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
@@ -758,6 +758,11 @@ function resetPlayerRound(player) {
 // --- CARD EFFECTS ---
 
 function applyCardEffects(player, card, isFirstCard) {
+  // Special: trash_to_use — card contributes nothing when drawn; effects apply only on activation
+  if (card.special === 'trash_to_use') {
+    return { dollars: 0, cows: 0, bandits: 0 };
+  }
+
   let multiplier = player.copyNextActive ? 2 : 1;
   if (player.copyNextActive) {
     player.copyNextActive = false;
@@ -799,6 +804,34 @@ function applyCardEffects(player, card, isFirstCard) {
 }
 
 // --- LOGGING ---
+
+const SUIT_NAME = { 1: 'River', 2: 'Cactus', 3: 'Rattlesnake' };
+const SPECIAL_LABEL = {
+  trash_to_use:        'Trash to Use',
+  discard_to_player:   'Discard to Player',
+  trash_buy_burn_first:'Trash: Buy/Burn 1st',
+  '2cow_if_first':     '2 Cows if 1st',
+  trash_for_2:         'Trash for $2',
+  look3_rearrange:     'Trash: Rearrange 3',
+  copy_next:           'Copy Next',
+  put_on_top:          'Put on Top',
+  replay_discard:      'Replay Discard',
+  dollar1_other:       '+$1 to Others',
+  draw4:               '& Draw 4',
+  look3_immediate:     'Look at Top 3',
+};
+
+function cardLabel(card) {
+  const suit = SUIT_NAME[card.cacti] || '?';
+  const parts = [];
+  if (card.dollars > 0)  parts.push(`$${card.dollars}`);
+  if (card.cows   > 0)   parts.push(`${card.cows} Cow${card.cows > 1 ? 's' : ''}`);
+  if (card.cows   < 0)   parts.push(`${card.cows} Cow`);
+  if (card.bandits > 0)  parts.push(`${card.bandits} Bandit${card.bandits > 1 ? 's' : ''}`);
+  if (card.bandits < 0)  parts.push(`-1 Bandit`);
+  if (card.special && SPECIAL_LABEL[card.special]) parts.push(`(${SPECIAL_LABEL[card.special]})`);
+  return suit + (parts.length ? ': ' + parts.join(', ') : '');
+}
 
 function addLog(text, className) {
   if (!G) return;
@@ -1342,18 +1375,25 @@ async function startRound() {
 
 // --- DRAW PHASE ---
 
-const ACTIVATABLE_SPECIALS = ['trash_for_2', 'trash_buy_burn_first', 'look3_rearrange', 'replay_discard'];
+const ACTIVATABLE_SPECIALS = ['trash_for_2', 'trash_buy_burn_first', 'look3_rearrange', 'replay_discard', 'trash_to_use'];
 
 function getActivatableCards(player) {
   return player.hand.filter(c => c.special && ACTIVATABLE_SPECIALS.includes(c.special));
 }
 
-function getSpecialLabel(special) {
-  switch (special) {
+function getSpecialLabel(card) {
+  switch (card.special) {
     case 'trash_for_2': return 'Trash for $2';
     case 'trash_buy_burn_first': return 'Trash for Priority';
     case 'look3_rearrange': return 'Trash & Rearrange Top 3';
     case 'replay_discard': return 'Trash & Replay Discard';
+    case 'trash_to_use': {
+      const parts = [];
+      if (card.dollars > 0) parts.push(`$${card.dollars}`);
+      if (card.bandits < 0) parts.push('-1 Bandit');
+      if (card.cows > 0) parts.push(`+${card.cows} Cow`);
+      return `Activate (${parts.join(', ')})`;
+    }
     default: return 'Use';
   }
 }
@@ -1397,7 +1437,7 @@ function startPlayerDraw() {
 
   for (const card of activatable) {
     buttons.push({
-      text: getSpecialLabel(card.special),
+      text: getSpecialLabel(card),
       onClick: () => activateSpecialCard(player, card),
       className: 'btn-special',
     });
@@ -1454,11 +1494,15 @@ async function playerDraw() {
   const effects = applyCardEffects(player, card, isFirst);
 
   let effectText = '';
-  if (effects.dollars) effectText += ` $${effects.dollars}`;
-  if (effects.cows > 0) effectText += ` +${effects.cows} cow${effects.cows > 1 ? 's' : ''}`;
-  if (effects.cows < 0) effectText += ` ${effects.cows} cow`;
-  if (effects.bandits) effectText += ` ${effects.bandits} bandit${effects.bandits > 1 ? 's' : ''}`;
-  addLog(`You drew: ${card.id.replace(/_/g, ' ')} -${effectText}`);
+  if (card.special === 'trash_to_use') {
+    effectText = 'activate to use';
+  } else {
+    if (effects.dollars) effectText += `$${effects.dollars}`;
+    if (effects.cows > 0) effectText += ` +${effects.cows} cow${effects.cows > 1 ? 's' : ''}`;
+    if (effects.cows < 0) effectText += ` ${effects.cows} cow`;
+    if (effects.bandits) effectText += ` ${effects.bandits} bandit${effects.bandits > 1 ? 's' : ''}`;
+  }
+  addLog(`You drew: ${cardLabel(card)}` + (effectText ? ` – ${effectText}` : ''));
 
   render();
   mpSyncDraw();
@@ -1496,13 +1540,6 @@ async function playerDraw() {
     if (!player.busted) {
       startPlayerDraw();
     }
-    return;
-  }
-
-  // Handle special: trash_to_use (jail)
-  if (card.special === 'trash_to_use' && player.roundBandits >= 2) {
-    G.busy = false;
-    await handleJailPrompt(player, card);
     return;
   }
 
@@ -1585,7 +1622,11 @@ async function aiDrawPhase(playerIdx) {
     ai.hand.push(card);
     applyCardEffects(ai, card, isFirst);
 
-    addLog(`${aiLabel} drew: ${card.id.replace(/_/g, ' ')} (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
+    if (card.special === 'trash_to_use') {
+      addLog(`${aiLabel} drew: ${cardLabel(card)} – activate to use`);
+    } else {
+      addLog(`${aiLabel} drew: ${cardLabel(card)} (${ai.roundDollars}$, ${ai.roundCows} cows, ${ai.roundBandits} bandits)`);
+    }
     render();
     await delay(800);
 
@@ -1607,17 +1648,22 @@ async function aiDrawPhase(playerIdx) {
       if (ai.busted) break;
     }
 
-    // Handle jail auto-use
-    if (card.special === 'trash_to_use' && ai.roundBandits >= 2) {
-      const idx = ai.hand.indexOf(card);
-      if (idx >= 0) {
-        ai.hand.splice(idx, 1);
-        ai.roundBandits = Math.max(0, ai.roundBandits - 1);
-        ai.roundCows -= card.cows;
-        addLog(`${aiLabel} used Jail to negate a bandit!`, 'log-burn');
-        render();
-        await delay(500);
-      }
+    // Handle trash_to_use activation
+    for (const tCard of ai.hand.filter(c => c.special === 'trash_to_use')) {
+      let activate = false;
+      if (tCard.bandits < 0 && ai.roundBandits >= 2) activate = true;
+      if (tCard.dollars > 0 && ai.roundBandits >= 2 && ai.roundDollars < getBestAffordableCost(ai)) activate = true;
+      if (!activate) continue;
+      const idx = ai.hand.indexOf(tCard);
+      if (idx < 0) continue;
+      ai.hand.splice(idx, 1);
+      ai.roundDollars += tCard.dollars;
+      ai.roundBandits = Math.max(0, ai.roundBandits + tCard.bandits);
+      ai.roundCows += tCard.cows;
+      const label = tCard.dollars > 0 ? `$${tCard.dollars}` : '-1 bandit negated';
+      addLog(`${aiLabel} activated card: ${label}.`, 'log-burn');
+      render();
+      await delay(500);
     }
 
     // Handle trash_for_2
@@ -1659,6 +1705,23 @@ async function aiDrawPhase(playerIdx) {
 
     // AI decision to continue
     if (!aiShouldDraw(ai)) {
+      // Before stopping: activate $N trash_to_use cards if it helps afford a better card
+      for (const tCard of ai.hand.filter(c => c.special === 'trash_to_use' && c.dollars > 0)) {
+        const avail = getAvailablePyramidCards(G.pyramid);
+        const unlocksBetter = avail.some(a =>
+          a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + tCard.dollars
+        );
+        if (unlocksBetter) {
+          const idx = ai.hand.indexOf(tCard);
+          if (idx >= 0) {
+            ai.hand.splice(idx, 1);
+            ai.roundDollars += tCard.dollars;
+            addLog(`${aiLabel} activated card: $${tCard.dollars}.`, 'log-burn');
+            render();
+            await delay(500);
+          }
+        }
+      }
       ai.stoppedDrawing = true;
       addLog(`${aiLabel} stopped drawing.`);
     }
@@ -1798,6 +1861,9 @@ function getBestAffordableCost(ai) {
 
 async function activateSpecialCard(player, card) {
   switch (card.special) {
+    case 'trash_to_use':
+      await handleTrashToUse(player, card);
+      break;
     case 'trash_for_2':
       await handleTrashFor2(player, card);
       break;
@@ -1840,33 +1906,21 @@ async function handleBust(player) {
 
 // --- SPECIAL CARD HANDLERS ---
 
-async function handleJailPrompt(player, card) {
-  if (!player.isHuman) return;
-
-  setMessage('Use Jail? Trash this card to negate 1 bandit.');
-  setActions([
-    { text: 'Use Jail', onClick: () => {
-      const idx = player.hand.indexOf(card);
-      if (idx >= 0) player.hand.splice(idx, 1);
-      player.roundBandits = Math.max(0, player.roundBandits - 1);
-      player.roundCows -= card.cows;
-      addLog('You used Jail to negate a bandit!', 'log-burn');
-      render();
-      mpSyncDraw();
-      if (player.roundBandits >= 3) {
-        handleBust(player);
-      } else {
-        startPlayerDraw();
-      }
-    }},
-    { text: 'Keep Card', onClick: () => {
-      if (player.roundBandits >= 3) {
-        handleBust(player);
-      } else {
-        startPlayerDraw();
-      }
-    }, className: 'btn-secondary' },
-  ]);
+async function handleTrashToUse(player, card) {
+  const idx = player.hand.indexOf(card);
+  if (idx < 0) return;
+  player.hand.splice(idx, 1);
+  player.roundDollars += card.dollars;
+  player.roundBandits = Math.max(0, player.roundBandits + card.bandits);
+  player.roundCows += card.cows;
+  const parts = [];
+  if (card.dollars > 0) parts.push(`$${card.dollars}`);
+  if (card.bandits < 0) parts.push('-1 bandit negated');
+  if (card.cows > 0) parts.push(`+${card.cows} cow`);
+  addLog(`You activated ${SUIT_NAME[card.cacti]} card: ${parts.join(', ')}.`, 'log-burn');
+  render();
+  mpSyncDraw();
+  startPlayerDraw();
 }
 
 async function handleTrashFor2(player, card) {
@@ -2047,7 +2101,7 @@ function handlePutOnTop(player, putOnTopCard) {
       if (idx >= 0) player.hand.splice(idx, 1);
       player.deck.unshift(card);
 
-      addLog(`You returned ${card.id.replace(/_/g, ' ')} to top of deck.`);
+      addLog(`You returned ${cardLabel(card)} to top of deck.`);
       render();
       mpSyncDraw();
       onPlayerDrawDone();
@@ -2286,7 +2340,7 @@ function executeBuyLocal(player, row, col) {
   slot.removed = true;
   G.selectedPyramidCard = null;
 
-  addLog(`${player.name} bought ${card.id.replace(/_/g, ' ')} for $${card.cost}.`, 'log-buy');
+  addLog(`${player.name} bought ${cardLabel(card)} for $${card.cost}.`, 'log-buy');
   revealUncovered(G.pyramid);
   render();
 
@@ -2312,7 +2366,7 @@ function executeBurnLocal(player, row, col) {
   slot.removed = true;
   G.selectedPyramidCard = null;
 
-  addLog(`${player.name} burned ${slot.card.id.replace(/_/g, ' ')}.`, 'log-burn');
+  addLog(`${player.name} burned ${cardLabel(slot.card)} ($${slot.card.cost}).`, 'log-burn');
   revealUncovered(G.pyramid);
   render();
 
