@@ -3133,7 +3133,7 @@ async function scoreRound() {
 
 async function endAct() {
   if (G.currentAct >= 3) {
-    gameOver();
+    await startShowdown();
     return;
   }
 
@@ -3144,6 +3144,136 @@ async function endAct() {
   await delay(2000);
 
   await setupAct(nextAct);
+}
+
+async function startShowdown() {
+  G.phase = 'showdown';
+
+  const screen = document.getElementById('showdown-screen');
+  const playersDiv = document.getElementById('showdown-players');
+  const footer = document.getElementById('showdown-footer');
+
+  playersDiv.innerHTML = '';
+  footer.classList.add('hidden');
+  screen.classList.remove('hidden');
+
+  const me = G.players[0];
+
+  // Build a section for each player
+  const playerData = G.players.map((player, i) => {
+    const allCards = [...player.deck, ...player.hand, ...player.discard];
+
+    const section = document.createElement('div');
+    section.className = 'showdown-player';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'showdown-player-name';
+    nameEl.textContent = player === me ? 'You' : player.name;
+
+    const herdEl = document.createElement('div');
+    herdEl.className = 'showdown-player-herd';
+    herdEl.innerHTML = `Herd: <strong class="showdown-herd-val" id="showdown-herd-${i}">${player.herd}</strong>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'showdown-card-grid';
+
+    const cardEls = allCards.map(card => {
+      const el = renderCardEl(card, false); // face-down to start
+      grid.appendChild(el);
+      return { el, card };
+    });
+
+    const tally = document.createElement('div');
+    tally.className = 'showdown-tally hidden';
+    tally.id = `showdown-tally-${i}`;
+
+    section.appendChild(nameEl);
+    section.appendChild(herdEl);
+    section.appendChild(grid);
+    section.appendChild(tally);
+    playersDiv.appendChild(section);
+
+    return { player, allCards, cardEls, i };
+  });
+
+  // Wait for the title animation to land
+  await delay(900);
+
+  // Flip all players' cards face-up simultaneously, staggered within each player
+  function flipCardFaceUp(el, card, delayMs) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        el.classList.add('card-flip-out');
+        setTimeout(() => {
+          el.querySelector('img').src = cardImgSrc(card, true);
+          el.onclick = (e) => { e.stopPropagation(); showCardZoom(cardImgSrc(card, true)); };
+          el.classList.remove('card-flip-out');
+          el.classList.add('card-flip-in');
+          setTimeout(() => {
+            el.classList.remove('card-flip-in');
+            resolve();
+          }, 290);
+        }, 300); // flip-out: 0.12s delay + 0.18s anim
+      }, delayMs);
+    });
+  }
+
+  const flipPromises = playerData.flatMap(({ cardEls }) =>
+    cardEls.map(({ el, card }, j) => flipCardFaceUp(el, card, j * 65))
+  );
+  await Promise.all(flipPromises);
+
+  await delay(700);
+
+  // Score each player one at a time
+  for (const { player, allCards, i } of playerData) {
+    const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
+    const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
+    const bonusCows    = Math.floor(totalDollars / 2);
+    const newCows      = totalCows + bonusCows;
+
+    const oldHerd  = player.herd;
+    player.herd    = Math.max(0, player.herd + newCows);
+    const gained   = player.herd - oldHerd;
+
+    // Build tally display
+    const tallyEl = document.getElementById(`showdown-tally-${i}`);
+    let formulaParts = [];
+    if (totalCows !== 0)  formulaParts.push(`<span class="tally-cows">${totalCows > 0 ? '+' : ''}${totalCows} cows from cards</span>`);
+    if (bonusCows  > 0)   formulaParts.push(`<span class="tally-bonus">+${bonusCows} bonus (from $${totalDollars})</span>`);
+
+    const formulaHTML = formulaParts.length
+      ? formulaParts.join(' + ')
+      : '<span class="tally-zero">No scoring cards</span>';
+
+    tallyEl.innerHTML =
+      `<span class="tally-formula">${formulaHTML}</span>` +
+      `<span class="tally-total">${gained >= 0 ? '+' : ''}${gained} → Final Herd: ${player.herd}</span>`;
+    tallyEl.classList.remove('hidden');
+
+    await delay(350);
+
+    // Animate the herd counter
+    const herdVal = document.getElementById(`showdown-herd-${i}`);
+    if (herdVal) {
+      herdVal.textContent = player.herd;
+      herdVal.classList.add('showdown-herd-bump');
+      setTimeout(() => herdVal.classList.remove('showdown-herd-bump'), 700);
+    }
+
+    const name = player === me ? 'You' : player.name;
+    addLog(`Showdown: ${name} — ${totalCows} cows + ${bonusCows} bonus ($${totalDollars}) = ${player.herd} total.`, 'log-score');
+
+    await delay(650);
+  }
+
+  await delay(300);
+  footer.classList.remove('hidden');
+}
+
+function revealWinner() {
+  document.getElementById('showdown-screen').classList.add('hidden');
+  gameOver();
 }
 
 function gameOver() {

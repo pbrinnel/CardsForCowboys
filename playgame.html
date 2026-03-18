@@ -9,6 +9,20 @@
 </head>
 <body>
 
+  <!-- Showdown Screen -->
+  <div id="showdown-screen" class="overlay showdown-overlay hidden">
+    <div class="showdown-inner">
+      <div class="showdown-title-area">
+        <h1 class="showdown-title">&#9733; THE SHOWDOWN &#9733;</h1>
+        <p class="showdown-subtitle">Cards on the table, cowboys.</p>
+      </div>
+      <div id="showdown-players"></div>
+      <div id="showdown-footer" class="hidden">
+        <button class="btn btn-large" onclick="revealWinner()">See Who Wins</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Game Over Screen -->
   <div id="gameover-screen" class="overlay hidden">
     <div class="overlay-content">
@@ -30,7 +44,7 @@
         <h3>Buy Phase</h3>
         <p>Spend coins to buy one card from the store pyramid, adding it to your deck. Or burn a card (free) to remove it and reveal hidden cards. The player with more $ buys first.</p>
         <h3>Scoring</h3>
-        <p>If you didn't bust, cows drawn this round are added to your permanent Herd. The player with the most cows after 3 Acts wins!</p>
+        <p>If you didn't bust, cows drawn this round are added to your permanent Herd. After Act 3, face <strong>The Showdown</strong>: all cards in your collection are revealed, cows are scored, and every $2 earns 1 bonus cow. Most cows wins!</p>
         <h3>Card Backs</h3>
         <p><strong>River</strong> (1 cactus) = safe. <strong>Cactus</strong> (2 cacti) = mixed. <strong>Rattlesnake</strong> (3 cacti) = risky but rewarding.</p>
         <h3>Special Cards</h3>
