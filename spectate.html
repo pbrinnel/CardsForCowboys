@@ -231,12 +231,13 @@ const CACTI_BACK = { 1: 'Blue Inline-01.jpg', 2: 'Yellow Inline-01.jpg', 3: 'Red
 
 const params = new URLSearchParams(location.search);
 const code   = params.get('code');
+const isAI   = params.get('ai') === '1';
 
 if (!code) {
   document.getElementById('spec-loading').textContent = 'No game code in URL. Use a spectator link.';
 } else {
   document.getElementById('spec-code').textContent = code;
-  startSpectating(code);
+  startSpectating(code, isAI);
 }
 
 function cardImgSrc(card, faceUp) {
@@ -260,10 +261,10 @@ function phaseLabel(s) {
   return labels[s] || s || '';
 }
 
-function startSpectating(gameCode) {
-  // Subscribe only to spectatorState — not the whole game root — to avoid
-  // firing on every drawState/buyAction write during play.
-  const stateRef = ref(db, `games/${gameCode}/spectatorState`);
+function startSpectating(gameCode, isAI) {
+  // AI games write to liveGames/{code}; MP games write to games/{code}
+  const basePath = isAI ? `liveGames/${gameCode}` : `games/${gameCode}`;
+  const stateRef = ref(db, `${basePath}/spectatorState`);
 
   onValue(stateRef, (snap) => {
     const state = snap.val();

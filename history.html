@@ -229,28 +229,30 @@ function formatDate(ts) {
 
 // ── Live games ──────────────────────────────────────────────
 
-onValue(ref(db, 'games'), (snap) => {
+// Merge MP games (games/) and AI games (liveGames/) into one live list.
+// We keep two Maps keyed by code and re-render whenever either updates.
+const mpLive  = new Map(); // code → game object
+const aiLive  = new Map(); // code → game object
+
+function renderLive() {
   const now = Date.now();
   const live = [];
 
-  snap.forEach(child => {
-    const g = child.val();
-    const code = child.key;
-    if (!g || g.status !== 'active') return;
-
-    // For AI games, require a recent spectatorState push (tab-close detection)
-    if (g.mode === 'ai') {
-      const lastTs = g.spectatorState?.ts || g.createdAt || 0;
-      if (now - lastTs > STALE_MS) return;
-    }
-
-    // Require at least a spectatorState so there's something meaningful to show
+  mpLive.forEach((g, code) => {
+    if (g.status !== 'active') return;
     if (!g.spectatorState) return;
-
-    live.push({ code, ...g });
+    live.push({ code, spectateUrl: `spectate.html?code=${code}`, ...g });
   });
 
-  // Clear and repopulate
+  aiLive.forEach((g, code) => {
+    if (g.status !== 'active') return;
+    // Stale-detection: if last push was >5 min ago the tab probably closed
+    const lastTs = g.spectatorState?.ts || g.createdAt || 0;
+    if (now - lastTs > STALE_MS) return;
+    if (!g.spectatorState) return;
+    live.push({ code, spectateUrl: `spectate.html?code=${code}&ai=1`, ...g });
+  });
+
   liveCardsEl.innerHTML = '';
 
   if (live.length === 0) {
@@ -294,11 +296,31 @@ onValue(ref(db, 'games'), (snap) => {
     const btn = document.createElement('a');
     btn.className = 'btn-spectate';
     btn.textContent = 'Spectate';
-    btn.href = `spectate.html?code=${g.code}`;
+    btn.href = g.spectateUrl;
     card.appendChild(btn);
 
     liveCardsEl.appendChild(card);
   });
+}
+
+// MP games: games/ path (status written by host via setLiveStatus)
+onValue(ref(db, 'games'), (snap) => {
+  mpLive.clear();
+  snap.forEach(child => {
+    const g = child.val();
+    if (g) mpLive.set(child.key, g);
+  });
+  renderLive();
+});
+
+// AI games: liveGames/ path (written by AI_SPEC in play.js)
+onValue(ref(db, 'liveGames'), (snap) => {
+  aiLive.clear();
+  snap.forEach(child => {
+    const g = child.val();
+    if (g) aiLive.set(child.key, g);
+  });
+  renderLive();
 });
 
 // ── Completed games ─────────────────────────────────────────

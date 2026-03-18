@@ -616,29 +616,33 @@ const AI_SPEC = (() => {
     initialized = true;
   }
 
+  // Use liveGames/ path (not games/) to avoid Firebase rules that gate games/ to the lobby flow
+  function liveRef(path) { return _fbRef(`liveGames/${_code}${path ? '/' + path : ''}`); }
+
   async function start(players) {
     _code = generateCode();
     try {
       await init();
-      await _fbSet(_fbRef(`games/${_code}`), {
+      await _fbSet(liveRef(), {
         status: 'active',
         mode: 'ai',
         numPlayers: players.length,
         createdAt: Date.now(),
         players: players.map(p => ({ name: p.name, isHuman: p.isHuman })),
       });
-      // Mark finished automatically if the tab closes mid-game
-      _fbOnDisconnect(_fbRef(`games/${_code}/status`)).set('finished');
     } catch (e) {
-      console.warn('[AI_SPEC] Failed to start:', e);
+      console.error('[AI_SPEC] Failed to start:', e);
       _code = null;
+      return;
     }
+    // Best-effort: mark finished if the tab closes mid-game
+    try { _fbOnDisconnect(liveRef('status')).set('finished'); } catch (e) {}
   }
 
   async function push() {
     if (!_code || !initialized || !G || G.phase === 'start') return;
     try {
-      await _fbSet(_fbRef(`games/${_code}/spectatorState`), buildSpectatorState());
+      await _fbSet(liveRef('spectatorState'), buildSpectatorState());
     } catch (e) { /* non-critical */ }
   }
 
@@ -647,10 +651,10 @@ const AI_SPEC = (() => {
     const code = _code;
     _code = null; // prevent further pushes
     try {
-      await _fbSet(_fbRef(`games/${code}/status`), 'finished');
+      await _fbSet(_fbRef(`liveGames/${code}/status`), 'finished');
       // Remove the entry after 2 minutes so it doesn't clutter the DB
       setTimeout(async () => {
-        try { await _fbRemove(_fbRef(`games/${code}`)); } catch (e) {}
+        try { await _fbRemove(_fbRef(`liveGames/${code}`)); } catch (e) {}
       }, 2 * 60 * 1000);
     } catch (e) {}
   }
@@ -3513,7 +3517,8 @@ function gameOver() {
 function copySpectateLink() {
   const code = MP.active ? MP.code : AI_SPEC.code;
   if (!code) return;
-  const url = `${location.origin}${location.pathname.replace('playgame.html', '')}spectate.html?code=${code}`;
+  const base = `${location.origin}${location.pathname.replace('playgame.html', '')}spectate.html?code=${code}`;
+  const url = MP.active ? base : `${base}&ai=1`;
   navigator.clipboard.writeText(url).then(() => {
     const btn = document.getElementById('btn-spectate-link');
     const prev = btn.textContent;
