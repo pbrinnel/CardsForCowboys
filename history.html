@@ -45,6 +45,84 @@
       font-style: italic;
       padding: 2rem;
     }
+
+    /* ── Live games section ── */
+    #live-section {
+      margin-bottom: 2rem;
+    }
+    #live-section h2 {
+      font-size: 1.1rem;
+      color: #5c3a1e;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #c0392b;
+      display: inline-block;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    .live-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .live-card {
+      background: #fff8ed;
+      border: 1px solid #d4b896;
+      border-left: 4px solid #c0392b;
+      border-radius: 6px;
+      padding: 0.65rem 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .live-card-info { flex: 1; }
+    .live-card-players {
+      font-size: 0.9rem;
+      color: #2b1d0e;
+      margin-bottom: 0.2rem;
+    }
+    .live-card-meta {
+      font-size: 0.75rem;
+      color: #8b6914;
+      font-style: italic;
+    }
+    .btn-spectate {
+      background: #5c3a1e;
+      color: #faf3e0;
+      border: none;
+      border-radius: 4px;
+      padding: 0.4rem 0.85rem;
+      font-family: Georgia, serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-spectate:hover { background: #7a4e2a; }
+    #live-empty {
+      color: #8b6914;
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    /* ── History table ── */
+    .section-label {
+      font-size: 1.1rem;
+      color: #5c3a1e;
+      margin-bottom: 0.75rem;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -101,7 +179,18 @@
 <div class="page">
   <a href="index.html" class="back-link">← Back to home</a>
   <h1>Game History</h1>
-  <p class="subtitle">All completed games, newest first</p>
+  <p class="subtitle">Live games and completed matches</p>
+
+  <!-- Live games -->
+  <div id="live-section">
+    <h2><span class="live-dot"></span> Live Now</h2>
+    <div class="live-cards" id="live-cards">
+      <div id="live-empty">No games in progress right now.</div>
+    </div>
+  </div>
+
+  <!-- Completed games -->
+  <div class="section-label">Completed Games</div>
   <div id="status">Loading…</div>
   <table id="history-table" style="display:none">
     <thead>
@@ -126,12 +215,93 @@ import {
 const statusEl = document.getElementById('status');
 const tableEl  = document.getElementById('history-table');
 const bodyEl   = document.getElementById('history-body');
+const liveCardsEl = document.getElementById('live-cards');
+const liveEmptyEl = document.getElementById('live-empty');
+
+// Stale threshold: AI games that haven't pushed state in >5 min are considered dead
+const STALE_MS = 5 * 60 * 1000;
 
 function formatDate(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
+
+// ── Live games ──────────────────────────────────────────────
+
+onValue(ref(db, 'games'), (snap) => {
+  const now = Date.now();
+  const live = [];
+
+  snap.forEach(child => {
+    const g = child.val();
+    const code = child.key;
+    if (!g || g.status !== 'active') return;
+
+    // For AI games, require a recent spectatorState push (tab-close detection)
+    if (g.mode === 'ai') {
+      const lastTs = g.spectatorState?.ts || g.createdAt || 0;
+      if (now - lastTs > STALE_MS) return;
+    }
+
+    // Require at least a spectatorState so there's something meaningful to show
+    if (!g.spectatorState) return;
+
+    live.push({ code, ...g });
+  });
+
+  // Clear and repopulate
+  liveCardsEl.innerHTML = '';
+
+  if (live.length === 0) {
+    liveCardsEl.appendChild(liveEmptyEl);
+    return;
+  }
+
+  live.forEach(g => {
+    const players = g.players || [];
+    const playerStr = players.map(p => p.name + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
+    const phase = g.spectatorState?.phase || '';
+    const act   = g.spectatorState?.act   || '';
+    const round = g.spectatorState?.round || '';
+    const phaseLabel = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', gameOver: 'Game Over' }[phase] || '';
+
+    const card = document.createElement('div');
+    card.className = 'live-card';
+
+    const info = document.createElement('div');
+    info.className = 'live-card-info';
+
+    const pLine = document.createElement('div');
+    pLine.className = 'live-card-players';
+    const modeBadge = document.createElement('span');
+    modeBadge.className = g.mode === 'mp' ? 'badge badge-mp' : 'badge badge-ai';
+    modeBadge.textContent = g.mode === 'mp' ? 'Online' : 'vs AI';
+    modeBadge.style.marginRight = '0.4rem';
+    pLine.appendChild(modeBadge);
+    pLine.appendChild(document.createTextNode(playerStr));
+    info.appendChild(pLine);
+
+    if (act && round && phaseLabel) {
+      const meta = document.createElement('div');
+      meta.className = 'live-card-meta';
+      meta.textContent = `Act ${act} · Round ${round} · ${phaseLabel}`;
+      info.appendChild(meta);
+    }
+
+    card.appendChild(info);
+
+    const btn = document.createElement('a');
+    btn.className = 'btn-spectate';
+    btn.textContent = 'Spectate';
+    btn.href = `spectate.html?code=${g.code}`;
+    card.appendChild(btn);
+
+    liveCardsEl.appendChild(card);
+  });
+});
+
+// ── Completed games ─────────────────────────────────────────
 
 const q = query(ref(db, 'gameHistory'), orderByChild('ts'), limitToLast(100));
 

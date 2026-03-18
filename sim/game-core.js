@@ -27,8 +27,8 @@ const STORE_CARDS = [
   { id: 'card_8',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_9',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
   { id: 'card_10', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_11', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
-  { id: 'card_12', act: 1, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'discard_to_player' },
+  { id: 'card_11', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_to_use' },
+  { id: 'card_12', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_to_use' },
   { id: 'card_13', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   { id: 'card_14', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   // River (Blue) – 1 cacti  [3+P]
@@ -36,7 +36,7 @@ const STORE_CARDS = [
   { id: 'card_2',  act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
   // River (Blue) – 1 cacti  [4+P]
   { id: 'card_3',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_4',  act: 1, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
+  { id: 'card_4',  act: 1, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 1, special: 'trash_to_use' },
   // Rattlesnake (Red) – 3 cacti  [2P]
   { id: 'card_40', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
   { id: 'card_41', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
@@ -86,7 +86,7 @@ const STORE_CARDS = [
   { id: 'card_79', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_80', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
   { id: 'card_81', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'put_on_top' },
-  { id: 'card_82', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'discard_to_player' },
+  { id: 'card_82', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'extra_buy' },
   { id: 'card_83', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
   { id: 'card_84', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
   // Cactus (Yellow) – 2 cacti  [3+P]
@@ -190,6 +190,8 @@ function createPlayer(name, personality) {
     stoppedDrawing: false,
     copyNextActive: false,
     hasBuyBurnFirst: false,
+    hasExtraBuy: false,
+    extraBuyUsed: false,
   };
 }
 
@@ -202,6 +204,8 @@ function resetPlayerRound(player) {
   player.stoppedDrawing = false;
   player.copyNextActive = false;
   player.hasBuyBurnFirst = false;
+  player.hasExtraBuy = false;
+  player.extraBuyUsed = false;
 }
 
 // --- PYRAMID ---
@@ -300,8 +304,8 @@ function drawFromDeck(player) {
 // --- CARD EFFECTS ---
 
 function applyCardEffects(player, card, isFirstCard) {
-  // Special: trash_to_use — card contributes nothing when drawn; effects apply only on activation
-  if (card.special === 'trash_to_use') {
+  // Activatable specials — card contributes nothing when drawn; effects apply only on activation
+  if (card.special === 'trash_to_use' || card.special === 'extra_buy') {
     return { dollars: 0, cows: 0, bandits: 0 };
   }
 

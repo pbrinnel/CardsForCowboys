@@ -222,14 +222,9 @@ function simulateGame(strategies, numPlayers, verbose) {
               return diff !== 0 ? diff : a.i - b.i;
             })[0];
 
-          // Remove from sender's hand and undo its stat contributions
+              // Remove card from sender's hand (stats already applied; play.js does NOT reverse them)
           const idx = fromPlayer.hand.indexOf(card);
-          if (idx >= 0) {
-            fromPlayer.hand.splice(idx, 1);
-            fromPlayer.roundDollars -= card.dollars;
-            fromPlayer.roundCows -= card.cows;
-            fromPlayer.roundBandits -= card.bandits;
-          }
+          if (idx >= 0) fromPlayer.hand.splice(idx, 1);
 
           // Add to recipient's discard (they draw it next round)
           target.p.discard.push(card);
@@ -255,6 +250,22 @@ function simulateGame(strategies, numPlayers, verbose) {
           pyramid[decision.row][decision.col].removed = true;
           core.revealUncovered(pyramid);
         }
+
+        // Extra buy turn (from extra_buy card activation)
+        if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
+          player.extraBuyUsed = true;
+          const extraDecision = ai.chooseBuy(player, strategies[playerIdx], pyramid, act);
+          if (extraDecision.action === 'buy') {
+            const slot = pyramid[extraDecision.row][extraDecision.col];
+            player.discard.push(slot.card);
+            slot.removed = true;
+            core.revealUncovered(pyramid);
+            result.purchases[playerIdx].push(slot.card.id);
+          } else if (extraDecision.action === 'burn') {
+            pyramid[extraDecision.row][extraDecision.col].removed = true;
+            core.revealUncovered(pyramid);
+          }
+        }
       }
 
       // --- SCORE: add roundCows to herd ---
@@ -275,6 +286,17 @@ function simulateGame(strategies, numPlayers, verbose) {
     for (let i = 0; i < numPlayers; i++) {
       result.actCows[i][act - 1] = players[i].herd - actStartHerd[i];
     }
+  }
+
+  // --- SHOWDOWN: score all cards remaining in each player's collection ---
+  // Mirrors play.js startShowdown(): totalCows + floor(totalDollars / 2) added to herd.
+  for (let i = 0; i < numPlayers; i++) {
+    const player = players[i];
+    const allCards = [...player.deck, ...player.discard, ...player.hand];
+    const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
+    const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
+    const bonusCows    = Math.floor(totalDollars / 2);
+    player.herd = Math.max(0, player.herd + totalCows + bonusCows);
   }
 
   for (let i = 0; i < numPlayers; i++) {

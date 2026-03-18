@@ -444,6 +444,25 @@ const MP = (() => {
     return snap.val();
   }
 
+  // Write status (and player metadata) to games/{code} for live-game tracking.
+  // 'active' includes player names/modes so history.html can display them without
+  // reading the full slots subtree. 'finished' is a simple status-only write.
+  async function setLiveStatus(status) {
+    if (!initialized || !isHost) return;
+    try {
+      if (status === 'active' && G) {
+        await fbUpdate(gameRef(), {
+          status: 'active',
+          mode: 'mp',
+          numPlayers: G.numPlayers,
+          players: G.players.map(p => ({ name: p.name, isHuman: p.isHuman })),
+        });
+      } else {
+        await fbSet(gameRef('status'), status);
+      }
+    } catch (e) {}
+  }
+
   function cleanup() {
     unsubscribers.forEach(u => u && u());
     unsubscribers = [];
@@ -482,6 +501,7 @@ const MP = (() => {
     waitForPassCard,
     pushSpectatorState,
     fetchSpectatorState,
+    setLiveStatus,
     saveRejoinInfo,
     clearRejoinInfo,
     cleanup,
@@ -523,6 +543,123 @@ const HISTORY = (() => {
   }
 
   return { logGame };
+})();
+
+// ============================================================
+// SPECTATOR STATE HELPERS — shared by MP and AI_SPEC
+// ============================================================
+
+function serializeCard(c) {
+  if (!c) return null;
+  return { id: c.id, img: c.img, cacti: c.cacti, dollars: c.dollars, cows: c.cows, bandits: c.bandits, special: c.special || null, cost: c.cost || 0 };
+}
+
+function buildSpectatorState() {
+  return {
+    phase: G.phase,
+    round: G.roundNumber,
+    act: G.currentAct,
+    numPlayers: G.numPlayers,
+    pyramid: G.pyramid.map(row => row.map(slot => ({
+      card: serializeCard(slot.card),
+      faceUp: slot.faceUp,
+      removed: slot.removed,
+    }))),
+    players: G.players.map(p => ({
+      slotIdx: p.slotIdx,
+      name: p.name,
+      isHuman: p.isHuman,
+      herd: p.herd,
+      roundDollars: p.roundDollars,
+      roundCows: p.roundCows,
+      roundBandits: p.roundBandits,
+      busted: p.busted,
+      stoppedDrawing: p.stoppedDrawing,
+      hand: p.hand.map(serializeCard),
+      deck: p.deck.map(c => ({ id: c.id, cacti: c.cacti })),
+      discard: p.discard.map(c => ({ id: c.id, cacti: c.cacti })),
+      personality: p.personality || null,
+    })),
+    buyOrder: G.buyOrder || [],
+    currentBuyerIdx: G.currentBuyerIdx || 0,
+    ts: Date.now(),
+  };
+}
+
+// ============================================================
+// AI SPECTATE — Firebase presence for single-player (vs AI) games
+// Writes games/{code} so spectators can watch from history.html
+// ============================================================
+const AI_SPEC = (() => {
+  let db = null;
+  let _fbRef, _fbSet, _fbRemove, _fbOnDisconnect;
+  let initialized = false;
+  let _code = null;
+
+  function generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let c = '';
+    for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+    return c;
+  }
+
+  async function init() {
+    if (initialized) return;
+    const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const app = fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(FIREBASE_CONFIG);
+    db = fbMod.getDatabase(app);
+    _fbRef          = (path) => fbMod.ref(db, path);
+    _fbSet          = (r, v) => fbMod.set(r, v);
+    _fbRemove       = (r)    => fbMod.remove(r);
+    _fbOnDisconnect = (r)    => fbMod.onDisconnect(r);
+    initialized = true;
+  }
+
+  async function start(players) {
+    _code = generateCode();
+    try {
+      await init();
+      await _fbSet(_fbRef(`games/${_code}`), {
+        status: 'active',
+        mode: 'ai',
+        numPlayers: players.length,
+        createdAt: Date.now(),
+        players: players.map(p => ({ name: p.name, isHuman: p.isHuman })),
+      });
+      // Mark finished automatically if the tab closes mid-game
+      _fbOnDisconnect(_fbRef(`games/${_code}/status`)).set('finished');
+    } catch (e) {
+      console.warn('[AI_SPEC] Failed to start:', e);
+      _code = null;
+    }
+  }
+
+  async function push() {
+    if (!_code || !initialized || !G || G.phase === 'start') return;
+    try {
+      await _fbSet(_fbRef(`games/${_code}/spectatorState`), buildSpectatorState());
+    } catch (e) { /* non-critical */ }
+  }
+
+  async function finish() {
+    if (!_code || !initialized) return;
+    const code = _code;
+    _code = null; // prevent further pushes
+    try {
+      await _fbSet(_fbRef(`games/${code}/status`), 'finished');
+      // Remove the entry after 2 minutes so it doesn't clutter the DB
+      setTimeout(async () => {
+        try { await _fbRemove(_fbRef(`games/${code}`)); } catch (e) {}
+      }, 2 * 60 * 1000);
+    } catch (e) {}
+  }
+
+  return {
+    get active() { return !!_code; },
+    get code() { return _code; },
+    start, push, finish,
+  };
 })();
 
 // Verbose MP debug logging — toggle with ?mpDebug=1 in URL
@@ -1487,10 +1624,14 @@ function clearCardPreview() {
 
 // Push local player's draw state to Firebase (MP only, no-op otherwise).
 // Host also pushes a full spectatorState snapshot so spectators see all players.
+// In AI mode, push to AI_SPEC so the game is watchable from history.html.
 function mpSyncDraw() {
-  if (!MP.active) return;
-  MP.pushDrawState(G.players[0]);
-  MP.pushSpectatorState(); // no-op for non-hosts
+  if (MP.active) {
+    MP.pushDrawState(G.players[0]);
+    MP.pushSpectatorState(); // no-op for non-hosts
+  } else {
+    AI_SPEC.push();
+  }
 }
 
 // --- GAME FLOW ---
@@ -1579,6 +1720,10 @@ async function startGame() {
   if (MP.active) {
     document.getElementById('btn-spectate-link').classList.remove('hidden');
   }
+
+  // Register this game as live so history.html can show it with a spectate button
+  if (MP.active && MP.isHost) await MP.setLiveStatus('active');
+  else if (!MP.active) await AI_SPEC.start(G.players);
 
   await setupAct(1);
 }
@@ -1824,6 +1969,7 @@ async function startRound() {
     });
   } else {
     // Start all players drawing simultaneously
+    AI_SPEC.push(); // push initial draw-phase state for spectators
     startPlayerDraw();
     for (let i = 1; i < G.numPlayers; i++) {
       aiDrawPhase(i); // fire-and-forget, each runs independently
@@ -2779,7 +2925,7 @@ function applyBuyOrder(order) {
   G.currentBuyerIdx = 0;
   mpLog('applyBuyOrder:', order.map(i => G.players[i]?.name));
   render();
-  if (MP.active) MP.pushSpectatorState(); // buy phase begins — spectators see buy order
+  if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push(); // buy phase begins — spectators see buy order
   processBuyTurn();
 }
 
@@ -2899,7 +3045,7 @@ function executeBuyLocal(player, row, col) {
   addLog(`${player.name} bought ${cardLabel(card)} for $${card.cost}.`, 'log-buy');
   revealUncovered(G.pyramid);
   render();
-  if (MP.active) MP.pushSpectatorState();
+  if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
 
   if (advanceOrExtraBuy(player)) return;
 }
@@ -2951,7 +3097,7 @@ function executeBurnLocal(player, row, col) {
   addLog(`${player.name} burned ${cardLabel(slot.card)} ($${slot.card.cost}).`, 'log-burn');
   revealUncovered(G.pyramid);
   render();
-  if (MP.active) MP.pushSpectatorState();
+  if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
 
   advanceOrExtraBuy(player);
 }
@@ -3143,7 +3289,7 @@ async function scoreRound() {
   }
 
   render();
-  if (MP.active) MP.pushSpectatorState(); // spectators see final scores for the round
+  if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push(); // spectators see final scores for the round
   await delay(1000);
 
   // Check if pyramid empty (end of act)
@@ -3330,8 +3476,12 @@ function gameOver() {
 
   if (MP.active) {
     MP.pushSpectatorState(); // spectators see final game-over state
+    if (MP.isHost) MP.setLiveStatus('finished'); // remove from live-games list
     MP.clearRejoinInfo();    // game is over — don't offer rejoin from home screen
     MP.cleanup();
+  } else {
+    AI_SPEC.push();   // spectators see final game-over state
+    AI_SPEC.finish(); // remove from live-games list
   }
 
   // Log game to global history (MP: host only; SP: always)

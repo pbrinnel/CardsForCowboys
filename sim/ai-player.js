@@ -57,7 +57,7 @@ const BUY_PREFERENCES = {
     cowWeight: 5,
     dollarWeight: 0.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 3, copy_next: 2, draw4: 3, discard_to_player: 1 },
+    specialBonuses: { trash_to_use: 3, copy_next: 2, draw4: 3, extra_buy: 3, discard_to_player: 1 },
     negativeCowPenalty: -4,
     act1DollarBonus: 0.5,
     act3CowBonus: 4,
@@ -67,7 +67,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, discard_to_player: 1 },
+    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 3, discard_to_player: 1 },
     negativeCowPenalty: -2,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -77,7 +77,7 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 3,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 4, draw4: 2, discard_to_player: 2 },
+    specialBonuses: { trash_to_use: 2, copy_next: 4, draw4: 2, extra_buy: 4, discard_to_player: 2 },
     negativeCowPenalty: -1,
     act1DollarBonus: 2,
     act3CowBonus: 2,
@@ -87,7 +87,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -0.5,
-    specialBonuses: { trash_to_use: 1, copy_next: 2, draw4: 3, discard_to_player: 0 },
+    specialBonuses: { trash_to_use: 1, copy_next: 2, draw4: 3, extra_buy: 3, discard_to_player: 0 },
     negativeCowPenalty: -1,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -97,7 +97,7 @@ const BUY_PREFERENCES = {
     cowWeight: 4,
     dollarWeight: 1,
     banditWeight: -4,
-    specialBonuses: { trash_to_use: 4, copy_next: 2, draw4: 1, discard_to_player: 1 },
+    specialBonuses: { trash_to_use: 4, copy_next: 2, draw4: 1, extra_buy: 2, discard_to_player: 1 },
     negativeCowPenalty: -3,
     act1DollarBonus: 0.5,
     act3CowBonus: 3,
@@ -107,7 +107,7 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 1,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, look3_rearrange: 3, replay_discard: 4, put_on_top: 3, look3_immediate: 3, discard_to_player: 2 },
+    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, extra_buy: 4, look3_rearrange: 3, replay_discard: 4, put_on_top: 3, look3_immediate: 3, discard_to_player: 2 },
     negativeCowPenalty: -2,
     act1DollarBonus: 0.5,
     act3CowBonus: 1,
@@ -117,7 +117,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, discard_to_player: 1 },
+    specialBonuses: { trash_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 2, discard_to_player: 1 },
     negativeCowPenalty: -2,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -379,6 +379,13 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
       player.roundCows -= card.cows;
     }
 
+    // Handle extra_buy: always activate (0 stats, no value unactivated)
+    if (card.special === 'extra_buy') {
+      player.hasExtraBuy = true;
+      const idx = player.hand.indexOf(card);
+      if (idx >= 0) player.hand.splice(idx, 1);
+    }
+
     // Check bust
     if (player.roundBandits >= 3) {
       handleBust(player);
@@ -433,8 +440,10 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
 function handleBust(player) {
   player.busted = true;
-  player.discard.push(...player.hand);
-  player.hand = [];
+  // Keep discard_to_player cards in hand so they can still be resolved after the round.
+  // Mirrors play.js bust handling (non-pass cards go to discard, pass cards stay in hand).
+  player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
+  player.hand = player.hand.filter(c => c.special === 'discard_to_player');
   player.roundDollars = 0;
   player.roundCows = 0;
 }
