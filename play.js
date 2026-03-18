@@ -42,6 +42,7 @@ const MP = (() => {
   let unsubscribers     = [];
   let initialized       = false;
   let disconnectTimers  = {};  // slotIdx → setTimeout handle
+  let rejoinCountdowns  = {};  // slotIdx → { interval } for 5-min rejoin window
 
   // Populated by buildPlayersConfig()
   let _slotDefs   = [];
@@ -83,6 +84,16 @@ const MP = (() => {
     // Announce ourselves as connected
     await fbSet(gameRef(`slots/${mySlot}/connected`), true);
 
+    // Auto-reconnect: whenever Firebase re-establishes the WebSocket, re-assert presence
+    // (handles mobile background, brief network blips without requiring a page rejoin)
+    const connUnsub = fbOnValue(fbRef(db, '.info/connected'), async (snap) => {
+      if (snap.val() === true && initialized) {
+        fbOnDisconnect(gameRef(`slots/${mySlot}/connected`)).set(false);
+        await fbSet(gameRef(`slots/${mySlot}/connected`), true);
+      }
+    });
+    unsubscribers.push(connUnsub);
+
     // Watch every other human slot for connection drops
     for (let s = 0; s < _numPlayers; s++) {
       if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
@@ -91,21 +102,26 @@ const MP = (() => {
       const unsub = fbOnValue(gameRef(`slots/${slotIdx}/connected`), (snap) => {
         const connected = snap.val();
         if (connected === false) {
-          // Start 15-second grace period before declaring game over
-          if (!disconnectTimers[slotIdx]) {
+          // Start 15-second grace period, then open a 5-minute rejoin window
+          if (!disconnectTimers[slotIdx] && !rejoinCountdowns[slotIdx]) {
             setMessage(`${playerName} lost connection. Waiting 15 seconds…`);
             disconnectTimers[slotIdx] = setTimeout(() => {
               delete disconnectTimers[slotIdx];
-              showDisconnectMessage(playerName);
+              startRejoinCountdown(slotIdx, playerName);
             }, 15000);
           }
         } else if (connected === true) {
-          // Reconnected within grace period — cancel timer and resume silently
+          // Reconnected — cancel any pending timers and resume
           if (disconnectTimers[slotIdx]) {
             clearTimeout(disconnectTimers[slotIdx]);
             delete disconnectTimers[slotIdx];
-            // Restore game message via render (it will re-set the appropriate message)
             render();
+          }
+          if (rejoinCountdowns[slotIdx]) {
+            clearInterval(rejoinCountdowns[slotIdx].interval);
+            delete rejoinCountdowns[slotIdx];
+            setMessage(`${playerName} has rejoined!`);
+            setTimeout(() => { if (G && G.phase) render(); }, 2000);
           }
         }
         // connected === null means slot entry doesn't exist yet — ignore
@@ -125,7 +141,7 @@ const MP = (() => {
     _slotDefs   = [];
     for (let i = 0; i < _numPlayers; i++) {
       const s = (data.slots && data.slots[i]) || {};
-      _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false };
+      _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
     return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers };
   }
@@ -273,6 +289,8 @@ const MP = (() => {
           stoppedDrawing: p.stoppedDrawing,
           hand: p.hand.map(serializeCard),
           deck: p.deck.map(c => ({ id: c.id, cacti: c.cacti })),
+          discard: p.discard.map(c => ({ id: c.id, cacti: c.cacti })),
+          personality: p.personality || null,
         })),
         buyOrder: G.buyOrder || [],
         currentBuyerIdx: G.currentBuyerIdx || 0,
@@ -389,12 +407,50 @@ const MP = (() => {
     cleanup();
   }
 
+  // After 15-second grace period, starts a 5-minute countdown giving the player time to rejoin.
+  // If they reconnect (connected=true), the countdown is cancelled in startPresence's watcher.
+  function startRejoinCountdown(slotIdx, playerName) {
+    const REJOIN_MS = 5 * 60 * 1000;
+    const endTime = Date.now() + REJOIN_MS;
+    const pad = n => String(n).padStart(2, '0');
+    const tick = () => {
+      const remaining = Math.max(0, endTime - Date.now());
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setMessage(`${playerName} disconnected. Game ends in ${mins}:${pad(secs)} if they don't rejoin.`);
+      if (remaining <= 0) {
+        clearInterval(rejoinCountdowns[slotIdx].interval);
+        delete rejoinCountdowns[slotIdx];
+        showDisconnectMessage(playerName);
+      }
+    };
+    tick();
+    rejoinCountdowns[slotIdx] = { interval: setInterval(tick, 1000) };
+  }
+
+  // Persist rejoin info to localStorage so index.html can offer a "Rejoin" button
+  function saveRejoinInfo() {
+    try { localStorage.setItem('cfc_rejoin', JSON.stringify({ code, slot: mySlot, name: myName, ts: Date.now() })); } catch (e) {}
+  }
+  function clearRejoinInfo() {
+    try { localStorage.removeItem('cfc_rejoin'); } catch (e) {}
+  }
+
+  // Fetch the latest spectatorState snapshot from Firebase (used during rejoin)
+  async function fetchSpectatorState() {
+    if (!initialized) return null;
+    const snap = await fbGet(gameRef('spectatorState'));
+    return snap.val();
+  }
+
   function cleanup() {
     unsubscribers.forEach(u => u && u());
     unsubscribers = [];
-    // Cancel all pending grace-period timers
+    // Cancel all pending grace-period timers and rejoin countdown intervals
     Object.values(disconnectTimers).forEach(t => clearTimeout(t));
     disconnectTimers = {};
+    Object.values(rejoinCountdowns).forEach(r => clearInterval(r.interval));
+    rejoinCountdowns = {};
     // Cancel server-side onDisconnect handler so normal navigation doesn't fire it
     if (initialized && dbRef) {
       fbOnDisconnect(gameRef(`slots/${mySlot}/connected`)).cancel();
@@ -424,6 +480,9 @@ const MP = (() => {
     pushPassCard,
     waitForPassCard,
     pushSpectatorState,
+    fetchSpectatorState,
+    saveRejoinInfo,
+    clearRejoinInfo,
     cleanup,
   };
 })();
@@ -613,6 +672,14 @@ const STORE_CARDS = [
 // Build lookup
 const CARD_DB = {};
 STORE_CARDS.forEach(c => CARD_DB[c.id] = c);
+STARTER_TEMPLATES.forEach(c => CARD_DB[c.id] = c);
+
+// Look up a card template by ID and return a fresh card instance (used during rejoin reconstruction)
+function getCardById(id) {
+  const tmpl = CARD_DB[id];
+  if (!tmpl) { console.warn('[rejoin] unknown card id:', id); return null; }
+  return createCardInstance(tmpl, tmpl.img);
+}
 
 function getActPool(act) {
   return STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
@@ -1347,7 +1414,8 @@ async function startGame() {
   document.getElementById('opponents-zone').innerHTML = ''; // clear for fresh game
 
   if (MP.active) {
-    setMessage('Connecting to game...');
+    const isRejoin = new URLSearchParams(location.search).has('rejoin');
+    setMessage(isRejoin ? 'Reconnecting to game...' : 'Connecting to game...');
     clearActions();
     try {
       await MP.init();
@@ -1358,7 +1426,34 @@ async function startGame() {
     }
     const cfg = await MP.buildPlayersConfig();
     await MP.startPresence();
+    MP.saveRejoinInfo();
 
+    if (isRejoin) {
+      // --- Rejoin path: restore G from spectatorState ---
+      const state = await MP.fetchSpectatorState();
+      if (!state) {
+        setMessage('Could not restore game — the game may have ended.');
+        setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'gamesetup.html'; } }]);
+        return;
+      }
+      await reconstructG(state, cfg);
+      if (MP.isHost) document.getElementById('btn-spectate-link').classList.remove('hidden');
+      render();
+      addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
+      if (state.phase === 'draw') {
+        await resumeDrawPhase();
+      } else if (state.phase === 'buy') {
+        resumeBuyPhase();
+      } else if (state.phase === 'gameOver') {
+        gameOver();
+      } else {
+        // Fallback: re-arm spectator state and wait
+        setMessage('Waiting for the current phase to begin…');
+      }
+      return;
+    }
+
+    // --- Normal path ---
     // Initialize seeded RNG for each AI slot
     cfg.slotDefs.forEach((def, slotIdx) => {
       if (!def.isHuman) initAiRng(slotIdx, cfg.gameSeed);
@@ -1408,6 +1503,130 @@ function restartGame() {
     return;
   }
   startGame();
+}
+
+// --- REJOIN / GAME RECONSTRUCTION ---
+
+// Rebuild G from a spectatorState snapshot (called during MP rejoin).
+// spectatorState.players is ordered by the host's G.players indices (= slot indices for host).
+async function reconstructG(state, cfg) {
+  // Re-init AI RNGs from seed (mid-game rejoin can't restore exact RNG state, but game state
+  // is fully restored from spectatorState so AI card choices going forward are fine)
+  cfg.slotDefs.forEach((def, slotIdx) => {
+    if (!def.isHuman) initAiRng(slotIdx, cfg.gameSeed);
+  });
+
+  // Build G.playerOrder with local player at index 0
+  const G_playerOrder = [MP.mySlot];
+  for (let s = 0; s < cfg.numPlayers; s++) {
+    if (s !== MP.mySlot) G_playerOrder.push(s);
+  }
+  MP.slotToPlayer = {};
+  G_playerOrder.forEach((slotIdx, i) => { MP.slotToPlayer[slotIdx] = i; });
+
+  // state.players is ordered by host's slot order (slot 0 first, then 1, etc.)
+  const slotToStatePlayer = {};
+  state.players.forEach(sp => { slotToStatePlayer[sp.slotIdx] = sp; });
+
+  const players = G_playerOrder.map((slotIdx) => {
+    const def = cfg.slotDefs[slotIdx];
+    const sp = slotToStatePlayer[slotIdx];
+    const p = createPlayer(def.name, def.isHuman, slotIdx, def.personality || sp?.personality);
+    if (sp) {
+      p.herd           = sp.herd           || 0;
+      p.roundDollars   = sp.roundDollars   || 0;
+      p.roundCows      = sp.roundCows      || 0;
+      p.roundBandits   = sp.roundBandits   || 0;
+      p.busted         = sp.busted         || false;
+      p.stoppedDrawing = sp.stoppedDrawing || false;
+      p.hand    = (sp.hand    || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
+      p.deck    = (sp.deck    || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
+      p.discard = (sp.discard || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
+    }
+    return p;
+  });
+
+  G = initState(cfg.numPlayers, players);
+  G.playerOrder = G_playerOrder;
+  G.phase       = state.phase;
+  G.currentAct  = state.act;
+  G.roundNumber = state.round;
+  // Convert host's G.players indices (= slot indices) to local G.players indices
+  G.buyOrder       = (state.buyOrder || []).map(s => MP.slotToPlayer[s]).filter(i => i !== undefined);
+  G.currentBuyerIdx = state.currentBuyerIdx || 0;
+
+  // Rebuild pyramid from stored card IDs
+  if (state.pyramid) {
+    G.pyramid = state.pyramid.map(row => row.map(slot => ({
+      card:    slot.card ? getCardById(slot.card.id) : null,
+      faceUp:  slot.faceUp,
+      removed: slot.removed,
+    })));
+  }
+}
+
+// Resume draw phase after a rejoin: re-arm Firebase watchers then resume local draw turn.
+async function resumeDrawPhase() {
+  G.phase = 'draw';
+  G.drawsDone = {};
+  for (let i = 0; i < G.numPlayers; i++) G.drawsDone[i] = false;
+  render();
+
+  const findCard = id => CARD_DB[id];
+  MP.watchOpponentDrawStates((slotIdx, drawState) => {
+    const playerIdx = MP.slotToPlayer[slotIdx];
+    const opp = G.players[playerIdx];
+    if (!opp) return;
+    opp.hand = (drawState.hand || []).map(id => {
+      const tmpl = findCard(id);
+      return tmpl ? createCardInstance(tmpl) : null;
+    }).filter(Boolean);
+    opp.deck = (drawState.deck || []).map(id => {
+      const tmpl = findCard(id);
+      return tmpl ? createCardInstance(tmpl) : null;
+    }).filter(Boolean);
+    opp.roundDollars    = drawState.dollars;
+    opp.roundCows       = drawState.cows;
+    opp.roundBandits    = drawState.bandits;
+    opp.busted          = drawState.busted;
+    opp.stoppedDrawing  = drawState.stoppedDrawing;
+    opp.hasBuyBurnFirst = drawState.hasBuyBurnFirst || false;
+    render();
+    if (MP.isHost) MP.pushSpectatorState();
+  });
+
+  MP.waitForAllHumanDrawsDone((slotIdx, doneData) => {
+    const playerIdx = MP.slotToPlayer[slotIdx];
+    const opp = G.players[playerIdx];
+    if (doneData) {
+      opp.roundDollars    = doneData.dollars;
+      opp.roundCows       = doneData.cows;
+      opp.roundBandits    = doneData.bandits;
+      opp.busted          = doneData.busted;
+      opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
+    }
+    G.drawsDone[playerIdx] = true;
+    checkDrawPhaseComplete();
+  });
+
+  const localPlayer = G.players[0];
+  if (localPlayer.busted || localPlayer.stoppedDrawing) {
+    // Already done drawing before disconnect — signal done and wait for buy phase
+    G.drawsDone[0] = true;
+    setMessage('Waiting for other players to finish drawing...');
+    await MP.signalDrawDone(localPlayer);
+    checkDrawPhaseComplete();
+  } else {
+    // Resume draw turn from where we left off
+    startPlayerDraw();
+  }
+}
+
+// Resume buy phase after a rejoin: G.buyOrder and G.currentBuyerIdx already restored.
+function resumeBuyPhase() {
+  G.phase = 'buy';
+  render();
+  processBuyTurn();
 }
 
 async function setupAct(act) {
@@ -2775,6 +2994,7 @@ function gameOver() {
 
   if (MP.active) {
     MP.pushSpectatorState(); // spectators see final game-over state
+    MP.clearRejoinInfo();    // game is over — don't offer rejoin from home screen
     MP.cleanup();
   }
 

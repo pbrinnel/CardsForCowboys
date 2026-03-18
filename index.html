@@ -59,15 +59,60 @@
       transition: background 0.15s, color 0.15s;
     }
     .btn-ghost:hover { background: #f0e2c0; color: #5c3a1e; }
+    #rejoin-banner {
+      display: none;
+      margin-bottom: 1.5rem;
+      background: #fff8ed;
+      border: 2px solid #c0392b;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: #2b1d0e;
+    }
+    #rejoin-banner strong { color: #c0392b; }
+    .rejoin-btns { margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .btn-rejoin { display: inline-block; padding: 0.5rem 1.5rem; background: #c0392b; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; font-family: Georgia, serif; cursor: pointer; text-decoration: none; }
+    .btn-rejoin:hover { background: #a93226; }
+    .btn-dismiss { display: inline-block; padding: 0.5rem 1rem; background: none; color: #8b6914; border: 1px solid #d4b896; border-radius: 6px; font-size: 0.85rem; font-family: Georgia, serif; cursor: pointer; }
+    .btn-dismiss:hover { background: #f0e2c0; }
   </style>
 </head>
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
     <p class="tagline">A deck-busting card game of the Wild West</p>
+
+    <div id="rejoin-banner">
+      <strong>Game in progress!</strong> You were in game <span id="rejoin-code"></span>.
+      <div class="rejoin-btns">
+        <a id="rejoin-link" href="#" class="btn-rejoin">Rejoin Game</a>
+        <button class="btn-dismiss" onclick="dismissRejoin()">Dismiss</button>
+      </div>
+    </div>
+
     <a href="gamesetup.html" class="btn">Play Free Demo</a>
     <a href="rules.html" class="btn-ghost">Rules</a>
     <a href="history.html" class="btn-ghost">Game History</a>
   </div>
+  <script>
+    (function() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('cfc_rejoin') || 'null');
+        if (!saved || !saved.code) return;
+        // Expire after 6 hours (game is definitely over by then)
+        if (Date.now() - saved.ts > 6 * 60 * 60 * 1000) {
+          localStorage.removeItem('cfc_rejoin');
+          return;
+        }
+        document.getElementById('rejoin-code').textContent = saved.code;
+        document.getElementById('rejoin-link').href = 'lobby.html?rejoin=' + saved.code;
+        document.getElementById('rejoin-banner').style.display = 'block';
+      } catch (e) {}
+    })();
+    function dismissRejoin() {
+      try { localStorage.removeItem('cfc_rejoin'); } catch (e) {}
+      document.getElementById('rejoin-banner').style.display = 'none';
+    }
+  </script>
 </body>
 </html>

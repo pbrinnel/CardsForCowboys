@@ -127,6 +127,53 @@ function checkUrlCode() {
   }
 }
 
+// --- Rejoin flow: ?rejoin=CODE (triggered from index.html localStorage banner) ---
+async function checkRejoinUrl() {
+  const params = new URLSearchParams(location.search);
+  const rejoinCode = params.get('rejoin');
+  if (!rejoinCode) return;
+
+  hide('screen-name');
+  show('screen-joining');
+  document.getElementById('join-status').textContent = 'Reconnecting to game\u2026';
+
+  gameRef = ref(db, `games/${rejoinCode}`);
+  let snap;
+  try { snap = await get(gameRef); } catch (e) { showError('Could not reach the server. Please check your connection.'); return; }
+
+  if (!snap.exists()) {
+    showError('Game not found or has already ended.');
+    return;
+  }
+
+  const data = snap.val();
+
+  // Determine which slot this player held (stored in localStorage by play.js)
+  let savedSlot = null;
+  try {
+    const saved = JSON.parse(localStorage.getItem('cfc_rejoin') || 'null');
+    if (saved && saved.code === rejoinCode) savedSlot = saved.slot;
+  } catch (e) {}
+
+  if (savedSlot === null) {
+    showError('Could not identify your slot in this game.');
+    return;
+  }
+
+  const slot = data.slots && data.slots[savedSlot];
+  if (!slot || !slot.isHuman) {
+    showError('Your slot in this game is no longer available.');
+    return;
+  }
+
+  // Restore sessionStorage for play.js
+  sessionStorage.setItem('mp_code', rejoinCode);
+  sessionStorage.setItem('mp_slot', String(savedSlot));
+  sessionStorage.setItem('mp_name', slot.name || 'Player');
+
+  window.location.href = 'playgame.html?mp=1&rejoin=1';
+}
+
 // --- Wire up ---
 document.getElementById('btn-join').addEventListener('click', () => joinGame(null));
 document.getElementById('btn-join-invite').addEventListener('click', () => joinGame(null));
@@ -146,3 +193,4 @@ document.getElementById('name-input').addEventListener('keydown', (e) => {
 });
 
 checkUrlCode();
+checkRejoinUrl();
