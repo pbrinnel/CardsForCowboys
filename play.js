@@ -1385,13 +1385,31 @@ function clearActions() {
   clearCardPreview();
 }
 
-// Apply flip-in animation to a drawn card after all synchronous renders have completed.
-// Using rAF ensures this targets the final DOM element (not one that will be immediately
-// overwritten by startPlayerDraw's render), so the browser actually paints the animation.
-function animateDrawnCard(uid) {
+// Two-phase flip animation for a drawn card.
+// Phase 1: swap img to card back, rotate to 90° (edge-on / invisible).
+// Phase 2: swap img to face at the midpoint, rotate back to 0° (face revealed).
+// rAF ensures we target the final DOM element after all synchronous renders.
+function animateDrawnCard(card) {
   requestAnimationFrame(() => {
-    const el = document.querySelector(`#player-hand [data-uid="${uid}"]`);
-    if (el) el.classList.add('card-entering');
+    const el = document.querySelector(`#player-hand [data-uid="${card.uid}"]`);
+    if (!el) return;
+    const img = el.querySelector('img');
+    if (!img) return;
+
+    const faceSrc = img.src;
+    const backSrc = cardImgSrc(card, false);
+
+    img.src = backSrc;
+    el.classList.add('card-flip-out');
+
+    el.addEventListener('animationend', () => {
+      el.classList.remove('card-flip-out');
+      img.src = faceSrc;
+      el.classList.add('card-flip-in');
+      el.addEventListener('animationend', () => {
+        el.classList.remove('card-flip-in');
+      }, { once: true });
+    }, { once: true });
   });
 }
 
@@ -1925,7 +1943,7 @@ async function playerDraw() {
       player.hand.push(extraCard);
       applyCardEffects(player, extraCard, false);
       render();
-      animateDrawnCard(extraCard.uid);
+      animateDrawnCard(extraCard);
       mpSyncDraw();
       // Check bust after each draw
       if (player.roundBandits >= 3) {
@@ -1958,9 +1976,8 @@ async function playerDraw() {
   }
 
   G.busy = false;
-  const drawnUid = card.uid;
   startPlayerDraw();
-  animateDrawnCard(drawnUid);
+  animateDrawnCard(card);
 }
 
 function playerStopDraw() {

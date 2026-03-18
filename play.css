@@ -609,15 +609,25 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Card draw flip-in animation */
-@keyframes cardFlipIn {
-  0%   { transform: rotateY(90deg) translateY(18px); opacity: 0; }
-  60%  { transform: rotateY(-8deg) translateY(0);   opacity: 1; }
-  100% { transform: rotateY(0deg)  translateY(0);   opacity: 1; }
+/* Two-phase card draw flip animation */
+@keyframes drawFlipOut {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(90deg); }
 }
 
-.card.card-entering {
-  animation: cardFlipIn 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+@keyframes drawFlipIn {
+  from { transform: rotateY(90deg); }
+  to   { transform: rotateY(0deg); }
+}
+
+/* Phase 1: show back, pause briefly so player registers it, then rotate to edge */
+.card.card-flip-out {
+  animation: drawFlipOut 0.18s ease-in 0.12s both;
+}
+
+/* Phase 2: face swapped at midpoint, rotate in with a slight overshoot */
+.card.card-flip-in {
+  animation: drawFlipIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 /* Perspective container for 3D card flip */
