@@ -81,12 +81,10 @@
 }
 
 .symbol-row img {
-  width: 60px;
-  height: 84px;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .symbol-row p {
@@ -157,8 +155,8 @@ nav a.active {
   }
 
   .symbol-row img {
-    width: 50px;
-    height: 70px;
+    width: 56px;
+    height: 56px;
   }
 
   .cacti-item img {
@@ -177,8 +175,8 @@ nav a.active {
   }
 
   .symbol-row img {
-    width: 42px;
-    height: 59px;
+    width: 44px;
+    height: 44px;
   }
 
   .cacti-item img {

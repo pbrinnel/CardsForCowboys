@@ -2370,6 +2370,27 @@ async function activateSpecialCard(player, card) {
 
 // --- BUST ---
 
+function showBustAnimation() {
+  const overlay = document.createElement('div');
+  overlay.className = 'bust-overlay';
+
+  for (let i = 1; i <= 3; i++) {
+    const bandit = document.createElement('img');
+    bandit.src = 'assets/symbols/1 Bandit-01.png';
+    bandit.className = `bust-bandit bust-bandit-${i}`;
+    bandit.alt = 'Bandit';
+    overlay.appendChild(bandit);
+  }
+
+  const text = document.createElement('div');
+  text.className = 'bust-text';
+  text.textContent = 'BUSTED!';
+  overlay.appendChild(text);
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 2400);
+}
+
 async function handleBust(player) {
   player.busted = true;
   if (player.isHuman) {
@@ -2378,8 +2399,9 @@ async function handleBust(player) {
   }
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   render();
+  showBustAnimation();
   if (player.isHuman) mpSyncDraw();
-  await delay(1500);
+  await delay(2000);
 
   // Move all drawn cards to discard, but keep discard_to_player cards in hand
   // so resolvePassCards() can prompt the player to choose a recipient.
