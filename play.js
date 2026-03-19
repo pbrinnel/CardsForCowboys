@@ -2022,7 +2022,7 @@ function getSpecialLabel(card) {
       if (card.cows > 0) parts.push(`+${card.cows} Cow`);
       return `Activate (${parts.join(', ')})`;
     }
-    case 'extra_buy': return 'Trash for Extra Buy';
+    case 'extra_buy': return 'Trash for Extra Buy/Burn';
     default: return 'Use';
   }
 }
@@ -2816,13 +2816,13 @@ function handlePutOnTop(player, putOnTopCard) {
 }
 
 async function handleExtraBuy(player, card) {
-  setMessage('Trash this card to get an extra buy with your remaining $ after your first buy/burn?');
+  setMessage('Trash this card to get an extra buy or burn with your remaining $ after your first buy/burn?');
   setActions([
-    { text: 'Trash for Extra Buy', onClick: () => {
+    { text: 'Trash for Extra Buy/Burn', onClick: () => {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
       player.hasExtraBuy = true;
-      addLog('You trashed for an extra buy this round!', 'log-burn');
+      addLog('You trashed for an extra buy/burn this round!', 'log-burn');
       render();
       mpSyncDraw();
       startPlayerDraw();
@@ -3082,7 +3082,7 @@ function advanceOrExtraBuy(player) {
   if (player === G.players[0] && player.hasExtraBuy && !player.extraBuyUsed) {
     if (!isPyramidEmpty(G.pyramid)) {
       player.extraBuyUsed = true;
-      addLog(`Extra buy! Spend your remaining $${player.roundDollars}.`, 'log-buy');
+      addLog(`Extra buy/burn! Spend your remaining $${player.roundDollars}.`, 'log-buy');
       humanBuyTurn(player);
       return true;
     }
@@ -3091,7 +3091,7 @@ function advanceOrExtraBuy(player) {
   if (MP.active && player !== G.players[0] && player.isHuman && player.hasExtraBuy && !player.extraBuyUsed) {
     if (!isPyramidEmpty(G.pyramid)) {
       player.extraBuyUsed = true;
-      addLog(`${player.name} uses their extra buy!`, 'log-buy');
+      addLog(`${player.name} uses their extra buy/burn!`, 'log-buy');
       mpOpponentBuyTurn(player);
       return true;
     }
