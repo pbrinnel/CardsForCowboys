@@ -1252,7 +1252,7 @@ function updateTurnOrderBar() {
   displayOrder.forEach((pi, idx) => {
     if (idx > 0) parts.push('<span class="tor-arrow">›</span>');
     const p = G.players[pi];
-    const name = pi === 0 ? 'You' : p.name;
+    const name = p.name;
     let cls = 'tor-player';
     if (pi === activeIdx) cls += ' tor-active';
     else if (p.busted) cls += ' tor-busted';

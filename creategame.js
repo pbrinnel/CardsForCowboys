@@ -172,6 +172,10 @@ window.copySpectateLink = function() {
 };
 
 // --- Wire up ---
+// Pre-fill name if already entered on gamesetup page
+const _savedName = sessionStorage.getItem('mp_name');
+if (_savedName) document.getElementById('name-input').value = _savedName;
+
 document.getElementById('btn-create').addEventListener('click', createGame);
 document.getElementById('btn-cancel-host').addEventListener('click', cancelHost);
 document.getElementById('btn-error-back').addEventListener('click', () => {

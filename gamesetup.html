@@ -178,12 +178,31 @@
       margin: 1rem auto;
     }
     .hidden { display: none !important; }
+    .name-input {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      border: 1.5px solid #c8b89a;
+      border-radius: 6px;
+      background: #fff8ed;
+      font-family: Georgia, serif;
+      font-size: 1rem;
+      color: #2b1d0e;
+      margin-bottom: 2rem;
+      box-sizing: border-box;
+    }
+    .name-input:focus {
+      outline: none;
+      border-color: #5c3a1e;
+    }
   </style>
 </head>
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
     <p class="tagline">A deck-busting card game of the Wild West</p>
+
+    <div class="section-label">Your name</div>
+    <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
 
     <div class="section-label">How many players?</div>
     <div class="count-row">
@@ -332,16 +351,18 @@
     }
 
     function startGame() {
+      const myName = document.getElementById('player-name').value.trim() || 'Cowboy';
       if (playerCount === 2) {
         if (p2Type === 'ai') {
           const [ai] = pickAiPersonalities(1);
           sessionStorage.setItem('player_count', '2');
           sessionStorage.setItem('player_defs', JSON.stringify([
-            { name: 'You', isHuman: true },
+            { name: myName, isHuman: true },
             { name: ai.name, isHuman: false, personality: ai.personality },
           ]));
           window.location.href = 'playgame.html';
         } else {
+          sessionStorage.setItem('mp_name', myName);
           window.location.href = 'creategame.html';
         }
         return;
@@ -351,7 +372,7 @@
         slotTypes[playerCount][i + 2] !== 'human').length;
       const aiPool = pickAiPersonalities(aiCount);
       let aiIdx = 0;
-      const defs = [{ name: 'You', isHuman: true }];
+      const defs = [{ name: myName, isHuman: true }];
       let anyHuman = false;
       for (let i = 2; i <= playerCount; i++) {
         const isHuman = slotTypes[playerCount][i] === 'human';
