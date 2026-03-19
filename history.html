@@ -199,7 +199,6 @@
         <th>Mode</th>
         <th>Players &amp; Scores</th>
         <th>Winner</th>
-        <th>Acts / Rounds</th>
       </tr>
     </thead>
     <tbody id="history-body"></tbody>
@@ -386,11 +385,6 @@ onValue(q, (snap) => {
       tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
     }
     tr.appendChild(tdWinner);
-
-    // Acts / Rounds
-    const tdRounds = document.createElement('td');
-    tdRounds.textContent = `Act ${r.actsCompleted || '?'} / Rd ${r.totalRounds || '?'}`;
-    tr.appendChild(tdRounds);
 
     bodyEl.appendChild(tr);
   }
