@@ -3509,8 +3509,8 @@ function gameOver() {
     AI_SPEC.finish(); // remove from live-games list
   }
 
-  // Log game to global history (MP: host only; SP: always)
-  if (!MP.active || MP.isHost) {
+  // Log game to global history (MP: host only; SP: always; never for debug games)
+  if (!G.isDebug && (!MP.active || MP.isHost)) {
     const winnerName = topPlayers.length === 1 ? topPlayers[0].name : null;
     HISTORY.logGame({
       ts: Date.now(),
@@ -3798,6 +3798,7 @@ function applyDebugScenario(name) {
   const fn = SCENARIOS[name];
   if (!fn) { console.warn('Unknown debug scenario:', name); return; }
   fn();
+  G.isDebug = true;
   addLog(`[DEBUG] Scenario: ${name}`, 'log-score');
 }
 
