@@ -3738,17 +3738,12 @@ function applyDebugScenario(name) {
     return special ? [createCardInstance(special), ...starters] : starters;
   }
 
-  // Strips ~75% of pyramid cards from top rows, leaving the bottom 2-3 rows
+  // Leaves only the top 3 rows of the pyramid (~6 cards for 4P) — a few buys from game end.
+  // Cards are taken bottom-up, so near-end state = bottom rows already cleared.
   function nearEndPyramid(pyramid) {
-    const numRows = pyramid.length;
-    const keepFrom = numRows - 3; // keep last 3 rows fully intact
-    for (let r = 0; r < keepFrom - 1; r++) {
+    const keepRows = 3; // rows 0, 1, 2 (apex down)
+    for (let r = keepRows; r < pyramid.length; r++) {
       for (const slot of pyramid[r]) { slot.removed = true; slot.faceUp = true; }
-    }
-    // Also clear most of the row just above the kept zone
-    const partialRow = pyramid[keepFrom - 1];
-    for (let c = 0; c < partialRow.length - 1; c++) {
-      partialRow[c].removed = true; partialRow[c].faceUp = true;
     }
     revealUncovered(pyramid);
   }
@@ -3779,7 +3774,7 @@ function applyDebugScenario(name) {
       players.forEach((p, i) => { p.herd = herds[i]; });
       G = initState(4, players);
       G.currentAct = 3;
-      G.roundNumber = 7;
+      G.roundNumber = 9;
       G.gameSeed = DEBUG_SEED;
       G.pyramid = buildPyramid(3);
       nearEndPyramid(G.pyramid);
