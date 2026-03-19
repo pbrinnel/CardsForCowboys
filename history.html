@@ -209,7 +209,7 @@
 <script type="module">
 import { db } from './firebase-config.js';
 import {
-  ref, query, orderByChild, limitToLast, onValue
+  ref, query, limitToLast, onValue
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const statusEl = document.getElementById('status');
@@ -325,12 +325,15 @@ onValue(ref(db, 'liveGames'), (snap) => {
 
 // ── Completed games ─────────────────────────────────────────
 
-const q = query(ref(db, 'gameHistory'), orderByChild('ts'), limitToLast(100));
+// Firebase push() keys are chronological, so limitToLast(100) by key gives the
+// 100 most recent entries. We then sort by ts client-side (avoids needing a
+// Firebase index, which would cause onValue to silently fail without one).
+const q = query(ref(db, 'gameHistory'), limitToLast(100));
 
 onValue(q, (snap) => {
   const rows = [];
   snap.forEach(child => rows.push(child.val()));
-  rows.reverse(); // newest first
+  rows.sort((a, b) => (b.ts || 0) - (a.ts || 0)); // newest first
 
   if (rows.length === 0) {
     statusEl.textContent = 'No games recorded yet. Play a game to see history here!';
@@ -388,6 +391,9 @@ onValue(q, (snap) => {
 
     bodyEl.appendChild(tr);
   }
+}, (error) => {
+  console.error('[HISTORY] Failed to load game history:', error);
+  statusEl.textContent = 'Failed to load history. Check console for details.';
 });
 </script>
 </body>

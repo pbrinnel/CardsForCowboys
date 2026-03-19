@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug — Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #1a1a1a;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #e0d4b8;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #f0c040;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #888;
+      margin-bottom: 0.75rem;
+      margin-top: 1.75rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.3rem;
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.6rem;
+    }
+    .scenario-btn {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 0.7rem 1rem;
+      color: #e0d4b8;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 0.88rem;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .scenario-btn:hover {
+      background: #333;
+      border-color: #f0c040;
+      color: #f0c040;
+    }
+    .scenario-btn .label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    .scenario-btn .desc {
+      font-size: 0.78rem;
+      color: #888;
+      font-style: italic;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 2.5rem;
+      color: #666;
+      font-size: 0.82rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #aaa; }
+  </style>
+</head>
+<body>
+  <h1>Debug Launcher</h1>
+  <p class="subtitle">Jumps directly into a game state — bypasses normal setup.</p>
+
+  <div class="section-title">Game Scenarios</div>
+  <div class="scenario-grid">
+    <button class="scenario-btn" onclick="launch('near_showdown')">
+      <span class="label">Near Showdown</span>
+      <span class="desc">4P · Act 3 · ~75% through · competitive herds</span>
+    </button>
+  </div>
+
+  <div class="section-title">Special Cards</div>
+  <div class="scenario-grid">
+    <button class="scenario-btn" onclick="launch('special_trash_to_use')">
+      <span class="label">Trash to Use</span>
+      <span class="desc">Act 1 · card_11 · activate from hand for $</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_2cow_if_first')">
+      <span class="label">2 Cows If First</span>
+      <span class="desc">Act 1 · card_74 · bonus cows if first card drawn</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_trash_buy_burn')">
+      <span class="label">Trash → Buy Priority</span>
+      <span class="desc">Act 1 · card_73 · trash for first buy priority</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_trash_for_2')">
+      <span class="label">Trash for $2</span>
+      <span class="desc">Act 2 · card_76 · trash this card to gain $2</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_look3_rearrange')">
+      <span class="label">Look 3, Rearrange</span>
+      <span class="desc">Act 2 · card_78 · peek and reorder top 3</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_copy_next')">
+      <span class="label">Copy Next Card</span>
+      <span class="desc">Act 2 · card_80 · next card has double effect</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_put_on_top')">
+      <span class="label">Put on Top</span>
+      <span class="desc">Act 2 · card_81 · move any hand card to deck top</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_extra_buy')">
+      <span class="label">Extra Buy</span>
+      <span class="desc">Act 2 · card_82 · buy an extra card this round</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_replay_discard')">
+      <span class="label">Replay Discard</span>
+      <span class="desc">Act 2 · card_83 · re-draw top discard</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_dollar1_other')">
+      <span class="label">$1 to Others</span>
+      <span class="desc">Act 2 · card_84 · gives $1 to each opponent</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_discard_to_player')">
+      <span class="label">Discard to Player</span>
+      <span class="desc">Act 2 · card_66 · 4P · passed to next player</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('special_look3_immediate')">
+      <span class="label">Look 3, Immediate</span>
+      <span class="desc">Act 3 · card_91 · reveal top 3 immediately</span>
+    </button>
+  </div>
+
+  <a href="index.html" class="back-link">← Back to Home</a>
+
+  <script>
+    function launch(scenario) {
+      sessionStorage.setItem('debug_scenario', scenario);
+      window.location.href = 'play.html';
+    }
+  </script>
+</body>
+</html>

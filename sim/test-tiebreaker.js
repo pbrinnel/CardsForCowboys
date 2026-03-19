@@ -109,16 +109,17 @@ section('1. Basic stat-based winners');
 }
 
 // ============================================================
-// 2. COMPLETE TIE → CANONICAL SLOT ORDER
+// 2. COMPLETE TIE → SEEDED RANDOM DRAW
 // ============================================================
-section('2. Complete tie — canonical slot order');
+section('2. Complete tie — seeded random draw');
 
 {
-  // All identical stats, empty hands: earliest slot wins
+  // All identical stats, empty hands: seeded random picks winner.
+  // Without a seed, LCG defaults to seed=1 which produces index 0 → slot 0.
   const players = [p(3, 2), p(3, 2)];
   const r = determineBuyWinner(players, spOrder(2));
-  assert('2P complete tie — slot 0 wins', r.winnerSlot, 0);
-  assert('2P complete tie — reason is player position', r.reason, 'player position');
+  assert('2P complete tie — slot 0 wins (LCG default)', r.winnerSlot, 0);
+  assert('2P complete tie — reason is random draw', r.reason, 'random draw');
 }
 
 {
@@ -273,7 +274,7 @@ section('4. MP consistency — same outcome from different local orderings');
 {
   // The original freeze scenario: complete tie, each client previously
   // picked local idx 0 (themselves) → both called showChooseFirstUI → freeze.
-  // Now must both agree on canonical slot 0.
+  // Now both sort tiedSlots and run same LCG → agree on same slot.
   const makeClient = (mySlot) => {
     const slots = [0, 1];
     const ordered = [mySlot, ...slots.filter(s => s !== mySlot)];
@@ -371,8 +372,8 @@ section('7. Zero-cost and same-cost card tiebreakers');
   // All cards cost 0 — card cost loop doesn't resolve; falls to slot order
   const players = [p(3, 2, hand(0, 0)), p(3, 2, hand(0, 0))];
   const r = determineBuyWinner(players, spOrder(2));
-  assert('All zero-cost cards — falls to slot order', r.winnerSlot, 0);
-  assert('All zero-cost cards — reason is player position', r.reason, 'player position');
+  assert('All zero-cost cards — slot 0 wins (LCG default)', r.winnerSlot, 0);
+  assert('All zero-cost cards — reason is random draw', r.reason, 'random draw');
 }
 
 {
@@ -427,12 +428,12 @@ section('8. Mixed busted + tie combinations');
     p(5, 3),                        // slot 2
   ];
   const r = determineBuyWinner(players, spOrder(3));
-  assert('3P: busted slot 0, tie → slot 1 wins by position', r.winnerSlot, 1);
-  assert('3P: reason is player position', r.reason, 'player position');
+  assert('3P: busted slot 0, tie → slot 1 wins (LCG default)', r.winnerSlot, 1);
+  assert('3P: reason is random draw', r.reason, 'random draw');
 }
 
 {
-  // 4P: slots 0 and 3 busted, slots 1 and 2 tied on everything — slot 1 wins
+  // 4P: slots 0 and 3 busted, slots 1 and 2 tied on everything — slot 1 wins (LCG default)
   const players = [
     p(5, 2, hand(4), { busted: true }), // slot 0, busted
     p(5, 2, hand(4)),                    // slot 1

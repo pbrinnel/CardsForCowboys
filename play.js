@@ -952,6 +952,7 @@ function initState(numPlayers, players) {
     selectedPyramidCard: null,
     busy: false,
     playerOrder: Array.from({length: n}, (_, i) => i), // G.players[i] → Firebase slot index (SP default: identity)
+    gameSeed: 0,
   };
 }
 
@@ -1708,6 +1709,7 @@ async function startGame() {
 
     G = initState(cfg.numPlayers, players);
     G.playerOrder = G_playerOrder;
+    G.gameSeed = cfg.gameSeed || 0;
   } else {
     // Read player config from sessionStorage (set by game.html for 3P/4P)
     const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
@@ -1717,6 +1719,20 @@ async function startGame() {
       G = initState(storedCount, players);
     } else {
       G = initState(2);
+    }
+    // Generate a random seed for SP mode (used for tiebreaking)
+    G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
+  }
+
+  // --- Debug scenario injection (SP only) ---
+  if (!MP.active) {
+    const debugScenario = sessionStorage.getItem('debug_scenario');
+    if (debugScenario) {
+      sessionStorage.removeItem('debug_scenario');
+      applyDebugScenario(debugScenario);
+      render();
+      startRound();
+      return;
     }
   }
 
@@ -2851,7 +2867,8 @@ function onDrawPhaseComplete() {
     return;
   }
 
-  const { winnerIdx, reason, tieLog } = determineBuyWinner(G.players, G.playerOrder);
+  const tieSeed = (G.gameSeed ^ (G.roundNumber * 2654435761)) >>> 0;
+  const { winnerIdx, reason, tieLog } = determineBuyWinner(G.players, G.playerOrder, tieSeed);
 
   if (winnerIdx === 0 && G.players.every(p => p.busted)) {
     addLog(`--- Buy Phase --- (All players busted!)`);
@@ -3707,6 +3724,86 @@ function preloadImages() {
     const img = new Image();
     img.src = src;
   }
+}
+
+// --- DEBUG SCENARIOS ---
+
+function applyDebugScenario(name) {
+  const DEBUG_SEED = 12345;
+
+  // Returns a deck with `specialId` first, then 9 starter cards
+  function debugDeck(specialId, slotIdx) {
+    const special = STORE_CARDS.find(c => c.id === specialId);
+    const starters = STARTER_TEMPLATES.slice(0, 9).map(t => createCardInstance(t));
+    return special ? [createCardInstance(special), ...starters] : starters;
+  }
+
+  // Strips ~75% of pyramid cards from top rows, leaving the bottom 2-3 rows
+  function nearEndPyramid(pyramid) {
+    const numRows = pyramid.length;
+    const keepFrom = numRows - 3; // keep last 3 rows fully intact
+    for (let r = 0; r < keepFrom - 1; r++) {
+      for (const slot of pyramid[r]) { slot.removed = true; slot.faceUp = true; }
+    }
+    // Also clear most of the row just above the kept zone
+    const partialRow = pyramid[keepFrom - 1];
+    for (let c = 0; c < partialRow.length - 1; c++) {
+      partialRow[c].removed = true; partialRow[c].faceUp = true;
+    }
+    revealUncovered(pyramid);
+  }
+
+  function makeSpecialScenario(specialCardId, act, extraNames) {
+    const numPlayers = extraNames ? extraNames.length + 1 : 2;
+    const players = [createPlayer('You', true, 0)];
+    players[0].deck = debugDeck(specialCardId, 0);
+    const aiNames = extraNames || ['Cowboy AI'];
+    for (let i = 0; i < aiNames.length; i++) {
+      players.push(createPlayer(aiNames[i], false, i + 1));
+    }
+    G = initState(numPlayers, players);
+    G.currentAct = act;
+    G.roundNumber = 1;
+    G.gameSeed = DEBUG_SEED;
+    G.pyramid = buildPyramid(act);
+    for (let i = 1; i < numPlayers; i++) initAiRng(i, DEBUG_SEED);
+  }
+
+  const AI3 = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
+
+  const SCENARIOS = {
+    near_showdown() {
+      const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
+      const herds  = [32, 29, 35, 28];
+      const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
+      players.forEach((p, i) => { p.herd = herds[i]; });
+      G = initState(4, players);
+      G.currentAct = 3;
+      G.roundNumber = 7;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(3);
+      nearEndPyramid(G.pyramid);
+      for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+    },
+
+    special_trash_to_use()       { makeSpecialScenario('card_11', 1); },
+    special_2cow_if_first()      { makeSpecialScenario('card_74', 1); },
+    special_trash_buy_burn()     { makeSpecialScenario('card_73', 1); },
+    special_trash_for_2()        { makeSpecialScenario('card_76', 2); },
+    special_look3_rearrange()    { makeSpecialScenario('card_78', 2); },
+    special_copy_next()          { makeSpecialScenario('card_80', 2); },
+    special_put_on_top()         { makeSpecialScenario('card_81', 2); },
+    special_extra_buy()          { makeSpecialScenario('card_82', 2); },
+    special_replay_discard()     { makeSpecialScenario('card_83', 2); },
+    special_dollar1_other()      { makeSpecialScenario('card_84', 2); },
+    special_discard_to_player()  { makeSpecialScenario('card_66', 2, AI3); },
+    special_look3_immediate()    { makeSpecialScenario('card_91', 3); },
+  };
+
+  const fn = SCENARIOS[name];
+  if (!fn) { console.warn('Unknown debug scenario:', name); return; }
+  fn();
+  addLog(`[DEBUG] Scenario: ${name}`, 'log-score');
 }
 
 // --- INIT ---

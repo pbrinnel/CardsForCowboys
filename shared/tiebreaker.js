@@ -11,7 +11,7 @@
 // No side effects, no globals, no DOM, no Firebase.
 // ============================================================
 
-function determineBuyWinner(players, playerOrder) {
+function determineBuyWinner(players, playerOrder, seed) {
   let candidates = players.map((p, i) => ({ p, i })).filter(c => !c.p.busted);
 
   if (candidates.length === 0) {
@@ -68,12 +68,16 @@ function determineBuyWinner(players, playerOrder) {
       }
     }
     if (!resolved) {
-      // Sort by Firebase slot index so ALL clients agree on the same winner
-      // regardless of local player ordering. In SP mode playerOrder[i]=i, same result.
-      candidates.sort((a, b) => playerOrder[a.i] - playerOrder[b.i]);
-      candidates = [candidates[0]];
-      tieLog = 'Complete tie — earliest slot position decides';
-      reason = 'player position';
+      // Complete tie — use seeded LCG to pick randomly.
+      // Sort tied slot indices so ALL clients operate on the same ordered list,
+      // then use the seed to pick one; everyone runs the same LCG and agrees.
+      const tiedSlots = candidates.map(c => playerOrder[c.i]).sort((a, b) => a - b);
+      let lcgSeed = ((seed || 1) >>> 0) || 1;
+      lcgSeed = (Math.imul(1664525, lcgSeed) + 1013904223) >>> 0;
+      const pickedSlot = tiedSlots[lcgSeed % tiedSlots.length];
+      candidates = candidates.filter(c => playerOrder[c.i] === pickedSlot);
+      tieLog = 'Complete tie — random draw decides';
+      reason = 'random draw';
     }
   }
 
