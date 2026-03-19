@@ -332,7 +332,10 @@ const q = query(ref(db, 'gameHistory'), limitToLast(100));
 
 onValue(q, (snap) => {
   const rows = [];
-  snap.forEach(child => rows.push(child.val()));
+  // Note: snap.forEach() has a known SDK quirk where it can silently skip
+  // entries; iterate snap.val() directly to ensure all rows are included.
+  const val = snap.val();
+  if (val) Object.keys(val).forEach(k => rows.push(val[k]));
   rows.sort((a, b) => (b.ts || 0) - (a.ts || 0)); // newest first
 
   if (rows.length === 0) {
