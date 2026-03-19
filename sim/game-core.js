@@ -95,7 +95,7 @@ const STORE_CARDS = [
   { id: 'card_63', act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'trash_for_2' },
   { id: 'card_64', act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_65', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
-  { id: 'card_66', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 5, cacti: 2, special: 'discard_to_player' },
+  { id: 'card_66', act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 0, cacti: 2, special: 'discard_to_player' },
 
   // --- ACT 3 ---
   // River (Blue) – 1 cacti  [2P]
