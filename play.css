@@ -1218,6 +1218,26 @@ body.phase-draw #player-deck-preview {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* Card hover preview (floating tooltip on pyramid card hover) */
+#card-hover-preview {
+  position: fixed;
+  z-index: 150;
+  pointer-events: none;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  transition: opacity 0.1s;
+}
+
+#card-hover-preview.hidden {
+  display: none;
+}
+
+#card-hover-img {
+  width: 180px;
+  border-radius: 8px;
+  display: block;
+}
+
 /* Deck viewer modal */
 .deck-content {
   max-width: 600px;

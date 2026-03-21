@@ -1491,6 +1491,10 @@ function renderPyramid() {
         if (classes.includes('clickable')) {
           el.onclick = () => onPyramidCardClick(row, col);
         }
+        if (slot.faceUp) {
+          el.addEventListener('mouseenter', () => showCardHoverPreview(el, slot.card));
+          el.addEventListener('mouseleave', hideCardHoverPreview);
+        }
         rowDiv.appendChild(el);
       }
     }
@@ -2308,7 +2312,14 @@ async function aiDrawPhase(playerIdx) {
     for (const tCard of ai.hand.filter(c => c.special === 'trash_to_use')) {
       let activate = false;
       if (tCard.bandits < 0 && ai.roundBandits >= 2) activate = true;
-      if (tCard.dollars > 0 && ai.roundBandits >= 2 && ai.roundDollars < getBestAffordableCost(ai)) activate = true;
+      if (tCard.dollars > 0 && ai.roundBandits >= 2) {
+        // Only activate if these dollars actually bridge the gap to an available card
+        const avail = getAvailablePyramidCards(G.pyramid);
+        const bridgesGap = avail.some(a =>
+          a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + tCard.dollars
+        );
+        if (bridgesGap) activate = true;
+      }
       if (!activate) continue;
       const idx = ai.hand.indexOf(tCard);
       if (idx < 0) continue;
@@ -2339,7 +2350,8 @@ async function aiDrawPhase(playerIdx) {
       const idx = ai.hand.indexOf(card);
       if (idx >= 0) ai.hand.splice(idx, 1);
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
-      top3.sort((a, b) => a.bandits - b.bandits);
+      // Sort by full personality-weighted score: draw best cards first
+      top3.sort((a, b) => scoreCardForAI(a, ai) - scoreCardForAI(b, ai));
       ai.deck.unshift(...top3);
       addLog(`${aiLabel} trashed to rearrange top cards.`, 'log-burn');
       render();
@@ -2348,7 +2360,8 @@ async function aiDrawPhase(playerIdx) {
     // Handle look3_immediate for AI
     if (card.special === 'look3_immediate' && ai.deck.length >= 2) {
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
-      top3.sort((a, b) => a.bandits - b.bandits);
+      // Sort by full personality-weighted score: draw best cards first
+      top3.sort((a, b) => scoreCardForAI(a, ai) - scoreCardForAI(b, ai));
       ai.deck.unshift(...top3);
       addLog(`${aiLabel} rearranged top cards.`);
     }
@@ -2477,21 +2490,29 @@ function aiShouldDraw(ai) {
   const banditsRemaining = countBanditsInDeck(ai);
   const cardsRemaining = ai.deck.length;
 
+  // Draw more aggressively if AI can't currently afford any available card
+  const canAffordSomething = getAvailablePyramidCards(G.pyramid).some(a => a.slot.card.cost <= ai.roundDollars);
+  const affordMult = canAffordSomething ? 1.0 : 1.4;
+
   if (ai.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
-    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2 * positionMult;
+    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2 * positionMult * affordMult;
   }
 
   if (ai.roundBandits === 1) {
     if (cardsRemaining <= 1) return false;
     const bustProb = banditsRemaining / cardsRemaining;
-    if (bustProb >= cfg.bustThreshold1 * positionMult) return false;
+    if (bustProb >= cfg.bustThreshold1 * positionMult * affordMult) return false;
     if (cfg.dollarBuffer >= 999) return true;  // Wild Bill ignores dollar target
     return ai.roundDollars < getBestAffordableCost(ai);
   }
 
-  // 0 bandits: keep drawing until dollars satisfy the target
-  return ai.roundDollars < getBestAffordableCost(ai) + cfg.dollarBuffer;
+  // 0 bandits: dynamic buffer — only accumulate extra if a more expensive card exists
+  const avail0 = getAvailablePyramidCards(G.pyramid);
+  const bestCost0 = getBestAffordableCost(ai);
+  const maxCost0 = avail0.length > 0 ? Math.max(...avail0.map(a => a.slot.card.cost)) : bestCost0;
+  const effectiveBuffer = Math.min(cfg.dollarBuffer, Math.max(0, maxCost0 - bestCost0));
+  return ai.roundDollars < bestCost0 + effectiveBuffer;
 }
 
 function countBanditsInDeck(player) {
@@ -2608,21 +2629,15 @@ async function handleTrashToUse(player, card) {
 }
 
 async function handleTrashFor2(player, card) {
-  setMessage('Trash for $2? Or keep for $1.');
-  setActions([
-    { text: 'Trash for $2', onClick: () => {
-      player.roundDollars += 1; // already got $1, so +1 more = $2 total
-      const idx = player.hand.indexOf(card);
-      if (idx >= 0) player.hand.splice(idx, 1);
-      addLog('You trashed a card for $2 total.', 'log-burn');
-      render();
-      mpSyncDraw();
-      startPlayerDraw();
-    }},
-    { text: 'Keep for $1', onClick: () => {
-      startPlayerDraw();
-    }, className: 'btn-secondary' },
-  ]);
+  // Clicking "Trash for $2" is the decision — execute immediately.
+  // Card already gave $1 via applyCardEffects; add 1 more for $2 total.
+  player.roundDollars += 1;
+  const idx = player.hand.indexOf(card);
+  if (idx >= 0) player.hand.splice(idx, 1);
+  addLog('You trashed a card for $2 total.', 'log-burn');
+  render();
+  mpSyncDraw();
+  startPlayerDraw();
 }
 
 async function handleTrashBuyBurnFirst(player, card) {
@@ -3138,11 +3153,11 @@ async function aiBuyTurn(ai) {
   const affordable = available.filter(a => a.slot.card.cost <= ai.roundDollars);
 
   if (affordable.length > 0) {
-    // Score and pick best
+    // Score and pick best; add reveal bonus for cards that uncover hidden pyramid slots
     let best = null;
     let bestScore = -Infinity;
     for (const a of affordable) {
-      const score = scoreCardForAI(a.slot.card, ai);
+      const score = scoreCardForAI(a.slot.card, ai) + pyramidRevealBonus(a.row, a.col);
       if (score > bestScore) {
         bestScore = score;
         best = a;
@@ -3174,6 +3189,22 @@ async function aiBuyTurn(ai) {
     }
 
     if (!burnTarget) {
+      // Act-aware: in late acts with a sparse pyramid, deny the leader's best card
+      const actProgress = G.currentAct / 3;
+      const pyramidDensity = Math.min(1, available.length / Math.max(1, G.numPlayers * 2));
+      if (actProgress * (1 - pyramidDensity) > 0.4) {
+        const leader = G.players.filter(p => p !== ai).sort((a, b) => b.herd - a.herd)[0];
+        if (leader) {
+          let bestLeaderScore = -Infinity;
+          for (const a of available) {
+            const score = scoreCardForAI(a.slot.card, leader);
+            if (score > bestLeaderScore) { bestLeaderScore = score; burnTarget = a; }
+          }
+        }
+      }
+    }
+
+    if (!burnTarget) {
       // Default: burn the card with lowest value to self
       let worstScore = Infinity;
       for (const a of available) {
@@ -3198,7 +3229,16 @@ function scoreCardForAI(card, ai) {
   score -= card.bandits * cfg.banditPenalty;
   // Special ability bonuses (fixed; personality differences come from the weights above)
   if (card.special === 'trash_to_use') score += 2;
-  if (card.special === 'copy_next') score += 3;
+  if (card.special === 'copy_next') {
+    // Value copy_next based on deck quality: good deck = more valuable copy
+    if (ai && ai.deck.length > 0) {
+      const avgDeckQuality = ai.deck.reduce((sum, c) =>
+        sum + c.cows * cfg.cowWeight + c.dollars * cfg.dollarWeight, 0) / ai.deck.length;
+      score += Math.max(1.5, Math.min(6, avgDeckQuality));
+    } else {
+      score += 3;
+    }
+  }
   if (card.special === 'draw4') score += 2;
   if (card.special === 'look3_rearrange') score += 1.5;
   if (card.special === 'replay_discard') score += 2;
@@ -3211,16 +3251,43 @@ function scoreCardForAI(card, ai) {
   return score;
 }
 
+// Returns a bonus score for buying a card that would uncover hidden cards above it.
+// A card at (row, col) is covered by its children at (row+1, col) and (row+1, col+1).
+// So parent A is at (row-1, col) — also covered by sibling (row, col+1).
+// And parent B is at (row-1, col-1) — also covered by sibling (row, col-1).
+function pyramidRevealBonus(row, col) {
+  if (row === 0) return 0;
+  const REVEAL_BONUS = 1.5;
+  let bonus = 0;
+  // Parent A: (row-1, col), revealed if sibling (row, col+1) is also gone
+  if (col < row) {
+    const parentA = G.pyramid[row - 1][col];
+    if (parentA && !parentA.removed && !parentA.faceUp) {
+      const siblingA = G.pyramid[row][col + 1];
+      if (!siblingA || siblingA.removed) bonus += REVEAL_BONUS;
+    }
+  }
+  // Parent B: (row-1, col-1), revealed if sibling (row, col-1) is also gone
+  if (col > 0) {
+    const parentB = G.pyramid[row - 1][col - 1];
+    if (parentB && !parentB.removed && !parentB.faceUp) {
+      const siblingB = G.pyramid[row][col - 1];
+      if (!siblingB || siblingB.removed) bonus += REVEAL_BONUS;
+    }
+  }
+  return bonus;
+}
+
 // --- PASS CARD (discard_to_player) ---
 
-// AI picks the opponent with the smallest herd to receive the card;
+// AI passes the curse card to the current leader (largest herd);
 // tiebreak by lowest Firebase slot index (deterministic on all clients).
 function aiPickPassTarget(fromPlayerIdx) {
   return G.players
     .map((p, i) => ({ p, i }))
     .filter(c => c.i !== fromPlayerIdx)
     .sort((a, b) => {
-      const herdDiff = a.p.herd - b.p.herd;
+      const herdDiff = b.p.herd - a.p.herd;  // descending: target leader first
       if (herdDiff !== 0) return herdDiff;
       return G.playerOrder[a.i] - G.playerOrder[b.i];
     })[0].i;
@@ -3642,6 +3709,26 @@ function showCardZoom(imgSrc) {
 
 function closeCardZoom() {
   document.getElementById('card-zoom').classList.add('hidden');
+}
+
+function showCardHoverPreview(cardEl, card) {
+  const preview = document.getElementById('card-hover-preview');
+  const img = document.getElementById('card-hover-img');
+  img.src = cardImgSrc(card, true);
+  const rect = cardEl.getBoundingClientRect();
+  const previewW = 180;
+  const previewH = 252; // approx card aspect ratio
+  let left = rect.right + 10;
+  let top = rect.top;
+  if (left + previewW > window.innerWidth) left = rect.left - previewW - 10;
+  if (top + previewH > window.innerHeight) top = window.innerHeight - previewH - 8;
+  preview.style.left = left + 'px';
+  preview.style.top = top + 'px';
+  preview.classList.remove('hidden');
+}
+
+function hideCardHoverPreview() {
+  document.getElementById('card-hover-preview').classList.add('hidden');
 }
 
 // --- COLLAPSIBLE SECTIONS ---
