@@ -240,6 +240,9 @@ function renderLive() {
   mpLive.forEach((g, code) => {
     if (g.status !== 'active') return;
     if (!g.spectatorState) return;
+    // Stale-detection: if last spectator push was >10 min ago, hide (game likely abandoned)
+    const lastTs = g.spectatorState?.ts || g.createdAt || 0;
+    if (now - lastTs > 10 * 60 * 1000) return;
     live.push({ code, spectateUrl: `spectate.html?code=${code}`, ...g });
   });
 

@@ -95,7 +95,7 @@ async function joinGame(codeOverride) {
 
   unsubscribe = onValue(gameRef, (snap) => {
     const d = snap.val();
-    if (!d) return;
+    if (!d) { showError('The host cancelled the game.'); return; }
     renderSlotList(d.slots, d.numPlayers, 'joining-slot-list');
     if (allHumanSlotsFilled(d.slots)) {
       cleanup();

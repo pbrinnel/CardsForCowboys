@@ -112,7 +112,7 @@
         <button class="btn-small" onclick="showDeck()">My Deck</button>
         <button class="btn-small" onclick="showRules()">Rules</button>
         <button class="btn-small hidden" id="btn-spectate-link" onclick="copySpectateLink()">Spectate Link</button>
-        <button class="btn-small" onclick="restartGame()">Restart</button>
+        <button class="btn-small btn-disband hidden" id="btn-disband" onclick="disbandGame()">Disband</button>
       </div>
     </header>
 
@@ -157,7 +157,7 @@
         <span class="deck-display">Deck: <strong id="player-deck-count">10</strong></span>
         <span class="discard-display">Discard: <strong id="player-discard-count">0</strong></span>
       </div>
-      <div class="zone-label">You <span id="player-crown" class="draw-crown">&#x1F451;</span></div>
+      <div class="zone-label">You <span id="player-crown" class="draw-crown">&#x1F451;</span><span id="player-done-mark" class="done-draw-mark hidden">&#x2713;</span></div>
     </div>
 
     <!-- Game Log (collapsible, collapsed by default) -->

@@ -150,6 +150,7 @@ const MP = (() => {
   async function pushDrawState(player) {
     if (!initialized) return;
     await fbSet(gameRef(`drawState/${mySlot}`), {
+      round: G.roundNumber, // used by receivers to discard stale data from previous rounds
       hand: player.hand.map(c => c.id),
       deck: player.deck.map(c => c.id),
       dollars: player.roundDollars,
@@ -157,6 +158,7 @@ const MP = (() => {
       bandits: player.roundBandits,
       busted: player.busted,
       stoppedDrawing: player.stoppedDrawing,
+      discardCount: player.discard.length, // current round's discard pile size
     });
   }
 
@@ -477,6 +479,29 @@ const MP = (() => {
     }
   }
 
+  // Host-only: delete the game from Firebase (guests detect deletion via watchForDisband)
+  async function disband() {
+    if (!isHost || !initialized) return;
+    cleanup();
+    clearRejoinInfo();
+    await fbRemove(dbRef);
+    window.location.href = 'index.html';
+  }
+
+  // Guest-only: watch root game ref; if deleted, host disbanded — go home
+  function watchForDisband() {
+    if (isHost || !initialized) return;
+    const unsub = fbOnValue(dbRef, (snap) => {
+      if (snap.val() === null) {
+        unsub();
+        clearRejoinInfo();
+        setMessage('The host disbanded the game.');
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+      }
+    });
+    unsubscribers.push(unsub);
+  }
+
   return {
     active: true,
     code, mySlot, isHost, myName,
@@ -505,6 +530,8 @@ const MP = (() => {
     saveRejoinInfo,
     clearRejoinInfo,
     cleanup,
+    disband,
+    watchForDisband,
   };
 })();
 
@@ -866,6 +893,22 @@ function _seededShuffle(arr, slotIdx) {
   return a;
 }
 
+// Seeded shuffle of seat order using gameSeed (distinct constant from AI RNG so they don't alias).
+// Returns a shuffled copy of [0, 1, ..., n-1] (slot/player indices).
+function seededSeatOrder(n, gameSeed) {
+  let seed = ((gameSeed ^ 0xdeadbeef) >>> 0) || 1;
+  function next() {
+    seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  const arr = Array.from({length: n}, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Use seeded shuffle for AI slots in MP; regular shuffle otherwise
 function shuffleForPlayer(arr, slotIdx, isHuman) {
   if (MP.active && !isHuman && _aiRngs[slotIdx] !== undefined) {
@@ -950,8 +993,10 @@ function initState(numPlayers, players) {
     currentBuyerIdx: 0,
     drawsDone: {},
     selectedPyramidCard: null,
+    awaitingPutOnTopCard: null, // set while player is choosing a card to put on top of deck
     busy: false,
     playerOrder: Array.from({length: n}, (_, i) => i), // G.players[i] → Firebase slot index (SP default: identity)
+    seatOrder: Array.from({length: n}, (_, i) => i), // slot indices in clockwise seat order (shuffled at game start)
     gameSeed: 0,
   };
 }
@@ -1094,6 +1139,7 @@ function resetPlayerRound(player) {
   player.hasBuyBurnFirst = false;
   player.hasExtraBuy = false;
   player.extraBuyUsed = false;
+  if (G) G.awaitingPutOnTopCard = null;
 }
 
 // --- CARD EFFECTS ---
@@ -1212,17 +1258,34 @@ function renderCardEl(card, faceUp, extraClasses) {
 // (then cows as tiebreak). Only meaningful during the draw phase.
 function getDrawLeaders() {
   if (!G || G.phase !== 'draw') return [];
-  const active = G.players
+  let candidates = G.players
     .map((p, i) => ({ p, i }))
     .filter(c => !c.p.busted && c.p.hand.length > 0);
-  if (active.length === 0) return [];
-  const maxDollars = Math.max(...active.map(c => c.p.roundDollars));
-  let leaders = active.filter(c => c.p.roundDollars === maxDollars);
-  if (leaders.length > 1) {
-    const maxCows = Math.max(...leaders.map(c => c.p.roundCows));
-    leaders = leaders.filter(c => c.p.roundCows === maxCows);
+  if (candidates.length === 0) return [];
+
+  function narrowBy(scoreFn) {
+    if (candidates.length <= 1) return;
+    const best = Math.max(...candidates.map(scoreFn));
+    candidates = candidates.filter(c => scoreFn(c) === best);
   }
-  return leaders.map(c => c.i);
+
+  // Mirror the tiebreaker chain from shared/tiebreaker.js (deterministic steps only).
+  // Only show multiple crowns when it comes down to the random tiebreaker.
+  narrowBy(c => c.p.roundDollars);
+  narrowBy(c => c.p.roundCows);
+  narrowBy(c => c.p.hand.length);
+
+  if (candidates.length > 1) {
+    const maxLen = Math.max(...candidates.map(c => c.p.hand.length));
+    for (let i = 0; i < maxLen; i++) {
+      const prev = candidates.slice();
+      narrowBy(c => (c.p.hand[i] && c.p.hand[i].cost) || 0);
+      if (candidates.length < prev.length) break;
+    }
+  }
+
+  // If still multiple, it's a complete tie — show all (random step decides, multi-crown is OK).
+  return candidates.map(c => c.i);
 }
 
 // Updates all contextual zone indicators:
@@ -1233,11 +1296,12 @@ function updateTurnOrderBar() {
   const bar = document.getElementById('turn-order-bar');
   if (!bar) return;
 
-  // Build canonical display order: Firebase slot order (or player index in SP)
-  // G.playerOrder[i] = Firebase slot for G.players[i]
-  // We want to display in slot order 0,1,2... so sort G.players indices by their slot
-  const displayOrder = Array.from({length: G.numPlayers}, (_, i) => i)
-    .sort((a, b) => G.playerOrder[a] - G.playerOrder[b]);
+  // Display players in seat order (G.seatOrder is a shuffled array of slot indices).
+  // Convert each seat slot to the corresponding G.players index.
+  const slotToPlayerIdx = MP.active
+    ? (s => MP.slotToPlayer[s])
+    : (s => s);
+  const displayOrder = G.seatOrder.map(slotToPlayerIdx).filter(i => i !== undefined);
 
   // Determine which player index is currently "active"
   let activeIdx = -1;
@@ -1271,25 +1335,32 @@ function updateZoneStates() {
       : -1;
 
   for (let i = 0; i < G.numPlayers; i++) {
-    const prefix  = i === 0 ? 'player' : 'opp-' + i;
-    const crownEl = document.getElementById(prefix + '-crown');
-    const zoneEl  = i === 0
+    const prefix   = i === 0 ? 'player' : 'opp-' + i;
+    const crownEl  = document.getElementById(prefix + '-crown');
+    const doneEl   = document.getElementById(prefix + '-done-mark');
+    const zoneEl   = i === 0
       ? document.getElementById('player-zone')
       : document.getElementById('opp-zone-' + i);
     const isLeader = leaders.includes(i);
     const isBusted = G.players[i].busted;
     const isBuying = activeBuyerPlayerIdx === i && !isBusted;
+    const isDone   = G.phase === 'draw' && !!G.drawsDone[i];
     if (crownEl) crownEl.classList.toggle('crown-visible', isLeader);
+    if (doneEl)  doneEl.classList.toggle('hidden', !isDone);
     if (zoneEl) {
       zoneEl.classList.toggle('draw-leader', isLeader);
       zoneEl.classList.toggle('zone-busted',  isBusted);
       zoneEl.classList.toggle('zone-buying',   isBuying);
+      zoneEl.classList.toggle('zone-draw-done', isDone);
     }
   }
 }
 
 function render() {
   if (!G || G.phase === 'start') return;
+
+  // Always clear hover preview on every render (phase changes, store resets, etc.)
+  hideCardHoverPreview();
 
   // Clear card preview whenever nothing is selected
   if (!G.selectedPyramidCard) clearCardPreview();
@@ -1369,7 +1440,12 @@ function renderPlayerZone(player, prefix) {
   herdEl.textContent = player.herd;
   applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), player.herd);
   document.getElementById(prefix + '-deck-count').textContent = player.deck.length;
-  document.getElementById(prefix + '-discard-count').textContent = player.discard.length;
+  // For remote players, use the synced discard count (current pile size, not cumulative),
+  // since their local discard array isn't kept in sync after reshuffles.
+  const discardCount = (prefix !== 'player' && player._syncedDiscardCount !== undefined)
+    ? player._syncedDiscardCount
+    : player.discard.length;
+  document.getElementById(prefix + '-discard-count').textContent = discardCount;
 
   // Round stats
   const hasRoundStats = player.hand.length > 0 || G.phase === 'buy';
@@ -1402,11 +1478,23 @@ function renderPlayerZone(player, prefix) {
   const handEl = document.getElementById(prefix + '-hand');
   handEl.innerHTML = '';
 
-  const showFaceUp = true;
-
-  for (const card of player.hand) {
-    const el = renderCardEl(card, showFaceUp, player.busted ? 'busted' : '');
-    handEl.appendChild(el);
+  if (prefix === 'player' && G.awaitingPutOnTopCard) {
+    // Re-render put_on_top selection UI so concurrent render() calls don't wipe it
+    renderPutOnTopSelection(player, G.awaitingPutOnTopCard);
+  } else {
+    const showFaceUp = true;
+    // Highlight cards that currently have an active special button in the actions bar
+    const activeSpecialUids = (prefix === 'player' && G.phase === 'draw')
+      ? new Set(getActivatableCards(player).map(c => c.uid))
+      : new Set();
+    for (const card of player.hand) {
+      const classes = [player.busted ? 'busted' : '', activeSpecialUids.has(card.uid) ? 'card-active-special' : '']
+        .filter(Boolean).join(' ');
+      const el = renderCardEl(card, showFaceUp, classes);
+      el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
+      el.addEventListener('mouseleave', hideCardHoverPreview);
+      handEl.appendChild(el);
+    }
   }
 
   // Deck preview (show back of next card)
@@ -1459,6 +1547,7 @@ function renderPyramid() {
     rowDiv.className = 'pyramid-row';
     for (let col = 0; col < G.pyramid[row].length; col++) {
       const slot = G.pyramid[row][col];
+      if (!slot || !slot.card) continue; // defensive: skip corrupted slots
       if (slot.removed) {
         const empty = document.createElement('div');
         empty.className = 'card-slot';
@@ -1714,6 +1803,8 @@ async function startGame() {
     G = initState(cfg.numPlayers, players);
     G.playerOrder = G_playerOrder;
     G.gameSeed = cfg.gameSeed || 0;
+    // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
+    G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
   } else {
     // Read player config from sessionStorage (set by game.html for 3P/4P)
     const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
@@ -1724,8 +1815,9 @@ async function startGame() {
     } else {
       G = initState(2);
     }
-    // Generate a random seed for SP mode (used for tiebreaking)
+    // Generate a random seed for SP mode (used for tiebreaking and seat order)
     G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
+    G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
   }
 
   // --- Debug scenario injection (SP only) ---
@@ -1743,6 +1835,11 @@ async function startGame() {
   // Show spectator-link button for MP players; also shown for AI after AI_SPEC.start() sets the code
   if (MP.active) {
     document.getElementById('btn-spectate-link').classList.remove('hidden');
+    if (MP.isHost) {
+      document.getElementById('btn-disband').classList.remove('hidden');
+    } else {
+      MP.watchForDisband();
+    }
   }
 
   // Register this game as live so history.html can show it with a spectate button
@@ -1834,6 +1931,7 @@ async function resumeDrawPhase() {
 
   const findCard = id => CARD_DB[id];
   MP.watchOpponentDrawStates((slotIdx, drawState) => {
+    if (drawState.round !== undefined && drawState.round !== G.roundNumber) return;
     const playerIdx = MP.slotToPlayer[slotIdx];
     const opp = G.players[playerIdx];
     if (!opp) return;
@@ -1852,6 +1950,7 @@ async function resumeDrawPhase() {
     opp.stoppedDrawing  = drawState.stoppedDrawing;
     opp.hasBuyBurnFirst = drawState.hasBuyBurnFirst || false;
     opp.hasExtraBuy     = drawState.hasExtraBuy     || false;
+    if (drawState.discardCount !== undefined) opp._syncedDiscardCount = drawState.discardCount;
     render();
     if (MP.isHost) MP.pushSpectatorState();
   });
@@ -1958,6 +2057,9 @@ async function startRound() {
     // Live watch remote human opponents' draw states
     const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
     MP.watchOpponentDrawStates((slotIdx, state) => {
+      // Ignore stale data from a previous round (Firebase fires immediately on subscription
+      // with whatever value is in the DB, which may still be the busted state from last round).
+      if (state.round !== undefined && state.round !== G.roundNumber) return;
       const playerIdx = MP.slotToPlayer[slotIdx];
       const opp = G.players[playerIdx];
       opp.hand = (state.hand || []).map(id => {
@@ -1975,8 +2077,18 @@ async function startRound() {
       opp.stoppedDrawing    = state.stoppedDrawing;
       opp.hasBuyBurnFirst   = state.hasBuyBurnFirst || false;
       opp.hasExtraBuy       = state.hasExtraBuy     || false;
-      render();
-      MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
+      if (state.discardCount !== undefined) opp._syncedDiscardCount = state.discardCount;
+      // If opponent busted this round, treat them as done immediately (don't wait for
+      // the drawDone signal which fires after a 2s animation delay on their side).
+      if (state.busted && !G.drawsDone[playerIdx]) {
+        G.drawsDone[playerIdx] = true;
+        render();
+        MP.pushSpectatorState();
+        checkDrawPhaseComplete();
+      } else {
+        render();
+        MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
+      }
     });
 
     // One-shot done signal per remote human opponent
@@ -2032,11 +2144,7 @@ function getSpecialLabel(card) {
 }
 
 function getDrawButtonText(player) {
-  if (player.hand.length === 0) return 'Draw Card';
-  if (player.roundBandits >= 2)  return 'One more\u2026';
-  if (player.roundBandits === 1) return 'Keep going?';
-  if (player.hand.length >= 4)   return 'Push your luck\u2026';
-  return 'Draw again?';
+  return 'Draw Card';
 }
 
 function getDrawButtonClass(player) {
@@ -2173,14 +2281,18 @@ async function playerDraw() {
       await delay(700);
       if (player.busted) break;
       const extraCard = drawFromDeck(player);
-      if (!extraCard) break;
+      if (!extraCard) {
+        addLog('Deck and discard both empty — draw 4 cut short.');
+        break;
+      }
       player.hand.push(extraCard);
       applyCardEffects(player, extraCard, false);
       render();
       animateDrawnCard(extraCard);
       mpSyncDraw();
-      // Check bust after each draw
+      // Check bust after each draw — busting during draw 4 is possible
       if (player.roundBandits >= 3) {
+        addLog(`Busted on draw ${i + 1} of 4!`, 'log-bust');
         await handleBust(player);
         return;
       }
@@ -2790,30 +2902,26 @@ async function handleReplayDiscard(player, card) {
   ]);
 }
 
-function handlePutOnTop(player, putOnTopCard) {
-  setMessage('Choose another drawn card to return to the top of your deck (its effects are removed).');
+function renderPutOnTopSelection(player, putOnTopCard) {
   const handEl = document.getElementById('player-hand');
   handEl.innerHTML = '';
-
   for (const card of player.hand) {
-    // Can't put the put_on_top card itself on top
     if (card.uid === putOnTopCard.uid) {
       const el = renderCardEl(card, true, 'dimmed');
       handEl.appendChild(el);
       continue;
     }
     const el = renderCardEl(card, true, 'clickable');
+    el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
+    el.addEventListener('mouseleave', hideCardHoverPreview);
     el.onclick = () => {
-      // Remove card effects
+      G.awaitingPutOnTopCard = null;
       player.roundDollars -= card.dollars;
       player.roundCows -= card.cows;
       player.roundBandits -= card.bandits;
-
-      // Remove from hand, put on top of deck
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
       player.deck.unshift(card);
-
       addLog(`You returned ${cardLabel(card)} to top of deck.`);
       render();
       mpSyncDraw();
@@ -2821,9 +2929,15 @@ function handlePutOnTop(player, putOnTopCard) {
     };
     handEl.appendChild(el);
   }
+}
 
+function handlePutOnTop(player, putOnTopCard) {
+  G.awaitingPutOnTopCard = putOnTopCard;
+  setMessage('Choose another drawn card to return to the top of your deck (its effects are removed).');
+  renderPutOnTopSelection(player, putOnTopCard);
   setActions([
     { text: 'Skip (Don\'t Return)', onClick: () => {
+      G.awaitingPutOnTopCard = null;
       addLog('You chose not to return a card.');
       onPlayerDrawDone();
     }, className: 'btn-secondary' },
@@ -2944,7 +3058,17 @@ function showChooseFirstUI(nonBustedIndices) {
 // localIsChooser: true when the local human player made the choice (from showChooseFirstUI).
 // Needed because the push condition must fire even when they chose someone *else* first.
 function startBuyPhase(startIdx, localIsChooser = false) {
-  const order = Array.from({length: G.numPlayers}, (_, k) => (startIdx + k) % G.numPlayers);
+  // Rotate through G.seatOrder (randomized at game start) from winner's position.
+  // seatOrder is an array of slot indices in clockwise seat order.
+  // In SP mode slot === player index, so rotation is still correct.
+  const winnerSlot = G.playerOrder[startIdx];
+  const seatPos = G.seatOrder.indexOf(winnerSlot);
+  const n = G.numPlayers;
+  const slotRotation = Array.from({length: n}, (_, k) => G.seatOrder[(seatPos + k) % n]);
+  const slotToPlayer = MP.active
+    ? (s => MP.slotToPlayer[s])
+    : (s => s);
+  const order = slotRotation.map(slotToPlayer);
   mpLog('startBuyPhase:', { startIdx, localIsChooser, order,
     winner: G.players[startIdx]?.name, isHuman: G.players[startIdx]?.isHuman });
   if (MP.active) {
@@ -2952,9 +3076,8 @@ function startBuyPhase(startIdx, localIsChooser = false) {
     const shouldPush = localIsChooser || (winnerIsAI && MP.isHost);
     mpLog('startBuyPhase push?', { shouldPush, winnerIsAI, isHost: MP.isHost, localIsChooser });
     if (shouldPush) {
-      const slotOrder = order.map(i => G.playerOrder[i]);
-      mpLog('pushBuyOrder slotOrder:', slotOrder);
-      MP.pushBuyOrder(slotOrder);
+      mpLog('pushBuyOrder slotOrder:', slotRotation);
+      MP.pushBuyOrder(slotRotation);
     }
   }
   applyBuyOrder(order);
@@ -3596,6 +3719,14 @@ function gameOver() {
   }
 }
 
+// --- DISBAND GAME (host only) ---
+
+function disbandGame() {
+  if (!MP.active || !MP.isHost) return;
+  if (!confirm('Disband this game? All players will be sent back to the home screen.')) return;
+  MP.disband();
+}
+
 // --- SPECTATOR LINK ---
 
 function copySpectateLink() {
@@ -3757,6 +3888,7 @@ function ensureOpponentZone(i, container) {
       '<div class="ai-summary-left">' +
         '<span class="zone-label" style="margin:0">' + G.players[i].name +
           ' <span id="' + prefix + '-crown" class="draw-crown">\uD83D\uDC51</span>' +
+          '<span id="' + prefix + '-done-mark" class="done-draw-mark hidden">\u2713</span>' +
         '</span>' +
         '<span class="herd-display">' +
           '<span>Herd</span>' +

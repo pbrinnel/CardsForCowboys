@@ -277,6 +277,13 @@ body {
   background-color: #3b2314;
 }
 
+.btn-small.btn-disband {
+  background-color: #7b1010;
+}
+.btn-small.btn-disband:hover {
+  background-color: #5a0b0b;
+}
+
 .btn-secondary {
   background-color: #5c3a1e;
 }
@@ -725,6 +732,11 @@ body.phase-draw #player-deck-preview {
   transform: translateY(-4px);
 }
 
+/* Card with an active special-action button — blue outline to match btn-special (#2980b9) */
+.card.card-active-special {
+  box-shadow: 0 0 0 2px #2980b9, 0 0 8px rgba(41, 128, 185, 0.45);
+}
+
 .card.dimmed {
   opacity: 0.85;
   filter: grayscale(0.7) brightness(0.78) sepia(0.15);
@@ -808,6 +820,7 @@ body.phase-draw #player-deck-preview {
   border-radius: 8px;
   margin-bottom: 0.5rem;
   text-align: center;
+  overflow: hidden;
 }
 
 #pyramid-zone .zone-label {
@@ -896,6 +909,17 @@ body.phase-draw #player-deck-preview {
   display: inline-block;
   animation: crownPop 0.4s ease-out both;
 }
+
+.done-draw-mark {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #5aad5a;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+  pointer-events: none;
+}
+.done-draw-mark.hidden { display: none; }
 
 /* --- Busted zone: red border + BUSTED stamp overlay --- */
 @keyframes bustDrop {
