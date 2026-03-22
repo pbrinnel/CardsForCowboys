@@ -1723,15 +1723,12 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 .draft-card-grid .card {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  transform-origin: bottom center;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .draft-card-grid .card:hover {
-  transform: scale(1.18) translateY(-8px);
-  box-shadow: 0 12px 32px rgba(43,29,14,0.7);
-  z-index: 10;
-  position: relative;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .draft-card-grid .card.draft-selected {

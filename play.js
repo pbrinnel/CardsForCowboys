@@ -1827,6 +1827,8 @@ function showDraftPackAndWait(pack, round) {
     pack.forEach(card => {
       const el = renderCardEl(card, true);
       // Override renderCardEl's default zoom-on-click so clicking picks the card
+      el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
+      el.addEventListener('mouseleave', () => hideCardHoverPreview());
       el.onclick = (e) => {
         if (picked) return;
         picked = true;
