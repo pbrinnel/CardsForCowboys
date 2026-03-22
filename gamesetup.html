@@ -178,6 +178,40 @@
       margin: 1rem auto;
     }
     .hidden { display: none !important; }
+    .mode-row {
+      margin-bottom: 1.75rem;
+    }
+    .mode-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      cursor: pointer;
+      padding: 0.65rem 0.9rem;
+      background: #f0e2c0;
+      border-radius: 8px;
+      border: 1.5px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .mode-toggle:has(input:checked) {
+      border-color: #5c3a1e;
+    }
+    .mode-toggle input[type="checkbox"] {
+      margin-top: 0.18rem;
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      accent-color: #5c3a1e;
+      cursor: pointer;
+    }
+    .mode-toggle-text {
+      font-size: 0.88rem;
+      color: #2b1d0e;
+      line-height: 1.45;
+      text-align: left;
+    }
+    .mode-toggle-text strong {
+      color: #5c3a1e;
+    }
     .name-input {
       width: 100%;
       padding: 0.55rem 0.8rem;
@@ -203,6 +237,16 @@
 
     <div class="section-label">Your name</div>
     <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
+
+    <div class="section-label">Mode</div>
+    <div class="mode-row">
+      <label class="mode-toggle">
+        <input type="checkbox" id="qs-checkbox" onchange="toggleQuickStart(this.checked)">
+        <span class="mode-toggle-text">
+          <strong>Quick Start</strong> — Skip Act 1. Each player drafts 4 cards from the Act 1 deck, then Act 2 begins.
+        </span>
+      </label>
+    </div>
 
     <div class="section-label">How many players?</div>
     <div class="count-row">
@@ -323,6 +367,8 @@
 
     let playerCount = 2;
     let p2Type = 'ai';
+    let quickStartMode = false;
+    function toggleQuickStart(checked) { quickStartMode = checked; }
     const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
 
     function selectCount(n) {
@@ -351,6 +397,7 @@
 
     function startGame() {
       const myName = document.getElementById('player-name').value.trim() || 'Cowboy';
+      sessionStorage.setItem('quick_start_mode', quickStartMode ? '1' : '0');
       if (playerCount === 2) {
         if (p2Type === 'ai') {
           const [ai] = pickAiPersonalities(1);

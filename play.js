@@ -143,7 +143,7 @@ const MP = (() => {
       const s = (data.slots && data.slots[i]) || {};
       _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
-    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers };
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false };
   }
 
   // Push local player's full draw state (hand + deck + stats) after every draw action
@@ -237,6 +237,42 @@ const MP = (() => {
       }
     });
     unsubscribers.push(unsub);
+  }
+
+  // Push this player's card pick for a given Quick Start draft round
+  async function pushDraftPick(round, cardId) {
+    if (!initialized) return;
+    await fbSet(gameRef(`draftPick/${round}/${mySlot}`), cardId);
+  }
+
+  // Wait for all human opponent slots to pick in a given draft round.
+  // Returns a Promise<{slotIdx: cardId, ...}> resolving when all picks are received.
+  function waitForDraftRoundPicks(round) {
+    if (!initialized) return Promise.resolve({});
+    return new Promise(resolve => {
+      const result = {};
+      const pending = new Set();
+      for (let s = 0; s < _numPlayers; s++) {
+        if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
+        pending.add(s);
+      }
+      if (pending.size === 0) { resolve({}); return; }
+      for (const slotIdx of [...pending]) {
+        let fired = false;
+        let unsub = null;
+        unsub = fbOnValue(gameRef(`draftPick/${round}/${slotIdx}`), (snap) => {
+          const cardId = snap.val();
+          if (cardId && !fired) {
+            fired = true;
+            if (unsub) unsub();
+            result[slotIdx] = cardId;
+            pending.delete(slotIdx);
+            if (pending.size === 0) resolve(result);
+          }
+        });
+        unsubscribers.push(unsub);
+      }
+    });
   }
 
   // Reset all per-round signals at start of each round
@@ -524,6 +560,8 @@ const MP = (() => {
     waitForBuyOrder,
     pushPassCard,
     waitForPassCard,
+    pushDraftPick,
+    waitForDraftRoundPicks,
     pushSpectatorState,
     fetchSpectatorState,
     setLiveStatus,
@@ -1357,7 +1395,7 @@ function updateZoneStates() {
 }
 
 function render() {
-  if (!G || G.phase === 'start') return;
+  if (!G || G.phase === 'start' || G.phase === 'draft') return;
 
   // Always clear hover preview on every render (phase changes, store resets, etc.)
   hideCardHoverPreview();
@@ -1734,6 +1772,161 @@ function mpSyncDraw() {
 
 // --- GAME FLOW ---
 
+// ============================================================
+// QUICK START DRAFT
+// ============================================================
+
+// Seeded shuffle for draft pack dealing — all MP clients derive identical packs from gameSeed
+function seededDraftShuffle(arr, gameSeed) {
+  const a = [...arr];
+  let seed = ((gameSeed ^ 0x5a5a5a5a) >>> 0) || 1;
+  function next() {
+    seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// AI picks the highest-cost card; tiebreak by most cows, then card id for determinism
+function aiDraftPick(pack) {
+  if (!pack || pack.length === 0) return null;
+  return pack.slice().sort((a, b) => {
+    if (b.cost !== a.cost) return b.cost - a.cost;
+    if (b.cows !== a.cows) return b.cows - a.cows;
+    return a.id.localeCompare(b.id);
+  })[0].id;
+}
+
+// Append a line to the draft overlay's running log
+function addDraftLog(text) {
+  const log = document.getElementById('draft-log');
+  if (!log) return;
+  const entry = document.createElement('div');
+  entry.className = 'draft-log-entry';
+  entry.textContent = text;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Show the current pack in the draft overlay; resolves with the card ID the human picks
+function showDraftPackAndWait(pack, round) {
+  return new Promise(resolve => {
+    document.getElementById('draft-round-label').textContent =
+      `Round ${round + 1} of 4 \u2014 ${pack.length} cards to choose from`;
+
+    const grid = document.getElementById('draft-card-grid');
+    const msgEl = document.getElementById('draft-message');
+    grid.innerHTML = '';
+    msgEl.textContent = 'Pick a card to add to your deck.';
+
+    let picked = false;
+    pack.forEach(card => {
+      const el = renderCardEl(card, true);
+      // Override renderCardEl's default zoom-on-click so clicking picks the card
+      el.onclick = (e) => {
+        if (picked) return;
+        picked = true;
+        e.stopPropagation();
+        // Highlight chosen card, dim the rest
+        grid.querySelectorAll('.card').forEach(c => {
+          c.classList.add('draft-unchosen');
+        });
+        el.classList.remove('draft-unchosen');
+        el.classList.add('draft-selected');
+        msgEl.textContent = G.numPlayers > 1 ? 'Waiting for others\u2026' : '';
+        resolve(card.id);
+      };
+      grid.appendChild(el);
+    });
+  });
+}
+
+async function runQuickStartDraft() {
+  G.phase = 'draft';
+
+  const overlay = document.getElementById('draft-overlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('draft-log').innerHTML = '';
+
+  // Deal packs: seeded so all MP clients compute the same initial layout
+  const pool = seededDraftShuffle(getActPool(1), G.gameSeed);
+  const neededCards = G.numPlayers * 6;
+  if (pool.length < neededCards) {
+    console.warn(`[Draft] Act 1 pool has ${pool.length} cards, need ${neededCards}.`);
+  }
+
+  // packs[playerIdx] = cards currently held by that player
+  let packs = [];
+  for (let i = 0; i < G.numPlayers; i++) {
+    const templates = pool.slice(i * 6, i * 6 + 6);
+    packs.push(templates.map(c => createCardInstance(c)));
+  }
+
+  addLog('--- Quick Start Draft begins! ---', 'log-score');
+
+  // 4 draft rounds
+  for (let round = 0; round < 4; round++) {
+    const picks = new Array(G.numPlayers).fill(null);
+
+    // Local human always at index 0
+    const humanPickId = await showDraftPackAndWait(packs[0], round);
+    picks[0] = humanPickId;
+
+    if (MP.active) {
+      await MP.pushDraftPick(round, humanPickId);
+      document.getElementById('draft-message').textContent = 'Waiting for other players\u2026';
+      // Receive human opponent picks from Firebase; compute AI picks locally
+      const opponentPicks = await MP.waitForDraftRoundPicks(round);
+      for (let i = 1; i < G.numPlayers; i++) {
+        const p = G.players[i];
+        picks[i] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packs[i]);
+      }
+    } else {
+      for (let i = 1; i < G.numPlayers; i++) {
+        picks[i] = aiDraftPick(packs[i]);
+      }
+    }
+
+    // Apply picks: add chosen card to player's discard; pass remaining to next player
+    const newPacks = new Array(G.numPlayers);
+    for (let i = 0; i < G.numPlayers; i++) {
+      const pickedId = picks[i];
+      const pickedCard = packs[i].find(c => c.id === pickedId);
+      if (pickedCard) {
+        G.players[i].discard.push(pickedCard);
+        if (i === 0) {
+          const costStr = pickedCard.cost > 0 ? ` (cost $${pickedCard.cost})` : '';
+          addDraftLog(`Round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
+          addLog(`Draft round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
+        }
+      }
+      newPacks[(i + 1) % G.numPlayers] = packs[i].filter(c => c.id !== pickedId);
+    }
+    packs = newPacks;
+
+    if (round < 3) {
+      document.getElementById('draft-message').textContent = 'Passing cards to next player\u2026';
+      await delay(700);
+    }
+  }
+
+  // Done — remaining 2 cards per pack are discarded
+  document.getElementById('draft-round-label').textContent = 'Draft complete!';
+  document.getElementById('draft-card-grid').innerHTML = '';
+  document.getElementById('draft-message').textContent = '';
+  addDraftLog('Remaining cards trashed. Starting Act 2\u2026');
+  addLog('Quick Start Draft complete \u2014 4 cards drafted into each deck.', 'log-score');
+
+  await delay(1600);
+  overlay.classList.add('hidden');
+
+  await setupAct(2);
+}
+
 async function startGame() {
   document.getElementById('gameover-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
@@ -1805,6 +1998,7 @@ async function startGame() {
     G.gameSeed = cfg.gameSeed || 0;
     // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
+    G.quickStartMode = cfg.quickStartMode || false;
   } else {
     // Read player config from sessionStorage (set by game.html for 3P/4P)
     const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
@@ -1818,6 +2012,7 @@ async function startGame() {
     // Generate a random seed for SP mode (used for tiebreaking and seat order)
     G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
     G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
+    G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
   }
 
   // --- Debug scenario injection (SP only) ---
@@ -1850,7 +2045,11 @@ async function startGame() {
     if (AI_SPEC.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
   }
 
-  await setupAct(1);
+  if (G.quickStartMode) {
+    await runQuickStartDraft();
+  } else {
+    await setupAct(1);
+  }
 }
 
 function restartGame() {
