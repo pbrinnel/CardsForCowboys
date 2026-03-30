@@ -1746,7 +1746,7 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   pointer-events: none;
 }
 
-/* Action row: large preview + confirm/cancel buttons side by side */
+/* Action row: large preview + confirm/cancel buttons side by side — always visible */
 .draft-action-row {
   display: flex;
   align-items: center;
@@ -1755,13 +1755,34 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   margin: 1rem 0 0.5rem;
 }
 
-.draft-action-preview {
+/* Placeholder box — fixed size always, populated on card click */
+.draft-action-preview-wrap {
   width: 120px;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  height: 168px;
   flex-shrink: 0;
-  outline: 3px solid #e8c872;
-  outline-offset: 2px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 2px dashed rgba(200,169,110,0.2);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.draft-action-preview-wrap.has-card {
+  border: 3px solid #e8c872;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.draft-action-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.draft-action-preview-wrap.has-card .draft-action-preview {
+  opacity: 1;
 }
 
 .draft-action-buttons {
@@ -1780,11 +1801,16 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
   white-space: nowrap;
 }
 
-.draft-confirm-btn:hover {
+.draft-confirm-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.draft-confirm-btn:not(:disabled):hover {
   background: #f5d98a;
   transform: translateY(-1px);
 }
@@ -1797,10 +1823,15 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   padding: 0.55rem 1.1rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
-.draft-cancel-btn:hover {
+.draft-cancel-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.draft-cancel-btn:not(:disabled):hover {
   color: #e8c872;
   border-color: #e8c872;
 }

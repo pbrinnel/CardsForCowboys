@@ -1818,43 +1818,52 @@ function showDraftPackAndWait(pack, round) {
     document.getElementById('draft-round-label').textContent =
       `Round ${round + 1} of 4 \u2014 ${pack.length} cards to choose from`;
 
-    const grid       = document.getElementById('draft-card-grid');
-    const msgEl      = document.getElementById('draft-message');
-    const actionRow  = document.getElementById('draft-action-row');
-    const previewImg = document.getElementById('draft-action-preview');
-    const confirmBtn = document.getElementById('draft-confirm-btn');
-    const cancelBtn  = document.getElementById('draft-cancel-btn');
+    const grid        = document.getElementById('draft-card-grid');
+    const msgEl       = document.getElementById('draft-message');
+    const previewWrap = document.getElementById('draft-action-preview-wrap');
+    const previewImg  = document.getElementById('draft-action-preview');
+    const confirmBtn  = document.getElementById('draft-confirm-btn');
+    const cancelBtn   = document.getElementById('draft-cancel-btn');
     grid.innerHTML = '';
     msgEl.textContent = 'Pick a card to add to your deck.';
-    actionRow.classList.add('hidden');
+    previewWrap.classList.remove('has-card');
+    previewImg.src = '';
+    confirmBtn.disabled = true;
+    cancelBtn.disabled  = true;
 
     let pendingCard = null;
     let pendingEl   = null;
     let confirmed   = false;
 
-    function showActionRow(card, el) {
+    function selectCard(card, el) {
       if (pendingEl) pendingEl.classList.remove('draft-pending');
       pendingCard = card;
       pendingEl   = el;
       el.classList.add('draft-pending');
       previewImg.src = cardImgSrc(card, true);
+      previewWrap.classList.add('has-card');
+      confirmBtn.disabled = false;
+      cancelBtn.disabled  = false;
       msgEl.textContent = '';
-      actionRow.classList.remove('hidden');
     }
 
-    function hideActionRow() {
+    function clearSelection() {
       if (pendingEl) pendingEl.classList.remove('draft-pending');
       pendingCard = null;
       pendingEl   = null;
+      previewWrap.classList.remove('has-card');
       previewImg.src = '';
+      confirmBtn.disabled = true;
+      cancelBtn.disabled  = true;
       msgEl.textContent = 'Pick a card to add to your deck.';
-      actionRow.classList.add('hidden');
     }
 
     confirmBtn.onclick = () => {
       if (!pendingCard || confirmed) return;
       confirmed = true;
-      actionRow.classList.add('hidden');
+      previewWrap.classList.remove('has-card');
+      confirmBtn.disabled = true;
+      cancelBtn.disabled  = true;
       grid.querySelectorAll('.card').forEach(c => {
         c.classList.remove('draft-pending');
         c.classList.add('draft-unchosen');
@@ -1867,7 +1876,7 @@ function showDraftPackAndWait(pack, round) {
 
     cancelBtn.onclick = () => {
       if (confirmed) return;
-      hideActionRow();
+      clearSelection();
     };
 
     pack.forEach(card => {
@@ -1875,7 +1884,7 @@ function showDraftPackAndWait(pack, round) {
       el.onclick = (e) => {
         if (confirmed) return;
         e.stopPropagation();
-        showActionRow(card, el);
+        selectCard(card, el);
       };
       grid.appendChild(el);
     });
