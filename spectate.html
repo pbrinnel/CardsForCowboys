@@ -190,6 +190,17 @@
       text-align: center;
     }
 
+    /* ── Hover zoom preview ── */
+    #spec-hover-preview {
+      position: fixed;
+      z-index: 200;
+      pointer-events: none;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    }
+    #spec-hover-preview.hidden { display: none; }
+    #spec-hover-preview img { width: 180px; border-radius: 8px; display: block; }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .spec-card { width: 34px; height: 48px; }
@@ -198,6 +209,8 @@
   </style>
 </head>
 <body>
+
+<div id="spec-hover-preview" class="hidden"><img id="spec-hover-img" src="" alt=""></div>
 
 <div id="spec-header">
   <div>
@@ -245,6 +258,26 @@ function cardImgSrc(card, faceUp) {
   return BACK_IMG + (CACTI_BACK[card.cacti] || CACTI_BACK[1]);
 }
 
+const hoverPreview = document.getElementById('spec-hover-preview');
+const hoverImg     = document.getElementById('spec-hover-img');
+
+function showHover(el, src) {
+  hoverImg.src = src;
+  const rect = el.getBoundingClientRect();
+  const pw = 180, ph = 252;
+  let left = rect.right + 10;
+  let top  = rect.top;
+  if (left + pw > window.innerWidth)  left = rect.left - pw - 10;
+  if (top  + ph > window.innerHeight) top  = window.innerHeight - ph - 8;
+  hoverPreview.style.left = left + 'px';
+  hoverPreview.style.top  = top  + 'px';
+  hoverPreview.classList.remove('hidden');
+}
+
+function hideHover() {
+  hoverPreview.classList.add('hidden');
+}
+
 function makeCardEl(card, faceUp, w, h) {
   const div = document.createElement('div');
   div.className = faceUp ? 'spec-card' : 'spec-card face-down';
@@ -253,6 +286,10 @@ function makeCardEl(card, faceUp, w, h) {
   img.src = cardImgSrc(card, faceUp);
   img.alt = faceUp ? card.id : 'card back';
   div.appendChild(img);
+  if (faceUp) {
+    div.addEventListener('mouseenter', () => showHover(div, CARD_IMG + card.img));
+    div.addEventListener('mouseleave', hideHover);
+  }
   return div;
 }
 
@@ -445,6 +482,10 @@ function renderPyramid(state) {
           : BACK_IMG + (CACTI_BACK[slot.card.cacti] || CACTI_BACK[1]);
         img.alt = slot.faceUp ? slot.card.id : 'card back';
         cardDiv.appendChild(img);
+        if (slot.faceUp) {
+          cardDiv.addEventListener('mouseenter', () => showHover(cardDiv, CARD_IMG + slot.card.img));
+          cardDiv.addEventListener('mouseleave', hideHover);
+        }
 
         if (slot.faceUp && slot.card.cost) {
           const cost = document.createElement('span');
