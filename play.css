@@ -1723,12 +1723,6 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 .draft-card-grid .card {
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.draft-card-grid .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .draft-card-grid .card.draft-pending {

@@ -1872,19 +1872,6 @@ function showDraftPackAndWait(pack, round) {
 
     pack.forEach(card => {
       const el = renderCardEl(card, true);
-      el.addEventListener('mouseenter', () => {
-        if (confirmed) return;
-        previewImg.src = cardImgSrc(card, true);
-        actionRow.classList.remove('hidden');
-      });
-      el.addEventListener('mouseleave', () => {
-        if (confirmed) return;
-        if (pendingCard) {
-          previewImg.src = cardImgSrc(pendingCard, true);
-        } else {
-          actionRow.classList.add('hidden');
-        }
-      });
       el.onclick = (e) => {
         if (confirmed) return;
         e.stopPropagation();
