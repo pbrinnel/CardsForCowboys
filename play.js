@@ -1873,15 +1873,6 @@ function showDraftPackAndWait(pack, round) {
 
     pack.forEach(card => {
       const el = renderCardEl(card, true);
-      el.addEventListener('mouseenter', () => {
-        if (confirmed) return;
-        showCardHoverPreview(el, card);
-      });
-      el.addEventListener('mouseleave', () => {
-        if (confirmed) return;
-        // Keep preview visible if this card is the pending selection
-        if (pendingEl !== el) hideCardHoverPreview();
-      });
       el.onclick = (e) => {
         if (confirmed) return;
         e.stopPropagation();

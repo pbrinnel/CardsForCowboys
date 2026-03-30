@@ -1723,19 +1723,23 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 .draft-card-grid .card {
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, z-index 0s;
+  position: relative;
+  z-index: 0;
 }
 
 .draft-card-grid .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: scale(1.18);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  z-index: 10;
 }
 
 .draft-card-grid .card.draft-pending {
   outline: 3px solid #e8c872;
   outline-offset: 2px;
-  transform: translateY(-6px);
+  transform: scale(1.18);
   box-shadow: 0 8px 24px rgba(232,200,114,0.5);
+  z-index: 10;
 }
 
 .draft-card-grid .card.draft-selected {
