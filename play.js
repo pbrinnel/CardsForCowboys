@@ -1818,44 +1818,43 @@ function showDraftPackAndWait(pack, round) {
     document.getElementById('draft-round-label').textContent =
       `Round ${round + 1} of 4 \u2014 ${pack.length} cards to choose from`;
 
-    const grid = document.getElementById('draft-card-grid');
-    const msgEl = document.getElementById('draft-message');
-    const confirmRow = document.getElementById('draft-confirm-row');
+    const grid       = document.getElementById('draft-card-grid');
+    const msgEl      = document.getElementById('draft-message');
+    const actionRow  = document.getElementById('draft-action-row');
+    const previewImg = document.getElementById('draft-action-preview');
     const confirmBtn = document.getElementById('draft-confirm-btn');
-    const cancelBtn = document.getElementById('draft-cancel-btn');
+    const cancelBtn  = document.getElementById('draft-cancel-btn');
     grid.innerHTML = '';
     msgEl.textContent = 'Pick a card to add to your deck.';
-    confirmRow.classList.add('hidden');
+    actionRow.classList.add('hidden');
 
     let pendingCard = null;
-    let pendingEl = null;
-    let confirmed = false;
+    let pendingEl   = null;
+    let confirmed   = false;
 
-    function selectCard(card, el) {
-      // Deselect previous pending card
+    function showActionRow(card, el) {
       if (pendingEl) pendingEl.classList.remove('draft-pending');
       pendingCard = card;
-      pendingEl = el;
+      pendingEl   = el;
       el.classList.add('draft-pending');
+      previewImg.src = cardImgSrc(card, true);
       msgEl.textContent = '';
-      confirmRow.classList.remove('hidden');
+      actionRow.classList.remove('hidden');
     }
 
-    function cancelSelection() {
+    function hideActionRow() {
       if (pendingEl) pendingEl.classList.remove('draft-pending');
       pendingCard = null;
-      pendingEl = null;
-      hideCardHoverPreview();
+      pendingEl   = null;
+      previewImg.src = '';
       msgEl.textContent = 'Pick a card to add to your deck.';
-      confirmRow.classList.add('hidden');
+      actionRow.classList.add('hidden');
     }
 
     confirmBtn.onclick = () => {
       if (!pendingCard || confirmed) return;
       confirmed = true;
-      confirmRow.classList.add('hidden');
-      hideCardHoverPreview();
-      // Highlight chosen card, dim the rest
+      actionRow.classList.add('hidden');
       grid.querySelectorAll('.card').forEach(c => {
         c.classList.remove('draft-pending');
         c.classList.add('draft-unchosen');
@@ -1868,15 +1867,28 @@ function showDraftPackAndWait(pack, round) {
 
     cancelBtn.onclick = () => {
       if (confirmed) return;
-      cancelSelection();
+      hideActionRow();
     };
 
     pack.forEach(card => {
       const el = renderCardEl(card, true);
+      el.addEventListener('mouseenter', () => {
+        if (confirmed) return;
+        previewImg.src = cardImgSrc(card, true);
+        actionRow.classList.remove('hidden');
+      });
+      el.addEventListener('mouseleave', () => {
+        if (confirmed) return;
+        if (pendingCard) {
+          previewImg.src = cardImgSrc(pendingCard, true);
+        } else {
+          actionRow.classList.add('hidden');
+        }
+      });
       el.onclick = (e) => {
         if (confirmed) return;
         e.stopPropagation();
-        selectCard(card, el);
+        showActionRow(card, el);
       };
       grid.appendChild(el);
     });
