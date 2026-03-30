@@ -4,5 +4,6 @@ sim/results/*.csv
 sim/results/*.txt
 ref/Deck Buster Cards - Cards.csv
 node_modules/
+get-emails.js
 package-lock.json
 test-results/
