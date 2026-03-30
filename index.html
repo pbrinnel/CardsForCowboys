@@ -88,6 +88,53 @@
       background: #faf3e0;
       line-height: 1.6;
     }
+    .signup-section {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #d4b896;
+    }
+    .signup-label {
+      font-size: 0.85rem;
+      color: #8b6914;
+      margin-bottom: 0.6rem;
+      font-style: italic;
+    }
+    .signup-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .signup-input {
+      padding: 0.55rem 0.9rem;
+      border: 1px solid #d4b896;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: Georgia, serif;
+      background: #fff;
+      color: #2b1d0e;
+      width: 220px;
+    }
+    .signup-input:focus { outline: 2px solid #8b6914; border-color: transparent; }
+    .signup-btn {
+      padding: 0.55rem 1.2rem;
+      background: none;
+      border: 1px solid #8b6914;
+      border-radius: 6px;
+      color: #8b6914;
+      font-size: 0.95rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .signup-btn:hover { background: #f0e2c0; color: #5c3a1e; }
+    .signup-btn:disabled { opacity: 0.5; cursor: default; }
+    .signup-msg {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      font-style: italic;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -106,11 +153,53 @@
     <a href="gamesetup.html" class="btn">Play Free Demo</a>
     <a href="rules.html" class="btn-ghost">Rules</a>
     <a href="history.html" class="btn-ghost">Game History</a>
+
+    <div class="signup-section">
+      <p class="signup-label">Get notified when we launch on Kickstarter</p>
+      <div class="signup-row">
+        <input id="signup-email" class="signup-input" type="email" placeholder="your@email.com">
+        <button id="signup-btn" class="signup-btn">Notify Me</button>
+      </div>
+      <p id="signup-msg" class="signup-msg"></p>
+    </div>
   </div>
   <footer>
     A Game by Paul &amp; Sara Brinnel &mdash; All Rights Reserved<br>
-    Kickstarter Launching 2027 &nbsp;&bull;&nbsp; Public test version &mdash; everything is subject to change.
+    Kickstarter Launching 2027 &nbsp;&bull;&nbsp; Public Test Version &mdash; Everything is Subject to Change
   </footer>
+
+  <script type="module">
+    import { db } from './firebase-config.js';
+    import { ref, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+    const btn   = document.getElementById('signup-btn');
+    const input = document.getElementById('signup-email');
+    const msg   = document.getElementById('signup-msg');
+
+    btn.addEventListener('click', async () => {
+      const email = input.value.trim();
+      if (!email || !email.includes('@')) {
+        msg.style.color = '#c0392b';
+        msg.textContent = 'Please enter a valid email address.';
+        return;
+      }
+      btn.disabled = true;
+      msg.style.color = '#8b6914';
+      msg.textContent = 'Saving…';
+      try {
+        await push(ref(db, 'emailSignups'), { email, ts: Date.now() });
+        input.value = '';
+        msg.style.color = '#2b7a1e';
+        msg.textContent = "You're on the list — we'll be in touch!";
+      } catch (e) {
+        btn.disabled = false;
+        msg.style.color = '#c0392b';
+        msg.textContent = 'Something went wrong. Please try again.';
+      }
+    });
+
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+  </script>
 
   <script>
     (function() {
