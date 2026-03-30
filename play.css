@@ -1731,6 +1731,13 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
+.draft-card-grid .card.draft-pending {
+  outline: 3px solid #e8c872;
+  outline-offset: 2px;
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(232,200,114,0.5);
+}
+
 .draft-card-grid .card.draft-selected {
   outline: 3px solid #e8c872;
   outline-offset: 2px;
@@ -1750,6 +1757,47 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   font-style: italic;
   font-size: 0.95rem;
   min-height: 1.5em;
+}
+
+.draft-confirm-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.draft-confirm-btn {
+  background: #e8c872;
+  color: #1a0d02;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.draft-confirm-btn:hover {
+  background: #f5d98a;
+  transform: translateY(-1px);
+}
+
+.draft-cancel-btn {
+  background: transparent;
+  color: #c8a96e;
+  border: 1px solid #c8a96e;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.draft-cancel-btn:hover {
+  color: #e8c872;
+  border-color: #e8c872;
 }
 
 .draft-log {

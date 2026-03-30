@@ -1820,27 +1820,72 @@ function showDraftPackAndWait(pack, round) {
 
     const grid = document.getElementById('draft-card-grid');
     const msgEl = document.getElementById('draft-message');
+    const confirmRow = document.getElementById('draft-confirm-row');
+    const confirmBtn = document.getElementById('draft-confirm-btn');
+    const cancelBtn = document.getElementById('draft-cancel-btn');
     grid.innerHTML = '';
     msgEl.textContent = 'Pick a card to add to your deck.';
+    confirmRow.classList.add('hidden');
 
-    let picked = false;
+    let pendingCard = null;
+    let pendingEl = null;
+    let confirmed = false;
+
+    function selectCard(card, el) {
+      // Deselect previous pending card
+      if (pendingEl) pendingEl.classList.remove('draft-pending');
+      pendingCard = card;
+      pendingEl = el;
+      el.classList.add('draft-pending');
+      msgEl.textContent = '';
+      confirmRow.classList.remove('hidden');
+    }
+
+    function cancelSelection() {
+      if (pendingEl) pendingEl.classList.remove('draft-pending');
+      pendingCard = null;
+      pendingEl = null;
+      hideCardHoverPreview();
+      msgEl.textContent = 'Pick a card to add to your deck.';
+      confirmRow.classList.add('hidden');
+    }
+
+    confirmBtn.onclick = () => {
+      if (!pendingCard || confirmed) return;
+      confirmed = true;
+      confirmRow.classList.add('hidden');
+      hideCardHoverPreview();
+      // Highlight chosen card, dim the rest
+      grid.querySelectorAll('.card').forEach(c => {
+        c.classList.remove('draft-pending');
+        c.classList.add('draft-unchosen');
+      });
+      pendingEl.classList.remove('draft-unchosen');
+      pendingEl.classList.add('draft-selected');
+      msgEl.textContent = G.numPlayers > 1 ? 'Waiting for others\u2026' : '';
+      resolve(pendingCard.id);
+    };
+
+    cancelBtn.onclick = () => {
+      if (confirmed) return;
+      cancelSelection();
+    };
+
     pack.forEach(card => {
       const el = renderCardEl(card, true);
-      // Override renderCardEl's default zoom-on-click so clicking picks the card
-      el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
-      el.addEventListener('mouseleave', () => hideCardHoverPreview());
+      el.addEventListener('mouseenter', () => {
+        if (confirmed) return;
+        showCardHoverPreview(el, card);
+      });
+      el.addEventListener('mouseleave', () => {
+        if (confirmed) return;
+        // Keep preview visible if this card is the pending selection
+        if (pendingEl !== el) hideCardHoverPreview();
+      });
       el.onclick = (e) => {
-        if (picked) return;
-        picked = true;
+        if (confirmed) return;
         e.stopPropagation();
-        // Highlight chosen card, dim the rest
-        grid.querySelectorAll('.card').forEach(c => {
-          c.classList.add('draft-unchosen');
-        });
-        el.classList.remove('draft-unchosen');
-        el.classList.add('draft-selected');
-        msgEl.textContent = G.numPlayers > 1 ? 'Waiting for others\u2026' : '';
-        resolve(card.id);
+        selectCard(card, el);
       };
       grid.appendChild(el);
     });
