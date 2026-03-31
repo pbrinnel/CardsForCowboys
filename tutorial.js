@@ -371,9 +371,7 @@ const TUTORIAL = (() => {
     _active = false;
     _done   = true;
     clearSpotlight();
-    // Remove the tutorial backdrop
-    const bd = document.getElementById('tutorial-backdrop');
-    if (bd) bd.classList.add('hidden');
+    document.body.classList.remove('tutorial-active');
     showMessage('You\'re on your own now. Good luck.');
   }
 
@@ -417,9 +415,8 @@ const TUTORIAL = (() => {
       _round   = 0;
       _drawIdx = 0;
 
-      // Show tutorial backdrop
-      const bd = document.getElementById('tutorial-backdrop');
-      if (bd) bd.classList.remove('hidden');
+      // Mark body so CSS can style the tutorial callout
+      document.body.classList.add('tutorial-active');
 
       // Override the pyramid for act 1
       G._tutorialPyramidIds = PYRAMID_IDS;

@@ -1860,37 +1860,56 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 /* ─── Tutorial ─── */
 
 /* Full-screen dark backdrop — sits above normal game content */
+/* Tutorial backdrop — kept hidden always (no dark overlay) */
 .tutorial-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 200;
-  pointer-events: none; /* clicks pass through to spotlighted elements */
+  display: none;
 }
 
-/* Spotlighted element: rises above the backdrop and glows */
+/* ── Tutorial callout banner ─────────────────────────────────────────────── */
+/* The #action-zone message area becomes a styled callout when tutorial is on */
+body.tutorial-active #action-zone {
+  border: 2px solid rgba(232, 200, 114, 0.6);
+  background: #3f2818;
+}
+
+body.tutorial-active #message {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #f0d87a;
+  padding: 0.1rem 0;
+}
+
+/* Small "Tutorial" badge above the message */
+body.tutorial-active #action-zone::before {
+  content: "Tutorial";
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: rgba(232, 200, 114, 0.6);
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+  font-family: Georgia, serif;
+}
+
+/* ── Spotlight ring (no backdrop — ring must stand out on its own) ────────── */
 .tutorial-spotlight {
-  position: relative;
-  z-index: 201;
   border-radius: 6px;
-  outline: 2px solid rgba(232, 200, 114, 0.9);
-  outline-offset: 3px;
-  animation: tutorial-pulse 1.4s ease-in-out infinite;
+  outline: 2px solid #e8c872;
+  outline-offset: 4px;
+  animation: tutorial-pulse 1.2s ease-in-out infinite;
 }
 
 /* Highlighted pyramid card */
 #pyramid .card.tutorial-pyramid-hint {
-  position: relative;
-  z-index: 201;
   outline: 3px solid #e8c872;
-  outline-offset: 2px;
+  outline-offset: 3px;
   border-radius: 4px;
-  animation: tutorial-pulse 1.4s ease-in-out infinite;
+  animation: tutorial-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes tutorial-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 200, 114, 0.0), 0 0 8px 2px rgba(232, 200, 114, 0.5); }
-  50%       { box-shadow: 0 0 0 6px rgba(232, 200, 114, 0.0), 0 0 18px 6px rgba(232, 200, 114, 0.85); }
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(232, 200, 114, 0.4); }
+  50%       { box-shadow: 0 0 20px 5px rgba(232, 200, 114, 0.85); }
 }
 
 /* Flash on blocked action */
@@ -1901,11 +1920,4 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 .tutorial-blocked-flash {
   animation: tutorial-blocked 0.6s ease-in-out;
-}
-
-/* Message area styling during tutorial — subtle left border to distinguish */
-#message:has(~ #actions .tutorial-spotlight),
-.tutorial-active #message {
-  border-left: 3px solid #e8c872;
-  padding-left: 0.6rem;
 }
