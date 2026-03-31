@@ -151,6 +151,7 @@ const MP = (() => {
     if (!initialized) return;
     await fbSet(gameRef(`drawState/${mySlot}`), {
       round: G.roundNumber, // used by receivers to discard stale data from previous rounds
+      act: G.currentAct,   // also checked: round resets to 1 each act, so act is needed too
       hand: player.hand.map(c => c.id),
       deck: player.deck.map(c => c.id),
       discard: player.discard.map(c => c.id), // full discard so host can reconstruct correctly after reshuffles
@@ -516,20 +517,23 @@ const MP = (() => {
     }
   }
 
-  // Host-only: delete the game from Firebase (guests detect deletion via watchForDisband)
+  // Host-only: mark the game as disbanded in Firebase (guests detect via watchForDisband).
+  // Does NOT delete game data — preserved for debugging/history until manual cleanup.
   async function disband() {
     if (!isHost || !initialized) return;
     cleanup();
     clearRejoinInfo();
-    await fbRemove(dbRef);
+    await fbUpdate(dbRef, { status: 'disbanded', disbandedAt: Date.now() });
     window.location.href = 'index.html';
   }
 
-  // Guest-only: watch root game ref; if deleted, host disbanded — go home
+  // Guest-only: watch root game ref; if host disbands (status='disbanded') — go home.
+  // Also handles legacy deletion (snap.val()===null) in case old host clients still fbRemove.
   function watchForDisband() {
     if (isHost || !initialized) return;
     const unsub = fbOnValue(dbRef, (snap) => {
-      if (snap.val() === null) {
+      const val = snap.val();
+      if (val === null || val?.status === 'disbanded') {
         unsub();
         clearRejoinInfo();
         setMessage('The host disbanded the game.');
@@ -2179,6 +2183,7 @@ async function resumeDrawPhase() {
   const findCard = id => CARD_DB[id];
   MP.watchOpponentDrawStates((slotIdx, drawState) => {
     if (drawState.round !== undefined && drawState.round !== G.roundNumber) return;
+    if (drawState.act  !== undefined && drawState.act  !== G.currentAct)   return;
     const playerIdx = MP.slotToPlayer[slotIdx];
     const opp = G.players[playerIdx];
     if (!opp) return;
@@ -2311,9 +2316,12 @@ async function startRound() {
     // Live watch remote human opponents' draw states
     const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
     MP.watchOpponentDrawStates((slotIdx, state) => {
-      // Ignore stale data from a previous round (Firebase fires immediately on subscription
+      // Ignore stale data from a previous round or act (Firebase fires immediately on subscription
       // with whatever value is in the DB, which may still be the busted state from last round).
+      // Both round AND act must match: round resets to 1 at each act boundary, so checking only
+      // round would let stale round-1 busted data from a previous act pass the guard.
       if (state.round !== undefined && state.round !== G.roundNumber) return;
+      if (state.act  !== undefined && state.act  !== G.currentAct)   return;
       const playerIdx = MP.slotToPlayer[slotIdx];
       const opp = G.players[playerIdx];
       opp.hand = (state.hand || []).map(id => {
@@ -2364,6 +2372,7 @@ async function startRound() {
         opp.roundBandits    = doneData.bandits;
         opp.busted          = doneData.busted;
         opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
+        opp.hasExtraBuy     = doneData.hasExtraBuy     || false;
       }
       G.drawsDone[playerIdx] = true;
       checkDrawPhaseComplete();
