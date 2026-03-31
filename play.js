@@ -153,12 +153,13 @@ const MP = (() => {
       round: G.roundNumber, // used by receivers to discard stale data from previous rounds
       hand: player.hand.map(c => c.id),
       deck: player.deck.map(c => c.id),
+      discard: player.discard.map(c => c.id), // full discard so host can reconstruct correctly after reshuffles
       dollars: player.roundDollars,
       cows: player.roundCows,
       bandits: player.roundBandits,
       busted: player.busted,
       stoppedDrawing: player.stoppedDrawing,
-      discardCount: player.discard.length, // current round's discard pile size
+      discardCount: player.discard.length,
     });
   }
 
@@ -2188,6 +2189,13 @@ async function resumeDrawPhase() {
       const tmpl = findCard(id);
       return tmpl ? createCardInstance(tmpl) : null;
     }).filter(Boolean);
+    // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles)
+    if (drawState.discard !== undefined) {
+      opp.discard = drawState.discard.map(id => {
+        const tmpl = findCard(id);
+        return tmpl ? createCardInstance(tmpl) : null;
+      }).filter(Boolean);
+    }
     opp.roundDollars    = drawState.dollars;
     opp.roundCows       = drawState.cows;
     opp.roundBandits    = drawState.bandits;
@@ -2315,6 +2323,13 @@ async function startRound() {
         const tmpl = findCard(id);
         return tmpl ? createCardInstance(tmpl) : null;
       }).filter(Boolean);
+      // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles)
+      if (state.discard !== undefined) {
+        opp.discard = state.discard.map(id => {
+          const tmpl = findCard(id);
+          return tmpl ? createCardInstance(tmpl) : null;
+        }).filter(Boolean);
+      }
       opp.roundDollars      = state.dollars;
       opp.roundCows         = state.cows;
       opp.roundBandits      = state.bandits;
@@ -3856,7 +3871,9 @@ async function startShowdown() {
 
   await delay(700);
 
-  // Score each player one at a time
+  // Score each player one at a time.
+  // Note: special card effects (copy_next, trash_to_use, etc.) do NOT apply here —
+  // the showdown counts only each card's raw printed cows/dollars values.
   for (const { player, allCards, i } of playerData) {
     const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
     const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
@@ -3896,6 +3913,9 @@ async function startShowdown() {
     addLog(`Showdown: ${name} — ${totalCows} cows + ${bonusCows} bonus ($${totalDollars}) = ${player.herd} total.`, 'log-score');
 
     await delay(650);
+
+    // Push live score update so spectators see herds update one by one
+    if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
   }
 
   await delay(300);

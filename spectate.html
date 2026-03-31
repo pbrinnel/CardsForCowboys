@@ -294,7 +294,7 @@ function makeCardEl(card, faceUp, w, h) {
 }
 
 function phaseLabel(s) {
-  const labels = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', gameOver: 'Game Over' };
+  const labels = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', showdown: 'Showdown!', gameOver: 'Game Over' };
   return labels[s] || s || '';
 }
 
@@ -336,6 +336,8 @@ function renderSpectatorState(state) {
     }
   } else if (state.phase === 'draw') {
     statusEl.textContent = 'Draw Phase — players are drawing cards';
+  } else if (state.phase === 'showdown') {
+    statusEl.textContent = 'Showdown! Final deck scores being tallied…';
   } else if (state.phase === 'gameOver') {
     const maxHerd = Math.max(...state.players.map(p => p.herd));
     const winners = state.players.filter(p => p.herd === maxHerd).map(p => p.name);
@@ -389,7 +391,7 @@ function renderPlayers(state) {
     if (state.phase === 'draw' || state.phase === 'buy') {
       const stats = document.createElement('div');
       stats.className = 'spec-round-stats';
-      stats.innerHTML = `<span>$${p.roundDollars}</span><span>🐄 ${p.roundCows}</span><span>⚡ ${p.roundBandits}</span>`;
+      stats.innerHTML = `<span>$${p.roundDollars}</span><span>🐄 ${p.roundCows}</span><span>B ${p.roundBandits}</span>`;
       div.appendChild(stats);
     }
 
