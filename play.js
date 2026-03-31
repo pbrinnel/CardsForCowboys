@@ -2052,19 +2052,29 @@ async function startGame() {
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
     G.quickStartMode = cfg.quickStartMode || false;
   } else {
-    // Read player config from sessionStorage (set by game.html for 3P/4P)
-    const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
-    const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
-    if (storedDefs && storedDefs.length >= 2) {
-      const players = storedDefs.map((d, i) => createPlayer(d.name, d.isHuman, i, d.personality));
-      G = initState(storedCount, players);
+    // Tutorial mode: skip gamesetup.html entirely
+    const isTutorial = new URLSearchParams(location.search).has('tutorial');
+    if (isTutorial) {
+      G = initState(2); // 2-player: human vs AI
+      G.gameSeed = 0;
+      G.seatOrder = [0, 1];
+      G.quickStartMode = false;
+      TUTORIAL.init(G);
     } else {
-      G = initState(2);
+      // Read player config from sessionStorage (set by game.html for 3P/4P)
+      const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
+      const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
+      if (storedDefs && storedDefs.length >= 2) {
+        const players = storedDefs.map((d, i) => createPlayer(d.name, d.isHuman, i, d.personality));
+        G = initState(storedCount, players);
+      } else {
+        G = initState(2);
+      }
+      // Generate a random seed for SP mode (used for tiebreaking and seat order)
+      G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
+      G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
+      G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
     }
-    // Generate a random seed for SP mode (used for tiebreaking and seat order)
-    G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
-    G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
-    G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
   }
 
   // --- Debug scenario injection (SP only) ---
@@ -2283,7 +2293,8 @@ async function setupAct(act) {
       });
     }
   } else {
-    G.pyramid = buildPyramid(act);
+    const pyramidIds = (TUTORIAL.active && act === 1) ? TUTORIAL.getPyramidIds() : null;
+    G.pyramid = buildPyramid(act, pyramidIds);
   }
 
   addLog(`--- Act ${act} begins! ---`, 'log-score');
@@ -2302,6 +2313,8 @@ async function startRound() {
 
   addLog(`Round ${G.roundNumber} - Draw Phase`);
   render();
+
+  if (TUTORIAL.active) TUTORIAL.onRoundStart(G);
 
   if (MP.active) {
     await MP.resetRound();
@@ -2441,8 +2454,8 @@ function startPlayerDraw() {
     return;
   }
 
-  // Deck empty but discard available — show shuffle prompt directly
-  if (player.deck.length === 0 && player.discard.length > 0) {
+  // Deck empty but discard available — show shuffle prompt directly (skip in tutorial: draw queue handles it)
+  if (!TUTORIAL.active && player.deck.length === 0 && player.discard.length > 0) {
     setMessage(`Your deck is empty! Shuffle ${player.discard.length} cards from discard into a new deck?`);
     setActions([
       { text: 'Shuffle Discard', onClick: () => {
@@ -2481,12 +2494,13 @@ function startPlayerDraw() {
 
   buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0, style: 'margin-left: auto' });
 
-  setMessage(getDrawPhaseMessage(player));
+  if (!TUTORIAL.active) setMessage(getDrawPhaseMessage(player));
   setActions(buttons);
   render();
 }
 
 async function playerDraw() {
+  if (TUTORIAL.active && !TUTORIAL.isAllowed('draw')) { TUTORIAL.flashBlocked(); return; }
   if (G.busy) return;
   G.busy = true;
 
@@ -2592,11 +2606,13 @@ async function playerDraw() {
   }
 
   G.busy = false;
+  if (TUTORIAL.active) TUTORIAL.onActionDone('draw');
   startPlayerDraw();
   animateDrawnCard(card);
 }
 
 function playerStopDraw() {
+  if (TUTORIAL.active && !TUTORIAL.isAllowed('stop')) { TUTORIAL.flashBlocked(); return; }
   const player = G.players[0];
   player.stoppedDrawing = true;
 
@@ -2612,6 +2628,7 @@ function playerStopDraw() {
 }
 
 function onPlayerDrawDone() {
+  if (TUTORIAL.active) TUTORIAL.onActionDone('stop');
   G.drawsDone[0] = true;
   clearActions();
   render();
@@ -2919,6 +2936,8 @@ function getBestAffordableCost(ai) {
 // --- ACTIVATE SPECIAL FROM HAND ---
 
 async function activateSpecialCard(player, card) {
+  if (TUTORIAL.active && !TUTORIAL.isAllowed('activate')) { TUTORIAL.flashBlocked(); return; }
+  if (TUTORIAL.active) TUTORIAL.onActionDone('activate');
   switch (card.special) {
     case 'trash_to_use':
       await handleTrashToUse(player, card);
@@ -2969,6 +2988,7 @@ async function handleBust(player) {
   if (player.isHuman) {
     clearActions();
     setMessage(player.name + ' busted!');
+    if (TUTORIAL.active) TUTORIAL.onBust();
   }
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   render();
@@ -3288,7 +3308,11 @@ function onDrawPhaseComplete() {
     return;
   }
 
-  if (winnerIdx === 0) {
+  if (winnerIdx === 0 && TUTORIAL.active) {
+    // Auto-resolve in tutorial — player always goes first
+    addLog(`--- Buy Phase --- You go first ($${G.players[0].roundDollars}).`);
+    startBuyPhase(0, true);
+  } else if (winnerIdx === 0) {
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
     showChooseFirstUI(nonBusted);
   } else if (!G.players[winnerIdx].isHuman) {
@@ -3419,20 +3443,29 @@ function humanBuyTurn(player) {
   const available = getAvailablePyramidCards(G.pyramid);
   const affordable = available.filter(a => a.slot.card.cost <= player.roundDollars);
 
-  if (affordable.length > 0) {
-    setMessage(`Buy Phase - You have $${player.roundDollars}. Click a card to buy or burn.`);
-  } else {
-    setMessage(`Buy Phase - You have $${player.roundDollars} (can't afford any). Click a card to burn.`);
+  if (!TUTORIAL.active) {
+    if (affordable.length > 0) {
+      setMessage(`Buy Phase - You have $${player.roundDollars}. Click a card to buy or burn.`);
+    } else {
+      setMessage(`Buy Phase - You have $${player.roundDollars} (can't afford any). Click a card to burn.`);
+    }
   }
 
   clearActions();
   render();
+  if (TUTORIAL.active) TUTORIAL.onBuyPhaseStart();
 }
 
 function onPyramidCardClick(row, col) {
   if (G.phase !== 'buy') return;
   const playerIdx = G.buyOrder[G.currentBuyerIdx];
   if (playerIdx !== 0) return; // not human's turn
+  if (TUTORIAL.active) {
+    // Allow clicking only the hinted pyramid card
+    const buyOk  = TUTORIAL.isAllowed('buy',  { row, col });
+    const burnOk = TUTORIAL.isAllowed('burn', { row, col });
+    if (!buyOk && !burnOk) { TUTORIAL.flashBlocked(); return; }
+  }
 
   const player = G.players[0];
   const slot = G.pyramid[row][col];
@@ -3462,6 +3495,7 @@ function onPyramidCardClick(row, col) {
 // Human buy: push to Firebase (MP, local human only) then apply locally
 function executeBuy(player, row, col) {
   if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col);
+  if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('buy');
   executeBuyLocal(player, row, col);
 }
 
@@ -3517,6 +3551,7 @@ function advanceOrExtraBuy(player) {
 // Human burn: push to Firebase (MP, local human only) then apply locally
 function executeBurn(player, row, col) {
   if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
+  if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);
 }
 
@@ -3538,6 +3573,14 @@ function executeBurnLocal(player, row, col) {
 // --- AI BUY ---
 
 async function aiBuyTurn(ai) {
+  // During tutorial the AI passes so the pyramid stays fully scripted
+  if (TUTORIAL.active) {
+    setMessage(`${ai.name} passes.`);
+    await delay(800);
+    G.currentBuyerIdx++;
+    processBuyTurn();
+    return;
+  }
   setMessage(`${ai.name} is buying\u2026`);
   clearActions();
   await delay(1000);
@@ -3782,6 +3825,7 @@ async function scoreRound() {
     await endAct();
   } else {
     G.roundNumber++;
+    if (TUTORIAL.active) TUTORIAL.nextRound();
     await startRound();
   }
 }

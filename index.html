@@ -135,6 +135,41 @@
       font-style: italic;
       min-height: 1.2em;
     }
+    .nav-row {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+    .nav-row .btn-ghost {
+      flex: 1;
+      max-width: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-bottom: 0;
+    }
+    .btn-ghost-sm {
+      font-size: 0.8rem;
+      padding: 0.4rem 1rem;
+      color: #a08040;
+      border-color: #e0d0a8;
+    }
+    .btn-ghost-sm:hover { background: #f0e2c0; color: #5c3a1e; }
+    .wip-tag {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-family: Georgia, serif;
+      font-style: normal;
+      background: #d4b896;
+      color: #5c3a1e;
+      border-radius: 3px;
+      padding: 0 4px;
+      letter-spacing: 0.03em;
+      vertical-align: middle;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -151,8 +186,11 @@
     </div>
 
     <a href="gamesetup.html" class="btn">Play Free Demo</a>
-    <a href="rules.html" class="btn-ghost">Rules</a>
-    <a href="history.html" class="btn-ghost">Game History &amp; Top Scores</a>
+    <div class="nav-row">
+      <a href="playgame.html?tutorial=1" class="btn-ghost">Tutorial <span class="wip-tag">WIP</span></a>
+      <a href="rules.html" class="btn-ghost">Rules</a>
+    </div>
+    <a href="history.html" class="btn-ghost btn-ghost-sm">Game History &amp; Top Scores</a>
 
     <div class="signup-section">
       <p class="signup-label">Get notified when we launch on Kickstarter</p>
