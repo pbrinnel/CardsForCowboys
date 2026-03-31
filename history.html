@@ -181,6 +181,41 @@
       white-space: nowrap;
     }
     .btn-review:hover { background: #7a4e2a; }
+
+    /* ── Leaderboard ── */
+    #leaderboard-section {
+      margin-bottom: 2rem;
+    }
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff8ed;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(43,29,14,0.1);
+      font-size: 0.9rem;
+    }
+    .leaderboard-table thead { background: #5c3a1e; color: #faf3e0; }
+    .leaderboard-table th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: normal;
+      letter-spacing: 0.5px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+    .leaderboard-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #e8d8b4;
+    }
+    .leaderboard-table tr:last-child td { border-bottom: none; }
+    .leaderboard-table tr:nth-child(even) td { background: #fdf5e0; }
+    .rank-cell { color: #8b6914; font-size: 0.85rem; width: 2rem; }
+    .rank-gold   { color: #b8860b; font-weight: bold; }
+    .rank-silver { color: #707070; font-weight: bold; }
+    .rank-bronze { color: #8b5e3c; font-weight: bold; }
+    .herd-count  { font-weight: bold; color: #5c3a1e; }
+
     @media (max-width: 600px) {
       th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
       h1 { font-size: 1.5rem; }
@@ -199,6 +234,22 @@
     <div class="live-cards" id="live-cards">
       <div id="live-empty">No games in progress right now.</div>
     </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboard-section">
+    <div class="section-label">Biggest Herds</div>
+    <table class="leaderboard-table" id="leaderboard-table" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Herd</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
   </div>
 
   <!-- Completed games -->
@@ -356,6 +407,53 @@ onValue(q, (snap) => {
   if (rows.length === 0) {
     statusEl.textContent = 'No games recorded yet. Play a game to see history here!';
     return;
+  }
+
+  // ── Leaderboard: biggest herd ever per player (human only) ──
+  const best = new Map(); // name → { herd, ts }
+  for (const r of rows) {
+    for (const p of (r.players || [])) {
+      if (!p.isHuman) continue;
+      const prev = best.get(p.name);
+      if (!prev || p.herd > prev.herd) best.set(p.name, { herd: p.herd, ts: r.ts });
+    }
+  }
+  const leaderboard = [...best.entries()]
+    .map(([name, d]) => ({ name, herd: d.herd, ts: d.ts }))
+    .sort((a, b) => b.herd - a.herd)
+    .slice(0, 10);
+
+  const lbBodyEl  = document.getElementById('leaderboard-body');
+  const lbTableEl = document.getElementById('leaderboard-table');
+  lbBodyEl.innerHTML = '';
+  if (leaderboard.length > 0) {
+    lbTableEl.style.display = 'table';
+    leaderboard.forEach((entry, i) => {
+      const tr = document.createElement('tr');
+      const rank = i + 1;
+
+      const tdRank = document.createElement('td');
+      tdRank.className = 'rank-cell' + (rank === 1 ? ' rank-gold' : rank === 2 ? ' rank-silver' : rank === 3 ? ' rank-bronze' : '');
+      tdRank.textContent = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      tr.appendChild(tdRank);
+
+      const tdName = document.createElement('td');
+      tdName.textContent = entry.name;
+      tr.appendChild(tdName);
+
+      const tdHerd = document.createElement('td');
+      tdHerd.className = 'herd-count';
+      tdHerd.textContent = `${entry.herd} cow${entry.herd !== 1 ? 's' : ''}`;
+      tr.appendChild(tdHerd);
+
+      const tdDate = document.createElement('td');
+      tdDate.style.color = '#8b6914';
+      tdDate.style.fontSize = '0.8rem';
+      tdDate.textContent = entry.ts ? formatDate(entry.ts) : '—';
+      tr.appendChild(tdDate);
+
+      lbBodyEl.appendChild(tr);
+    });
   }
 
   statusEl.style.display = 'none';
