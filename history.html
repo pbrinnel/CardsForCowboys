@@ -169,6 +169,18 @@
     .badge-mp  { background: #dde8f8; color: #1a4fa0; }
     .badge-ai  { background: #e0d8f0; color: #5a3e8a; }
     .tie-label { color: #8b6914; font-style: italic; }
+    .btn-review {
+      display: inline-block;
+      background: #5c3a1e;
+      color: #faf3e0;
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      font-family: Georgia, serif;
+      font-size: 0.78rem;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-review:hover { background: #7a4e2a; }
     @media (max-width: 600px) {
       th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
       h1 { font-size: 1.5rem; }
@@ -199,6 +211,7 @@
         <th>Mode</th>
         <th>Players &amp; Scores</th>
         <th>Winner</th>
+        <th></th>
       </tr>
     </thead>
     <tbody id="history-body"></tbody>
@@ -268,7 +281,7 @@ function renderLive() {
     const phase = g.spectatorState?.phase || '';
     const act   = g.spectatorState?.act   || '';
     const round = g.spectatorState?.round || '';
-    const phaseLabel = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', gameOver: 'Game Over' }[phase] || '';
+    const phaseLabel = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', showdown: 'Showdown!', gameOver: 'Game Over' }[phase] || '';
 
     const card = document.createElement('div');
     card.className = 'live-card';
@@ -388,6 +401,18 @@ onValue(q, (snap) => {
       tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
     }
     tr.appendChild(tdWinner);
+
+    // Review link (MP games with a saved game code)
+    const tdReview = document.createElement('td');
+    if (r.gameCode && r.mode === 'mp') {
+      const link = document.createElement('a');
+      link.className = 'btn-review';
+      link.href = `spectate.html?code=${r.gameCode}`;
+      link.textContent = 'Review';
+      link.target = '_blank';
+      tdReview.appendChild(link);
+    }
+    tr.appendChild(tdReview);
 
     bodyEl.appendChild(tr);
   }

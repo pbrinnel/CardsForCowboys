@@ -631,6 +631,7 @@ function buildSpectatorState() {
       faceUp: slot.faceUp,
       removed: slot.removed,
     }))),
+    showdownTallies: G.showdownTallies || null,
     players: G.players.map(p => ({
       slotIdx: p.slotIdx,
       name: p.name,
@@ -3871,6 +3872,8 @@ async function startShowdown() {
 
   await delay(700);
 
+  G.showdownTallies = [];
+
   // Score each player one at a time.
   // Note: special card effects (copy_next, trash_to_use, etc.) do NOT apply here —
   // the showdown counts only each card's raw printed cows/dollars values.
@@ -3883,6 +3886,8 @@ async function startShowdown() {
     const oldHerd  = player.herd;
     player.herd    = Math.max(0, player.herd + newCows);
     const gained   = player.herd - oldHerd;
+
+    G.showdownTallies.push({ name: player.name, totalCows, totalDollars, bonusCows, gained, finalHerd: player.herd });
 
     // Build tally display
     const tallyEl = document.getElementById(`showdown-tally-${i}`);
@@ -3954,6 +3959,9 @@ function gameOver() {
   const logParts = G.players.map(p => `${p === me ? 'You' : p.name}: ${p.herd}`).join(', ');
   addLog(`Game Over! ${logParts}.`, 'log-score');
 
+  // Capture before AI_SPEC.finish() nulls _code
+  const gameCode = MP.active ? (sessionStorage.getItem('mp_code') || null) : (AI_SPEC.code || null);
+
   if (MP.active) {
     MP.pushSpectatorState(); // spectators see final game-over state
     if (MP.isHost) MP.setLiveStatus('finished'); // remove from live-games list
@@ -3980,6 +3988,7 @@ function gameOver() {
       winner: winnerName,
       actsCompleted: G.currentAct,
       totalRounds: G.roundNumber,
+      gameCode,
     });
   }
 }

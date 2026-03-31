@@ -201,10 +201,61 @@
     #spec-hover-preview.hidden { display: none; }
     #spec-hover-preview img { width: 180px; border-radius: 8px; display: block; }
 
+    /* ── Showdown view ── */
+    #spec-showdown { display: none; margin-bottom: 1rem; }
+    #spec-showdown.active { display: block; }
+    .showdown-header {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #5c3a1e;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .showdown-player-block {
+      background: #fff8ed;
+      border: 2px solid #d4b896;
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+    .showdown-player-block.winner { border-color: #5c3a1e; background: #fdf5e0; }
+    .showdown-player-block .sdp-name {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #5c3a1e;
+      margin-bottom: 0.15rem;
+    }
+    .showdown-player-block .sdp-herd {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #2b7a1e;
+      margin-bottom: 0.3rem;
+    }
+    .showdown-player-block .sdp-tally {
+      font-size: 0.78rem;
+      color: #8b6914;
+      font-style: italic;
+      margin-bottom: 0.5rem;
+    }
+    .showdown-card-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+    .showdown-card {
+      width: 55px;
+      height: 77px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #bbb;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .showdown-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .spec-card { width: 34px; height: 48px; }
       .spec-pyr-slot, .spec-pyr-card { width: 42px; height: 59px; }
+      .showdown-card { width: 42px; height: 59px; }
     }
   </style>
 </head>
@@ -226,6 +277,7 @@
 
   <div id="spec-game" style="display:none">
     <div id="spec-status-bar">Spectating</div>
+    <div id="spec-showdown"></div>
     <div id="spec-players"></div>
     <div id="spec-pyramid-zone">
       <div class="zone-label">Store Pyramid</div>
@@ -298,6 +350,71 @@ function phaseLabel(s) {
   return labels[s] || s || '';
 }
 
+function cardImgFromId(cardId) {
+  return CARD_IMG + 'Cards_' + cardId.split('_')[1] + '.jpg';
+}
+
+function renderShowdown(state) {
+  const el = document.getElementById('spec-showdown');
+  el.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'showdown-header';
+  header.textContent = state.phase === 'showdown' ? 'Showdown' : 'Final Showdown';
+  el.appendChild(header);
+
+  const maxHerd = Math.max(...state.players.map(p => p.herd));
+
+  state.players.forEach((p, i) => {
+    const tally = state.showdownTallies ? state.showdownTallies[i] : null;
+    const allCards = [...(p.deck || []), ...(p.hand || []), ...(p.discard || [])];
+
+    const block = document.createElement('div');
+    block.className = 'showdown-player-block' + (p.herd === maxHerd ? ' winner' : '');
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sdp-name';
+    nameEl.textContent = p.name + (p.herd === maxHerd ? ' — Winner' : '');
+    block.appendChild(nameEl);
+
+    const herdEl = document.createElement('div');
+    herdEl.className = 'sdp-herd';
+    herdEl.textContent = `🐄 ${p.herd}`;
+    block.appendChild(herdEl);
+
+    if (tally) {
+      const tallyEl = document.createElement('div');
+      tallyEl.className = 'sdp-tally';
+      const parts = [];
+      if (tally.totalCows !== 0) parts.push(`${tally.totalCows > 0 ? '+' : ''}${tally.totalCows} cows from cards`);
+      if (tally.bonusCows > 0) parts.push(`+${tally.bonusCows} bonus ($${tally.totalDollars})`);
+      const formula = parts.length ? parts.join(' + ') : 'No scoring cards';
+      tallyEl.textContent = `${formula} = ${tally.gained >= 0 ? '+' : ''}${tally.gained} from showdown`;
+      block.appendChild(tallyEl);
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'showdown-card-grid';
+    allCards.forEach(card => {
+      if (!card || !card.id) return;
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'showdown-card';
+      const img = document.createElement('img');
+      img.src = cardImgFromId(card.id);
+      img.alt = card.id;
+      cardDiv.appendChild(img);
+      cardDiv.addEventListener('mouseenter', () => showHover(cardDiv, cardImgFromId(card.id)));
+      cardDiv.addEventListener('mouseleave', hideHover);
+      grid.appendChild(cardDiv);
+    });
+    block.appendChild(grid);
+
+    el.appendChild(block);
+  });
+
+  el.classList.add('active');
+}
+
 function startSpectating(gameCode, isAI) {
   // AI games write to liveGames/{code}; MP games write to games/{code}
   const basePath = isAI ? `liveGames/${gameCode}` : `games/${gameCode}`;
@@ -348,11 +465,17 @@ function renderSpectatorState(state) {
     statusEl.textContent = phaseLabel(state.phase);
   }
 
-  // Players
-  renderPlayers(state);
+  const isShowdownPhase = state.phase === 'showdown' || state.phase === 'gameOver';
+  document.getElementById('spec-showdown').classList.toggle('active', false); // reset
+  document.getElementById('spec-players').style.display = isShowdownPhase ? 'none' : '';
+  document.getElementById('spec-pyramid-zone').style.display = isShowdownPhase ? 'none' : '';
 
-  // Pyramid
-  renderPyramid(state);
+  if (isShowdownPhase) {
+    renderShowdown(state);
+  } else {
+    renderPlayers(state);
+    renderPyramid(state);
+  }
 }
 
 function renderPlayers(state) {
