@@ -1887,6 +1887,25 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   transform: translateX(-50%);
 }
 
+/* Shrink deck modal to leave room for the tutorial popup below it */
+body:has(.tutorial-popup--below) #deck-modal.overlay {
+  align-items: flex-start;
+  padding-top: 0.5rem;
+}
+
+body:has(.tutorial-popup--below) .deck-content {
+  max-height: calc(100vh - 260px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body:has(.tutorial-popup--below) #deck-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 #tutorial-popup-text {
   color: #f0d87a;
   font-size: 1rem;
