@@ -1960,7 +1960,7 @@ body.tutorial-active #action-zone::before {
   border-radius: 4px;
 }
 
-#deck-modal-body .card:not(.tut-deck-highlight) {
+#deck-modal-body:has(.tut-deck-highlight) .card:not(.tut-deck-highlight) {
   opacity: 0.35;
   transition: opacity 0.2s;
 }
