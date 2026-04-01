@@ -247,13 +247,18 @@ const TUTORIAL = (() => {
     const textEl = document.getElementById('tutorial-popup-text');
     if (!popup || !textEl) return;
     textEl.innerHTML = formatMsg(text);
+    const deckOpen = !document.getElementById('deck-modal')?.classList.contains('hidden');
+    popup.classList.toggle('tutorial-popup--below', deckOpen);
     popup.classList.remove('hidden');
     _popupVisible = true;
   }
 
   function hidePopup() {
     const popup = document.getElementById('tutorial-popup');
-    if (popup) popup.classList.add('hidden');
+    if (popup) {
+      popup.classList.add('hidden');
+      popup.classList.remove('tutorial-popup--below');
+    }
     _popupVisible = false;
   }
 

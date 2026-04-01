@@ -1880,6 +1880,13 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   display: none;
 }
 
+/* When deck modal is open, pin popup to bottom so it doesn't obscure deck contents */
+.tutorial-popup--below {
+  top: auto;
+  bottom: 1rem;
+  transform: translateX(-50%);
+}
+
 #tutorial-popup-text {
   color: #f0d87a;
   font-size: 1rem;
