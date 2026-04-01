@@ -292,6 +292,7 @@ const TUTORIAL = (() => {
     _done   = true;
     clearSpotlight();
     document.body.classList.remove('tutorial-active');
+    document.removeEventListener('keydown', _onKeyDown);
     showMessage('You\'re on your own now. Good luck.');
   }
 
@@ -305,12 +306,48 @@ const TUTORIAL = (() => {
         .concat(typeof STORE_CARDS !== 'undefined' ? STORE_CARDS : [])
         .find(t => t.id === id);
       if (!tmpl) { console.warn('Tutorial: unknown card id', id); return null; }
-      return createCardInstance(tmpl);
+      const card = createCardInstance(tmpl);
+      card._tutorialTemp = true; // not part of the player's permanent deck
+      return card;
     }).filter(Boolean);
 
     const player = G.players[0];
     player.discard = [...player.deck, ...player.discard];
     player.deck    = cards;
+  }
+
+  // ─── Popup dismiss (internal, shared by button click and Enter key) ──────────
+
+  function _dismissPopup() {
+    if (!_active) return;
+    const step = currentStep();
+    if (!step) return;
+
+    if (step.required.type === 'info') {
+      hidePopup();
+      clearSpotlight();
+      if (step.id === 'done') {
+        complete();
+      } else {
+        advance();
+      }
+    } else {
+      hidePopup();
+      clearSpotlight();
+      if (step.hint) showMessage(step.hint);
+      if (step.spotlight) spotlightEl(step.spotlight);
+      if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
+    }
+  }
+
+  // ─── Enter key shortcut ───────────────────────────────────────────────────────
+
+  function _onKeyDown(e) {
+    if (!_active || _done) return;
+    if (e.key === 'Enter' && _popupVisible) {
+      e.preventDefault();
+      _dismissPopup();
+    }
   }
 
   // ─── Public API ──────────────────────────────────────────────────────────────
@@ -330,6 +367,7 @@ const TUTORIAL = (() => {
       _popupDismissed = false;
 
       document.body.classList.add('tutorial-active');
+      document.addEventListener('keydown', _onKeyDown);
       G._tutorialMode = true;
     },
 
@@ -345,35 +383,21 @@ const TUTORIAL = (() => {
     },
 
     // Called from scoreRound(). Synchronous — no Promise blocking needed.
-    nextRound() {
+    nextRound(G) {
       if (_done) return;
+      // Purge scripted draw cards so they don't accumulate in the player's deck across rounds.
+      if (G && G.players && G.players[0]) {
+        const p = G.players[0];
+        const purge = arr => arr.filter(c => !c._tutorialTemp);
+        p.deck    = purge(p.deck);
+        p.discard = purge(p.discard);
+        p.hand    = purge(p.hand);
+      }
       _round++;
     },
 
     // Called when the "Got it →" button is clicked.
-    onPopupDismiss() {
-      if (!_active) return;
-      const step = currentStep();
-      if (!step) return;
-
-      if (step.required.type === 'info') {
-        // Info step: Got it advances immediately
-        hidePopup();
-        clearSpotlight();
-        if (step.id === 'done') {
-          complete();
-        } else {
-          advance();
-        }
-      } else {
-        // Action step: Got it closes popup, unlocks the action
-        hidePopup();
-        clearSpotlight();
-        if (step.hint) showMessage(step.hint);
-        if (step.spotlight) spotlightEl(step.spotlight);
-        if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
-      }
-    },
+    onPopupDismiss() { _dismissPopup(); },
 
     // Returns true if the given action is currently permitted.
     isAllowed(type, params) {

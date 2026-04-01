@@ -2053,7 +2053,9 @@ async function startGame() {
     G.quickStartMode = cfg.quickStartMode || false;
   } else {
     // Tutorial mode: skip gamesetup.html entirely
-    const isTutorial = new URLSearchParams(location.search).has('tutorial');
+    const isTutorial = new URLSearchParams(location.search).has('tutorial') ||
+                       sessionStorage.getItem('tutorial_mode') === '1';
+    sessionStorage.removeItem('tutorial_mode');
     if (isTutorial) {
       G = initState(2); // 2-player: human vs AI
       G.gameSeed = 0;
@@ -3825,7 +3827,7 @@ async function scoreRound() {
     await endAct();
   } else {
     G.roundNumber++;
-    if (TUTORIAL.active) TUTORIAL.nextRound();
+    if (TUTORIAL.active) TUTORIAL.nextRound(G);
     await startRound();
   }
 }
@@ -4084,7 +4086,8 @@ function closeRules() {
 function showDeck() {
   if (!G) return;
   const player = G.players[0];
-  const allCards = [...player.deck, ...player.discard, ...player.hand];
+  const allCards = [...player.deck, ...player.discard, ...player.hand]
+    .filter(c => !c._tutorialTemp);
 
   const body = document.getElementById('deck-modal-body');
   body.innerHTML = '';
