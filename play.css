@@ -1904,7 +1904,30 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   background: rgba(232, 200, 114, 0.25);
 }
 
-/* ── Action-zone hint (shown after popup dismissed for action steps) ──────── */
+.tutorial-popup-enter {
+  color: rgba(240, 216, 122, 0.4);
+  font-size: 0.72rem;
+  margin: 0.35rem 0 0;
+  letter-spacing: 0.03em;
+}
+
+/* ── Inline symbol images inside popup text ──────────────────────────────── */
+.tut-sym {
+  height: 1.15em;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 0.05em;
+}
+
+.tut-back {
+  height: 1.5em;
+  vertical-align: middle;
+  border-radius: 2px;
+  display: inline-block;
+  margin: 0 0.05em;
+}
+
+/* ── Action-zone tutorial label ──────────────────────────────────────────── */
 body.tutorial-active #action-zone {
   border: 2px solid rgba(232, 200, 114, 0.45);
 }

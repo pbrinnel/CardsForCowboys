@@ -31,58 +31,71 @@ const TUTORIAL = (() => {
     ['starter_91', 'starter_92', 'starter_93'],
   ];
 
+  // ─── Message formatter ────────────────────────────────────────────────────────
+  // Used for popup messages (info steps) only.
+  // Tags are replaced with small inline images matching the rules page assets.
+  function formatMsg(text) {
+    const sym = (src, alt) =>
+      `<img class="tut-sym" src="assets/symbols/${src}" alt="${alt}">`;
+    const back = (src, alt) =>
+      `<img class="tut-back" src="assets/backs/${src}" alt="${alt}">`;
+
+    return text
+      .replace(/\[bandit\]/g,  sym('1 Bandit-01.png',         'Bandit'))
+      .replace(/\[cow\]/g,     sym('1 Cow-01.png',            'Cow'))
+      .replace(/\[dollar\]/g,  sym('$1-01.png',               '$'))
+      .replace(/\[river\]/g,   back('Blue Inline-01.jpg',     'River'))
+      .replace(/\[cactus\]/g,  back('Yellow Inline-01.jpg',   'Cactus'))
+      .replace(/\[rattle\]/g,  back('Red Inline-01.jpg',      'Rattlesnake'));
+  }
+
   // ─── Script ──────────────────────────────────────────────────────────────────
   // Each step:
-  //   message   – shown in the popup
-  //   required  – { type } the action that advances this step
-  //               'info'       → Got it in popup advances immediately
-  //               'draw'       → Got it closes popup; player clicks Draw
-  //               'stop'       → Got it closes popup; player clicks Stop
-  //               'buy'        → Got it closes popup; player clicks pyramid card + Buy
-  //               'open_deck'  → Got it closes popup; player clicks My Deck
-  //               'close_deck' → Got it closes popup; player clicks × on deck modal
-  //   spotlight  – CSS selector to ring after popup dismissed (action steps only)
-  //   hint       – short text shown in #message after popup dismissed (action steps)
-  //   pyramidHint – { row, col } pyramid card to ring (buy steps)
+  //   message   – popup text (info steps) or message-area text (action steps)
+  //   required  – { type } the action that satisfies this step
+  //               'info'       → popup shown; Got it / Enter advances immediately
+  //               'draw'       → message shown in action zone; player clicks Draw
+  //               'stop'       → message shown; player clicks Stop
+  //               'buy'        → message shown; player clicks pyramid card + Buy
+  //               'open_deck'  → message shown; player clicks My Deck
+  //               'close_deck' → message shown; player closes deck modal
+  //   spotlight  – CSS selector to ring (action steps only)
+  //   pyramidHint – { row, col } pyramid card to highlight (buy steps)
   const SCRIPT = [
 
     // ── Round 1: accumulate then forced bust ──
 
     {
       id: 'r1_draw1',
-      message: 'Each round you draw cards from your deck to earn resources. Draw your first card.',
-      hint: 'Draw a card.',
+      message: 'Draw your first card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r1_draw2',
-      // shown after drawing starter_61 ($2, safe Rattlesnake)
-      message: 'A Rattlesnake card — red back. This one paid $2 with no risk. Draw again.',
-      hint: 'Draw again.',
+      // after drawing starter_61 ($2, safe Rattlesnake)
+      message: 'Rattlesnake — $2, no Bandits. Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r1_draw3',
-      // shown after drawing starter_33 ($1 + 1 cow, Cactus)
-      message: 'A Cactus card — yellow back. $1 and a Cow. Cows add permanently to your Herd (the counter at bottom left). Draw again.',
-      hint: 'Draw again.',
+      // after drawing starter_33 ($1 + 1 cow, Cactus)
+      message: 'Cactus — $1 and a Cow. Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r1_draw4_warn',
-      // shown after drawing starter_62 (1 bandit). next draw = starter_64 (2 bandits) = bust.
-      message: 'A Rattlesnake with 1 Bandit. You have $3 and 2 Cows at risk — one more draw could bust you. Draw anyway.',
-      hint: 'Draw again.',
+      // after drawing starter_62 (1 bandit). next draw = starter_64 (2 bandits) = bust.
+      message: '1 Bandit — $3 and 2 Cows at risk. Draw anyway.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     // bust fires automatically after draw 4 (starter_64 = 2 bandits → total ≥ 3)
     {
       id: 'r1_bust_explain',
-      message: '3 Bandits — BUSTED.\n\nAll $3 and 2 Cows you earned this round are wiped out. No buy phase, no score. That\'s the bust penalty.',
+      message: '3 [bandit] — BUSTED.\n\nAll the $3 and 2 [cow] you earned this round are wiped out. No buy phase, no score. That\'s the bust penalty.',
       required: { type: 'info' },
     },
 
@@ -90,102 +103,92 @@ const TUTORIAL = (() => {
 
     {
       id: 'r2_draw1',
-      message: 'Draw.',
-      hint: 'Draw a card.',
+      message: 'Draw a card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r2_draw2',
-      // shown after drawing starter_92 ($1, River)
-      message: 'Draw again.',
-      hint: 'Draw again.',
+      // after drawing starter_92 ($1, River)
+      message: 'River — safe. Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r2_draw3_warn',
-      // shown after drawing starter_62 (1 bandit). next draw = starter_64 = bust.
-      message: '1 Bandit. Getting risky — but draw once more.',
-      hint: 'Draw again.',
+      // after drawing starter_62 (1 bandit). next draw = starter_64 = bust.
+      message: '1 Bandit. Draw once more.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     // bust fires automatically (starter_64 = 2 bandits → total ≥ 3)
     {
       id: 'r2_bust_explain',
-      message: 'That Rattlesnake carried 2 Bandits at once — 3 total, instant BUST.\n\nYou can\'t see bandit counts from the card back. This is why 2 bandits is almost always the stopping point.',
+      message: 'That [rattle] card carried 2 [bandit] at once — 3 total, instant BUST.\n\nYou can\'t see Bandit counts from the card back. Stopping at 2 [bandit] is almost always the right call.',
       required: { type: 'info' },
     },
 
-    // ── Deck Lesson (runs at start of Round 3's draw phase, gates the Draw button) ──
+    // ── Deck Lesson (at start of Round 3's draw phase) ──
 
     {
       id: 'deck_open',
-      message: 'Before drawing, open "My Deck" to understand what you\'re working with.',
-      hint: 'Click "My Deck" above.',
+      message: 'Open "My Deck" to see what you\'re working with.',
       spotlight: '#btn-show-deck',
       required: { type: 'open_deck' },
     },
     {
       id: 'deck_rivers',
-      message: '4 River cards (blue back) — always $1, never a Bandit. Completely safe to draw.',
+      message: '4 [river] River cards — always $1, never a [bandit]. Completely safe to draw.',
       required: { type: 'info' },
     },
     {
       id: 'deck_cacti',
-      message: '2 Cactus cards (yellow back) — mixed. One gives $1 and a Cow. One carries 1 Bandit with no reward.',
+      message: '2 [cactus] Cactus cards — mixed. One gives $1 and a [cow]. One carries a [bandit] with no reward.',
       required: { type: 'info' },
     },
     {
       id: 'deck_rattles',
-      message: '4 Rattlesnake cards (red back) — the risky ones. One pays $2 safely. Two carry 1 Bandit. One carries 2 Bandits at once — as you just experienced.',
+      message: '4 [rattle] Rattlesnake cards — the risky ones. One pays $2 safely. Two carry 1 [bandit]. One carries 2 [bandit] — as you just saw.\n\n4 safe cards, 6 mixed. Keep that in mind every time you consider drawing again.',
       required: { type: 'info' },
     },
     {
       id: 'deck_close',
-      message: '4 safe cards, 6 mixed. Keep that in mind every time you consider drawing again.\n\nClose the deck.',
-      hint: 'Click × to close the deck.',
+      message: 'Close the deck.',
       required: { type: 'close_deck' },
     },
 
-    // ── Round 3: safe draw then stop ──
+    // ── Round 3: safe draws then stop and buy ──
 
     {
       id: 'r3_draw1',
-      message: 'Draw.',
-      hint: 'Draw a card.',
+      message: 'Draw a card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r3_draw2',
-      // shown after drawing starter_91 ($1, River)
-      message: 'A River — safe. Draw again.',
-      hint: 'Draw again.',
+      // after drawing starter_91 ($1, River)
+      message: 'River — safe. Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r3_draw3',
-      // shown after drawing starter_92 ($1, River)
+      // after drawing starter_92 ($1, River)
       message: 'Another River. Draw once more.',
-      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r3_stop',
-      // shown after drawing starter_93 ($1, River). next card would be a Rattlesnake.
-      message: 'You have $3 and 0 Bandits. The next card in your deck is a Rattlesnake. You have enough to buy something — stop here.',
-      hint: 'Stop drawing.',
+      // after drawing starter_93 ($1, River). next card would be a Rattlesnake.
+      message: '$3, 0 Bandits — stop here.',
       spotlight: '#actions',
       required: { type: 'stop' },
     },
     {
       id: 'r3_buy',
-      message: 'Buy Phase. Buy this Cow card — Cows are what wins at Showdown.',
-      hint: 'Click the highlighted store card, then confirm.',
+      message: 'Buy the highlighted Cow card.',
       required: { type: 'buy', row: 4, col: 1 }, // card_11 (1 cow, cost $2)
       pyramidHint: { row: 4, col: 1 },
     },
@@ -200,12 +203,11 @@ const TUTORIAL = (() => {
   ];
 
   // ─── State ────────────────────────────────────────────────────────────────────
-  let _active          = false;
-  let _done            = false;
-  let _stepIdx         = 0;
-  let _round           = 0;
-  let _popupVisible    = false; // true while popup is on screen (gates all actions)
-  let _popupDismissed  = false; // true once popup for current step has been dismissed
+  let _active       = false;
+  let _done         = false;
+  let _stepIdx      = 0;
+  let _round        = 0;
+  let _popupVisible = false; // true while a popup is on screen (gates all actions)
 
   // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -216,28 +218,25 @@ const TUTORIAL = (() => {
   function applyStep() {
     const step = currentStep();
     if (!step) return;
+    clearSpotlight();
 
-    // Don't re-show popup if player already dismissed it for this step
-    // (onRoundStart can call applyStep() mid-deck-lesson, etc.)
-    if (_popupDismissed) {
-      // Just re-apply spotlight/hint in case it was lost
-      clearSpotlight();
+    if (step.required.type === 'info') {
+      // Info step: show popup — player must dismiss before anything else
+      showPopup(step.message);
+    } else {
+      // Action step: show hint in message area and spotlight the target
+      if (step.message) showMessage(step.message);
       if (step.spotlight) spotlightEl(step.spotlight);
       if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
-      return;
     }
-
-    showPopup(step.message);
   }
 
   function advance() {
     _stepIdx++;
-    _popupDismissed = false;
-    _popupVisible   = false;
+    _popupVisible = false;
 
     const step = currentStep();
     if (!step) { complete(); return; }
-    if (step.id === 'done') { applyStep(); return; } // show done popup then complete on dismiss
     applyStep();
   }
 
@@ -247,7 +246,7 @@ const TUTORIAL = (() => {
     const popup = document.getElementById('tutorial-popup');
     const textEl = document.getElementById('tutorial-popup-text');
     if (!popup || !textEl) return;
-    textEl.textContent = text;
+    textEl.innerHTML = formatMsg(text);
     popup.classList.remove('hidden');
     _popupVisible = true;
   }
@@ -255,8 +254,7 @@ const TUTORIAL = (() => {
   function hidePopup() {
     const popup = document.getElementById('tutorial-popup');
     if (popup) popup.classList.add('hidden');
-    _popupVisible  = false;
-    _popupDismissed = true;
+    _popupVisible = false;
   }
 
   // ─── Spotlight helpers ────────────────────────────────────────────────────────
@@ -316,27 +314,19 @@ const TUTORIAL = (() => {
     player.deck    = cards;
   }
 
-  // ─── Popup dismiss (internal, shared by button click and Enter key) ──────────
+  // ─── Popup dismiss (internal — shared by button click and Enter key) ──────────
 
   function _dismissPopup() {
     if (!_active) return;
     const step = currentStep();
-    if (!step) return;
+    if (!step || step.required.type !== 'info') return;
 
-    if (step.required.type === 'info') {
-      hidePopup();
-      clearSpotlight();
-      if (step.id === 'done') {
-        complete();
-      } else {
-        advance();
-      }
+    hidePopup();
+    clearSpotlight();
+    if (step.id === 'done') {
+      complete();
     } else {
-      hidePopup();
-      clearSpotlight();
-      if (step.hint) showMessage(step.hint);
-      if (step.spotlight) spotlightEl(step.spotlight);
-      if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
+      advance();
     }
   }
 
@@ -359,12 +349,11 @@ const TUTORIAL = (() => {
 
     // Called from startGame() when ?tutorial=1 is detected.
     init(G) {
-      _active         = true;
-      _done           = false;
-      _stepIdx        = 0;
-      _round          = 0;
-      _popupVisible   = false;
-      _popupDismissed = false;
+      _active       = true;
+      _done         = false;
+      _stepIdx      = 0;
+      _round        = 0;
+      _popupVisible = false;
 
       document.body.classList.add('tutorial-active');
       document.addEventListener('keydown', _onKeyDown);
@@ -382,10 +371,10 @@ const TUTORIAL = (() => {
       applyStep();
     },
 
-    // Called from scoreRound(). Synchronous — no Promise blocking needed.
+    // Called from scoreRound(). Purges temp draw cards and advances the round counter.
     nextRound(G) {
       if (_done) return;
-      // Purge scripted draw cards so they don't accumulate in the player's deck across rounds.
+      // Purge scripted draw cards so they don't accumulate in the player's permanent deck.
       if (G && G.players && G.players[0]) {
         const p = G.players[0];
         const purge = arr => arr.filter(c => !c._tutorialTemp);
@@ -420,17 +409,13 @@ const TUTORIAL = (() => {
       if (step.required.type === type) advance();
     },
 
-    // Called when player's buy phase begins (humanBuyTurn).
+    // Called when the human player's buy phase begins.
     onBuyPhaseStart() {
       if (_done) return;
       const step = currentStep();
       if (!step) return;
       if (step.required.type === 'buy' || step.required.type === 'burn') {
-        if (!_popupDismissed) {
-          applyStep();
-        } else {
-          highlightPyramidCard(step.pyramidHint?.row, step.pyramidHint?.col);
-        }
+        applyStep();
       }
     },
 
@@ -438,8 +423,7 @@ const TUTORIAL = (() => {
     // Skips past remaining 'draw' steps to land on the bust_explain step.
     onBust() {
       if (_done) return;
-      _popupDismissed = false;
-      _popupVisible   = false;
+      _popupVisible = false;
       while (_stepIdx < SCRIPT.length) {
         const step = SCRIPT[_stepIdx];
         if (!step || step.required.type !== 'draw') break;
