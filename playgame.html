@@ -86,7 +86,6 @@
     <div class="overlay-content deck-content">
       <h2>My Deck</h2>
       <button class="close-btn" onclick="closeDeck()">&times;</button>
-      <div id="tutorial-deck-note" class="tutorial-deck-note hidden"></div>
       <div id="deck-modal-body"></div>
     </div>
   </div>
@@ -195,8 +194,11 @@
 
   </div>
 
-  <!-- Tutorial backdrop (darkens everything; spotlight elements rise above it) -->
-  <div id="tutorial-backdrop" class="tutorial-backdrop hidden"></div>
+  <!-- Tutorial popup: persistent instruction card the player must dismiss -->
+  <div id="tutorial-popup" class="tutorial-popup hidden">
+    <p id="tutorial-popup-text"></p>
+    <button class="tutorial-popup-btn" onclick="TUTORIAL.onPopupDismiss()">Got it →</button>
+  </div>
 
   <script src="shared/tiebreaker.js"></script>
   <script src="tutorial.js"></script>

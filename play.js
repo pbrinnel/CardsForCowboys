@@ -3825,7 +3825,7 @@ async function scoreRound() {
     await endAct();
   } else {
     G.roundNumber++;
-    if (TUTORIAL.active) await TUTORIAL.nextRound();
+    if (TUTORIAL.active) TUTORIAL.nextRound();
     await startRound();
   }
 }

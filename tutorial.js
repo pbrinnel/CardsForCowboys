@@ -13,12 +13,6 @@ const TUTORIAL = (() => {
   //   Row 2 (hidden):  card_79, card_46, card_47
   //   Row 1 (hidden):  card_80, card_48
   //   Row 0 (hidden):  card_49
-  //
-  // Reveal logic — (R,C) revealed when both (R+1,C) and (R+1,C+1) are gone:
-  //   card_12 (3,0): after card_10 (4,0) AND card_11 (4,1) removed
-  //   card_13 (3,1): after card_11 (4,1) AND card_77 (4,2) removed
-  //   card_15 (3,2): after card_77 (4,2) AND card_74 (4,3) removed
-  //   card_75 (3,3): after card_74 (4,3) AND card_76 (4,4) removed
   const PYRAMID_IDS = [
     'card_49',
     'card_80', 'card_48',
@@ -28,38 +22,36 @@ const TUTORIAL = (() => {
   ];
 
   // ─── Draw queues (0-indexed, one array per tutorial round) ───────────────────
-  // Injected into the player's deck at the start of each draw phase.
   const DRAW_QUEUES = [
-    // Round 0 (tutorial R1): build up resources, then 3-bandit bust
-    // starter_61 ($2) → starter_33 ($1+1cow) → starter_62 (1 bandit+1cow) → starter_64 (2 bandits) = BUST
+    // Round 0 (R1): build up $+cows then forced bust
     ['starter_61', 'starter_33', 'starter_62', 'starter_64'],
-
-    // Round 1 (tutorial R2): double-bandit surprise bust
-    // starter_92 ($1) → starter_62 (1 bandit) → starter_64 (2 bandits) = BUST
+    // Round 1 (R2): double-bandit surprise bust
     ['starter_92', 'starter_62', 'starter_64'],
-
-    // Round 2 (tutorial R3): safe draw then stop and buy
-    // Three Rivers → $3, 0 bandits
+    // Round 2 (R3): safe Rivers, stop, buy
     ['starter_91', 'starter_92', 'starter_93'],
   ];
 
   // ─── Script ──────────────────────────────────────────────────────────────────
   // Each step:
-  //   message       – shown in #message (or #tutorial-deck-note if inModal: true)
-  //   spotlight     – CSS selector of element to ring (or null)
-  //   required      – { type } the action that advances this step
-  //                   types: 'draw' | 'stop' | 'buy' | 'burn' | 'activate' |
-  //                          'open_deck' | 'close_deck' | 'auto'
-  //   autoAdvanceMs – if type === 'auto', advance after this many ms
-  //   pyramidHint   – { row, col } pyramid card to ring (in addition to spotlight)
-  //   inModal       – true: write message to #tutorial-deck-note instead of #message
+  //   message   – shown in the popup
+  //   required  – { type } the action that advances this step
+  //               'info'       → Got it in popup advances immediately
+  //               'draw'       → Got it closes popup; player clicks Draw
+  //               'stop'       → Got it closes popup; player clicks Stop
+  //               'buy'        → Got it closes popup; player clicks pyramid card + Buy
+  //               'open_deck'  → Got it closes popup; player clicks My Deck
+  //               'close_deck' → Got it closes popup; player clicks × on deck modal
+  //   spotlight  – CSS selector to ring after popup dismissed (action steps only)
+  //   hint       – short text shown in #message after popup dismissed (action steps)
+  //   pyramidHint – { row, col } pyramid card to ring (buy steps)
   const SCRIPT = [
 
-    // ── Round 1: accumulate resources → forced bust ──
+    // ── Round 1: accumulate then forced bust ──
 
     {
       id: 'r1_draw1',
       message: 'Each round you draw cards from your deck to earn resources. Draw your first card.',
+      hint: 'Draw a card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
@@ -67,45 +59,47 @@ const TUTORIAL = (() => {
       id: 'r1_draw2',
       // shown after drawing starter_61 ($2, safe Rattlesnake)
       message: 'A Rattlesnake card — red back. This one paid $2 with no risk. Draw again.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r1_draw3',
-      // shown after drawing starter_33 ($1+1 cow, safe Cactus)
-      message: 'A Cactus card — $1 and a Cow. Cows add permanently to your Herd (bottom left). Draw again.',
+      // shown after drawing starter_33 ($1 + 1 cow, Cactus)
+      message: 'A Cactus card — yellow back. $1 and a Cow. Cows add permanently to your Herd (the counter at bottom left). Draw again.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r1_draw4_warn',
       // shown after drawing starter_62 (1 bandit). next draw = starter_64 (2 bandits) = bust.
-      message: 'A Rattlesnake with 1 Bandit. You have $3 and 2 Cows at risk. One more draw could bust you — draw anyway.',
+      message: 'A Rattlesnake with 1 Bandit. You have $3 and 2 Cows at risk — one more draw could bust you. Draw anyway.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
-    // bust fires automatically after draw4 (starter_64 adds 2 bandits → total ≥ 3)
-    // onBust() skips past this draw step and lands here:
+    // bust fires automatically after draw 4 (starter_64 = 2 bandits → total ≥ 3)
     {
       id: 'r1_bust_explain',
-      message: '3 Bandits — BUSTED. All $3 and 2 Cows you earned this round are wiped out. No buy phase, no score. That\'s the bust penalty.',
-      spotlight: null,
-      required: { type: 'auto' },
-      autoAdvanceMs: 4500,
+      message: '3 Bandits — BUSTED.\n\nAll $3 and 2 Cows you earned this round are wiped out. No buy phase, no score. That\'s the bust penalty.',
+      required: { type: 'info' },
     },
 
-    // ── Round 2: 1 bandit then double-bandit surprise ──
+    // ── Round 2: double-bandit surprise ──
 
     {
       id: 'r2_draw1',
       message: 'Draw.',
+      hint: 'Draw a card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r2_draw2',
-      // shown after drawing starter_92 ($1, safe River)
+      // shown after drawing starter_92 ($1, River)
       message: 'Draw again.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
@@ -113,52 +107,45 @@ const TUTORIAL = (() => {
       id: 'r2_draw3_warn',
       // shown after drawing starter_62 (1 bandit). next draw = starter_64 = bust.
       message: '1 Bandit. Getting risky — but draw once more.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
-    // bust fires automatically after draw3 (starter_64 adds 2 bandits → total ≥ 3)
+    // bust fires automatically (starter_64 = 2 bandits → total ≥ 3)
     {
       id: 'r2_bust_explain',
-      message: 'That Rattlesnake carried 2 Bandits at once — 3 total, instant BUST. You can\'t tell how many bandits a card holds until you draw it. 2 bandits is almost always the stopping point.',
-      spotlight: null,
-      required: { type: 'auto' },
-      autoAdvanceMs: 5000,
+      message: 'That Rattlesnake carried 2 Bandits at once — 3 total, instant BUST.\n\nYou can\'t see bandit counts from the card back. This is why 2 bandits is almost always the stopping point.',
+      required: { type: 'info' },
     },
 
-    // ── Deck Lesson (between rounds 2 and 3) ──
-    // These steps run while scoreRound() awaits TUTORIAL.nextRound().
+    // ── Deck Lesson (runs at start of Round 3's draw phase, gates the Draw button) ──
 
     {
       id: 'deck_open',
-      message: 'Before your next draw, open "My Deck" to see what you\'re working with.',
+      message: 'Before drawing, open "My Deck" to understand what you\'re working with.',
+      hint: 'Click "My Deck" above.',
       spotlight: '#btn-show-deck',
       required: { type: 'open_deck' },
     },
     {
       id: 'deck_rivers',
-      inModal: true,
       message: '4 River cards (blue back) — always $1, never a Bandit. Completely safe to draw.',
-      required: { type: 'auto' },
-      autoAdvanceMs: 3000,
+      required: { type: 'info' },
     },
     {
       id: 'deck_cacti',
-      inModal: true,
       message: '2 Cactus cards (yellow back) — mixed. One gives $1 and a Cow. One carries 1 Bandit with no reward.',
-      required: { type: 'auto' },
-      autoAdvanceMs: 3500,
+      required: { type: 'info' },
     },
     {
       id: 'deck_rattles',
-      inModal: true,
       message: '4 Rattlesnake cards (red back) — the risky ones. One pays $2 safely. Two carry 1 Bandit. One carries 2 Bandits at once — as you just experienced.',
-      required: { type: 'auto' },
-      autoAdvanceMs: 4000,
+      required: { type: 'info' },
     },
     {
       id: 'deck_close',
-      inModal: true,
-      message: '4 safe cards, 6 mixed. Keep that in mind every time you decide to draw again. Close the deck.',
+      message: '4 safe cards, 6 mixed. Keep that in mind every time you consider drawing again.\n\nClose the deck.',
+      hint: 'Click × to close the deck.',
       required: { type: 'close_deck' },
     },
 
@@ -167,6 +154,7 @@ const TUTORIAL = (() => {
     {
       id: 'r3_draw1',
       message: 'Draw.',
+      hint: 'Draw a card.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
@@ -174,27 +162,30 @@ const TUTORIAL = (() => {
       id: 'r3_draw2',
       // shown after drawing starter_91 ($1, River)
       message: 'A River — safe. Draw again.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r3_draw3',
-      // shown after drawing starter_92 ($1, River). one more River left in queue.
+      // shown after drawing starter_92 ($1, River)
       message: 'Another River. Draw once more.',
+      hint: 'Draw again.',
       spotlight: '#actions',
       required: { type: 'draw' },
     },
     {
       id: 'r3_stop',
-      // shown after drawing starter_93 ($1, River). queue exhausted. next real card = Rattlesnake.
-      message: 'You have $3 and 0 Bandits. The next card in your deck is a Rattlesnake. You have enough to buy — stop here.',
+      // shown after drawing starter_93 ($1, River). next card would be a Rattlesnake.
+      message: 'You have $3 and 0 Bandits. The next card in your deck is a Rattlesnake. You have enough to buy something — stop here.',
+      hint: 'Stop drawing.',
       spotlight: '#actions',
       required: { type: 'stop' },
     },
     {
       id: 'r3_buy',
-      message: 'Buy Phase. Buy this Cow card — Cows win at Showdown.',
-      spotlight: null,
+      message: 'Buy Phase. Buy this Cow card — Cows are what wins at Showdown.',
+      hint: 'Click the highlighted store card, then confirm.',
       required: { type: 'buy', row: 4, col: 1 }, // card_11 (1 cow, cost $2)
       pyramidHint: { row: 4, col: 1 },
     },
@@ -203,20 +194,18 @@ const TUTORIAL = (() => {
 
     {
       id: 'done',
-      message: '(This tutorial is incomplete — more coming soon.)',
-      spotlight: null,
-      required: { type: 'auto' },
-      autoAdvanceMs: 3000,
+      message: '(This tutorial is a work in progress — more coming soon.)',
+      required: { type: 'info' },
     },
   ];
 
   // ─── State ────────────────────────────────────────────────────────────────────
-  let _active           = false;
-  let _done             = false;
-  let _stepIdx          = 0;
-  let _round            = 0;
-  let _autoTimer        = null;
-  let _deckLessonResolve = null; // resolves the Promise returned by nextRound() for deck lesson
+  let _active          = false;
+  let _done            = false;
+  let _stepIdx         = 0;
+  let _round           = 0;
+  let _popupVisible    = false; // true while popup is on screen (gates all actions)
+  let _popupDismissed  = false; // true once popup for current step has been dismissed
 
   // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -228,55 +217,49 @@ const TUTORIAL = (() => {
     const step = currentStep();
     if (!step) return;
 
-    if (step.inModal) {
-      showDeckNote(step.message);
-    } else {
-      showMessage(step.message);
-    }
-
-    clearSpotlight();
-    if (step.spotlight) spotlightEl(step.spotlight);
-    if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
-
-    if (step.required.type === 'auto') {
-      if (_autoTimer) clearTimeout(_autoTimer);
-      _autoTimer = setTimeout(() => advance(), step.autoAdvanceMs || 2000);
-    }
-  }
-
-  function advance() {
-    if (_autoTimer) { clearTimeout(_autoTimer); _autoTimer = null; }
-    _stepIdx++;
-    const step = currentStep();
-
-    if (!step) { complete(); return; }
-
-    if (step.id === 'done') {
-      applyStep(); // show "(This tutorial is incomplete)" then auto-advance to complete()
+    // Don't re-show popup if player already dismissed it for this step
+    // (onRoundStart can call applyStep() mid-deck-lesson, etc.)
+    if (_popupDismissed) {
+      // Just re-apply spotlight/hint in case it was lost
+      clearSpotlight();
+      if (step.spotlight) spotlightEl(step.spotlight);
+      if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
       return;
     }
 
+    showPopup(step.message);
+  }
+
+  function advance() {
+    _stepIdx++;
+    _popupDismissed = false;
+    _popupVisible   = false;
+
+    const step = currentStep();
+    if (!step) { complete(); return; }
+    if (step.id === 'done') { applyStep(); return; } // show done popup then complete on dismiss
     applyStep();
   }
 
-  function showMessage(text) {
-    const el = document.getElementById('message');
-    if (el) el.textContent = text;
+  // ─── Popup UI ─────────────────────────────────────────────────────────────────
+
+  function showPopup(text) {
+    const popup = document.getElementById('tutorial-popup');
+    const textEl = document.getElementById('tutorial-popup-text');
+    if (!popup || !textEl) return;
+    textEl.textContent = text;
+    popup.classList.remove('hidden');
+    _popupVisible = true;
   }
 
-  function showDeckNote(text) {
-    const el = document.getElementById('tutorial-deck-note');
-    if (!el) return;
-    el.textContent = text;
-    el.classList.remove('hidden');
+  function hidePopup() {
+    const popup = document.getElementById('tutorial-popup');
+    if (popup) popup.classList.add('hidden');
+    _popupVisible  = false;
+    _popupDismissed = true;
   }
 
-  function clearDeckNote() {
-    const el = document.getElementById('tutorial-deck-note');
-    if (!el) return;
-    el.textContent = '';
-    el.classList.add('hidden');
-  }
+  // ─── Spotlight helpers ────────────────────────────────────────────────────────
 
   function spotlightEl(selector) {
     const el = document.querySelector(selector);
@@ -297,11 +280,17 @@ const TUTORIAL = (() => {
     });
   }
 
+  function showMessage(text) {
+    const el = document.getElementById('message');
+    if (el) el.textContent = text;
+  }
+
+  // ─── Complete ─────────────────────────────────────────────────────────────────
+
   function complete() {
     _active = false;
     _done   = true;
     clearSpotlight();
-    clearDeckNote();
     document.body.classList.remove('tutorial-active');
     showMessage('You\'re on your own now. Good luck.');
   }
@@ -333,12 +322,12 @@ const TUTORIAL = (() => {
 
     // Called from startGame() when ?tutorial=1 is detected.
     init(G) {
-      _active           = true;
-      _done             = false;
-      _stepIdx          = 0;
-      _round            = 0;
-      _autoTimer        = null;
-      _deckLessonResolve = null;
+      _active         = true;
+      _done           = false;
+      _stepIdx        = 0;
+      _round          = 0;
+      _popupVisible   = false;
+      _popupDismissed = false;
 
       document.body.classList.add('tutorial-active');
       G._tutorialMode = true;
@@ -355,22 +344,41 @@ const TUTORIAL = (() => {
       applyStep();
     },
 
-    // Called from scoreRound() — play.js does: await TUTORIAL.nextRound()
-    // Returns a Promise if the deck lesson must run before the next round starts.
+    // Called from scoreRound(). Synchronous — no Promise blocking needed.
     nextRound() {
-      if (_done) return Promise.resolve();
+      if (_done) return;
       _round++;
-      if (_round === 2) {
-        // Deck lesson runs here; scoreRound() will await this Promise.
-        // The bust_explain auto-timer will fire and advance to deck_open while we wait.
-        return new Promise(resolve => { _deckLessonResolve = resolve; });
+    },
+
+    // Called when the "Got it →" button is clicked.
+    onPopupDismiss() {
+      if (!_active) return;
+      const step = currentStep();
+      if (!step) return;
+
+      if (step.required.type === 'info') {
+        // Info step: Got it advances immediately
+        hidePopup();
+        clearSpotlight();
+        if (step.id === 'done') {
+          complete();
+        } else {
+          advance();
+        }
+      } else {
+        // Action step: Got it closes popup, unlocks the action
+        hidePopup();
+        clearSpotlight();
+        if (step.hint) showMessage(step.hint);
+        if (step.spotlight) spotlightEl(step.spotlight);
+        if (step.pyramidHint) highlightPyramidCard(step.pyramidHint.row, step.pyramidHint.col);
       }
-      return Promise.resolve();
     },
 
     // Returns true if the given action is currently permitted.
     isAllowed(type, params) {
       if (_done) return true;
+      if (_popupVisible) return false; // popup must be dismissed first
       const step = currentStep();
       if (!step) return true;
       if (step.required.type !== type) return false;
@@ -385,14 +393,7 @@ const TUTORIAL = (() => {
       if (_done) return;
       const step = currentStep();
       if (!step) return;
-      if (step.required.type !== type) return;
-      advance();
-      // After deck lesson: resolve the Promise so scoreRound() can resume.
-      if (type === 'close_deck' && _deckLessonResolve) {
-        const resolve = _deckLessonResolve;
-        _deckLessonResolve = null;
-        resolve();
-      }
+      if (step.required.type === type) advance();
     },
 
     // Called when player's buy phase begins (humanBuyTurn).
@@ -401,14 +402,20 @@ const TUTORIAL = (() => {
       const step = currentStep();
       if (!step) return;
       if (step.required.type === 'buy' || step.required.type === 'burn') {
-        applyStep();
+        if (!_popupDismissed) {
+          applyStep();
+        } else {
+          highlightPyramidCard(step.pyramidHint?.row, step.pyramidHint?.col);
+        }
       }
     },
 
     // Called when the human player busts.
-    // Skips past any remaining 'draw' steps to land on the bust_explain step.
+    // Skips past remaining 'draw' steps to land on the bust_explain step.
     onBust() {
       if (_done) return;
+      _popupDismissed = false;
+      _popupVisible   = false;
       while (_stepIdx < SCRIPT.length) {
         const step = SCRIPT[_stepIdx];
         if (!step || step.required.type !== 'draw') break;

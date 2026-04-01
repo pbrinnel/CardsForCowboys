@@ -1859,39 +1859,67 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 /* ─── Tutorial ─── */
 
-/* Full-screen dark backdrop — sits above normal game content */
-/* Tutorial backdrop — kept hidden always (no dark overlay) */
-.tutorial-backdrop {
+/* ── Persistent popup card ───────────────────────────────────────────────── */
+.tutorial-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 400; /* above deck modal (z ~100) and everything else */
+  background: #1e0e04;
+  border: 2px solid rgba(232, 200, 114, 0.85);
+  border-radius: 10px;
+  padding: 1.4rem 1.6rem 1.2rem;
+  max-width: 380px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+.tutorial-popup.hidden {
   display: none;
 }
 
-/* ── Tutorial callout banner ─────────────────────────────────────────────── */
-/* The #action-zone message area becomes a styled callout when tutorial is on */
-body.tutorial-active #action-zone {
-  border: 2px solid rgba(232, 200, 114, 0.6);
-  background: #3f2818;
-}
-
-body.tutorial-active #message {
-  font-size: 1.05rem;
-  line-height: 1.5;
+#tutorial-popup-text {
   color: #f0d87a;
-  padding: 0.1rem 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 0 1.1rem;
+  white-space: pre-line; /* honours \n in message strings */
 }
 
-/* Small "Tutorial" badge above the message */
+.tutorial-popup-btn {
+  background: rgba(232, 200, 114, 0.12);
+  border: 1px solid rgba(232, 200, 114, 0.5);
+  border-radius: 5px;
+  color: #e8c872;
+  cursor: pointer;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 1.4rem;
+  transition: background 0.15s;
+}
+
+.tutorial-popup-btn:hover {
+  background: rgba(232, 200, 114, 0.25);
+}
+
+/* ── Action-zone hint (shown after popup dismissed for action steps) ──────── */
+body.tutorial-active #action-zone {
+  border: 2px solid rgba(232, 200, 114, 0.45);
+}
+
 body.tutorial-active #action-zone::before {
   content: "Tutorial";
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   letter-spacing: 0.12em;
-  color: rgba(232, 200, 114, 0.6);
+  color: rgba(232, 200, 114, 0.5);
   text-transform: uppercase;
-  margin-bottom: 0.25rem;
-  font-family: Georgia, serif;
+  margin-bottom: 0.2rem;
 }
 
-/* ── Spotlight ring (no backdrop — ring must stand out on its own) ────────── */
+/* ── Spotlight ring ──────────────────────────────────────────────────────── */
 .tutorial-spotlight {
   border-radius: 6px;
   outline: 2px solid #e8c872;
@@ -1899,7 +1927,6 @@ body.tutorial-active #action-zone::before {
   animation: tutorial-pulse 1.2s ease-in-out infinite;
 }
 
-/* Highlighted pyramid card */
 #pyramid .card.tutorial-pyramid-hint {
   outline: 3px solid #e8c872;
   outline-offset: 3px;
@@ -1915,22 +1942,9 @@ body.tutorial-active #action-zone::before {
 /* Flash on blocked action */
 @keyframes tutorial-blocked {
   0%, 100% { background-color: inherit; }
-  30%      { background-color: rgba(192, 57, 43, 0.18); }
+  30%       { background-color: rgba(192, 57, 43, 0.18); }
 }
 
 .tutorial-blocked-flash {
   animation: tutorial-blocked 0.6s ease-in-out;
 }
-
-/* Tutorial note inside the deck modal */
-.tutorial-deck-note {
-  background: rgba(40, 22, 8, 0.9);
-  border: 2px solid rgba(232, 200, 114, 0.65);
-  border-radius: 6px;
-  color: #f0d87a;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  padding: 0.55rem 0.9rem;
-  margin-bottom: 1rem;
-}
-.tutorial-deck-note.hidden { display: none; }
