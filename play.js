@@ -3825,7 +3825,7 @@ async function scoreRound() {
     await endAct();
   } else {
     G.roundNumber++;
-    if (TUTORIAL.active) TUTORIAL.nextRound();
+    if (TUTORIAL.active) await TUTORIAL.nextRound();
     await startRound();
   }
 }
@@ -4111,10 +4111,12 @@ function showDeck() {
   renderGroup('Purchased Cards', purchased);
 
   document.getElementById('deck-modal').classList.remove('hidden');
+  if (TUTORIAL.active) TUTORIAL.onActionDone('open_deck');
 }
 
 function closeDeck() {
   document.getElementById('deck-modal').classList.add('hidden');
+  if (TUTORIAL.active) TUTORIAL.onActionDone('close_deck');
 }
 
 // --- DECK PEEK (draw phase only — shows ordered backs of draw pile) ---

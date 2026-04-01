@@ -86,6 +86,7 @@
     <div class="overlay-content deck-content">
       <h2>My Deck</h2>
       <button class="close-btn" onclick="closeDeck()">&times;</button>
+      <div id="tutorial-deck-note" class="tutorial-deck-note hidden"></div>
       <div id="deck-modal-body"></div>
     </div>
   </div>
@@ -130,7 +131,7 @@
         <span id="round-display">Round 1</span>
       </div>
       <div class="header-right">
-        <button class="btn-small" onclick="showDeck()">My Deck</button>
+        <button class="btn-small" id="btn-show-deck" onclick="showDeck()">My Deck</button>
         <button class="btn-small" onclick="showRules()">Rules</button>
         <button class="btn-small hidden" id="btn-spectate-link" onclick="copySpectateLink()">Spectate Link</button>
         <button class="btn-small btn-disband hidden" id="btn-disband" onclick="disbandGame()">Disband</button>
