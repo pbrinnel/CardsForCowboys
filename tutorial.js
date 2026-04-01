@@ -140,16 +140,19 @@ const TUTORIAL = (() => {
       id: 'deck_rivers',
       message: '4 [river] River cards — always $1, never a [bandit]. Completely safe to draw.',
       required: { type: 'info' },
+      deckHighlight: 1,
     },
     {
       id: 'deck_cacti',
       message: '2 [cactus] Cactus cards — mixed. One gives $1 and a [cow]. One carries a [bandit] with no reward.',
       required: { type: 'info' },
+      deckHighlight: 2,
     },
     {
       id: 'deck_rattles',
       message: '4 [rattle] Rattlesnake cards — the risky ones. One pays $2 safely. Two carry 1 [bandit]. One carries 2 [bandit] — as you just saw.\n\n4 safe cards, 6 mixed. Keep that in mind every time you consider drawing again.',
       required: { type: 'info' },
+      deckHighlight: 3,
     },
     {
       id: 'deck_close',
@@ -223,6 +226,7 @@ const TUTORIAL = (() => {
     if (step.required.type === 'info') {
       // Info step: show popup — player must dismiss before anything else
       showPopup(step.message);
+      if (step.deckHighlight) highlightDeckCards(step.deckHighlight);
     } else {
       // Action step: show hint in message area and spotlight the target
       if (step.message) showMessage(step.message);
@@ -259,6 +263,7 @@ const TUTORIAL = (() => {
       popup.classList.add('hidden');
       popup.classList.remove('tutorial-popup--below');
     }
+    clearDeckHighlight();
     _popupVisible = false;
   }
 
@@ -286,6 +291,18 @@ const TUTORIAL = (() => {
   function showMessage(text) {
     const el = document.getElementById('message');
     if (el) el.textContent = text;
+  }
+
+  function highlightDeckCards(cactiValue) {
+    document.querySelectorAll('#deck-modal-body .card').forEach(el => {
+      el.classList.toggle('tut-deck-highlight', el.dataset.cacti === String(cactiValue));
+    });
+  }
+
+  function clearDeckHighlight() {
+    document.querySelectorAll('#deck-modal-body .tut-deck-highlight').forEach(el => {
+      el.classList.remove('tut-deck-highlight');
+    });
   }
 
   // ─── Complete ─────────────────────────────────────────────────────────────────

@@ -1953,6 +1953,18 @@ body.tutorial-active #action-zone::before {
   margin-bottom: 0.2rem;
 }
 
+/* ── Deck lesson card highlight ──────────────────────────────────────────── */
+#deck-modal-body .card.tut-deck-highlight {
+  outline: 3px solid #e8c872;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+#deck-modal-body .card:not(.tut-deck-highlight) {
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
 /* ── Spotlight ring ──────────────────────────────────────────────────────── */
 .tutorial-spotlight {
   border-radius: 6px;

@@ -4096,7 +4096,9 @@ function showDeck() {
   body.innerHTML = '';
 
   // Group cards: starters vs purchased (by act)
-  const starters = allCards.filter(c => c.act === 0);
+  // Sort starters by suit (River→Cactus→Rattlesnake) then by bandits ascending
+  const starters = allCards.filter(c => c.act === 0)
+    .sort((a, b) => a.cacti - b.cacti || a.bandits - b.bandits);
   const purchased = allCards.filter(c => c.act > 0);
 
   function renderGroup(label, cards) {
@@ -4108,6 +4110,7 @@ function showDeck() {
     grid.className = 'deck-grid';
     for (const card of cards) {
       const el = renderCardEl(card, true);
+      el.dataset.cacti = card.cacti;
       grid.appendChild(el);
     }
     body.appendChild(grid);
