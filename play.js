@@ -3552,6 +3552,9 @@ function advanceOrExtraBuy(player) {
 
 // Human burn: push to Firebase (MP, local human only) then apply locally
 function executeBurn(player, row, col) {
+  if (TUTORIAL.active && player === G.players[0] && !TUTORIAL.isAllowed('burn', { row, col })) {
+    TUTORIAL.flashBlocked(); return;
+  }
   if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);
