@@ -1880,21 +1880,14 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   display: none;
 }
 
-/* When deck modal is open, pin popup to bottom so it doesn't obscure deck contents */
+/* When deck modal is open, JS positions popup below deck; class just marks the state */
 .tutorial-popup--below {
-  top: auto;
-  bottom: 1rem;
-  transform: translateX(-50%);
+  bottom: auto; /* JS sets top dynamically via _centerDeckPopupPair() */
 }
 
-/* Shrink deck modal to leave room for the tutorial popup below it */
-body:has(.tutorial-popup--below) #deck-modal.overlay {
-  align-items: flex-start;
-  padding-top: 0.5rem;
-}
-
+/* Constrain deck height so the popup pair always fits on screen */
 body:has(.tutorial-popup--below) .deck-content {
-  max-height: calc(100vh - 260px);
+  max-height: 50vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

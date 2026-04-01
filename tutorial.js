@@ -255,13 +255,46 @@ const TUTORIAL = (() => {
     popup.classList.toggle('tutorial-popup--below', deckOpen);
     popup.classList.remove('hidden');
     _popupVisible = true;
+    if (deckOpen) _centerDeckPopupPair();
+  }
+
+  // Center the deck modal + tutorial popup as a pair vertically on screen.
+  function _centerDeckPopupPair() {
+    requestAnimationFrame(() => {
+      const deckOverlay  = document.getElementById('deck-modal');
+      const deckContent  = deckOverlay?.querySelector('.deck-content');
+      const popup        = document.getElementById('tutorial-popup');
+      if (!deckOverlay || !deckContent || !popup) return;
+
+      const gap     = 12;
+      const deckH   = deckContent.offsetHeight;
+      const popupH  = popup.offsetHeight;
+      const totalH  = deckH + gap + popupH;
+      const screenH = window.innerHeight;
+      const topOffset = Math.max(8, (screenH - totalH) / 2);
+
+      // Push deck modal down to topOffset
+      deckOverlay.style.alignItems = 'flex-start';
+      deckOverlay.style.paddingTop  = topOffset + 'px';
+
+      // Position popup directly below the deck content
+      const deckRect = deckContent.getBoundingClientRect();
+      popup.style.top       = (deckRect.bottom + gap) + 'px';
+      popup.style.bottom    = 'auto';
+      popup.style.transform = 'translateX(-50%)';
+    });
   }
 
   function hidePopup() {
-    const popup = document.getElementById('tutorial-popup');
+    const popup      = document.getElementById('tutorial-popup');
+    const deckOverlay = document.getElementById('deck-modal');
     if (popup) {
       popup.classList.add('hidden');
       popup.classList.remove('tutorial-popup--below');
+      popup.style.top = popup.style.bottom = popup.style.transform = '';
+    }
+    if (deckOverlay) {
+      deckOverlay.style.alignItems = deckOverlay.style.paddingTop = '';
     }
     clearDeckHighlight();
     _popupVisible = false;
