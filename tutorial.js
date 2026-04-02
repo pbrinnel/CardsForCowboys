@@ -46,7 +46,8 @@ const TUTORIAL = (() => {
       .replace(/\[dollar\]/g,  sym('$1-01.png',               '$'))
       .replace(/\[river\]/g,   back('Blue Inline-01.jpg',     'River'))
       .replace(/\[cactus\]/g,  back('Yellow Inline-01.jpg',   'Cactus'))
-      .replace(/\[rattle\]/g,  back('Red Inline-01.jpg',      'Rattlesnake'));
+      .replace(/\[rattle\]/g,  back('Red Inline-01.jpg',      'Rattlesnake'))
+      .replace(/\n/g,          '<br>');
   }
 
   // ─── Script ──────────────────────────────────────────────────────────────────
@@ -138,19 +139,19 @@ const TUTORIAL = (() => {
     },
     {
       id: 'deck_rivers',
-      message: '4 [river] River cards — always $1, never a [bandit]. Completely safe to draw.',
+      message: '4 [river] River cards\nAlways $1, never a [bandit]. Completely safe to draw.',
       required: { type: 'info' },
       deckHighlight: 1,
     },
     {
       id: 'deck_cacti',
-      message: '2 [cactus] Cactus cards — mixed. One gives $1 and a [cow]. One carries a [bandit] with no reward.',
+      message: '2 [cactus] Cactus cards — mixed.\nOne gives $1 + a [cow]. One carries a [bandit].',
       required: { type: 'info' },
       deckHighlight: 2,
     },
     {
       id: 'deck_rattles',
-      message: '4 [rattle] Rattlesnake cards — the risky ones. One pays $2 safely. Two carry 1 [bandit]. One carries 2 [bandit] — as you just saw.\n\n4 safe cards, 6 mixed. Keep that in mind every time you consider drawing again.',
+      message: '4 [rattle] Rattlesnake cards — the risky ones.\nOne pays $2 safely. Two carry 1 [bandit].\nOne carries 2 [bandit]. 4 safe, 6 mixed.',
       required: { type: 'info' },
       deckHighlight: 3,
     },
