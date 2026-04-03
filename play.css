@@ -1264,7 +1264,7 @@ body.phase-draw #player-deck-preview {
 
 /* Deck viewer modal */
 .deck-content {
-  max-width: 600px;
+  max-width: 780px;
   text-align: left;
 }
 
@@ -1273,10 +1273,34 @@ body.phase-draw #player-deck-preview {
   margin-bottom: 1rem;
 }
 
-.deck-content h3 {
+.deck-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.deck-row-label {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: #5c3a1e;
-  margin: 1rem 0 0.5rem;
-  font-size: 0.9rem;
+  padding-top: 0.2rem;
+}
+
+.deck-row-suits {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.deck-col {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-content: flex-start;
 }
 
 .deck-grid {
@@ -1285,7 +1309,8 @@ body.phase-draw #player-deck-preview {
   flex-wrap: wrap;
 }
 
-.deck-grid .card {
+.deck-grid .card,
+.deck-col .card {
   width: 65px;
   height: 91px;
 }
@@ -1548,7 +1573,8 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     height: 91px;
   }
 
-  .deck-grid .card {
+  .deck-grid .card,
+  .deck-col .card {
     width: 55px;
     height: 77px;
   }
@@ -1649,7 +1675,8 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     height: 77px;
   }
 
-  .deck-grid .card {
+  .deck-grid .card,
+  .deck-col .card {
     width: 46px;
     height: 64px;
   }

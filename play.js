@@ -4095,34 +4095,35 @@ function showDeck() {
   const body = document.getElementById('deck-modal-body');
   body.innerHTML = '';
 
-  function renderGroup(label, cards) {
+  // 2-row × 3-column layout: rows = Starters/Purchased, columns = River/Cactus/Rattlesnake.
+  // Suits are not labeled; row label sits on the left.
+  function renderRow(label, actFilter) {
+    const cards = allCards.filter(actFilter);
     if (cards.length === 0) return;
-    const heading = document.createElement('h3');
-    heading.textContent = label + ' (' + cards.length + ')';
-    body.appendChild(heading);
-    const grid = document.createElement('div');
-    grid.className = 'deck-grid';
-    for (const card of cards) {
-      const el = renderCardEl(card, true);
-      el.dataset.cacti = card.cacti;
-      grid.appendChild(el);
+    const row = document.createElement('div');
+    row.className = 'deck-row';
+    const rowLabel = document.createElement('div');
+    rowLabel.className = 'deck-row-label';
+    rowLabel.textContent = label;
+    row.appendChild(rowLabel);
+    const suitsEl = document.createElement('div');
+    suitsEl.className = 'deck-row-suits';
+    for (const cacti of [1, 2, 3]) {
+      const col = document.createElement('div');
+      col.className = 'deck-col';
+      for (const card of cards.filter(c => c.cacti === cacti)) {
+        const el = renderCardEl(card, true);
+        el.dataset.cacti = card.cacti;
+        col.appendChild(el);
+      }
+      suitsEl.appendChild(col);
     }
-    body.appendChild(grid);
+    row.appendChild(suitsEl);
+    body.appendChild(row);
   }
 
-  // Six groups: River/Cactus/Rattlesnake × Starter/Bought
-  // No sorting within groups — cards appear in their natural deck→discard→hand order.
-  const SUITS = [
-    { cacti: 1, label: 'River' },
-    { cacti: 2, label: 'Cactus' },
-    { cacti: 3, label: 'Rattlesnake' },
-  ];
-  for (const { cacti, label } of SUITS) {
-    renderGroup(`${label} Starters`, allCards.filter(c => c.act === 0 && c.cacti === cacti));
-  }
-  for (const { cacti, label } of SUITS) {
-    renderGroup(`${label} Cards`, allCards.filter(c => c.act > 0 && c.cacti === cacti));
-  }
+  renderRow('Starters', c => c.act === 0);
+  renderRow('Purchased', c => c.act > 0);
 
   document.getElementById('deck-modal').classList.remove('hidden');
   if (TUTORIAL.active) TUTORIAL.onActionDone('open_deck');
