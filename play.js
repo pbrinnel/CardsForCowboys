@@ -4095,12 +4095,6 @@ function showDeck() {
   const body = document.getElementById('deck-modal-body');
   body.innerHTML = '';
 
-  // Group cards: starters vs purchased (by act)
-  // Sort starters by suit (River→Cactus→Rattlesnake) then by bandits ascending
-  const starters = allCards.filter(c => c.act === 0)
-    .sort((a, b) => a.cacti - b.cacti || a.bandits - b.bandits);
-  const purchased = allCards.filter(c => c.act > 0);
-
   function renderGroup(label, cards) {
     if (cards.length === 0) return;
     const heading = document.createElement('h3');
@@ -4116,8 +4110,19 @@ function showDeck() {
     body.appendChild(grid);
   }
 
-  renderGroup('Starter Cards', starters);
-  renderGroup('Purchased Cards', purchased);
+  // Six groups: River/Cactus/Rattlesnake × Starter/Bought
+  // No sorting within groups — cards appear in their natural deck→discard→hand order.
+  const SUITS = [
+    { cacti: 1, label: 'River' },
+    { cacti: 2, label: 'Cactus' },
+    { cacti: 3, label: 'Rattlesnake' },
+  ];
+  for (const { cacti, label } of SUITS) {
+    renderGroup(`${label} Starters`, allCards.filter(c => c.act === 0 && c.cacti === cacti));
+  }
+  for (const { cacti, label } of SUITS) {
+    renderGroup(`${label} Cards`, allCards.filter(c => c.act > 0 && c.cacti === cacti));
+  }
 
   document.getElementById('deck-modal').classList.remove('hidden');
   if (TUTORIAL.active) TUTORIAL.onActionDone('open_deck');
