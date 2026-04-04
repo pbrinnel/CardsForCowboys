@@ -2197,6 +2197,10 @@ async function resumeDrawPhase() {
     if (drawState.round !== undefined && drawState.round !== G.roundNumber) return;
     if (drawState.act  !== undefined && drawState.act  !== G.currentAct)   return;
     const playerIdx = MP.slotToPlayer[slotIdx];
+    // Once drawDone has fired for this player, their final stats are authoritative.
+    // Ignore any late drawState re-fires (e.g. Firebase reconnect) that could overwrite
+    // roundCows/discard with stale mid-draw values and corrupt showdown scoring.
+    if (G.drawsDone && G.drawsDone[playerIdx]) return;
     const opp = G.players[playerIdx];
     if (!opp) return;
     opp.hand = (drawState.hand || []).map(id => {
@@ -2338,6 +2342,10 @@ async function startRound() {
       if (state.round !== undefined && state.round !== G.roundNumber) return;
       if (state.act  !== undefined && state.act  !== G.currentAct)   return;
       const playerIdx = MP.slotToPlayer[slotIdx];
+      // Once drawDone has fired for this player, their final stats are authoritative.
+      // Ignore any late drawState re-fires (e.g. Firebase reconnect) that could overwrite
+      // roundCows/discard with stale mid-draw values and corrupt showdown scoring.
+      if (G.drawsDone && G.drawsDone[playerIdx]) return;
       const opp = G.players[playerIdx];
       opp.hand = (state.hand || []).map(id => {
         const tmpl = findCard(id);

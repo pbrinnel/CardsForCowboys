@@ -409,17 +409,15 @@ onValue(q, (snap) => {
     return;
   }
 
-  // ── Leaderboard: biggest herd ever per player (human only) ──
-  const best = new Map(); // name → { herd, ts }
+  // ── Leaderboard: top herd scores (human only, all entries including repeat names) ──
+  const allScores = [];
   for (const r of rows) {
     for (const p of (r.players || [])) {
       if (!p.isHuman) continue;
-      const prev = best.get(p.name);
-      if (!prev || p.herd > prev.herd) best.set(p.name, { herd: p.herd, ts: r.ts });
+      allScores.push({ name: p.name, herd: p.herd, ts: r.ts });
     }
   }
-  const leaderboard = [...best.entries()]
-    .map(([name, d]) => ({ name, herd: d.herd, ts: d.ts }))
+  const leaderboard = allScores
     .sort((a, b) => b.herd - a.herd)
     .slice(0, 10);
 
