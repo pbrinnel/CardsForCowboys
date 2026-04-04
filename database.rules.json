@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "games": {
+      "$gameCode": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "gameHistory": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
