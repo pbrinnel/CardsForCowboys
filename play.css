@@ -208,25 +208,6 @@ body {
   font-size: 0.9rem;
 }
 
-.rules-content {
-  max-width: 600px;
-  text-align: left;
-}
-
-.rules-content h2 {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.rules-body h3 {
-  color: #5c3a1e;
-  margin: 1rem 0 0.3rem;
-}
-
-.rules-body p {
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
-}
 
 .close-btn {
   position: absolute;
@@ -1679,14 +1660,6 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   .deck-col .card {
     width: 46px;
     height: 64px;
-  }
-
-  .rules-body p {
-    font-size: 0.85rem;
-  }
-
-  .rules-body h3 {
-    font-size: 0.95rem;
   }
 
   /* Draw phase: smaller player cards on very small screens */

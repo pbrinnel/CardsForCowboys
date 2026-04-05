@@ -4085,11 +4085,11 @@ function copySpectateLink() {
 // --- RULES MODAL ---
 
 function showRules() {
-  document.getElementById('rules-modal').classList.remove('hidden');
+  window.open('rules.html', '_blank');
 }
 
 function closeRules() {
-  document.getElementById('rules-modal').classList.add('hidden');
+  // no-op: rules now open in a new tab
 }
 
 // --- DECK VIEWER ---
