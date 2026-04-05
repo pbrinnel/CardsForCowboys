@@ -2,15 +2,68 @@
   "rules": {
     ".read": false,
     ".write": false,
+
     "games": {
       "$gameCode": {
         ".read": true,
         ".write": true
       }
     },
+
     "gameHistory": {
       ".read": true,
-      ".write": true
+      ".write": false,
+      "$entry": {
+        // Allow only new pushes — existing entries cannot be modified or deleted
+        ".write": "!data.exists()",
+        ".validate": "newData.hasChildren(['ts', 'mode', 'numPlayers', 'players', 'actsCompleted', 'totalRounds'])",
+
+        "ts": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "mode": {
+          ".validate": "newData.isString() && (newData.val() === 'mp' || newData.val() === 'ai')"
+        },
+        "numPlayers": {
+          ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 4"
+        },
+        "actsCompleted": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3"
+        },
+        "totalRounds": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 15"
+        },
+        // winner is optional (null = tie); gameCode is optional (absent in SP)
+        "winner": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30"
+        },
+        "gameCode": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+        },
+
+        "players": {
+          "$playerIdx": {
+            ".validate": "newData.hasChildren(['name', 'isHuman', 'herd', 'isWinner'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30"
+            },
+            "isHuman": {
+              ".validate": "newData.isBoolean()"
+            },
+            "herd": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "isWinner": {
+              ".validate": "newData.isBoolean()"
+            },
+            // Reject any unexpected fields on player entries
+            "$other": { ".validate": false }
+          }
+        },
+
+        // Reject any unexpected top-level fields on history entries
+        "$other": { ".validate": false }
+      }
     }
   }
 }
