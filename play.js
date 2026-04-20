@@ -2999,7 +2999,7 @@ async function handleBust(player) {
     // Let the player review their hand before clearing — show button after animation lands
     await new Promise(resolve => {
       setTimeout(() => {
-        setActions([{ text: 'Clear Hand', className: 'btn-secondary', onClick: resolve }]);
+        setActions([{ text: 'Clear Hand', onClick: resolve }]);
       }, 1300);
     });
     clearActions();
