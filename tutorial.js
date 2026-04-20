@@ -369,6 +369,18 @@ const TUTORIAL = (() => {
     clearSpotlight();
     document.body.classList.remove('tutorial-active');
     document.removeEventListener('keydown', _onKeyDown);
+
+    // Purge any scripted draw cards still in hand/deck/discard.
+    // nextRound() normally does this, but it's gated on TUTORIAL.active which
+    // is already false by the time scoreRound() runs after the final buy.
+    if (typeof G !== 'undefined' && G.players && G.players[0]) {
+      const p = G.players[0];
+      const purge = arr => arr.filter(c => !c._tutorialTemp);
+      p.hand    = purge(p.hand);
+      p.deck    = purge(p.deck);
+      p.discard = purge(p.discard);
+    }
+
     showMessage('You\'re on your own now. Good luck.');
   }
 
