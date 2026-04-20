@@ -2973,51 +2973,14 @@ async function activateSpecialCard(player, card) {
 // --- BUST ---
 
 function showBustAnimation() {
-  // Glow all bandit cards currently in hand
-  const banditEls = G.players[0].hand
+  // Glow bandit cards one by one (1 → 2 → 3) so players see why they busted
+  G.players[0].hand
     .filter(c => c.bandits > 0)
-    .map(c => document.querySelector(`[data-uid="${c.uid}"]`))
-    .filter(Boolean);
-  banditEls.forEach(el => el.classList.add('bust-bandit-glow'));
-
-  // After spotlight delay, show full-screen overlay
-  setTimeout(() => {
-    const overlay = document.createElement('div');
-    overlay.id = 'player-bust-overlay';
-
-    const bg = document.createElement('div');
-    bg.className = 'pbo-bg';
-    overlay.appendChild(bg);
-
-    const bandits = document.createElement('div');
-    bandits.className = 'pbo-bandits';
-    for (let i = 0; i < 3; i++) {
-      const card = document.createElement('div');
-      card.className = 'pbo-card';
-      const img = document.createElement('img');
-      img.src = 'assets/symbols/1 Bandit-01.png';
-      img.alt = 'Bandit';
-      card.appendChild(img);
-      bandits.appendChild(card);
-    }
-    overlay.appendChild(bandits);
-
-    const word = document.createElement('div');
-    word.className = 'pbo-word';
-    word.textContent = 'BUSTED';
-    overlay.appendChild(word);
-
-    document.body.appendChild(overlay);
-
-    setTimeout(() => {
-      overlay.classList.add('pbo-fade-out');
-      setTimeout(() => {
-        overlay.remove();
-        banditEls.forEach(el => el.classList.remove('bust-bandit-glow'));
-      }, 560);
-    }, 2000);
-
-  }, 600);
+    .forEach((c, i) => {
+      const el = document.querySelector(`[data-uid="${c.uid}"]`);
+      if (el) setTimeout(() => el.classList.add('bust-bandit-glow'), i * 300);
+    });
+  // Zone border flash + BUSTED stamp are CSS-driven via zone-busted class (added by render())
 }
 
 async function handleBust(player) {
