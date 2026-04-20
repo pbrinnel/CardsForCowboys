@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "CardsForCowboys",
-      "runtimeExecutable": "/opt/homebrew/Cellar/node/25.8.0/bin/node",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
       "runtimeArgs": [".claude/server.js"],
       "autoPort": true,
       "port": 5500

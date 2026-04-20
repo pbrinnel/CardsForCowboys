@@ -37,9 +37,17 @@
       font-style: italic;
       margin-bottom: 2rem;
     }
+    .menu-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 280px;
+      margin: 0 auto;
+      gap: 0.6rem;
+    }
     .btn {
-      display: inline-block;
-      padding: 0.85rem 3rem;
+      display: block;
+      padding: 0.85rem 1.5rem;
       background: #b87838;
       color: #1e1610;
       text-decoration: none;
@@ -50,21 +58,32 @@
       cursor: pointer;
       box-shadow: 4px 4px 0 #1e1610;
       transition: transform 0.07s, box-shadow 0.07s;
-      margin-bottom: 0.75rem;
+      text-align: center;
     }
     .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1e1610; }
-    .btn-ghost {
+    .btn-outline {
       display: block;
+      padding: 0.7rem 1.5rem;
       background: transparent;
-      color: rgba(30,22,16,0.55);
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
-      border: 2px solid rgba(30,22,16,0.25);
+      color: #1e1610;
       text-decoration: none;
+      border: 2px solid #1e1610;
+      font-size: 0.95rem;
       font-family: Georgia, 'Times New Roman', serif;
-      transition: color 0.15s, border-color 0.15s;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #1e1610;
+      transition: transform 0.07s, box-shadow 0.07s, background 0.07s;
+      text-align: center;
     }
-    .btn-ghost:hover { color: #1e1610; border-color: rgba(30,22,16,0.6); }
+    .btn-outline:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #1e1610; background: rgba(30,22,16,0.06); }
+    .btn-outline-sm {
+      font-size: 0.85rem;
+      padding: 0.55rem 1.5rem;
+      font-weight: normal;
+      box-shadow: 2px 2px 0 #1e1610;
+    }
+    .btn-outline-sm:hover { box-shadow: 1px 1px 0 #1e1610; }
     #rejoin-banner {
       display: none;
       margin-bottom: 1.5rem;
@@ -139,28 +158,6 @@
       font-style: italic;
       min-height: 1.2em;
     }
-    .nav-row {
-      display: flex;
-      gap: 0.6rem;
-      justify-content: center;
-      margin-bottom: 0.75rem;
-    }
-    .nav-row .btn-ghost {
-      flex: 1;
-      max-width: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      margin-bottom: 0;
-    }
-    .btn-ghost-sm {
-      font-size: 0.8rem;
-      padding: 0.4rem 1rem;
-      color: rgba(30,22,16,0.4);
-      border-color: rgba(30,22,16,0.15);
-    }
-    .btn-ghost-sm:hover { color: #1e1610; border-color: rgba(30,22,16,0.5); }
     .wip-tag {
       display: inline-block;
       font-size: 0.62rem;
@@ -188,12 +185,12 @@
       </div>
     </div>
 
-    <a href="gamesetup.html" class="btn">Play Free Demo</a>
-    <div class="nav-row">
-      <a href="playgame.html?tutorial=1" class="btn-ghost" onclick="sessionStorage.setItem('tutorial_mode','1')">Tutorial <span class="wip-tag">WIP</span></a>
-      <a href="rules.html" class="btn-ghost">Rules</a>
+    <div class="menu-stack">
+      <a href="gamesetup.html" class="btn">Play Free Demo</a>
+      <a href="playgame.html?tutorial=1" class="btn-outline" onclick="sessionStorage.setItem('tutorial_mode','1')">Tutorial <span class="wip-tag">WIP</span></a>
+      <a href="rules.html" class="btn-outline">Rules</a>
+      <a href="history.html" class="btn-outline btn-outline-sm">Game History &amp; Top Scores</a>
     </div>
-    <a href="history.html" class="btn-ghost btn-ghost-sm">Game History &amp; Top Scores</a>
 
     <div class="signup-section">
       <p class="signup-label">Get notified when we launch on Kickstarter</p>
