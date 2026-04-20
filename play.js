@@ -2987,14 +2987,25 @@ async function handleBust(player) {
   player.busted = true;
   if (player.isHuman) {
     clearActions();
-    setMessage(player.name + ' busted!');
+    setMessage('BUSTED! Review your hand, then clear it when ready.');
     if (TUTORIAL.active) TUTORIAL.onBust();
   }
   addLog(`${player.name} BUSTED with ${player.roundBandits} bandits!`, 'log-bust');
   render();
   if (player === G.players[0]) showBustAnimation();
   if (player.isHuman) mpSyncDraw();
-  await delay(2000);
+
+  if (player === G.players[0]) {
+    // Let the player review their hand before clearing — show button after animation lands
+    await new Promise(resolve => {
+      setTimeout(() => {
+        setActions([{ text: 'Clear Hand', className: 'btn-secondary', onClick: resolve }]);
+      }, 1300);
+    });
+    clearActions();
+  } else {
+    await delay(2000);
+  }
 
   // Move all drawn cards to discard, but keep discard_to_player cards in hand
   // so resolvePassCards() can prompt the player to choose a recipient.
