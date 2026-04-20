@@ -1890,78 +1890,19 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
 
 /* ─── Tutorial ─── */
 
-/* ── Persistent popup card ───────────────────────────────────────────────── */
-.tutorial-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 400; /* above deck modal (z ~100) and everything else */
-  background: #1e0e04;
-  border: 2px solid rgba(232, 200, 114, 0.85);
-  border-radius: 10px;
-  padding: 1.4rem 1.6rem 1.2rem;
-  max-width: 480px;
-  width: calc(100% - 2rem);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+/* Info step text shown inline in the action zone */
+#message.tutorial-info-msg {
+  line-height: 2.3;
+  font-style: normal;
+}
+
+/* "Got it →" button appended inside the deck modal during deck lesson steps */
+#tutorial-deck-footer {
+  margin-top: 1rem;
   text-align: center;
 }
 
-.tutorial-popup.hidden {
-  display: none;
-}
-
-/* When deck modal is open, JS positions popup below deck; class just marks the state */
-.tutorial-popup--below {
-  bottom: auto; /* JS sets top dynamically via _centerDeckPopupPair() */
-}
-
-/* Constrain deck height so the popup pair always fits on screen */
-body:has(.tutorial-popup--below) .deck-content {
-  max-height: 50vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-body:has(.tutorial-popup--below) #deck-modal-body {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-#tutorial-popup-text {
-  color: #f0d87a;
-  font-size: 1rem;
-  line-height: 2.3;
-  margin: 0 0 1.1rem;
-  white-space: pre-line; /* honours \n in message strings */
-}
-
-.tutorial-popup-btn {
-  background: rgba(232, 200, 114, 0.12);
-  border: 1px solid rgba(232, 200, 114, 0.5);
-  border-radius: 5px;
-  color: #e8c872;
-  cursor: pointer;
-  font-size: 0.9rem;
-  letter-spacing: 0.06em;
-  padding: 0.4rem 1.4rem;
-  transition: background 0.15s;
-}
-
-.tutorial-popup-btn:hover {
-  background: rgba(232, 200, 114, 0.25);
-}
-
-.tutorial-popup-enter {
-  color: rgba(240, 216, 122, 0.4);
-  font-size: 0.72rem;
-  margin: 0.35rem 0 0;
-  letter-spacing: 0.03em;
-}
-
-/* ── Inline symbol images inside popup text ──────────────────────────────── */
+/* ── Inline symbol images inside tutorial messages ───────────────────────── */
 .tut-sym {
   height: 2.5em;
   vertical-align: middle;

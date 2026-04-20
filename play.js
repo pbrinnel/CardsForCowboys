@@ -1652,10 +1652,12 @@ function renderLog() {
 }
 
 function setMessage(text) {
+  if (TUTORIAL.active && TUTORIAL.popupVisible) return;
   document.getElementById('message').textContent = text;
 }
 
 function setActions(buttons) {
+  if (TUTORIAL.active && TUTORIAL.popupVisible) return;
   const el = document.getElementById('actions');
   el.innerHTML = '';
   for (const btn of buttons) {
@@ -1670,6 +1672,7 @@ function setActions(buttons) {
 }
 
 function clearActions() {
+  if (TUTORIAL.active && TUTORIAL.popupVisible) return;
   document.getElementById('actions').innerHTML = '';
   clearCardPreview();
 }
@@ -3006,13 +3009,18 @@ async function handleBust(player) {
   if (player.isHuman) mpSyncDraw();
 
   if (player === G.players[0]) {
-    // Let the player review their hand before clearing — show button after animation lands
-    await new Promise(resolve => {
-      setTimeout(() => {
-        setActions([{ text: 'Clear Hand', onClick: resolve }]);
-      }, 1300);
-    });
-    clearActions();
+    if (TUTORIAL.active) {
+      // Tutorial info popup handles the bust explanation; auto-clear the hand after animation.
+      await delay(1400);
+    } else {
+      // Let the player review their hand before clearing — show button after animation lands
+      await new Promise(resolve => {
+        setTimeout(() => {
+          setActions([{ text: 'Clear Hand', onClick: resolve }]);
+        }, 1300);
+      });
+      clearActions();
+    }
   } else {
     await delay(2000);
   }

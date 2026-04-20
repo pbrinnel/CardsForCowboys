@@ -243,62 +243,75 @@ const TUTORIAL = (() => {
     const step = currentStep();
     if (!step) { complete(); return; }
     applyStep();
+
+    // If we just dismissed an info popup while the draw phase is running, re-setup
+    // draw buttons — startPlayerDraw was blocked by setActions guard while popup was up.
+    if (step.required.type !== 'info' &&
+        typeof G !== 'undefined' && G.phase === 'draw' &&
+        G.players[0] && !G.players[0].busted && !G.players[0].stoppedDrawing) {
+      if (typeof startPlayerDraw === 'function') startPlayerDraw();
+    }
   }
 
-  // ─── Popup UI ─────────────────────────────────────────────────────────────────
+  // ─── Popup UI (inline — renders into the action zone, not a floating modal) ────
 
   function showPopup(text) {
-    const popup = document.getElementById('tutorial-popup');
-    const textEl = document.getElementById('tutorial-popup-text');
-    if (!popup || !textEl) return;
-    textEl.innerHTML = formatMsg(text);
+    const msgEl = document.getElementById('message');
+    if (msgEl) {
+      msgEl.innerHTML = formatMsg(text);
+      msgEl.classList.add('tutorial-info-msg');
+    }
+
     const deckOpen = !document.getElementById('deck-modal')?.classList.contains('hidden');
-    popup.classList.toggle('tutorial-popup--below', deckOpen);
-    popup.classList.remove('hidden');
+    if (deckOpen) {
+      _showDeckGotIt();
+    } else {
+      // Defer one tick so we win any race with synchronous setActions calls
+      // (e.g. startPlayerDraw runs right after onRoundStart in the same call stack).
+      // Write directly to #actions to bypass any setActions guards in play.js.
+      setTimeout(() => {
+        if (!_popupVisible) return;
+        const actionsEl = document.getElementById('actions');
+        if (!actionsEl) return;
+        actionsEl.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = 'Got it →';
+        btn.onclick = () => TUTORIAL.onPopupDismiss();
+        actionsEl.appendChild(btn);
+      }, 0);
+    }
     _popupVisible = true;
-    if (deckOpen) _centerDeckPopupPair();
-  }
-
-  // Center the deck modal + tutorial popup as a pair vertically on screen.
-  function _centerDeckPopupPair() {
-    requestAnimationFrame(() => {
-      const deckOverlay  = document.getElementById('deck-modal');
-      const deckContent  = deckOverlay?.querySelector('.deck-content');
-      const popup        = document.getElementById('tutorial-popup');
-      if (!deckOverlay || !deckContent || !popup) return;
-
-      const gap     = 12;
-      const deckH   = deckContent.offsetHeight;
-      const popupH  = popup.offsetHeight;
-      const totalH  = deckH + gap + popupH;
-      const screenH = window.innerHeight;
-      const topOffset = Math.max(8, (screenH - totalH) / 2);
-
-      // Push deck modal down to topOffset
-      deckOverlay.style.alignItems = 'flex-start';
-      deckOverlay.style.paddingTop  = topOffset + 'px';
-
-      // Position popup directly below the deck content
-      const deckRect = deckContent.getBoundingClientRect();
-      popup.style.top       = (deckRect.bottom + gap) + 'px';
-      popup.style.bottom    = 'auto';
-      popup.style.transform = 'translateX(-50%)';
-    });
   }
 
   function hidePopup() {
-    const popup      = document.getElementById('tutorial-popup');
-    const deckOverlay = document.getElementById('deck-modal');
-    if (popup) {
-      popup.classList.add('hidden');
-      popup.classList.remove('tutorial-popup--below');
-      popup.style.top = popup.style.bottom = popup.style.transform = '';
-    }
-    if (deckOverlay) {
-      deckOverlay.style.alignItems = deckOverlay.style.paddingTop = '';
-    }
+    const msgEl = document.getElementById('message');
+    if (msgEl) msgEl.classList.remove('tutorial-info-msg');
+    _hideDeckGotIt();
     clearDeckHighlight();
     _popupVisible = false;
+  }
+
+  // "Got it →" button injected into the deck modal footer during deck info steps.
+  function _showDeckGotIt() {
+    let footer = document.getElementById('tutorial-deck-footer');
+    if (!footer) {
+      footer = document.createElement('div');
+      footer.id = 'tutorial-deck-footer';
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'Got it →';
+      btn.onclick = () => TUTORIAL.onPopupDismiss();
+      footer.appendChild(btn);
+      const deckContent = document.querySelector('#deck-modal .deck-content');
+      if (deckContent) deckContent.appendChild(footer);
+    }
+    footer.style.display = '';
+  }
+
+  function _hideDeckGotIt() {
+    const footer = document.getElementById('tutorial-deck-footer');
+    if (footer) footer.style.display = 'none';
   }
 
   // ─── Spotlight helpers ────────────────────────────────────────────────────────
@@ -400,8 +413,9 @@ const TUTORIAL = (() => {
 
   return {
 
-    get active() { return _active; },
-    get done()   { return _done;   },
+    get active()       { return _active;       },
+    get done()         { return _done;         },
+    get popupVisible() { return _popupVisible; },
 
     // Called from startGame() when ?tutorial=1 is detected.
     init(G) {
