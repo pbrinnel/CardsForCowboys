@@ -1068,6 +1068,10 @@ body.phase-draw #player-deck-preview {
 }
 
 /* Sequential scale pulse so players count 1-2-3 */
+/* Allow the scaled card to visually overflow the hand-row during bust */
+#player-zone.zone-busted .hand-row {
+  overflow: visible;
+}
 @keyframes banditPulse {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.1); }

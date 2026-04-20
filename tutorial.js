@@ -203,13 +203,6 @@ const TUTORIAL = (() => {
       pyramidHint: { row: 4, col: 1 },
     },
 
-    // ── End of current demo ──
-
-    {
-      id: 'done',
-      message: '(This tutorial is a work in progress — more coming soon.)',
-      required: { type: 'info' },
-    },
   ];
 
   // ─── State ────────────────────────────────────────────────────────────────────
@@ -408,11 +401,7 @@ const TUTORIAL = (() => {
 
     hidePopup();
     clearSpotlight();
-    if (step.id === 'done') {
-      complete();
-    } else {
-      advance();
-    }
+    advance();
   }
 
   // ─── Enter key shortcut ───────────────────────────────────────────────────────
