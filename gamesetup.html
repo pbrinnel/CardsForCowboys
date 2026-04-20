@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -12,9 +14,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #faf3e0;
+      background-color: #e9e0c6;
       font-family: Georgia, 'Times New Roman', serif;
-      color: #2b1d0e;
+      color: #1e1610;
     }
     .home {
       text-align: center;
@@ -23,13 +25,17 @@
       width: 100%;
     }
     h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
       font-size: 2.8rem;
-      color: #5c3a1e;
+      color: #1e1610;
       margin-bottom: 0.4rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
     .tagline {
       font-size: 1.1rem;
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       margin-bottom: 2rem;
     }
@@ -37,7 +43,7 @@
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      color: #8b6914;
+      color: #b87838;
       margin-bottom: 0.8rem;
     }
 
@@ -57,30 +63,32 @@
     .count-btn {
       width: 64px;
       height: 64px;
-      border-radius: 50%;
-      border: 2px solid #5c3a1e;
-      background: none;
+      border: 2.5px solid #1e1610;
+      background: transparent;
       font-size: 1.6rem;
       font-family: Georgia, serif;
-      color: #5c3a1e;
+      color: #1e1610;
       cursor: pointer;
       transition: all 0.15s;
+      box-shadow: 2px 2px 0 #1e1610;
     }
     .count-btn.active {
-      background: #5c3a1e;
-      color: #faf3e0;
+      background: #1e1610;
+      color: #e9e0c6;
+      box-shadow: none;
     }
-    .count-btn:hover:not(.active):not(:disabled) { background: #f0e2c0; }
+    .count-btn:hover:not(.active):not(:disabled) { background: rgba(30,22,16,0.08); }
     .count-btn:disabled {
-      border-color: #c8b89a;
-      color: #c8b89a;
+      border-color: rgba(30,22,16,0.2);
+      color: rgba(30,22,16,0.2);
+      box-shadow: none;
       cursor: not-allowed;
     }
     .soon-label {
       font-size: 0.58rem;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #b0946a;
+      color: rgba(30,22,16,0.35);
     }
 
     /* Player slots */
@@ -93,8 +101,9 @@
     .slot {
       display: flex;
       align-items: center;
-      background: #f0e2c0;
-      border-radius: 8px;
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 #1e1610;
       padding: 0.6rem 1rem;
       gap: 1rem;
       min-height: 52px;
@@ -103,45 +112,44 @@
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #8b6914;
+      color: #b87838;
       width: 68px;
       text-align: left;
       flex-shrink: 0;
     }
     .slot-you {
       font-weight: bold;
-      color: #5c3a1e;
+      color: #1e1610;
     }
     .toggle-row {
       display: flex;
-      border: 1px solid #5c3a1e;
-      border-radius: 4px;
+      border: 2px solid #1e1610;
       overflow: hidden;
     }
     .toggle-btn {
       padding: 0.3rem 0.85rem;
       border: none;
-      background: none;
-      color: #5c3a1e;
+      background: transparent;
+      color: rgba(30,22,16,0.5);
       font-family: Georgia, serif;
       font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.15s;
     }
     .toggle-btn.active {
-      background: #5c3a1e;
-      color: #faf3e0;
+      background: #1e1610;
+      color: #e9e0c6;
     }
-    .toggle-btn:hover:not(.active) { background: #e8d8b4; }
+    .toggle-btn:hover:not(.active) { background: rgba(30,22,16,0.08); color: #1e1610; }
     .invite-note {
       font-size: 0.78rem;
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       text-align: left;
       padding: 0.1rem 0.25rem 0;
     }
     .soon-msg {
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       padding: 0.75rem 0 1.25rem;
     }
@@ -150,31 +158,33 @@
     .btn {
       display: inline-block;
       padding: 0.85rem 3rem;
-      background-color: #c0392b;
-      color: #fff;
+      background: #b87838;
+      color: #1e1610;
       text-decoration: none;
-      border: none;
+      border: 2.5px solid #1e1610;
       font-size: 1.05rem;
       font-family: Georgia, 'Times New Roman', serif;
+      font-weight: bold;
       cursor: pointer;
-      border-radius: 6px;
       min-width: 200px;
-      transition: background 0.15s;
+      box-shadow: 4px 4px 0 #1e1610;
+      transition: transform 0.07s, box-shadow 0.07s;
     }
-    .btn:hover { background-color: #a93226; }
+    .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1e1610; }
     .btn-ghost {
-      background: none;
-      color: #8b6914;
+      background: transparent;
+      color: rgba(30,22,16,0.5);
       font-size: 0.9rem;
       padding: 0.5rem 1rem;
-      border: 1px solid #d4b896;
+      border: 2px solid rgba(30,22,16,0.25);
       min-width: auto;
+      box-shadow: none;
     }
-    .btn-ghost:hover { background: #f0e2c0; color: #5c3a1e; }
+    .btn-ghost:hover { color: #1e1610; border-color: rgba(30,22,16,0.6); transform: none; box-shadow: none; }
     .divider {
       width: 60px;
       border: none;
-      border-top: 1px solid #d4b896;
+      border-top: 2px solid rgba(30,22,16,0.2);
       margin: 1rem auto;
     }
     .hidden { display: none !important; }
@@ -187,46 +197,44 @@
       gap: 0.65rem;
       cursor: pointer;
       padding: 0.65rem 0.9rem;
-      background: #f0e2c0;
-      border-radius: 8px;
-      border: 1.5px solid transparent;
+      background: #e9e0c6;
+      border: 2px solid rgba(30,22,16,0.2);
       transition: border-color 0.15s;
     }
     .mode-toggle:has(input:checked) {
-      border-color: #5c3a1e;
+      border-color: #1e1610;
     }
     .mode-toggle input[type="checkbox"] {
       margin-top: 0.18rem;
       width: 15px;
       height: 15px;
       flex-shrink: 0;
-      accent-color: #5c3a1e;
+      accent-color: #1e1610;
       cursor: pointer;
     }
     .mode-toggle-text {
       font-size: 0.88rem;
-      color: #2b1d0e;
+      color: #1e1610;
       line-height: 1.45;
       text-align: left;
     }
     .mode-toggle-text strong {
-      color: #5c3a1e;
+      color: #1e1610;
     }
     .name-input {
       width: 100%;
       padding: 0.55rem 0.8rem;
-      border: 1.5px solid #c8b89a;
-      border-radius: 6px;
-      background: #fff8ed;
+      border: 2.5px solid #1e1610;
+      background: #e9e0c6;
       font-family: Georgia, serif;
       font-size: 1rem;
-      color: #2b1d0e;
+      color: #1e1610;
       margin-bottom: 2rem;
       box-sizing: border-box;
     }
     .name-input:focus {
       outline: none;
-      border-color: #5c3a1e;
+      box-shadow: 0 0 0 2px #b87838;
     }
   </style>
 </head>

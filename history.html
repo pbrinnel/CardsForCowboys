@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game History - Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      color: #2b1d0e;
-      background-color: #faf3e0;
+      color: #1e1610;
+      background-color: #e9e0c6;
       min-height: 100vh;
       padding: 2rem 1rem;
     }
@@ -19,14 +21,18 @@
       margin: 0 auto;
     }
     h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
       font-size: 2rem;
-      color: #5c3a1e;
+      color: #1e1610;
       margin-bottom: 0.3rem;
       text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
     .subtitle {
       text-align: center;
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       margin-bottom: 2rem;
       font-size: 0.9rem;
@@ -34,14 +40,14 @@
     .back-link {
       display: inline-block;
       margin-bottom: 1.5rem;
-      color: #8b6914;
+      color: rgba(30,22,16,0.5);
       font-size: 0.9rem;
       text-decoration: none;
     }
-    .back-link:hover { color: #5c3a1e; }
+    .back-link:hover { color: #1e1610; }
     #status {
       text-align: center;
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       padding: 2rem;
     }
@@ -51,18 +57,21 @@
       margin-bottom: 2rem;
     }
     #live-section h2 {
-      font-size: 1.1rem;
-      color: #5c3a1e;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 1rem;
+      color: #1e1610;
       margin-bottom: 0.75rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
     .live-dot {
       width: 10px;
       height: 10px;
-      border-radius: 50%;
-      background: #c0392b;
+      background: #c84e18;
       display: inline-block;
       animation: pulse 1.4s ease-in-out infinite;
     }
@@ -76,10 +85,10 @@
       gap: 0.5rem;
     }
     .live-card {
-      background: #fff8ed;
-      border: 1px solid #d4b896;
-      border-left: 4px solid #c0392b;
-      border-radius: 6px;
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      border-left: 4px solid #c84e18;
+      box-shadow: 2px 2px 0 #1e1610;
       padding: 0.65rem 0.9rem;
       display: flex;
       align-items: center;
@@ -90,51 +99,58 @@
     .live-card-info { flex: 1; }
     .live-card-players {
       font-size: 0.9rem;
-      color: #2b1d0e;
+      color: #1e1610;
       margin-bottom: 0.2rem;
     }
     .live-card-meta {
       font-size: 0.75rem;
-      color: #8b6914;
+      color: #b87838;
       font-style: italic;
     }
     .btn-spectate {
-      background: #5c3a1e;
-      color: #faf3e0;
-      border: none;
-      border-radius: 4px;
+      background: #b87838;
+      color: #1e1610;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 #1e1610;
       padding: 0.4rem 0.85rem;
       font-family: Georgia, serif;
       font-size: 0.85rem;
+      font-weight: bold;
       cursor: pointer;
       text-decoration: none;
       white-space: nowrap;
+      transition: transform 0.07s, box-shadow 0.07s;
     }
-    .btn-spectate:hover { background: #7a4e2a; }
+    .btn-spectate:hover { transform: translate(1px,1px); box-shadow: 1px 1px 0 #1e1610; }
     #live-empty {
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
       font-size: 0.9rem;
     }
 
-    /* ── History table ── */
+    /* ── Section label ── */
     .section-label {
-      font-size: 1.1rem;
-      color: #5c3a1e;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 1rem;
+      color: #1e1610;
       margin-bottom: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
+
+    /* ── History + leaderboard tables ── */
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff8ed;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(43,29,14,0.1);
+      background: #e9e0c6;
+      border: 2.5px solid #1e1610;
+      box-shadow: 4px 4px 0 #1e1610;
       font-size: 0.9rem;
     }
     thead {
-      background: #5c3a1e;
-      color: #faf3e0;
+      background: #1e1610;
+      color: #e9e0c6;
     }
     th {
       padding: 0.75rem 1rem;
@@ -146,41 +162,40 @@
     }
     td {
       padding: 0.65rem 1rem;
-      border-bottom: 1px solid #e8d8b4;
+      border-bottom: 1px solid rgba(30,22,16,0.15);
       vertical-align: top;
     }
     tr:last-child td { border-bottom: none; }
-    tr:nth-child(even) td { background: #fdf5e0; }
+    tr:nth-child(even) td { background: rgba(30,22,16,0.04); }
     .winner-name {
       font-weight: bold;
-      color: #5c3a1e;
+      color: #1e1610;
     }
     .player-list {
       line-height: 1.6;
     }
     .player-winner { font-weight: bold; }
-    .player-ai { color: #8b6914; font-style: italic; }
+    .player-ai { color: #b87838; font-style: italic; }
     .badge {
       display: inline-block;
       padding: 0.15rem 0.4rem;
-      border-radius: 3px;
       font-size: 0.75rem;
     }
-    .badge-mp  { background: #dde8f8; color: #1a4fa0; }
-    .badge-ai  { background: #e0d8f0; color: #5a3e8a; }
-    .tie-label { color: #8b6914; font-style: italic; }
+    .badge-mp  { background: rgba(26,122,150,0.15); color: #1a7a96; }
+    .badge-ai  { background: rgba(184,120,56,0.15); color: #b87838; }
+    .tie-label { color: #b87838; font-style: italic; }
     .btn-review {
       display: inline-block;
-      background: #5c3a1e;
-      color: #faf3e0;
-      border-radius: 4px;
+      background: #1e1610;
+      color: #e9e0c6;
+      border: 2px solid #1e1610;
       padding: 0.25rem 0.6rem;
       font-family: Georgia, serif;
       font-size: 0.78rem;
       text-decoration: none;
       white-space: nowrap;
     }
-    .btn-review:hover { background: #7a4e2a; }
+    .btn-review:hover { background: #3a2a1a; }
 
     /* ── Leaderboard ── */
     #leaderboard-section {
@@ -189,13 +204,12 @@
     .leaderboard-table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff8ed;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(43,29,14,0.1);
+      background: #e9e0c6;
+      border: 2.5px solid #1e1610;
+      box-shadow: 4px 4px 0 #1e1610;
       font-size: 0.9rem;
     }
-    .leaderboard-table thead { background: #5c3a1e; color: #faf3e0; }
+    .leaderboard-table thead { background: #1e1610; color: #e9e0c6; }
     .leaderboard-table th {
       padding: 0.75rem 1rem;
       text-align: left;
@@ -206,15 +220,15 @@
     }
     .leaderboard-table td {
       padding: 0.65rem 1rem;
-      border-bottom: 1px solid #e8d8b4;
+      border-bottom: 1px solid rgba(30,22,16,0.15);
     }
     .leaderboard-table tr:last-child td { border-bottom: none; }
-    .leaderboard-table tr:nth-child(even) td { background: #fdf5e0; }
-    .rank-cell { color: #8b6914; font-size: 0.85rem; width: 2rem; }
-    .rank-gold   { color: #b8860b; font-weight: bold; }
+    .leaderboard-table tr:nth-child(even) td { background: rgba(30,22,16,0.04); }
+    .rank-cell { color: #b87838; font-size: 0.85rem; width: 2rem; }
+    .rank-gold   { color: #b87838; font-weight: bold; }
     .rank-silver { color: #707070; font-weight: bold; }
-    .rank-bronze { color: #8b5e3c; font-weight: bold; }
-    .herd-count  { font-weight: bold; color: #5c3a1e; }
+    .rank-bronze { color: #8c3010; font-weight: bold; }
+    .herd-count  { font-weight: bold; color: #2a6e1a; }
 
     @media (max-width: 600px) {
       th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
@@ -445,7 +459,7 @@ onValue(q, (snap) => {
       tr.appendChild(tdHerd);
 
       const tdDate = document.createElement('td');
-      tdDate.style.color = '#8b6914';
+      tdDate.style.color = '#b87838';
       tdDate.style.fontSize = '0.8rem';
       tdDate.textContent = entry.ts ? formatDate(entry.ts) : '—';
       tr.appendChild(tdDate);

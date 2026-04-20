@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spectating - Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      background: #faf3e0;
-      color: #2b1d0e;
+      background: #e9e0c6;
+      color: #1e1610;
       min-height: 100vh;
     }
 
@@ -19,21 +21,22 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #5c3a1e;
-      color: #faf3e0;
+      background: #1e1610;
+      color: #e9e0c6;
       padding: 0.5rem 1rem;
       font-size: 0.85rem;
+      border-bottom: 2.5px solid #1e1610;
     }
     #spec-header .code-badge {
-      background: #c0392b;
-      color: #fff;
+      background: #b87838;
+      color: #1e1610;
       padding: 0.15rem 0.5rem;
-      border-radius: 4px;
       letter-spacing: 2px;
       font-size: 0.8rem;
+      font-weight: bold;
       margin-left: 0.5rem;
     }
-    #spec-phase { color: #d4b896; font-style: italic; }
+    #spec-phase { color: #d49848; font-style: italic; }
 
     /* ── Layout ── */
     #spec-main {
@@ -46,7 +49,7 @@
     #spec-loading {
       text-align: center;
       padding: 3rem;
-      color: #8b6914;
+      color: #3a2a1a;
       font-style: italic;
     }
 
@@ -58,19 +61,19 @@
       margin-bottom: 1rem;
     }
     .spec-player {
-      background: #fff8ed;
-      border: 2px solid #d4b896;
-      border-radius: 8px;
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 #1e1610;
       padding: 0.6rem 0.8rem;
       flex: 1 1 180px;
       min-width: 160px;
     }
-    .spec-player.active-buyer { border-color: #c0392b; background: #fff3e0; }
+    .spec-player.active-buyer { border-color: #b87838; box-shadow: 2px 2px 0 #b87838; }
     .spec-player.busted { opacity: 0.6; }
     .spec-player-name {
       font-size: 0.9rem;
       font-weight: bold;
-      color: #5c3a1e;
+      color: #1e1610;
       margin-bottom: 0.3rem;
       display: flex;
       align-items: center;
@@ -78,21 +81,20 @@
     }
     .spec-player-name .ai-badge {
       font-size: 0.65rem;
-      background: #e0d8f0;
-      color: #5a3e8a;
+      background: rgba(26,122,150,0.15);
+      color: #1a7a96;
       padding: 0.1rem 0.35rem;
-      border-radius: 3px;
       font-style: italic;
     }
     .spec-herd {
       font-size: 1.4rem;
       font-weight: bold;
-      color: #2b7a1e;
+      color: #2a6e1a;
       margin-bottom: 0.25rem;
     }
     .spec-round-stats {
       font-size: 0.75rem;
-      color: #5c3a1e;
+      color: #3a2a1a;
       margin-bottom: 0.4rem;
       display: flex;
       gap: 0.6rem;
@@ -100,7 +102,7 @@
     .spec-status {
       font-size: 0.7rem;
       font-style: italic;
-      color: #c0392b;
+      color: #c84e18;
       margin-bottom: 0.4rem;
     }
 
@@ -109,9 +111,8 @@
     .spec-card {
       width: 42px;
       height: 59px;
-      border-radius: 3px;
       overflow: hidden;
-      border: 1px solid #bbb;
+      border: 1px solid rgba(30,22,16,0.4);
       flex-shrink: 0;
     }
     .spec-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -121,23 +122,21 @@
       gap: 0.3rem;
       margin-top: 0.3rem;
       font-size: 0.7rem;
-      color: #8b6914;
+      color: #b87838;
     }
     .spec-deck-backs { display: flex; flex-wrap: wrap; gap: 2px; }
     .spec-deck-back {
       width: 18px;
       height: 25px;
-      border-radius: 2px;
       overflow: hidden;
-      border: 1px solid #bbb;
+      border: 1px solid rgba(30,22,16,0.4);
     }
     .spec-deck-back img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     /* ── Pyramid ── */
     #spec-pyramid-zone {
-      background: #fff8ed;
-      border: 2px solid #d4b896;
-      border-radius: 8px;
+      background: #1e1610;
+      border: 2.5px solid #1e1610;
       padding: 0.75rem;
       margin-bottom: 1rem;
     }
@@ -145,7 +144,7 @@
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #8b6914;
+      color: #b87838;
       margin-bottom: 0.5rem;
     }
     .spec-pyramid-row {
@@ -161,31 +160,31 @@
     .spec-pyr-card {
       width: 55px;
       height: 77px;
-      border-radius: 4px;
       overflow: hidden;
-      border: 1px solid #bbb;
+      border: 1px solid rgba(30,22,16,0.5);
       position: relative;
     }
     .spec-pyr-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .spec-pyr-card .cost-label {
       position: absolute;
-      bottom: 2px;
-      right: 2px;
-      background: rgba(92,58,30,0.85);
-      color: #fff;
+      bottom: 3px;
+      left: 3px;
+      background: rgba(30,22,16,0.82);
+      color: #d49848;
+      font-family: Georgia, serif;
+      font-weight: bold;
       font-size: 0.55rem;
       padding: 1px 3px;
-      border-radius: 2px;
     }
     .spec-pyr-card.face-down { opacity: 0.7; }
 
     /* ── Status bar ── */
     #spec-status-bar {
-      background: #5c3a1e;
-      color: #faf3e0;
+      background: #3a2a1a;
+      color: #e9e0c6;
       padding: 0.5rem 1rem;
       font-size: 0.85rem;
-      border-radius: 6px;
+      border: 2px solid #1e1610;
       margin-bottom: 1rem;
       text-align: center;
     }
@@ -195,47 +194,47 @@
       position: fixed;
       z-index: 200;
       pointer-events: none;
-      border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+      box-shadow: 4px 4px 0 #1e1610;
     }
     #spec-hover-preview.hidden { display: none; }
-    #spec-hover-preview img { width: 180px; border-radius: 8px; display: block; }
+    #spec-hover-preview img { width: 180px; display: block; }
 
     /* ── Showdown view ── */
     #spec-showdown { display: none; margin-bottom: 1rem; }
     #spec-showdown.active { display: block; }
     .showdown-header {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
       text-align: center;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #5c3a1e;
+      font-size: 1.4rem;
+      color: #1e1610;
       letter-spacing: 2px;
       text-transform: uppercase;
       margin-bottom: 1rem;
     }
     .showdown-player-block {
-      background: #fff8ed;
-      border: 2px solid #d4b896;
-      border-radius: 8px;
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 #1e1610;
       padding: 0.75rem 0.9rem;
       margin-bottom: 0.75rem;
     }
-    .showdown-player-block.winner { border-color: #5c3a1e; background: #fdf5e0; }
+    .showdown-player-block.winner { border-color: #b87838; box-shadow: 2px 2px 0 #b87838; }
     .showdown-player-block .sdp-name {
       font-size: 1rem;
       font-weight: bold;
-      color: #5c3a1e;
+      color: #1e1610;
       margin-bottom: 0.15rem;
     }
     .showdown-player-block .sdp-herd {
       font-size: 1.4rem;
       font-weight: bold;
-      color: #2b7a1e;
+      color: #2a6e1a;
       margin-bottom: 0.3rem;
     }
     .showdown-player-block .sdp-tally {
       font-size: 0.78rem;
-      color: #8b6914;
+      color: #b87838;
       font-style: italic;
       margin-bottom: 0.5rem;
     }
@@ -243,9 +242,8 @@
     .showdown-card {
       width: 55px;
       height: 77px;
-      border-radius: 4px;
       overflow: hidden;
-      border: 1px solid #bbb;
+      border: 1px solid rgba(30,22,16,0.4);
       flex-shrink: 0;
       cursor: pointer;
     }

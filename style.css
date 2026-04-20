@@ -1,38 +1,35 @@
-/* Reset */
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ── Cards For Cowboys — style.css (rules + nav shared) ── */
+/* Imports theme tokens and base components */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+img { max-width: 100%; height: auto; }
 
 body {
   font-family: Georgia, 'Times New Roman', serif;
-  color: #2b1d0e;
-  background-color: #faf3e0;
+  color: #1e1610;
+  background-color: #e9e0c6;
   line-height: 1.6;
   overflow-x: hidden;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Nav */
+/* ── Nav ── */
 nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #3b2314;
-  color: #faf3e0;
+  padding: 0.6rem 1.5rem;
+  background: #1e1610;
+  border-bottom: 2.5px solid #1e1610;
 }
 
 nav .logo {
-  font-size: 1.4rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  color: #faf3e0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: 1.15rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #e9e0c6;
   text-decoration: none;
 }
 
@@ -43,34 +40,39 @@ nav ul {
 }
 
 nav a {
-  color: #e8c872;
+  color: rgba(233,224,198,0.65);
   text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 0.15s;
 }
 
-nav a:hover {
-  text-decoration: underline;
-}
+nav a:hover, nav a.active { color: #e9e0c6; }
 
-/* Hero */
+/* ── Hero ── */
 .hero {
   text-align: center;
-  padding: 6rem 2rem;
-  background-color: #5c3a1e;
-  color: #faf3e0;
+  padding: 5rem 2rem;
+  background: #3a2a1a;
+  color: #e9e0c6;
+  border-bottom: 2.5px solid #1e1610;
 }
 
 .hero h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
   font-size: 3rem;
   margin-bottom: 0.5rem;
+  letter-spacing: 2px;
 }
 
 .hero .tagline {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   margin-bottom: 2rem;
   font-style: italic;
-  color: #e8c872;
+  color: #d49848;
 }
 
+/* Card slideshow */
 .card-slideshow {
   overflow: hidden;
   margin-bottom: 2rem;
@@ -87,34 +89,51 @@ nav a:hover {
 
 .card-track img {
   width: 120px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 2px solid #1e1610;
+  box-shadow: 3px 3px 0 #1e1610;
   flex-shrink: 0;
 }
 
 @keyframes scroll-cards {
-  0% { transform: translateX(0); }
+  0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
-/* Buttons */
+/* ── Buttons ── */
 .btn {
-  display: inline-block;
-  padding: 0.75rem 2rem;
-  background-color: #c0392b;
-  color: #fff;
-  text-decoration: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 1rem;
+  padding: 0.55rem 1.6rem;
+  background: #b87838;
+  color: #1e1610;
+  font-weight: bold;
+  border: 2.5px solid #1e1610;
+  box-shadow: 4px 4px 0 #1e1610;
+  text-decoration: none;
   cursor: pointer;
-  border-radius: 4px;
+  transition: transform 0.07s, box-shadow 0.07s;
 }
 
 .btn:hover {
-  background-color: #a93226;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #1e1610;
 }
 
-/* About */
+.btn-secondary {
+  background: #e9e0c6;
+  color: #1e1610;
+  font-weight: normal;
+  box-shadow: 2px 2px 0 #1e1610;
+}
+
+.btn-secondary:hover {
+  box-shadow: none;
+}
+
+/* ── About section ── */
 .about {
   padding: 4rem 2rem;
   text-align: center;
@@ -123,26 +142,29 @@ nav a:hover {
 }
 
 .about h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
   font-size: 2rem;
   margin-bottom: 1rem;
+  letter-spacing: 1px;
 }
 
 .about > p {
   margin-bottom: 2rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 .about-img {
   display: block;
   max-width: 320px;
   margin: 0 auto 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2.5px solid #1e1610;
+  box-shadow: 4px 4px 0 #1e1610;
 }
 
 .features {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -151,79 +173,45 @@ nav a:hover {
   flex: 1;
   min-width: 200px;
   max-width: 260px;
-  padding: 1.5rem;
-  background-color: #f0e2c0;
-  border-radius: 8px;
+  padding: 1.25rem;
+  background: #e9e0c6;
+  border: 2.5px solid #1e1610;
+  box-shadow: 3px 3px 0 #1e1610;
+  text-align: left;
 }
 
 .feature h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
   margin-bottom: 0.5rem;
-  color: #5c3a1e;
+  color: #1e1610;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-/* About CTA */
-.about-cta {
-  margin-top: 2rem;
-}
+.about-cta { margin-top: 2rem; }
 
-.btn-secondary {
-  background-color: #5c3a1e;
-}
-
-.btn-secondary:hover {
-  background-color: #3b2314;
-}
-
-/* Footer */
+/* ── Footer ── */
 footer {
   text-align: center;
-  padding: 1.5rem;
-  background-color: #3b2314;
-  color: #a08060;
-  font-size: 0.9rem;
+  padding: 1.25rem;
+  background: #1e1610;
+  color: rgba(233,224,198,0.5);
+  font-size: 0.85rem;
+  border-top: 2.5px solid #1e1610;
 }
 
-/* Mobile */
+/* ── Mobile ── */
 @media (max-width: 768px) {
-  nav {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  nav ul {
-    gap: 1rem;
-  }
-
-  .hero {
-    padding: 4rem 1.5rem;
-  }
-
-  .hero h1 {
-    font-size: 2rem;
-  }
-
-  .hero .tagline {
-    font-size: 1rem;
-  }
-
-  .card-track img {
-    width: 90px;
-  }
-
-  .card-track {
-    animation-duration: 30s;
-  }
-
-  .about-img {
-    max-width: 80%;
-  }
-
-  .about h2 {
-    font-size: 1.5rem;
-  }
-
-  .feature {
-    max-width: 100%;
-  }
-
+  nav { flex-direction: column; gap: 0.6rem; }
+  nav ul { gap: 1rem; }
+  .hero { padding: 3.5rem 1.5rem; }
+  .hero h1 { font-size: 2rem; }
+  .hero .tagline { font-size: 1rem; }
+  .card-track img { width: 90px; }
+  .card-track { animation-duration: 30s; }
+  .about-img { max-width: 80%; }
+  .about h2 { font-size: 1.5rem; }
+  .feature { max-width: 100%; }
 }

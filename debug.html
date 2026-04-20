@@ -5,34 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Debug — Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       min-height: 100vh;
-      background: #1a1a1a;
+      background: #1e1610;
       font-family: Georgia, 'Times New Roman', serif;
-      color: #e0d4b8;
+      color: #e9e0c6;
       padding: 2rem;
     }
     h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
       font-size: 1.6rem;
-      color: #f0c040;
+      color: #d49848;
       margin-bottom: 0.25rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
     .subtitle {
       font-size: 0.85rem;
-      color: #888;
+      color: rgba(233,224,198,0.45);
       font-style: italic;
       margin-bottom: 2rem;
     }
     .section-title {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #888;
+      letter-spacing: 0.12em;
+      color: #b87838;
       margin-bottom: 0.75rem;
       margin-top: 1.75rem;
-      border-bottom: 1px solid #333;
+      border-bottom: 1.5px solid #3a2a1a;
       padding-bottom: 0.3rem;
     }
     .scenario-grid {
@@ -41,21 +47,21 @@
       gap: 0.6rem;
     }
     .scenario-btn {
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-radius: 6px;
+      background: #2a1e12;
+      border: 2px solid #3a2a1a;
       padding: 0.7rem 1rem;
-      color: #e0d4b8;
+      color: #e9e0c6;
       font-family: Georgia, 'Times New Roman', serif;
       font-size: 0.88rem;
       cursor: pointer;
       text-align: left;
-      transition: background 0.12s, border-color 0.12s;
+      transition: border-color 0.12s, box-shadow 0.12s;
+      box-shadow: 2px 2px 0 #3a2a1a;
     }
     .scenario-btn:hover {
-      background: #333;
-      border-color: #f0c040;
-      color: #f0c040;
+      border-color: #b87838;
+      box-shadow: 2px 2px 0 #b87838;
+      color: #d49848;
     }
     .scenario-btn .label {
       font-weight: bold;
@@ -64,17 +70,17 @@
     }
     .scenario-btn .desc {
       font-size: 0.78rem;
-      color: #888;
+      color: rgba(233,224,198,0.45);
       font-style: italic;
     }
     .back-link {
       display: inline-block;
       margin-top: 2.5rem;
-      color: #666;
+      color: rgba(233,224,198,0.4);
       font-size: 0.82rem;
       text-decoration: none;
     }
-    .back-link:hover { color: #aaa; }
+    .back-link:hover { color: #e9e0c6; }
   </style>
 </head>
 <body>

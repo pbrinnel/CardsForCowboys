@@ -1,0 +1,227 @@
+/* ── Cards For Cowboys — Shared Design System ── */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,700&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+  --paper:      #e9e0c6;
+  --ink:        #1e1610;
+  --ink-mid:    #3a2a1a;
+  --bronze:     #b87838;
+  --bronze-lt:  #d49848;
+  --blue:       #3cb4d4;
+  --blue-dark:  #1a7a96;
+  --green:      #5aaa48;
+  --green-dark: #2a6e1a;
+  --orange:     #c84e18;
+  --orange-dark:#8c3010;
+  --border:     2.5px solid #1e1610;
+  --shadow-panel: 4px 4px 0 #1e1610;
+  --shadow-btn:   3px 3px 0 #1e1610;
+  --shadow-btn-sm:2px 2px 0 #1e1610;
+}
+
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  line-height: 1.4;
+  min-height: 100vh;
+}
+
+/* ── Typography helpers ── */
+/* Use .label on static, decorative, never-game-data text */
+.label {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Suit-color utility classes — use on game data spans */
+.c-bronze { color: var(--bronze);     font-weight: bold; }
+.c-green  { color: var(--green-dark); font-weight: bold; }
+.c-orange { color: var(--orange);     font-weight: bold; }
+.c-blue   { color: var(--blue-dark);  font-weight: bold; }
+
+/* ── Panel ── */
+.panel {
+  background: var(--paper);
+  border: var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-dark {
+  background: var(--ink-mid);
+  border: var(--border);
+  box-shadow: var(--shadow-panel);
+  color: var(--paper);
+}
+
+/* ── Buttons ────────────────────────────────────────────────
+   Font rules: Georgia on all buttons — readable, not decorative.
+
+   Primary   — bronze fill, ink border + offset shadow. THE action.
+   Secondary — same size, ghost border, no fill. Clearly subordinate.
+   Ghost     — for dark-panel utility buttons (header, nav).
+   Danger    — red fill, for destructive actions (disband etc).
+── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0.55rem 1.4rem;
+  border: 2.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-btn);
+  transition: transform 0.07s, box-shadow 0.07s;
+  line-height: 1;
+}
+
+.btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-btn);
+}
+
+.btn-primary {
+  background: var(--bronze);
+  color: var(--ink);
+  font-weight: bold;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.btn-primary:hover { box-shadow: 1px 1px 0 var(--ink); }
+
+.btn-secondary {
+  background: transparent;
+  color: rgba(30,22,16,0.5);
+  border-color: rgba(30,22,16,0.25);
+  box-shadow: none;
+}
+.btn-secondary:hover {
+  color: var(--ink);
+  border-color: rgba(30,22,16,0.6);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary on dark panel background */
+.btn-secondary-dark {
+  background: transparent;
+  color: rgba(233,224,198,0.5);
+  border: 2.5px solid rgba(233,224,198,0.2);
+  box-shadow: none;
+}
+.btn-secondary-dark:hover {
+  color: var(--paper);
+  border-color: rgba(233,224,198,0.55);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ghost: utility buttons inside dark panels */
+.btn-ghost {
+  background: transparent;
+  color: rgba(233,224,198,0.65);
+  border: 1.5px solid rgba(233,224,198,0.3);
+  box-shadow: none;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+}
+.btn-ghost:hover {
+  color: var(--paper);
+  border-color: rgba(233,224,198,0.65);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--ink);
+  box-shadow: var(--shadow-btn);
+}
+.btn-danger:hover { box-shadow: 1px 1px 0 var(--ink); }
+
+/* Size modifiers */
+.btn-sm {
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+  box-shadow: var(--shadow-btn-sm);
+}
+.btn-sm:hover { box-shadow: none; }
+
+/* ── Form inputs ── */
+input[type="text"],
+input[type="number"],
+select {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--border);
+  padding: 0.4rem 0.6rem;
+  outline: none;
+  width: 100%;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  box-shadow: 0 0 0 2px var(--bronze);
+}
+
+/* ── Nav ── */
+nav {
+  background: var(--ink);
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: var(--border);
+}
+
+.nav-logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--paper);
+  text-decoration: none;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+nav a {
+  color: rgba(233,224,198,0.7);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.15s;
+}
+nav a:hover, nav a.active { color: var(--paper); }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
+
+.text-center { text-align: center; }
+
+/* Herd / score number — the most important stat */
+.herd-val {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: bold;
+  color: var(--green-dark);
+  line-height: 1;
+}
