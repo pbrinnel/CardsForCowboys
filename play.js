@@ -1532,10 +1532,11 @@ function renderPlayerZone(player, prefix) {
       ? new Set(getActivatableCards(player).map(c => c.uid))
       : new Set();
     for (const card of player.hand) {
-      // When busted: dim non-bandit cards so the bandits stand out as the cause
+      // When busted: dim non-bandit cards; give bandit cards a red outline right at render time
       const isBandit = card.bandits > 0;
       const classes = [
         player.busted && !isBandit ? 'busted' : '',
+        player.busted && isBandit  ? 'bust-culprit' : '',
         activeSpecialUids.has(card.uid) ? 'card-active-special' : ''
       ].filter(Boolean).join(' ');
       const el = renderCardEl(card, showFaceUp, classes);
@@ -2977,12 +2978,17 @@ async function activateSpecialCard(player, card) {
 // --- BUST ---
 
 function showBustAnimation() {
-  // Glow bandit cards one by one (1 → 2 → 3) so players see why they busted
+  // Pulse each bandit card in sequence so players count them 1-2-3
+  // The red outline is already applied at render time via .bust-culprit
   G.players[0].hand
     .filter(c => c.bandits > 0)
     .forEach((c, i) => {
-      const el = document.querySelector(`[data-uid="${c.uid}"]`);
-      if (el) setTimeout(() => el.classList.add('bust-bandit-glow'), i * 300);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-uid="${c.uid}"]`);
+        if (!el) return;
+        el.classList.add('bust-bandit-pulse');
+        el.addEventListener('animationend', () => el.classList.remove('bust-bandit-pulse'), { once: true });
+      }, i * 350);
     });
   // Zone border flash + BUSTED stamp are CSS-driven via zone-busted class (added by render())
 }
