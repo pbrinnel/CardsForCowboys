@@ -1896,10 +1896,19 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   font-style: normal;
 }
 
-/* "Got it →" button appended inside the deck modal during deck lesson steps */
+/* Message + "Got it →" injected into the deck modal during deck lesson steps */
 #tutorial-deck-footer {
   margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(30, 22, 16, 0.2);
   text-align: center;
+}
+
+.tutorial-deck-msg {
+  color: #1e1610;
+  font-size: 0.95rem;
+  line-height: 2.2;
+  margin: 0 0 0.75rem;
 }
 
 /* ── Inline symbol images inside tutorial messages ───────────────────────── */

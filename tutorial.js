@@ -256,15 +256,16 @@ const TUTORIAL = (() => {
   // ─── Popup UI (inline — renders into the action zone, not a floating modal) ────
 
   function showPopup(text) {
+    const formatted = formatMsg(text);
     const msgEl = document.getElementById('message');
     if (msgEl) {
-      msgEl.innerHTML = formatMsg(text);
+      msgEl.innerHTML = formatted;
       msgEl.classList.add('tutorial-info-msg');
     }
 
     const deckOpen = !document.getElementById('deck-modal')?.classList.contains('hidden');
     if (deckOpen) {
-      _showDeckGotIt();
+      _showDeckGotIt(formatted);
     } else {
       // Defer one tick so we win any race with synchronous setActions calls
       // (e.g. startPlayerDraw runs right after onRoundStart in the same call stack).
@@ -295,20 +296,25 @@ const TUTORIAL = (() => {
     _popupVisible = false;
   }
 
-  // "Got it →" button injected into the deck modal footer during deck info steps.
-  function _showDeckGotIt() {
+  // Message + "Got it →" injected into the deck modal footer during deck info steps.
+  function _showDeckGotIt(formattedHtml) {
     let footer = document.getElementById('tutorial-deck-footer');
     if (!footer) {
       footer = document.createElement('div');
       footer.id = 'tutorial-deck-footer';
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.textContent = 'Got it →';
-      btn.onclick = () => TUTORIAL.onPopupDismiss();
-      footer.appendChild(btn);
       const deckContent = document.querySelector('#deck-modal .deck-content');
       if (deckContent) deckContent.appendChild(footer);
     }
+    footer.innerHTML = '';
+    const msg = document.createElement('p');
+    msg.className = 'tutorial-deck-msg';
+    msg.innerHTML = formattedHtml;
+    footer.appendChild(msg);
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Got it →';
+    btn.onclick = () => TUTORIAL.onPopupDismiss();
+    footer.appendChild(btn);
     footer.style.display = '';
   }
 
