@@ -318,15 +318,15 @@ body {
 
 .btn-secondary {
   background: transparent;
-  color: rgba(30,22,16,0.5);
-  border-color: rgba(30,22,16,0.25);
+  color: rgba(233,224,198,0.6);
+  border-color: rgba(233,224,198,0.25);
   box-shadow: none;
   font-weight: normal;
 }
 
 .btn-secondary:hover {
-  color: #1e1610;
-  border-color: rgba(30,22,16,0.6);
+  color: #e9e0c6;
+  border-color: rgba(233,224,198,0.6);
   transform: none;
   box-shadow: none;
 }
@@ -1061,10 +1061,10 @@ body.phase-draw #player-deck-preview {
 }
 
 /* --- Player Bust: bandit card highlight --- */
-/* Static red outline applied at render time — no JS timing issues */
+/* box-shadow instead of outline so the ring starts at the card edge —
+   outline-offset pushed outside .hand-row's overflow:hidden boundary */
 .card.bust-culprit {
-  outline: 3px solid #c84e18;
-  outline-offset: 2px;
+  box-shadow: 0 0 0 3px #c84e18, var(--shadow-card);
 }
 
 /* Sequential scale pulse so players count 1-2-3 */

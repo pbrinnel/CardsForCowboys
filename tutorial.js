@@ -151,9 +151,15 @@ const TUTORIAL = (() => {
     },
     {
       id: 'deck_rattles',
-      message: '4 [rattle] Rattlesnake cards — the risky ones.\nOne pays $2 safely. Two carry 1 [bandit].\nOne carries 2 [bandit]. 4 safe, 6 mixed.',
+      message: '4 [rattle] Rattlesnake cards — the risky ones.\nOne pays $2 safely. Two carry 1 [bandit].\nOne carries 2 [bandit] alone.',
       required: { type: 'info' },
       deckHighlight: 3,
+    },
+    {
+      id: 'deck_summary',
+      message: 'All 10 starters: 4 are always safe [river], 6 carry some risk [cactus][rattle].\nThe more you draw, the more likely a [bandit] shows up.',
+      required: { type: 'info' },
+      deckHighlight: 'all',
     },
     {
       id: 'deck_close',
@@ -350,8 +356,9 @@ const TUTORIAL = (() => {
   }
 
   function highlightDeckCards(cactiValue) {
+    const all = cactiValue === 'all';
     document.querySelectorAll('#deck-modal-body .card').forEach(el => {
-      el.classList.toggle('tut-deck-highlight', el.dataset.cacti === String(cactiValue));
+      el.classList.toggle('tut-deck-highlight', all || el.dataset.cacti === String(cactiValue));
     });
   }
 
