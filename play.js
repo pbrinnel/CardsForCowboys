@@ -1532,8 +1532,12 @@ function renderPlayerZone(player, prefix) {
       ? new Set(getActivatableCards(player).map(c => c.uid))
       : new Set();
     for (const card of player.hand) {
-      const classes = [player.busted ? 'busted' : '', activeSpecialUids.has(card.uid) ? 'card-active-special' : '']
-        .filter(Boolean).join(' ');
+      // When busted: dim non-bandit cards so the bandits stand out as the cause
+      const isBandit = card.bandits > 0;
+      const classes = [
+        player.busted && !isBandit ? 'busted' : '',
+        activeSpecialUids.has(card.uid) ? 'card-active-special' : ''
+      ].filter(Boolean).join(' ');
       const el = renderCardEl(card, showFaceUp, classes);
       el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
       el.addEventListener('mouseleave', hideCardHoverPreview);

@@ -1063,11 +1063,10 @@ body.phase-draw #player-deck-preview {
 /* --- Player Bust: sequential bandit card glow --- */
 @keyframes banditHandGlow {
   0%   { outline: 3px solid transparent; outline-offset: 2px; }
-  35%  { outline: 3px solid #c84e18;    outline-offset: 2px; }
-  65%  { outline: 3px solid #c84e18;    outline-offset: 2px; }
-  100% { outline: 3px solid transparent; outline-offset: 2px; }
+  30%  { outline: 3px solid #c84e18;    outline-offset: 2px; }
+  100% { outline: 3px solid #c84e18;    outline-offset: 2px; }
 }
-.bust-bandit-glow { animation: banditHandGlow 1.1s ease-out forwards; }
+.bust-bandit-glow { animation: banditHandGlow 0.5s ease-out forwards; }
 
 /* --- Active buyer zone: pulsing amber border --- */
 @keyframes buyPulse {
