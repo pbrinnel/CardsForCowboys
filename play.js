@@ -3009,18 +3009,24 @@ async function handleBust(player) {
   if (player.isHuman) mpSyncDraw();
 
   if (player === G.players[0]) {
-    if (TUTORIAL.active) {
-      // Tutorial info popup handles the bust explanation; auto-clear the hand after animation.
-      await delay(1400);
-    } else {
-      // Let the player review their hand before clearing — show button after animation lands
-      await new Promise(resolve => {
-        setTimeout(() => {
-          setActions([{ text: 'Clear Hand', onClick: resolve }]);
-        }, 1300);
-      });
-      clearActions();
-    }
+    // Let the player review their hand before clearing — show button after animation lands.
+    // In tutorial mode the button also advances the bust-explain step.
+    await new Promise(resolve => {
+      setTimeout(() => {
+        const actionsEl = document.getElementById('actions');
+        if (!actionsEl) { resolve(); return; }
+        actionsEl.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = 'Clear Hand';
+        btn.onclick = () => {
+          if (TUTORIAL.active) TUTORIAL.onPopupDismiss();
+          resolve();
+        };
+        actionsEl.appendChild(btn);
+      }, 1300);
+    });
+    if (!TUTORIAL.active) clearActions();
   } else {
     await delay(2000);
   }

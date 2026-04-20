@@ -269,8 +269,11 @@ const TUTORIAL = (() => {
       // Defer one tick so we win any race with synchronous setActions calls
       // (e.g. startPlayerDraw runs right after onRoundStart in the same call stack).
       // Write directly to #actions to bypass any setActions guards in play.js.
+      // Bust steps use "Clear Hand" as their dismiss — skip "Got it →" for those.
       setTimeout(() => {
         if (!_popupVisible) return;
+        const step = currentStep();
+        if (step && step.id && step.id.includes('bust')) return;
         const actionsEl = document.getElementById('actions');
         if (!actionsEl) return;
         actionsEl.innerHTML = '';
