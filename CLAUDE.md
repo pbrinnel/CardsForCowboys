@@ -307,6 +307,18 @@ player = {
 
 ---
 
+### 6. Fixed Footer Cuts Off Bottom Content on Narrow Viewports
+**Symptom:** The last element on a page (button, link, image) is obscured by the fixed footer bar when the viewport is narrow or the content is tall.
+
+**Root cause:** All pages use `position: fixed` footer. Body/page padding-bottom must exceed the footer height — but the footer can grow taller on narrow screens as its two lines of text reflow or wrap further.
+
+**What to check when adding new pages or content:**
+- Does the page container have sufficient `padding-bottom`? (~5rem baseline, ~8rem on mobile)
+- Add a `@media (max-width: 540px) { body { padding-bottom: 8rem; } }` block for any page whose content might be taller than the viewport.
+- Test by resizing the browser to a narrow viewport and scrolling to the bottom.
+
+---
+
 ## Debugging Approach for Multiplayer Issues
 
 **Always start with Firebase logs, not blind code review.**
