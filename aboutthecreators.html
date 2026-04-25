@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About the Creators — Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background-color: #e9e0c6;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1e1610;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+    .page {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .banner-photo {
+      height: 200px;
+      width: auto;
+      object-fit: cover;
+      border: 2.5px solid #1e1610;
+      box-shadow: 4px 4px 0 #1e1610;
+      flex-shrink: 0;
+    }
+    .banner-title {
+      flex: 1;
+      text-align: center;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 2.2rem;
+      color: #1e1610;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .content {
+      border-top: 2px solid rgba(30,22,16,0.2);
+      padding-top: 1.5rem;
+      font-size: 1rem;
+      line-height: 1.75;
+      color: #3a2a1a;
+    }
+    .content p {
+      margin-bottom: 1rem;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 1.75rem;
+      padding: 0.6rem 1.4rem;
+      background: transparent;
+      color: #1e1610;
+      text-decoration: none;
+      border: 2px solid #1e1610;
+      font-size: 0.9rem;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: bold;
+      box-shadow: 3px 3px 0 #1e1610;
+      transition: transform 0.07s, box-shadow 0.07s, background 0.07s;
+    }
+    .back-link:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #1e1610; background: rgba(30,22,16,0.06); }
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      padding: 0.6rem 1rem;
+      font-size: 0.75rem;
+      color: rgba(233,224,198,0.5);
+      border-top: 2.5px solid #1e1610;
+      background: #1e1610;
+      line-height: 1.6;
+    }
+    @media (max-width: 540px) {
+      .banner { flex-direction: column; }
+      .banner-photo { height: 160px; width: 100%; object-fit: cover; }
+      h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="banner">
+      <img class="banner-photo" src="assets/photos/YoungSaraOnHorse.jpg" alt="Sara Brinnel">
+      <div class="banner-title">
+        <h1>About the Creators</h1>
+      </div>
+      <img class="banner-photo" src="assets/photos/YoungPaulOnHorse.jpg" alt="Paul Brinnel">
+    </div>
+
+    <div class="content">
+      <p>Paul and Sara Brinnel met while living in Chicago in 2017. They got married in 2020 in Colorado and now live in New England with their rescue pup, Archibald. Paul and Sara love playing board games, especially deck builders like Dominion, Clank, and Slay the Spire. They started working on "Cards for Cowboys" in 2025. They've been having a blast collaborating and competing as the game continues to evolve.</p>
+    </div>
+
+    <a href="index.html" class="back-link">&larr; Back to Home</a>
+  </div>
+
+  <footer>
+    A Game by Paul &amp; Sara Brinnel &mdash; All Rights Reserved<br>
+    Kickstarter Launching 2027 &nbsp;&bull;&nbsp; Public Test Version &mdash; Everything is Subject to Change
+  </footer>
+</body>
+</html>
