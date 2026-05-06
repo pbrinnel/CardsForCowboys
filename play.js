@@ -3969,30 +3969,24 @@ async function startShowdown() {
   // Note: special card effects (copy_next, trash_to_use, etc.) do NOT apply here —
   // the showdown counts only each card's raw printed cows/dollars values.
   for (const { player, allCards, i } of playerData) {
-    const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
-    const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
-    const bonusCows    = Math.floor(totalDollars / 2);
-    const newCows      = totalCows + bonusCows;
+    const totalCows = allCards.reduce((s, c) => s + Math.max(0, c.cows || 0), 0);
 
-    const oldHerd  = player.herd;
-    player.herd    = Math.max(0, player.herd + newCows);
-    const gained   = player.herd - oldHerd;
+    const oldHerd = player.herd;
+    player.herd   = player.herd + totalCows;
+    const gained  = player.herd - oldHerd;
 
-    G.showdownTallies.push({ name: player.name, totalCows, totalDollars, bonusCows, gained, finalHerd: player.herd });
+    G.showdownTallies.push({ name: player.name, totalCows, gained, finalHerd: player.herd });
 
     // Build tally display
     const tallyEl = document.getElementById(`showdown-tally-${i}`);
-    let formulaParts = [];
-    if (totalCows !== 0)  formulaParts.push(`<span class="tally-cows">${totalCows > 0 ? '+' : ''}${totalCows} cows from cards</span>`);
-    if (bonusCows  > 0)   formulaParts.push(`<span class="tally-bonus">+${bonusCows} bonus (from $${totalDollars})</span>`);
 
-    const formulaHTML = formulaParts.length
-      ? formulaParts.join(' + ')
+    const formulaHTML = totalCows > 0
+      ? `<span class="tally-cows">+${totalCows} cows from cards</span>`
       : '<span class="tally-zero">No scoring cards</span>';
 
     tallyEl.innerHTML =
       `<span class="tally-formula">${formulaHTML}</span>` +
-      `<span class="tally-total">${gained >= 0 ? '+' : ''}${gained} → Final Herd: ${player.herd}</span>`;
+      `<span class="tally-total">+${gained} → Final Herd: ${player.herd}</span>`;
     tallyEl.classList.remove('hidden');
 
     await delay(350);
@@ -4006,7 +4000,7 @@ async function startShowdown() {
     }
 
     const name = player === me ? 'You' : player.name;
-    addLog(`Showdown: ${name} — ${totalCows} cows + ${bonusCows} bonus ($${totalDollars}) = ${player.herd} total.`, 'log-score');
+    addLog(`Showdown: ${name} — +${totalCows} cows = ${player.herd} total.`, 'log-score');
 
     await delay(650);
 
