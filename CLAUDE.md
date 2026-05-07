@@ -165,16 +165,18 @@ getBestAffordableCost(ai)   ~2933
 
 ### Special Card Handlers (lines ~2948–3265)
 ```
-activateSpecialCard()       ~2948 — trash_to_use activation from hand
+activateSpecialCard()       ~2948 — burn_to_use activation from hand
 handleBust(player)          ~2996
-handleTrashToUse()          ~3026
-handleTrashFor2()           ~3043
-handleTrashBuyBurnFirst()   ~3055
+handleTrashToUse()          ~3026  — "Burn to Use" (trash_to_use special)
+handleTrashFor2()           ~3043  — "Burn for $2" (trash_for_2 special)
+handleTrashBuyBurnFirst()   ~3055  — "Burn for Priority" (trash_buy_burn_first special)
 handleLook3()               ~3074
-handleTrashLook3()          ~3143
-handleReplayDiscard()       ~3160
-handlePutOnTop()            ~3234
-handleExtraBuy()            ~3247
+handleTrashLook3()          ~3143  — "Burn & Look" (look3_rearrange special)
+handleReplayDiscard()       ~3160  — "Burn & Replay" (replay_discard special)
+handleExtraBuy()            ~3230  — "Burn for Extra Buy/Burn" (extra_buy special)
+NOTE: handlePutOnTop() was permanently removed (May 2026). Card 22 reworked from
+      put_on_top (Cactus $5) → trash_for_2 (River $3, $1 on draw). If a future card
+      needs put_on_top logic, rebuild from git history (commit before this change).
 ```
 
 ### Buy Phase (lines ~3265–3590)

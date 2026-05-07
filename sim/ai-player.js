@@ -107,7 +107,7 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 1,
     banditWeight: -2,
-    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, extra_buy: 4, look3_rearrange: 3, replay_discard: 4, put_on_top: 3, look3_immediate: 3, discard_to_player: 2 },
+    specialBonuses: { trash_to_use: 5, copy_next: 5, draw4: 5, extra_buy: 4, look3_rearrange: 3, replay_discard: 4, look3_immediate: 3, discard_to_player: 2 },
     negativeCowPenalty: -2,
     act1DollarBonus: 0.5,
     act3CowBonus: 1,
@@ -410,28 +410,6 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
         }
       }
       player.stoppedDrawing = true;
-    }
-  }
-
-  // Handle put_on_top at stop
-  if (player.stoppedDrawing && !player.busted) {
-    const putOnTopCard = player.hand.find(c => c.special === 'put_on_top');
-    if (putOnTopCard && player.hand.length > 1) {
-      let worstIdx = -1;
-      let worstScore = Infinity;
-      for (let i = 0; i < player.hand.length; i++) {
-        const c = player.hand[i];
-        const s = c.dollars + c.cows * 2 - c.bandits * 3;
-        if (s < worstScore) { worstScore = s; worstIdx = i; }
-      }
-      if (worstIdx >= 0) {
-        const returned = player.hand[worstIdx];
-        player.roundDollars -= returned.dollars;
-        player.roundCows -= returned.cows;
-        player.roundBandits -= returned.bandits;
-        player.hand.splice(worstIdx, 1);
-        player.deck.unshift(returned);
-      }
     }
   }
 

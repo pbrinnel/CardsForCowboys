@@ -71,7 +71,7 @@ const STORE_CARDS = [
   { id: 'card_19',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'look3_rearrange' },
   { id: 'card_20',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'copy_next' },
   { id: 'card_21',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'extra_buy' },
-  { id: 'card_22',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, special: 'put_on_top' },
+  { id: 'card_22',  act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_for_2' },
   { id: 'card_23',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, special: 'replay_discard' },
   { id: 'card_24',  act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, special: 'dollar1_other' },
   { id: 'card_4',   act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 0, special: 'discard_to_player' },
@@ -153,7 +153,7 @@ function scoreCard(card, personality, act) {
   if (card.special === 'draw4')         s += 2;
   if (card.special === 'look3_rearrange') s += 1.5;
   if (card.special === 'replay_discard')  s += 2;
-  if (card.special === 'put_on_top')      s += 1;
+
   if (card.special === 'trash_buy_burn_first') s += 1;
   if (card.special === 'dollar1_other')   s -= 0.5;
   if ((card.cows || 0) < 0) s -= 2;
