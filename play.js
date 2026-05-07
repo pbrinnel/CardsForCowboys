@@ -1267,7 +1267,6 @@ function addLog(text, className) {
   if (!G) return;
   G.log.unshift({ text, className: className || '' });
   if (G.log.length > 50) G.log.pop();
-  renderLog();
 }
 
 // --- RENDERING ---
@@ -1433,6 +1432,9 @@ function render() {
 
   // Turn order bar
   updateTurnOrderBar();
+
+  // Log
+  renderLog();
 }
 
 const HERD_TIERS = [
@@ -1536,8 +1538,6 @@ function renderPlayerZone(player, prefix) {
         activeSpecialUids.has(card.uid) ? 'card-active-special' : ''
       ].filter(Boolean).join(' ');
       const el = renderCardEl(card, showFaceUp, classes);
-      el.addEventListener('mouseenter', () => showCardHoverPreview(el, card));
-      el.addEventListener('mouseleave', hideCardHoverPreview);
       handEl.appendChild(el);
     }
   }
@@ -1625,10 +1625,7 @@ function renderPyramid() {
         if (classes.includes('clickable')) {
           el.onclick = () => onPyramidCardClick(row, col);
         }
-        if (slot.faceUp) {
-          el.addEventListener('mouseenter', () => showCardHoverPreview(el, slot.card));
-          el.addEventListener('mouseleave', hideCardHoverPreview);
-        }
+        // hover handled by delegated listener on #pyramid (see initHoverDelegation)
         rowDiv.appendChild(el);
       }
     }
@@ -4160,6 +4157,38 @@ function closeCardZoom() {
   document.getElementById('card-zoom').classList.add('hidden');
 }
 
+function initHoverDelegation() {
+  function attachDelegated(containerEl, getCard) {
+    containerEl.addEventListener('mouseover', (e) => {
+      const cardEl = e.target.closest('.card');
+      if (!cardEl) return;
+      if (e.relatedTarget && cardEl.contains(e.relatedTarget)) return;
+      const card = getCard(cardEl);
+      if (card) showCardHoverPreview(cardEl, card);
+    });
+    containerEl.addEventListener('mouseout', (e) => {
+      const cardEl = e.target.closest('.card');
+      if (!cardEl) return;
+      if (e.relatedTarget && cardEl.contains(e.relatedTarget)) return;
+      hideCardHoverPreview();
+    });
+  }
+
+  attachDelegated(document.getElementById('player-hand'), (el) => {
+    if (!G) return null;
+    return G.players[0].hand.find(c => c.uid === +el.dataset.uid) || null;
+  });
+
+  attachDelegated(document.getElementById('pyramid'), (el) => {
+    if (!G) return null;
+    const row = +el.dataset.row;
+    const col = +el.dataset.col;
+    if (isNaN(row) || isNaN(col)) return null;
+    const slot = G.pyramid?.[row]?.[col];
+    return (slot && slot.faceUp && !slot.removed) ? slot.card : null;
+  });
+}
+
 function showCardHoverPreview(cardEl, card) {
   const preview = document.getElementById('card-hover-preview');
   const img = document.getElementById('card-hover-img');
@@ -4247,20 +4276,16 @@ function toggleLog() {
 // --- IMAGE PRELOADER ---
 
 function preloadImages() {
-  const imgs = new Set();
-  for (const tmpl of STARTER_TEMPLATES) {
-    imgs.add(CARD_IMG_PATH + tmpl.img);
-  }
-  for (const card of STORE_CARDS) {
-    imgs.add(CARD_IMG_PATH + card.img);
-  }
-  for (const back of Object.values(CACTI_BACK)) {
-    imgs.add(BACK_IMG_PATH + back);
-  }
-  for (const src of imgs) {
-    const img = new Image();
-    img.src = src;
-  }
+  // Load backs and starters immediately — needed before first render.
+  const eager = new Set();
+  for (const back of Object.values(CACTI_BACK)) eager.add(BACK_IMG_PATH + back);
+  for (const tmpl of STARTER_TEMPLATES) eager.add(CARD_IMG_PATH + tmpl.img);
+  for (const src of eager) { const img = new Image(); img.src = src; }
+
+  // Defer store card images until the browser is idle.
+  const deferred = STORE_CARDS.map(c => CARD_IMG_PATH + c.img).filter(s => !eager.has(s));
+  const load = typeof requestIdleCallback === 'function' ? requestIdleCallback : setTimeout;
+  load(() => { for (const src of deferred) { const img = new Image(); img.src = src; } });
 }
 
 // --- DEBUG SCENARIOS ---
@@ -4341,6 +4366,7 @@ function applyDebugScenario(name) {
 
 // --- INIT ---
 preloadImages();
+initHoverDelegation();
 startGame().catch(e => {
   console.error('Game init failed:', e);
   setMessage('Failed to start game. Please refresh.');
