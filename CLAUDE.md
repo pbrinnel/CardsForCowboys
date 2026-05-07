@@ -10,6 +10,8 @@ This file is your primary reference. **Keep it updated.** After any session wher
 
 When starting a new task, **check this file before reading raw source code.** Use the function index to grep directly to what you need rather than reading entire files.
 
+**Git workflow:** Commit and push directly to `main`. Do not use worktrees or PRs for this project.
+
 ---
 
 ## File Map
