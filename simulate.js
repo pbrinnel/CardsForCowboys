@@ -131,12 +131,12 @@ function shuffle(arr, rng) {
 // ─── AI PERSONALITIES (mirrored from play.js) ────────────────────────────────
 
 const AI_PERSONALITIES = {
-  sheriff:  { bustThreshold2: 0.05, bustThreshold1: 0.15, dollarBuffer: 0,   cowWeight: 3,   dollarWeight: 1.5, banditPenalty: 4,   positionWeight: 0,   denialBurn: false, deckMemory: 0.9, lethalBias: 1.5 },
-  wild_bill:{ bustThreshold2: 0.35, bustThreshold1: 0.50, dollarBuffer: 999, cowWeight: 5,   dollarWeight: 0.5, banditPenalty: 0.5, positionWeight: 0,   denialBurn: false, deckMemory: 0.1, lethalBias: 0.5 },
-  rancher:  { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 2,   cowWeight: 6,   dollarWeight: 0.5, banditPenalty: 2,   positionWeight: 0.4, denialBurn: false, deckMemory: 0.6, lethalBias: 1.0 },
-  banker:   { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 1,   cowWeight: 1.5, dollarWeight: 3,   banditPenalty: 2,   positionWeight: 0.3, denialBurn: false, deckMemory: 0.8, lethalBias: 1.2 },
-  outlaw:   { bustThreshold2: 0.20, bustThreshold1: 0.35, dollarBuffer: 1,   cowWeight: 4,   dollarWeight: 1,   banditPenalty: 2,   positionWeight: 1.5, denialBurn: false, deckMemory: 0.4, lethalBias: 0.8 },
-  deputy:   { bustThreshold2: 0.10, bustThreshold1: 0.20, dollarBuffer: 0,   cowWeight: 2,   dollarWeight: 2,   banditPenalty: 3,   positionWeight: 0.3, denialBurn: true,  deckMemory: 0.7, lethalBias: 1.3 },
+  sheriff:  { bustThreshold2: 0.05, bustThreshold1: 0.15, dollarBuffer: 0,   cowWeight: 5,   dollarWeight: 2,   banditPenalty: 4,   positionWeight: 0,   denialBurn: false, deckMemory: 0.9, lethalBias: 1.5, affordMult: 1.2, act1DollarBonus: 1.5, act3CowBonus: 2.5, revealBonus: 2.5 },
+  wild_bill:{ bustThreshold2: 0.35, bustThreshold1: 0.50, dollarBuffer: 999, cowWeight: 9,   dollarWeight: 0.5, banditPenalty: 0.5, positionWeight: 0,   denialBurn: false, deckMemory: 0.1, lethalBias: 0.5, affordMult: 2.0, act1DollarBonus: 0,   act3CowBonus: 4.0, revealBonus: 0   },
+  rancher:  { bustThreshold2: 0.22, bustThreshold1: 0.42, dollarBuffer: 3,   cowWeight: 9,   dollarWeight: 0.5, banditPenalty: 1.5, positionWeight: 0.4, denialBurn: false, deckMemory: 0.6, lethalBias: 1.0, affordMult: 1.6, act1DollarBonus: 0,   act3CowBonus: 3.5, revealBonus: 1.0 },
+  banker:   { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 1,   cowWeight: 1.5, dollarWeight: 3,   banditPenalty: 2,   positionWeight: 0.3, denialBurn: false, deckMemory: 0.8, lethalBias: 1.2, affordMult: 1.2, act1DollarBonus: 2.5, act3CowBonus: 0.5, revealBonus: 1.0 },
+  outlaw:   { bustThreshold2: 0.35, bustThreshold1: 0.55, dollarBuffer: 2,   cowWeight: 8,   dollarWeight: 1,   banditPenalty: 1.0, positionWeight: 1.5, denialBurn: true,  deckMemory: 0.4, lethalBias: 0.6, affordMult: 2.0, act1DollarBonus: 0,   act3CowBonus: 3.5, revealBonus: 0.5 },
+  deputy:   { bustThreshold2: 0.10, bustThreshold1: 0.28, dollarBuffer: 1,   cowWeight: 6,   dollarWeight: 1.5, banditPenalty: 2.5, positionWeight: 0.3, denialBurn: true,  deckMemory: 0.7, lethalBias: 1.3, affordMult: 1.4, act1DollarBonus: 0.5, act3CowBonus: 2.5, revealBonus: 2.0 },
 };
 const PERSONALITY_NAMES = Object.keys(AI_PERSONALITIES);
 
@@ -157,8 +157,8 @@ function scoreCard(card, personality, act) {
   if (card.special === 'trash_buy_burn_first') s += 1;
   if (card.special === 'dollar1_other')   s -= 0.5;
   if ((card.cows || 0) < 0) s -= 2;
-  if (act === 1) s += (card.dollars || 0) * 1;
-  if (act === 3) s += (card.cows    || 0) * 2;
+  if (act === 1) s += (card.dollars || 0) * (cfg.act1DollarBonus ?? 1);
+  if (act === 3) s += (card.cows    || 0) * (cfg.act3CowBonus   ?? 2);
   return s;
 }
 
@@ -214,9 +214,9 @@ function isPyramidEmpty(pyr) {
   return pyr.every(row => row.every(s => s.removed));
 }
 
-function pyramidRevealBonus(pyr, row, col) {
+function pyramidRevealBonus(pyr, row, col, revealBonus) {
   if (row === 0) return 0;
-  const B = 1.5;
+  const B = revealBonus ?? 1.5;
   let bonus = 0;
   if (col < row) {
     const pA = pyr[row-1][col];
@@ -289,7 +289,7 @@ function aiShouldDraw(p, pyr, act, allPlayers) {
 
   const avail = getAvailable(pyr);
   const canAfford = avail.some(a => (a.slot.card.cost || 0) <= p.roundDollars);
-  const affordMult = canAfford ? 1.0 : 1.4;
+  const affordMult = canAfford ? 1.0 : (cfg.affordMult ?? 1.4);
 
   const cardsLeft = p.deck.length;
 
@@ -346,7 +346,7 @@ function runBuy(p, pyr, act, allPlayers) {
   if (affordable.length > 0) {
     let best = null, bestScore = -Infinity;
     for (const a of affordable) {
-      const sc = scoreCard(a.slot.card, p.personality, act) + pyramidRevealBonus(pyr, a.row, a.col);
+      const sc = scoreCard(a.slot.card, p.personality, act) + pyramidRevealBonus(pyr, a.row, a.col, AI_PERSONALITIES[p.personality]?.revealBonus);
       if (sc > bestScore) { bestScore = sc; best = a; }
     }
     best.slot.removed = true;

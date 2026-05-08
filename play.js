@@ -1680,6 +1680,12 @@ function animateDrawnCard(card) {
     const img = handCard.querySelector('img');
     if (!img) return;
 
+    // If another card was drawn before this rAF fired, this card is no longer the
+    // last in hand. Animating it now would fly to the wrong slot (a mid-hand card).
+    // Skip — render() already showed the card face-up in the correct position.
+    const allHandCards = document.querySelectorAll('#player-hand .card');
+    if (allHandCards.length && allHandCards[allHandCards.length - 1] !== handCard) return;
+
     const faceSrc = img.src;
     const backSrc = cardImgSrc(card, false);
 
@@ -2810,78 +2816,106 @@ async function aiDrawPhase(playerIdx) {
 // bustThreshold2/1: max bust-probability willing to accept with 2/1 bandits in hand
 // dollarBuffer: keeps drawing until dollars >= bestCost + buffer (999 = no target)
 // cowWeight / dollarWeight / banditPenalty: buy-phase scoring multipliers
+// affordMult: draw aggression multiplier when AI can't afford any available card
+// act1DollarBonus: extra score per dollar on cards bought in Act 1
+// act3CowBonus: extra score per cow on cards bought in Act 3
+// revealBonus: score bonus for buying a card that uncovers a hidden pyramid slot
 const AI_PERSONALITIES = {
   sheriff: {
     bustThreshold2: 0.05,  // almost never draws with 2 bandits
     bustThreshold1: 0.15,  // very cautious at 1 bandit
     dollarBuffer:   0,     // stops as soon as it can afford the best card
-    cowWeight:      3,
-    dollarWeight:   1.5,
+    cowWeight:      5,     // was 3 — stopped buying cow cards over obvious junk
+    dollarWeight:   2,     // was 1.5 — values economy
     banditPenalty:  4,     // despises bandits in buy scoring
     positionWeight: 0,     // methodical — ignores standings
     denialBurn:     false,
     deckMemory:     0.9,   // near-perfect deck tracking
     lethalBias:     1.5,   // amplifies perceived danger of lethal cards
+    affordMult:     1.2,   // doesn't over-draw when pyramid is out of reach
+    act1DollarBonus: 1.5,  // economy-focused early — his whole plan
+    act3CowBonus:   2.5,   // moderate late-game ramp
+    revealBonus:    2.5,   // methodical planner — thinks ahead about what's hidden
   },
   wild_bill: {
     bustThreshold2: 0.35,  // keeps drawing with 2 bandits often
     bustThreshold1: 0.50,  // barely slows down at 1 bandit
     dollarBuffer:   999,   // no dollar target — draws until bust or dry
-    cowWeight:      5,
+    cowWeight:      9,     // was 5 — when he survives he now actually buys the best cards
     dollarWeight:   0.5,
-    banditPenalty:  0.5,
+    banditPenalty:  0.5,   // will buy card_51 (5 cows, 2 bandits) without flinching
     positionWeight: 0,     // pure chaos — doesn't track position
     denialBurn:     false,
     deckMemory:     0.1,   // barely tracks the deck
     lethalBias:     0.5,   // actively discounts danger signals
+    affordMult:     2.0,   // draws extremely hard when he can't afford anything
+    act1DollarBonus: 0,    // doesn't care about economy
+    act3CowBonus:   4.0,   // goes all-in on cows in Act 3
+    revealBonus:    0,     // chaotic — no pyramid planning
   },
   rancher: {
-    bustThreshold2: 0.15,
-    bustThreshold1: 0.30,
-    dollarBuffer:   2,
-    cowWeight:      6,     // cows above everything
+    bustThreshold2: 0.22,  // was 0.15 — bolder with 2 bandits
+    bustThreshold1: 0.42,  // was 0.30 — less timid at 1 bandit
+    dollarBuffer:   3,     // was 2 — draws more to reach better cards
+    cowWeight:      9,     // was 6 — closes the gap to evolved optimum
     dollarWeight:   0.5,
-    banditPenalty:  2,
+    banditPenalty:  1.5,   // was 2 — willing to buy risky high-cow cards
     positionWeight: 0.4,   // somewhat adapts to standings
     denialBurn:     false,
     deckMemory:     0.6,
     lethalBias:     1.0,
+    affordMult:     1.6,   // draws harder when pyramid is out of reach
+    act1DollarBonus: 0,    // doesn't value economy bonus — just spends dollars
+    act3CowBonus:   3.5,   // serious late-game cow push
+    revealBonus:    1.0,   // some pyramid planning, not obsessive
   },
   banker: {
     bustThreshold2: 0.15,
     bustThreshold1: 0.30,
     dollarBuffer:   1,     // stops slightly earlier (wants exactly enough)
-    cowWeight:      1.5,
+    cowWeight:      1.5,   // intentionally low — dollar-first identity
     dollarWeight:   3,     // values income above cows
     banditPenalty:  2,
     positionWeight: 0.3,
     denialBurn:     false,
     deckMemory:     0.8,   // careful accountant tracks the deck well
     lethalBias:     1.2,
+    affordMult:     1.2,   // conservative — stops when he can't afford
+    act1DollarBonus: 2.5,  // LOVES economy in Act 1 — his defining strategy
+    act3CowBonus:   0.5,   // even late he still chases dollars over cows
+    revealBonus:    1.0,   // strategic but not committed
   },
   outlaw: {
-    bustThreshold2: 0.20,  // medium base risk
-    bustThreshold1: 0.35,
-    dollarBuffer:   1,
-    cowWeight:      4,
+    bustThreshold2: 0.35,  // was 0.20 — matches Wild Bill at 2 bandits
+    bustThreshold1: 0.55,  // was 0.35 — draws hard when trailing
+    dollarBuffer:   2,     // was 1
+    cowWeight:      8,     // was 4 — the critical fix; now buys correctly
     dollarWeight:   1,
-    banditPenalty:  2,
-    positionWeight: 1.5,   // highly position-aware: draws aggressively when trailing, locks in when leading
-    denialBurn:     false,
+    banditPenalty:  1.0,   // was 2 — willing to buy risky high-cow cards
+    positionWeight: 1.5,   // highly position-aware: draws aggressively when trailing
+    denialBurn:     true,  // was false — burns the leader's best card when he can't buy
     deckMemory:     0.4,   // plays on feel more than math
-    lethalBias:     0.8,
+    lethalBias:     0.6,   // was 0.8 — more reckless when position demands it
+    affordMult:     2.0,   // draws extremely hard when can't afford anything
+    act1DollarBonus: 0,    // doesn't care about economy — only position
+    act3CowBonus:   3.5,   // closes out strong
+    revealBonus:    0.5,   // minimal pyramid planning — plays forward
   },
   deputy: {
-    bustThreshold2: 0.10,  // conservative draw
-    bustThreshold1: 0.20,
-    dollarBuffer:   0,
-    cowWeight:      2,
-    dollarWeight:   2,
-    banditPenalty:  3,
+    bustThreshold2: 0.10,  // conservative draw — holds back
+    bustThreshold1: 0.28,  // was 0.20 — slight loosening
+    dollarBuffer:   1,     // was 0 — doesn't just stop at bare minimum
+    cowWeight:      6,     // was 2 — critical fix; denial work was wasted on bad buys
+    dollarWeight:   1.5,   // was 2 — rebalanced
+    banditPenalty:  2.5,   // was 3 — mild loosening
     positionWeight: 0.3,
     denialBurn:     true,  // burns the card most valuable to the current leader
     deckMemory:     0.7,
     lethalBias:     1.3,
+    affordMult:     1.4,
+    act1DollarBonus: 0.5,  // mild economy interest early
+    act3CowBonus:   2.5,   // ramps appropriately
+    revealBonus:    2.0,   // uses denial + reveals to control the pyramid shape
   },
 };
 
@@ -2906,7 +2940,7 @@ function aiShouldDraw(ai) {
 
   // Draw more aggressively if AI can't currently afford any available card
   const canAffordSomething = getAvailablePyramidCards(G.pyramid).some(a => a.slot.card.cost <= ai.roundDollars);
-  const affordMult = canAffordSomething ? 1.0 : 1.4;
+  const affordMult = canAffordSomething ? 1.0 : (cfg.affordMult ?? 1.4);
 
   if (ai.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
@@ -3591,6 +3625,7 @@ async function aiBuyTurn(ai) {
   clearActions();
   await delay(1000);
 
+  const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
   const available = getAvailablePyramidCards(G.pyramid);
   const affordable = available.filter(a => a.slot.card.cost <= ai.roundDollars);
 
@@ -3599,7 +3634,7 @@ async function aiBuyTurn(ai) {
     let best = null;
     let bestScore = -Infinity;
     for (const a of affordable) {
-      const score = scoreCardForAI(a.slot.card, ai) + pyramidRevealBonus(a.row, a.col);
+      const score = scoreCardForAI(a.slot.card, ai) + pyramidRevealBonus(a.row, a.col, cfg.revealBonus);
       if (score > bestScore) {
         bestScore = score;
         best = a;
@@ -3609,7 +3644,6 @@ async function aiBuyTurn(ai) {
   } else if (available.length > 0) {
     // Burn: denial personalities target the card most valuable to the current leader;
     // all others burn the card with lowest value to themselves.
-    const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
     let burnTarget = null;
 
     if (cfg.denialBurn) {
@@ -3688,8 +3722,8 @@ function scoreCardForAI(card, ai) {
   if (card.special === 'trash_buy_burn_first') score += 1;
   if (card.special === 'dollar1_other') score -= 0.5;
   if (card.cows < 0) score -= 2;
-  if (G.currentAct === 1) score += card.dollars * 1;  // Act 1: favour economy cards
-  if (G.currentAct === 3) score += card.cows   * 2;  // Act 3: favour cow cards
+  if (G.currentAct === 1) score += card.dollars * (cfg.act1DollarBonus ?? 1);  // Act 1: economy bonus (per personality)
+  if (G.currentAct === 3) score += card.cows   * (cfg.act3CowBonus   ?? 2);  // Act 3: cow bonus (per personality)
   return score;
 }
 
@@ -3697,16 +3731,16 @@ function scoreCardForAI(card, ai) {
 // A card at (row, col) is covered by its children at (row+1, col) and (row+1, col+1).
 // So parent A is at (row-1, col) — also covered by sibling (row, col+1).
 // And parent B is at (row-1, col-1) — also covered by sibling (row, col-1).
-function pyramidRevealBonus(row, col) {
+function pyramidRevealBonus(row, col, revealBonus) {
   if (row === 0) return 0;
-  const REVEAL_BONUS = 1.5;
+  const bonus_per_reveal = revealBonus ?? 1.5;
   let bonus = 0;
   // Parent A: (row-1, col), revealed if sibling (row, col+1) is also gone
   if (col < row) {
     const parentA = G.pyramid[row - 1][col];
     if (parentA && !parentA.removed && !parentA.faceUp) {
       const siblingA = G.pyramid[row][col + 1];
-      if (!siblingA || siblingA.removed) bonus += REVEAL_BONUS;
+      if (!siblingA || siblingA.removed) bonus += bonus_per_reveal;
     }
   }
   // Parent B: (row-1, col-1), revealed if sibling (row, col-1) is also gone
@@ -3714,7 +3748,7 @@ function pyramidRevealBonus(row, col) {
     const parentB = G.pyramid[row - 1][col - 1];
     if (parentB && !parentB.removed && !parentB.faceUp) {
       const siblingB = G.pyramid[row][col - 1];
-      if (!siblingB || siblingB.removed) bonus += REVEAL_BONUS;
+      if (!siblingB || siblingB.removed) bonus += bonus_per_reveal;
     }
   }
   return bonus;
