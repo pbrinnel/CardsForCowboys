@@ -161,7 +161,8 @@ checkDrawPhaseComplete()    ~2654 — advances to buy phase when all draws done
 ### AI Draw Phase (lines ~2667–2950)
 ```
 aiDrawPhase(playerIdx)      ~2669 — full AI draw loop (all clients run this)
-aiShouldDraw(ai)            ~2882 — decision logic
+aiShouldDraw(ai)            ~2882 — decision logic (reads AI_PERSONALITIES cfg)
+calcBustProb(player,n,cfg)  ~2930 — blends exact lethal-card count with flat prior via deckMemory/lethalBias
 getBestAffordableCost(ai)   ~2933
 ```
 
@@ -199,9 +200,9 @@ executeBurn(player, r, c)   ~3562
 
 ### AI Buy Phase (lines ~3586–3730)
 ```
-aiBuyTurn(ai)               ~3588
-scoreCardForAI(card, ai)    ~3673
-pyramidRevealBonus(r, c)    ~3707
+aiBuyTurn(ai)               ~3588  — hoists cfg at top; passes cfg.revealBonus to pyramidRevealBonus
+scoreCardForAI(card, ai)    ~3673  — uses cfg.act1DollarBonus / cfg.act3CowBonus (per-personality)
+pyramidRevealBonus(r, c, b) ~3707  — b = cfg.revealBonus (per-personality, was hardcoded 1.5)
 ```
 
 ### End Phases (lines ~3805–4070)
@@ -254,6 +255,50 @@ player = {
   _syncedDiscardCount,  // MP: synced from Firebase, used in renderPlayerZone
 }
 ```
+
+---
+
+## AI Personality System
+
+**Full reference:** [`sim/AI_PERSONALITIES.md`](sim/AI_PERSONALITIES.md)
+
+### Quick difficulty tiers
+
+| Tier | Personality | Character |
+|---|---|---|
+| Easy | `banker` | Dollar-first; intentionally suboptimal — designed-to-lose archetype |
+| Easy | `sheriff` | Conservative draw, methodical buys, high pyramid awareness |
+| Medium | `deputy` | Denial burner; controls pyramid shape; conservative draw |
+| Medium–Hard | `rancher` | Cow-optimizing grinder; closest to evolved optimum |
+| Hard | `wild_bill` | High-variance aggressor; wins big or busts; swingy |
+| Hard | `outlaw` | Most complete threat: aggressive draw + cow buying + denial |
+
+### Personality parameters (14 total)
+
+All parameters live in `AI_PERSONALITIES` (~line 2813 in `play.js`, mirrored in `simulate.js`).
+**Both files must be kept in sync.**
+
+Draw-phase: `bustThreshold2`, `bustThreshold1`, `dollarBuffer`, `positionWeight`, `affordMult`, `deckMemory`, `lethalBias`
+
+Buy-phase: `cowWeight`, `dollarWeight`, `banditPenalty`, `act1DollarBonus`, `act3CowBonus`, `revealBonus`, `denialBurn`
+
+### Evolutionary optimization
+
+Parameters were tuned via `sim/evolve.js` (genetic algorithm, 3 trials × 100 generations × 100 seeds).
+Key findings locked into the personalities:
+- `cowWeight` 9–10 is optimal; evolved AIs unanimously converge here
+- `revealBonus` ≈ 0 for top performers (burning to uncover pyramid is a trap)
+- `act1DollarBonus` = 0 for top performers (dollar cards are currency, not score)
+- `positionWeight` ≈ 0 (position-adjusted draw aggression doesn't help)
+- Banker's low `cowWeight` and high `act1DollarBonus` are **intentional deviations** — do not "fix" them
+
+### Future: AI difficulty selection
+
+When implementing a difficulty picker, the intended mapping is:
+- Easy: sheriff or banker (player choice)
+- Normal: rancher (benchmark)
+- Hard: outlaw (most consistently dangerous)
+- Wild card: wild_bill (fun, swingy)
 
 ---
 
