@@ -1,0 +1,54 @@
+{
+  "config": {
+    "popSize": 24,
+    "maxGenerations": 1,
+    "kSeeds": 30,
+    "eliteFrac": 0.25,
+    "mutationRate": 0.3,
+    "mutationStrength": 0.15
+  },
+  "generations": [
+    {
+      "gen": 1,
+      "bestFitness": 0.7194444444444444,
+      "meanFitness": 0.4895833333333333,
+      "bestGenome": {
+        "bustThreshold2": 0.15,
+        "bustThreshold1": 0.3,
+        "dollarBuffer": 2,
+        "cowWeight": 6,
+        "dollarWeight": 0.5,
+        "banditPenalty": 2,
+        "positionWeight": 0.4,
+        "denialWeight": 0,
+        "deckMemory": 0.6,
+        "lethalBias": 1,
+        "act1DollarBonus": 1,
+        "act3CowBonus": 2,
+        "revealBonus": 1.5,
+        "affordMult": 1.4
+      }
+    }
+  ],
+  "finalBest": {
+    "bustThreshold2": 0.15,
+    "bustThreshold1": 0.3,
+    "dollarBuffer": 2,
+    "cowWeight": 6,
+    "dollarWeight": 0.5,
+    "banditPenalty": 2,
+    "positionWeight": 0.4,
+    "denialWeight": 0,
+    "deckMemory": 0.6,
+    "lethalBias": 1,
+    "act1DollarBonus": 1,
+    "act3CowBonus": 2,
+    "revealBonus": 1.5,
+    "affordMult": 1.4
+  },
+  "holdout": {
+    "winRate2P": 0.6883333333333334,
+    "winRate4P": 0.455,
+    "seeds": 200
+  }
+}

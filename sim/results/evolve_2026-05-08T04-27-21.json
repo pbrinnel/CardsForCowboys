@@ -1,0 +1,75 @@
+{
+  "config": {
+    "popSize": 8,
+    "maxGenerations": 2,
+    "kSeeds": 5,
+    "eliteFrac": 0.25,
+    "mutationRate": 0.3,
+    "mutationStrength": 0.15
+  },
+  "generations": [
+    {
+      "gen": 1,
+      "bestFitness": 0.5476190476190477,
+      "meanFitness": 0.2916666666666667,
+      "bestGenome": {
+        "bustThreshold2": 0.15,
+        "bustThreshold1": 0.3,
+        "dollarBuffer": 2,
+        "cowWeight": 6,
+        "dollarWeight": 0.5,
+        "banditPenalty": 2,
+        "positionWeight": 0.4,
+        "denialWeight": 0,
+        "deckMemory": 0.6,
+        "lethalBias": 1,
+        "act1DollarBonus": 1,
+        "act3CowBonus": 2,
+        "revealBonus": 1.5,
+        "affordMult": 1.4
+      }
+    },
+    {
+      "gen": 2,
+      "bestFitness": 0.4380952380952381,
+      "meanFitness": 0.29166666666666663,
+      "bestGenome": {
+        "bustThreshold2": 0.15,
+        "bustThreshold1": 0.3,
+        "dollarBuffer": 2,
+        "cowWeight": 6,
+        "dollarWeight": 0.5,
+        "banditPenalty": 2,
+        "positionWeight": 0.4,
+        "denialWeight": 0,
+        "deckMemory": 0.6,
+        "lethalBias": 1,
+        "act1DollarBonus": 1,
+        "act3CowBonus": 2,
+        "revealBonus": 1.5,
+        "affordMult": 1.4
+      }
+    }
+  ],
+  "finalBest": {
+    "bustThreshold2": 0.15,
+    "bustThreshold1": 0.3,
+    "dollarBuffer": 2,
+    "cowWeight": 6,
+    "dollarWeight": 0.5,
+    "banditPenalty": 2,
+    "positionWeight": 0.4,
+    "denialWeight": 0,
+    "deckMemory": 0.6,
+    "lethalBias": 1,
+    "act1DollarBonus": 1,
+    "act3CowBonus": 2,
+    "revealBonus": 1.5,
+    "affordMult": 1.4
+  },
+  "holdout": {
+    "winRate2P": 0.6816666666666666,
+    "winRate4P": 0.415,
+    "seeds": 200
+  }
+}
