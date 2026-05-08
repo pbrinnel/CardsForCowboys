@@ -230,6 +230,37 @@
     .rank-bronze { color: #8c3010; font-weight: bold; }
     .herd-count  { font-weight: bold; color: #2a6e1a; }
 
+    /* ── Pagination ── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+      gap: 0.5rem;
+    }
+    .pagination-info {
+      font-size: 0.82rem;
+      color: #3a2a1a;
+      font-style: italic;
+    }
+    .pagination-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-page {
+      background: #1e1610;
+      color: #e9e0c6;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 rgba(30,22,16,0.4);
+      padding: 0.3rem 0.75rem;
+      font-family: Georgia, serif;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: transform 0.07s, box-shadow 0.07s;
+    }
+    .btn-page:hover:not(:disabled) { transform: translate(1px,1px); box-shadow: 1px 1px 0 rgba(30,22,16,0.4); }
+    .btn-page:disabled { opacity: 0.35; cursor: default; transform: none; box-shadow: 2px 2px 0 rgba(30,22,16,0.4); }
+
     @media (max-width: 600px) {
       th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
       h1 { font-size: 1.5rem; }
@@ -281,6 +312,13 @@
     </thead>
     <tbody id="history-body"></tbody>
   </table>
+  <div class="pagination" id="history-pagination" style="display:none">
+    <div class="pagination-info" id="pagination-info"></div>
+    <div class="pagination-btns">
+      <button class="btn-page" id="btn-prev">← Prev</button>
+      <button class="btn-page" id="btn-next">Next →</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -289,11 +327,87 @@ import {
   ref, query, limitToLast, onValue
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-const statusEl = document.getElementById('status');
-const tableEl  = document.getElementById('history-table');
-const bodyEl   = document.getElementById('history-body');
-const liveCardsEl = document.getElementById('live-cards');
-const liveEmptyEl = document.getElementById('live-empty');
+const statusEl      = document.getElementById('status');
+const tableEl       = document.getElementById('history-table');
+const bodyEl        = document.getElementById('history-body');
+const liveCardsEl   = document.getElementById('live-cards');
+const liveEmptyEl   = document.getElementById('live-empty');
+const paginationEl  = document.getElementById('history-pagination');
+const paginInfoEl   = document.getElementById('pagination-info');
+const btnPrev       = document.getElementById('btn-prev');
+const btnNext       = document.getElementById('btn-next');
+
+const PAGE_SIZE = 5;
+let allRows    = [];
+let currentPage = 0;
+
+btnPrev.addEventListener('click', () => { currentPage--; renderHistoryPage(); });
+btnNext.addEventListener('click', () => { currentPage++; renderHistoryPage(); });
+
+function renderHistoryPage() {
+  const total = allRows.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+
+  const start = currentPage * PAGE_SIZE;
+  const pageRows = allRows.slice(start, start + PAGE_SIZE);
+
+  bodyEl.innerHTML = '';
+  for (const r of pageRows) {
+    const tr = document.createElement('tr');
+
+    const tdDate = document.createElement('td');
+    tdDate.textContent = r.ts ? formatDate(r.ts) : '—';
+    tr.appendChild(tdDate);
+
+    const tdMode = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = r.mode === 'mp' ? 'badge badge-mp' : 'badge badge-ai';
+    badge.textContent = r.mode === 'mp' ? 'Online' : 'vs AI';
+    tdMode.appendChild(badge);
+    tr.appendChild(tdMode);
+
+    const tdPlayers = document.createElement('td');
+    tdPlayers.className = 'player-list';
+    (r.players || []).forEach(p => {
+      const line = document.createElement('div');
+      const classes = [];
+      if (p.isWinner) classes.push('player-winner');
+      if (!p.isHuman) classes.push('player-ai');
+      if (classes.length) line.className = classes.join(' ');
+      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
+      tdPlayers.appendChild(line);
+    });
+    tr.appendChild(tdPlayers);
+
+    const tdWinner = document.createElement('td');
+    if (r.winner) {
+      tdWinner.className = 'winner-name';
+      tdWinner.textContent = r.winner;
+    } else {
+      tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
+    }
+    tr.appendChild(tdWinner);
+
+    const tdReview = document.createElement('td');
+    if (r.gameCode && r.mode === 'mp') {
+      const link = document.createElement('a');
+      link.className = 'btn-review';
+      link.href = `spectate.html?code=${r.gameCode}`;
+      link.textContent = 'Review';
+      link.target = '_blank';
+      tdReview.appendChild(link);
+    }
+    tr.appendChild(tdReview);
+
+    bodyEl.appendChild(tr);
+  }
+
+  paginInfoEl.textContent = `${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`;
+  btnPrev.disabled = currentPage === 0;
+  btnNext.disabled = currentPage >= totalPages - 1;
+  paginationEl.style.display = total > PAGE_SIZE ? 'flex' : 'none';
+}
 
 // Stale threshold: AI games that haven't pushed state in >5 min are considered dead
 const STALE_MS = 5 * 60 * 1000;
@@ -470,62 +584,9 @@ onValue(q, (snap) => {
 
   statusEl.style.display = 'none';
   tableEl.style.display = 'table';
-  bodyEl.innerHTML = '';
-
-  for (const r of rows) {
-    const tr = document.createElement('tr');
-
-    // Date
-    const tdDate = document.createElement('td');
-    tdDate.textContent = r.ts ? formatDate(r.ts) : '—';
-    tr.appendChild(tdDate);
-
-    // Mode badge
-    const tdMode = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.className = r.mode === 'mp' ? 'badge badge-mp' : 'badge badge-ai';
-    badge.textContent = r.mode === 'mp' ? 'Online' : 'vs AI';
-    tdMode.appendChild(badge);
-    tr.appendChild(tdMode);
-
-    // Players & scores
-    const tdPlayers = document.createElement('td');
-    tdPlayers.className = 'player-list';
-    (r.players || []).forEach(p => {
-      const line = document.createElement('div');
-      const classes = [];
-      if (p.isWinner) classes.push('player-winner');
-      if (!p.isHuman) classes.push('player-ai');
-      if (classes.length) line.className = classes.join(' ');
-      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
-      tdPlayers.appendChild(line);
-    });
-    tr.appendChild(tdPlayers);
-
-    // Winner
-    const tdWinner = document.createElement('td');
-    if (r.winner) {
-      tdWinner.className = 'winner-name';
-      tdWinner.textContent = r.winner;
-    } else {
-      tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
-    }
-    tr.appendChild(tdWinner);
-
-    // Review link (MP games with a saved game code)
-    const tdReview = document.createElement('td');
-    if (r.gameCode && r.mode === 'mp') {
-      const link = document.createElement('a');
-      link.className = 'btn-review';
-      link.href = `spectate.html?code=${r.gameCode}`;
-      link.textContent = 'Review';
-      link.target = '_blank';
-      tdReview.appendChild(link);
-    }
-    tr.appendChild(tdReview);
-
-    bodyEl.appendChild(tr);
-  }
+  allRows = rows;
+  currentPage = 0;
+  renderHistoryPage();
 }, (error) => {
   console.error('[HISTORY] Failed to load game history:', error);
   statusEl.textContent = 'Failed to load history. Check console for details.';
