@@ -2820,6 +2820,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  4,     // despises bandits in buy scoring
     positionWeight: 0,     // methodical — ignores standings
     denialBurn:     false,
+    deckMemory:     0.9,   // near-perfect deck tracking
+    lethalBias:     1.5,   // amplifies perceived danger of lethal cards
   },
   wild_bill: {
     bustThreshold2: 0.35,  // keeps drawing with 2 bandits often
@@ -2830,6 +2832,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  0.5,
     positionWeight: 0,     // pure chaos — doesn't track position
     denialBurn:     false,
+    deckMemory:     0.1,   // barely tracks the deck
+    lethalBias:     0.5,   // actively discounts danger signals
   },
   rancher: {
     bustThreshold2: 0.15,
@@ -2840,6 +2844,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  2,
     positionWeight: 0.4,   // somewhat adapts to standings
     denialBurn:     false,
+    deckMemory:     0.6,
+    lethalBias:     1.0,
   },
   banker: {
     bustThreshold2: 0.15,
@@ -2850,6 +2856,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  2,
     positionWeight: 0.3,
     denialBurn:     false,
+    deckMemory:     0.8,   // careful accountant tracks the deck well
+    lethalBias:     1.2,
   },
   outlaw: {
     bustThreshold2: 0.20,  // medium base risk
@@ -2860,6 +2868,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  2,
     positionWeight: 1.5,   // highly position-aware: draws aggressively when trailing, locks in when leading
     denialBurn:     false,
+    deckMemory:     0.4,   // plays on feel more than math
+    lethalBias:     0.8,
   },
   deputy: {
     bustThreshold2: 0.10,  // conservative draw
@@ -2870,6 +2880,8 @@ const AI_PERSONALITIES = {
     banditPenalty:  3,
     positionWeight: 0.3,
     denialBurn:     true,  // burns the card most valuable to the current leader
+    deckMemory:     0.7,
+    lethalBias:     1.3,
   },
 };
 
@@ -2890,7 +2902,6 @@ function aiShouldDraw(ai) {
     positionMult = Math.max(0.5, Math.min(2.0, rawMult));
   }
 
-  const banditsRemaining = countBanditsInDeck(ai);
   const cardsRemaining = ai.deck.length;
 
   // Draw more aggressively if AI can't currently afford any available card
@@ -2899,12 +2910,13 @@ function aiShouldDraw(ai) {
 
   if (ai.roundBandits >= 2) {
     if (cardsRemaining === 0) return false;
-    return (banditsRemaining / cardsRemaining) < cfg.bustThreshold2 * positionMult * affordMult;
+    const bustProb = calcBustProb(ai, 2, cfg);
+    return bustProb < cfg.bustThreshold2 * positionMult * affordMult;
   }
 
   if (ai.roundBandits === 1) {
     if (cardsRemaining <= 1) return false;
-    const bustProb = banditsRemaining / cardsRemaining;
+    const bustProb = calcBustProb(ai, 1, cfg);
     if (bustProb >= cfg.bustThreshold1 * positionMult * affordMult) return false;
     if (cfg.dollarBuffer >= 999) return true;  // Wild Bill ignores dollar target
     return ai.roundDollars < getBestAffordableCost(ai);
@@ -2918,8 +2930,20 @@ function aiShouldDraw(ai) {
   return ai.roundDollars < bestCost0 + effectiveBuffer;
 }
 
-function countBanditsInDeck(player) {
-  return player.deck.reduce((sum, c) => sum + c.bandits, 0);
+// Returns the perceived bust probability for the next draw, blending exact lethal-card
+// counting (deckMemory=1) with a flat prior (deckMemory=0), then amplified by lethalBias.
+// With currentBandits=2: lethal = any card with bandits >= 1 (one more busts).
+// With currentBandits=1: lethal = cards with bandits >= 2 (single draw to bust).
+function calcBustProb(player, currentBandits, cfg) {
+  const deck = player.deck;
+  if (deck.length === 0) return 0;
+  const minLethal = currentBandits === 2 ? 1 : 2;
+  const lethalCount = deck.filter(c => (c.bandits || 0) >= minLethal).length;
+  const exactProb = lethalCount / deck.length;
+  const FLAT_PRIOR = 0.20;
+  const memory = cfg.deckMemory ?? 0.5;
+  const bias   = cfg.lethalBias  ?? 1.0;
+  return (exactProb * memory + FLAT_PRIOR * (1 - memory)) * bias;
 }
 
 // Returns the cost of the highest-scored available card for this AI.

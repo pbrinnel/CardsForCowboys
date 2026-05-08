@@ -131,12 +131,12 @@ function shuffle(arr, rng) {
 // ─── AI PERSONALITIES (mirrored from play.js) ────────────────────────────────
 
 const AI_PERSONALITIES = {
-  sheriff:  { bustThreshold2: 0.05, bustThreshold1: 0.15, dollarBuffer: 0,   cowWeight: 3,   dollarWeight: 1.5, banditPenalty: 4,   positionWeight: 0,   denialBurn: false },
-  wild_bill:{ bustThreshold2: 0.35, bustThreshold1: 0.50, dollarBuffer: 999, cowWeight: 5,   dollarWeight: 0.5, banditPenalty: 0.5, positionWeight: 0,   denialBurn: false },
-  rancher:  { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 2,   cowWeight: 6,   dollarWeight: 0.5, banditPenalty: 2,   positionWeight: 0.4, denialBurn: false },
-  banker:   { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 1,   cowWeight: 1.5, dollarWeight: 3,   banditPenalty: 2,   positionWeight: 0.3, denialBurn: false },
-  outlaw:   { bustThreshold2: 0.20, bustThreshold1: 0.35, dollarBuffer: 1,   cowWeight: 4,   dollarWeight: 1,   banditPenalty: 2,   positionWeight: 1.5, denialBurn: false },
-  deputy:   { bustThreshold2: 0.10, bustThreshold1: 0.20, dollarBuffer: 0,   cowWeight: 2,   dollarWeight: 2,   banditPenalty: 3,   positionWeight: 0.3, denialBurn: true  },
+  sheriff:  { bustThreshold2: 0.05, bustThreshold1: 0.15, dollarBuffer: 0,   cowWeight: 3,   dollarWeight: 1.5, banditPenalty: 4,   positionWeight: 0,   denialBurn: false, deckMemory: 0.9, lethalBias: 1.5 },
+  wild_bill:{ bustThreshold2: 0.35, bustThreshold1: 0.50, dollarBuffer: 999, cowWeight: 5,   dollarWeight: 0.5, banditPenalty: 0.5, positionWeight: 0,   denialBurn: false, deckMemory: 0.1, lethalBias: 0.5 },
+  rancher:  { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 2,   cowWeight: 6,   dollarWeight: 0.5, banditPenalty: 2,   positionWeight: 0.4, denialBurn: false, deckMemory: 0.6, lethalBias: 1.0 },
+  banker:   { bustThreshold2: 0.15, bustThreshold1: 0.30, dollarBuffer: 1,   cowWeight: 1.5, dollarWeight: 3,   banditPenalty: 2,   positionWeight: 0.3, denialBurn: false, deckMemory: 0.8, lethalBias: 1.2 },
+  outlaw:   { bustThreshold2: 0.20, bustThreshold1: 0.35, dollarBuffer: 1,   cowWeight: 4,   dollarWeight: 1,   banditPenalty: 2,   positionWeight: 1.5, denialBurn: false, deckMemory: 0.4, lethalBias: 0.8 },
+  deputy:   { bustThreshold2: 0.10, bustThreshold1: 0.20, dollarBuffer: 0,   cowWeight: 2,   dollarWeight: 2,   banditPenalty: 3,   positionWeight: 0.3, denialBurn: true,  deckMemory: 0.7, lethalBias: 1.3 },
 };
 const PERSONALITY_NAMES = Object.keys(AI_PERSONALITIES);
 
@@ -252,8 +252,16 @@ function createPlayer(name, personality, slotIdx, gameSeed) {
 
 // ─── DRAW PHASE ───────────────────────────────────────────────────────────────
 
-function countBanditsInDeck(p) {
-  return p.deck.reduce((s, c) => s + Math.max(0, c.bandits || 0), 0);
+function calcBustProb(p, currentBandits, cfg) {
+  const deck = p.deck;
+  if (deck.length === 0) return 0;
+  const minLethal = currentBandits === 2 ? 1 : 2;
+  const lethalCount = deck.filter(c => (c.bandits || 0) >= minLethal).length;
+  const exactProb = lethalCount / deck.length;
+  const FLAT_PRIOR = 0.20;
+  const memory = cfg.deckMemory ?? 0.5;
+  const bias   = cfg.lethalBias  ?? 1.0;
+  return (exactProb * memory + FLAT_PRIOR * (1 - memory)) * bias;
 }
 
 function getBestCost(pyr, personality, act) {
@@ -283,16 +291,15 @@ function aiShouldDraw(p, pyr, act, allPlayers) {
   const canAfford = avail.some(a => (a.slot.card.cost || 0) <= p.roundDollars);
   const affordMult = canAfford ? 1.0 : 1.4;
 
-  const banditsLeft = countBanditsInDeck(p);
-  const cardsLeft   = p.deck.length;
+  const cardsLeft = p.deck.length;
 
   if (p.roundBandits >= 2) {
     if (cardsLeft === 0) return false;
-    return (banditsLeft / cardsLeft) < cfg.bustThreshold2 * posMult * affordMult;
+    return calcBustProb(p, 2, cfg) < cfg.bustThreshold2 * posMult * affordMult;
   }
   if (p.roundBandits === 1) {
     if (cardsLeft <= 1) return false;
-    if ((banditsLeft / cardsLeft) >= cfg.bustThreshold1 * posMult * affordMult) return false;
+    if (calcBustProb(p, 1, cfg) >= cfg.bustThreshold1 * posMult * affordMult) return false;
     if (cfg.dollarBuffer >= 999) return true;
     return p.roundDollars < getBestCost(pyr, p.personality, act);
   }
