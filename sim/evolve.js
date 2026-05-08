@@ -488,30 +488,43 @@ function runGame(genomes, numPlayers, seed) {
 
 // ── FITNESS EVALUATION ───────────────────────────────────────────────────────
 
-function evaluateFitness(population, kSeeds, quiet) {
+function evaluateFitness(population, kSeeds) {
   const n = population.length;
   const winCounts = new Array(n).fill(0);
   const gamesPlayed = new Array(n).fill(0);
 
-  const playerCounts = [2, 4];
-
-  // Round-robin: each pair (i, j) plays at both 2P and 4P
-  // For N > 2, seat all genomes in groups of numPlayers
-  for (const numPlayers of playerCounts) {
-    // Generate all combinations of numPlayers indices from population
-    const groups = generateGroups(n, numPlayers);
-
-    for (const group of groups) {
-      const groupGenomes = group.map(i => population[i]);
+  // 2P: full round-robin (all pairs × kSeeds)
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
       for (let s = 0; s < kSeeds; s++) {
-        const seed = (s + 1) * 997 + group.reduce((a, b) => a * 31 + b, 0) + numPlayers * 10007;
-        // Play all seating rotations so each genome gets equal position exposure
-        const result = runGame(groupGenomes, numPlayers, seed);
-        group.forEach((popIdx, seatIdx) => {
-          gamesPlayed[popIdx]++;
-          if (seatIdx === result.winner) winCounts[popIdx]++;
-        });
+        const seed = (s + 1) * 997 + i * 31 + j + 20003;
+        const result = runGame([population[i], population[j]], 2, seed);
+        gamesPlayed[i]++; gamesPlayed[j]++;
+        if (result.winner === 0) winCounts[i]++;
+        else winCounts[j]++;
       }
+    }
+  }
+
+  // 4P: sampled groups — each genome plays kSeeds games with 3 random opponents.
+  // Generate n groups of 4 per "round" (rotate through the shuffled population).
+  // Run kSeeds rounds so each genome gets kSeeds 4P games.
+  const rng4p = makeLCG(n * 7919 + kSeeds);
+  for (let s = 0; s < kSeeds; s++) {
+    // Shuffle indices and chunk into groups of 4
+    const indices = Array.from({ length: n }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(rng4p() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    for (let g = 0; g + 3 < n; g += 4) {
+      const group = [indices[g], indices[g + 1], indices[g + 2], indices[g + 3]];
+      const seed = (s + 1) * 1009 + group.reduce((a, b) => a * 31 + b, 0);
+      const result = runGame(group.map(i => population[i]), 4, seed);
+      group.forEach((popIdx, seatIdx) => {
+        gamesPlayed[popIdx]++;
+        if (seatIdx === result.winner) winCounts[popIdx]++;
+      });
     }
   }
 
@@ -521,30 +534,6 @@ function evaluateFitness(population, kSeeds, quiet) {
     wins: winCounts[i],
     games: gamesPlayed[i],
   }));
-}
-
-// Generate all unique combinations of `size` indices from [0, n)
-function generateGroups(n, size) {
-  if (size === 2) {
-    const groups = [];
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        groups.push([i, j]);
-      }
-    }
-    return groups;
-  }
-  if (size === 4) {
-    const groups = [];
-    for (let i = 0; i < n; i++)
-      for (let j = i + 1; j < n; j++)
-        for (let k = j + 1; k < n; k++)
-          for (let l = k + 1; l < n; l++)
-            groups.push([i, j, k, l]);
-    return groups;
-  }
-  // Fallback: pairs
-  return generateGroups(n, 2);
 }
 
 // ── EVOLUTIONARY ALGORITHM ───────────────────────────────────────────────────
