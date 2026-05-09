@@ -51,7 +51,7 @@
               ".validate": "newData.isBoolean()"
             },
             "herd": {
-              ".validate": "newData.isNumber() && newData.val() >= 0"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 500"
             },
             "isWinner": {
               ".validate": "newData.isBoolean()"
@@ -62,6 +62,28 @@
         },
 
         // Reject any unexpected top-level fields on history entries
+        "$other": { ".validate": false }
+      }
+    },
+
+    "liveGames": {
+      "$gameCode": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "emailSignups": {
+      ".read": false,
+      "$entry": {
+        ".write": "!data.exists()",
+        ".validate": "newData.hasChildren(['email', 'ts'])",
+        "email": {
+          ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 254 && newData.val().matches(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/)"
+        },
+        "ts": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
         "$other": { ".validate": false }
       }
     }
