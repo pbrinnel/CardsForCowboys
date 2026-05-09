@@ -4159,17 +4159,9 @@ function showDeck() {
 }
 
 function closeDeck() {
+  if (TUTORIAL.active && TUTORIAL.deckCloseBlocked()) return;
   document.getElementById('deck-modal').classList.add('hidden');
-  if (TUTORIAL.active) {
-    // If an info popup was visible inside the deck, re-surface "Got it →" in
-    // the main action zone now that the deck is closed — otherwise the popup
-    // guard blocks all setActions calls and the player is stuck.
-    if (TUTORIAL.popupVisible) {
-      TUTORIAL.reshowGotIt();
-    } else {
-      TUTORIAL.onActionDone('close_deck');
-    }
-  }
+  if (TUTORIAL.active) TUTORIAL.onActionDone('close_deck');
 }
 
 // --- DECK PEEK (draw phase only — shows ordered backs of draw pile) ---

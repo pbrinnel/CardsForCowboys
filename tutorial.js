@@ -223,6 +223,13 @@ const TUTORIAL = (() => {
     if (!step) return;
     clearSpotlight();
 
+    // Hide the deck modal close button during deck-info steps so the player
+    // can't dismiss the modal before they're supposed to.
+    const deckCloseBtn = document.querySelector('#deck-modal .close-btn');
+    if (deckCloseBtn) {
+      deckCloseBtn.style.display = step.deckHighlight !== undefined ? 'none' : '';
+    }
+
     if (step.required.type === 'info') {
       // Info step: show popup — player must dismiss before anything else
       showPopup(step.message);
@@ -519,22 +526,11 @@ const TUTORIAL = (() => {
       applyStep();
     },
 
-    // Called when the deck modal is closed while an info popup is active.
-    // Re-surfaces the "Got it →" button in the main action zone so the player
-    // isn't stuck (the button was inside the modal and closed with it).
-    reshowGotIt() {
-      if (!_active || !_popupVisible) return;
+    // Returns true during deck-info steps where the player must not close the deck.
+    deckCloseBlocked() {
+      if (!_active || _done) return false;
       const step = currentStep();
-      if (!step || step.required.type !== 'info') return;
-      _hideDeckGotIt();
-      const actionsEl = document.getElementById('actions');
-      if (!actionsEl) return;
-      actionsEl.innerHTML = '';
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.textContent = 'Got it →';
-      btn.onclick = () => TUTORIAL.onPopupDismiss();
-      actionsEl.appendChild(btn);
+      return step ? step.deckHighlight !== undefined : false;
     },
 
     flashBlocked() {
