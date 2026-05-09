@@ -3,7 +3,7 @@
 ## ⚠️ Maintenance Instructions (READ FIRST)
 
 This file is your primary reference. **Keep it updated.** After any session where you:
-- Add, rename, or significantly move functions in `play.js` → update the Function Index
+- Add, rename, or significantly move functions in `src/play.js` → update the Function Index
 - Fix a recurring or subtle bug → add it to the Known Bug Watch List
 - Change Firebase data structure → update the relevant section in MEMORY.md and here
 - Touch anything security-related → re-run the Security Checklist
@@ -16,19 +16,59 @@ When starting a new task, **check this file before reading raw source code.** Us
 
 ## File Map
 
+### Root (HTML pages + config)
 | File | Purpose |
 |------|---------|
-| `play.js` | Entire game engine — MP layer (IIFE, top), card DB, game state, rendering, flow |
-| `play.html` / `play.css` | Game UI shell and styles |
-| `lobby.js` | Online matchmaking, sets `sessionStorage` keys for play.js |
-| `firebase-config.js` | Firebase init, exports `db` — used by lobby.js as ESM module |
 | `index.html` | Landing page (Play vs AI / Play Online / Rules) |
-| `game.html` / `gamesetup.html` | Player count + slot config screen |
+| `playgame.html` | Game UI shell |
+| `gamesetup.html` | Player count + slot config screen |
+| `lobby.html` | Online matchmaking lobby |
+| `creategame.html` | Online game creation |
 | `rules.html` | Standalone rules page |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
 | `history.html` | Game history + leaderboard |
-| `simulate.js` / `sim/` | Headless simulation for balance testing |
+| `aboutthecreators.html` | About page |
 | `database.rules.json` | Firebase Realtime Database security rules |
+
+### `src/` — App JavaScript
+| File | Purpose |
+|------|---------|
+| `src/play.js` | Entire game engine — MP layer (IIFE, top), card DB, game state, rendering, flow |
+| `src/tutorial.js` | Tutorial mode hooks (loaded before play.js) |
+| `src/lobby.js` | Online matchmaking logic, sets `sessionStorage` keys for play.js |
+| `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js as ESM module |
+| `src/creategame.js` | Online game creation logic |
+
+### `css/` — Stylesheets
+| File | Purpose |
+|------|---------|
+| `css/play.css` | Game UI styles |
+| `css/style.css` | Shared/general styles |
+| `css/rules-page.css` | Rules page styles |
+| `css/theme.css` | Theme variables / font imports |
+
+### `sim/` — Simulation & AI tooling
+| File | Purpose |
+|------|---------|
+| `sim/simulate.js` | AI vs AI simulation runner |
+| `sim/simulate-showdown.js` | Legacy showdown-only simulation |
+| `sim/evolve.js` | Genetic algorithm for AI parameter tuning |
+| `sim/ai-player.js` | AI player logic for simulation |
+| `sim/game-core.js` | Core game logic extracted for sim use |
+| `sim/tiebreaker.js` | Buy-order tiebreaker (shared by game + sim) |
+| `sim/stats.js` | Statistics collector |
+| `sim/mock-firebase.js` | Firebase mock for MP protocol tests |
+| `sim/mp-client.js` | MP client mirror for sim |
+| `sim/results/` | Simulation output files |
+
+### Other directories
+| Path | Purpose |
+|------|---------|
+| `assets/` | Card images, card backs, symbols, photos |
+| `data/` | Card data CSV (designer reference) |
+| `docs/` | Rules PDF, planning docs |
+| `admin/` | Gitignored admin scripts (email tools) |
+| `test/` | Playwright tests |
 
 ---
 
@@ -275,7 +315,7 @@ player = {
 
 ### Personality parameters (14 total)
 
-All parameters live in `AI_PERSONALITIES` (~line 2813 in `play.js`, mirrored in `simulate.js`).
+All parameters live in `AI_PERSONALITIES` (~line 2813 in `src/play.js`, mirrored in `sim/simulate.js`).
 **Both files must be kept in sync.**
 
 Draw-phase: `bustThreshold2`, `bustThreshold1`, `dollarBuffer`, `positionWeight`, `affordMult`, `deckMemory`, `lethalBias`
@@ -395,7 +435,7 @@ Run through this whenever touching Firebase-related files, auth, or configuratio
 
 ### Firebase API Key
 The Firebase API key is **intentionally public** — Firebase web app keys are not secrets; security is enforced via Database Rules. However:
-- [ ] The key is hardcoded in TWO places: `firebase-config.js` line 9 and `play.js` line 13. If the key ever changes, update both.
+- [ ] The key is hardcoded in TWO places: `src/firebase-config.js` line 9 and `src/play.js` line 13. If the key ever changes, update both.
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)

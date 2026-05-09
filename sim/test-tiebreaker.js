@@ -6,7 +6,7 @@
 // Usage:  node sim/test-tiebreaker.js
 // ============================================================
 
-const { determineBuyWinner } = require('../shared/tiebreaker.js');
+const { determineBuyWinner } = require('./tiebreaker.js');
 
 // --- TEST HARNESS ---
 

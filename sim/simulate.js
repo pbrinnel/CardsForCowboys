@@ -18,7 +18,7 @@
 const core = require('./game-core');
 const ai = require('./ai-player');
 const { StatsCollector } = require('./stats');
-const { determineBuyWinner } = require('../shared/tiebreaker');
+const { determineBuyWinner } = require('./tiebreaker');
 
 // --- CLI ARGS ---
 

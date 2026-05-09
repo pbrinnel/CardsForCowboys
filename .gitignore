@@ -2,7 +2,7 @@
 **/.DS_Store
 sim/results/*.csv
 sim/results/*.txt
-ref/Deck Buster Cards - Cards.csv
+data/Deck Buster Cards - Cards.csv
 node_modules/
 .claude/worktrees/
 get-emails.js

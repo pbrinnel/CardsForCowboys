@@ -4,7 +4,7 @@
 'use strict';
 
 const core = require('./game-core');
-const { determineBuyWinner } = require('../shared/tiebreaker');
+const { determineBuyWinner } = require('./tiebreaker');
 const fs = require('fs');
 const path = require('path');
 

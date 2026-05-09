@@ -11,7 +11,7 @@
 
 const { MockFirebaseDb, createMockDb } = require('./mock-firebase');
 const { createMpClient }               = require('./mp-client');
-const { determineBuyWinner }           = require('../shared/tiebreaker.js');
+const { determineBuyWinner }           = require('./tiebreaker.js');
 
 // ---- TEST HARNESS ----
 

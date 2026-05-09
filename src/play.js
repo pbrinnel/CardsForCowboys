@@ -3291,7 +3291,7 @@ async function handleExtraBuy(player, card) {
 
 // --- BUY PHASE ---
 
-// determineBuyWinner() is defined in shared/tiebreaker.js (loaded via <script> before play.js)
+// determineBuyWinner() is defined in sim/tiebreaker.js (loaded via <script> before play.js)
 
 function onDrawPhaseComplete() {
   G.phase = 'buy';
@@ -4431,4 +4431,4 @@ startGame().catch(e => {
   setMessage('Failed to start game. Please refresh.');
 });
 
-// determineBuyWinner is defined in shared/tiebreaker.js (loaded before this script)
+// determineBuyWinner is defined in sim/tiebreaker.js (loaded before this script)
