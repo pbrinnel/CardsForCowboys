@@ -317,16 +317,17 @@ body {
 }
 
 .btn-secondary {
-  background: transparent;
-  color: rgba(233,224,198,0.6);
-  border-color: rgba(233,224,198,0.25);
+  background: rgba(233,224,198,0.18);
+  color: rgba(233,224,198,0.95);
+  border-color: rgba(233,224,198,0.7);
   box-shadow: none;
   font-weight: normal;
 }
 
 .btn-secondary:hover {
+  background: rgba(233,224,198,0.28);
   color: #e9e0c6;
-  border-color: rgba(233,224,198,0.6);
+  border-color: rgba(233,224,198,0.9);
   transform: none;
   box-shadow: none;
 }

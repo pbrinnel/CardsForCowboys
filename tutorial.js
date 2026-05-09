@@ -192,7 +192,7 @@ const TUTORIAL = (() => {
     {
       id: 'r3_stop',
       // after drawing starter_93 ($1, River). next card would be a Rattlesnake.
-      message: '$3, 0 Bandits — stop here.',
+      message: '$3, 0 Bandits — click "Stop Drawing" on the right to lock in your hand.',
       spotlight: '#actions',
       required: { type: 'stop' },
     },
@@ -517,6 +517,24 @@ const TUTORIAL = (() => {
         _stepIdx++;
       }
       applyStep();
+    },
+
+    // Called when the deck modal is closed while an info popup is active.
+    // Re-surfaces the "Got it →" button in the main action zone so the player
+    // isn't stuck (the button was inside the modal and closed with it).
+    reshowGotIt() {
+      if (!_active || !_popupVisible) return;
+      const step = currentStep();
+      if (!step || step.required.type !== 'info') return;
+      _hideDeckGotIt();
+      const actionsEl = document.getElementById('actions');
+      if (!actionsEl) return;
+      actionsEl.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'Got it →';
+      btn.onclick = () => TUTORIAL.onPopupDismiss();
+      actionsEl.appendChild(btn);
     },
 
     flashBlocked() {
