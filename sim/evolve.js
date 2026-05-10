@@ -74,11 +74,11 @@ function scoreCard(card, genome, act, allPlayers, thisPlayer) {
   score -= (card.bandits || 0) * genome.banditPenalty;
   if (act === 1) score += (card.dollars || 0) * genome.act1DollarBonus;
   if (act === 3) score += (card.cows    || 0) * genome.act3CowBonus;
-  if (card.special === 'trash_to_use')         score += 2;
+  if (card.special === 'burn_to_use')         score += 2;
   if (card.special === 'draw4')                score += 2;
   if (card.special === 'replay_discard')       score += 2;
   if (card.special === 'look3_rearrange')      score += 1.5;
-  if (card.special === 'trash_buy_burn_first') score += 1;
+  if (card.special === 'burn_buy_first') score += 1;
   if (card.special === 'dollar1_other')        score -= 0.5;
   if (card.special === 'copy_next' && thisPlayer && thisPlayer.deck.length > 0) {
     const avg = thisPlayer.deck.reduce((s, c) =>
@@ -270,8 +270,8 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
         if (player.busted) break;
       }
 
-      // trash_to_use activation
-      for (const tCard of player.hand.filter(c => c.special === 'trash_to_use')) {
+      // burn_to_use activation
+      for (const tCard of player.hand.filter(c => c.special === 'burn_to_use')) {
         let activate = false;
         if (tCard.bandits < 0 && player.roundBandits >= 2) activate = true;
         if (tCard.dollars > 0 && player.roundBandits >= 2) {
@@ -288,8 +288,8 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
         }
       }
 
-      // trash_for_2: burn for +$1 if it bridges to best card
-      if (card.special === 'trash_for_2') {
+      // burn_for_2: burn for +$1 if it bridges to best card
+      if (card.special === 'burn_for_2') {
         const bestCost = getBestCost(player, genome, pyramid, act, players);
         if (player.roundDollars < bestCost && player.roundDollars + 1 >= bestCost) {
           player.roundDollars += 1;
@@ -332,8 +332,8 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
         }
       }
 
-      // trash_buy_burn_first: auto-activate
-      if (card.special === 'trash_buy_burn_first') {
+      // burn_buy_first: auto-activate
+      if (card.special === 'burn_buy_first') {
         player.hasBuyBurnFirst = true;
         const idx = player.hand.indexOf(card);
         if (idx >= 0) {
@@ -352,9 +352,9 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
       // Check bust
       if (player.roundBandits >= 3) { handleBust(player); break; }
 
-      // Before stopping: activate dollar trash_to_use if it unlocks a better card
+      // Before stopping: activate dollar burn_to_use if it unlocks a better card
       if (!shouldDraw(player, genome, pyramid, act, players)) {
-        for (const tCard of player.hand.filter(c => c.special === 'trash_to_use' && c.dollars > 0)) {
+        for (const tCard of player.hand.filter(c => c.special === 'burn_to_use' && c.dollars > 0)) {
           const avail = core.getAvailablePyramidCards(pyramid);
           const unlocksAfford = avail.some(a =>
             (a.slot.card.cost || 0) > player.roundDollars &&

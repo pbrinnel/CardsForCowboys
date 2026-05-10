@@ -65,11 +65,11 @@ score  = cows * cowWeight
 
 | Special | Bonus |
 |---|---|
-| `trash_to_use` | +2 |
+| `burn_to_use` | +2 |
 | `draw4` | +2 |
 | `replay_discard` | +2 |
 | `look3_rearrange` | +1.5 |
-| `trash_buy_burn_first` | +1 |
+| `burn_buy_first` | +1 |
 | `copy_next` | +1.5 to +6 (scales with deck quality) |
 | `dollar1_other` | -0.5 |
 | Any card with `cows < 0` | -2 |

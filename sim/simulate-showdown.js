@@ -24,14 +24,14 @@ const STORE_CARDS = [
   { id: 'card_74',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3 },
   { id: 'card_75',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3 },
   { id: 'card_76',  act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3 },
-  { id: 'card_77',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'trash_to_use' },
-  { id: 'card_78',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'trash_to_use' },
+  { id: 'card_77',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'burn_to_use' },
+  { id: 'card_78',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'burn_to_use' },
   { id: 'card_79',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_80',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_65',  act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_68',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3 },
   { id: 'card_69',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3 },
-  { id: 'card_70',  act: 1, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'trash_to_use' },
+  { id: 'card_70',  act: 1, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 3, special: 'burn_to_use' },
   { id: 'card_46',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3 },
   { id: 'card_47',  act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3 },
   { id: 'card_48',  act: 1, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 5 },
@@ -44,7 +44,7 @@ const STORE_CARDS = [
   { id: 'card_11',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2 },
   { id: 'card_12',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2 },
   { id: 'card_13',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2 },
-  { id: 'card_14',  act: 1, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 2, special: 'trash_buy_burn_first' },
+  { id: 'card_14',  act: 1, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 2, special: 'burn_buy_first' },
   { id: 'card_15',  act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 3, special: '2cow_if_first' },
   { id: 'card_1',   act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2 },
   { id: 'card_2',   act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 2 },
@@ -55,27 +55,27 @@ const STORE_CARDS = [
   { id: 'card_83',  act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 6 },
   { id: 'card_66',  act: 2, minPlayers: 3, dollars: 1, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_67',  act: 2, minPlayers: 3, dollars: 0, cows:  2, bandits:  0, cost: 6 },
-  { id: 'card_50',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, special: 'trash_to_use' },
+  { id: 'card_50',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, special: 'burn_to_use' },
   { id: 'card_51',  act: 2, minPlayers: 2, dollars: 0, cows:  5, bandits:  2, cost: 4 },
   { id: 'card_52',  act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5 },
   { id: 'card_53',  act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5 },
   { id: 'card_54',  act: 2, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost: 5, special: 'draw4' },
   { id: 'card_38',  act: 2, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3 },
-  { id: 'card_39',  act: 2, minPlayers: 3, dollars: 0, cows:  0, bandits: -1, cost: 4, special: 'trash_to_use' },
+  { id: 'card_39',  act: 2, minPlayers: 3, dollars: 0, cows:  0, bandits: -1, cost: 4, special: 'burn_to_use' },
   { id: 'card_41',  act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_42',  act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4 },
   { id: 'card_43',  act: 2, minPlayers: 4, dollars: 0, cows:  5, bandits:  2, cost: 4 },
-  { id: 'card_16',  act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, special: 'trash_for_2' },
+  { id: 'card_16',  act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, special: 'burn_for_2' },
   { id: 'card_17',  act: 2, minPlayers: 2, dollars: 4, cows:  0, bandits:  1, cost: 3 },
   { id: 'card_18',  act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4 },
   { id: 'card_19',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'look3_rearrange' },
   { id: 'card_20',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'copy_next' },
   { id: 'card_21',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'extra_buy' },
-  { id: 'card_22',  act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'trash_for_2' },
+  { id: 'card_22',  act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_for_2' },
   { id: 'card_23',  act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, special: 'replay_discard' },
   { id: 'card_24',  act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, special: 'dollar1_other' },
   { id: 'card_4',   act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 0, special: 'discard_to_player' },
-  { id: 'card_5',   act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, special: 'trash_for_2' },
+  { id: 'card_5',   act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, special: 'burn_for_2' },
   { id: 'card_6',   act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4 },
   { id: 'card_7',   act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, special: 'copy_next' },
   // ACT 3
@@ -148,13 +148,13 @@ function scoreCard(card, personality, act) {
   s += (card.cows    || 0) * cfg.cowWeight;
   s += (card.dollars || 0) * cfg.dollarWeight;
   s -= (card.bandits || 0) * cfg.banditPenalty;
-  if (card.special === 'trash_to_use')  s += 2;
+  if (card.special === 'burn_to_use')  s += 2;
   if (card.special === 'copy_next')     s += 3;
   if (card.special === 'draw4')         s += 2;
   if (card.special === 'look3_rearrange') s += 1.5;
   if (card.special === 'replay_discard')  s += 2;
 
-  if (card.special === 'trash_buy_burn_first') s += 1;
+  if (card.special === 'burn_buy_first') s += 1;
   if (card.special === 'dollar1_other')   s -= 0.5;
   if ((card.cows || 0) < 0) s -= 2;
   if (act === 1) s += (card.dollars || 0) * (cfg.act1DollarBonus ?? 1);

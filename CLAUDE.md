@@ -210,15 +210,15 @@ getBestAffordableCost(ai)   ~2933
 ```
 activateSpecialCard()       ~2948 — burn_to_use activation from hand
 handleBust(player)          ~2996
-handleTrashToUse()          ~3026  — "Burn to Use" (trash_to_use special)
-handleTrashFor2()           ~3043  — "Burn for $2" (trash_for_2 special)
-handleTrashBuyBurnFirst()   ~3055  — "Burn for Priority" (trash_buy_burn_first special)
+handleBurnToUse()           ~3026  — "Burn to Use" (burn_to_use special)
+handleBurnFor2()            ~3043  — "Burn for $2" (burn_for_2 special)
+handleBurnBuyFirst()        ~3055  — "Burn for Priority" (burn_buy_first special)
 handleLook3()               ~3074
 handleTrashLook3()          ~3143  — "Burn & Look" (look3_rearrange special)
 handleReplayDiscard()       ~3160  — "Burn & Replay" (replay_discard special)
 handleExtraBuy()            ~3230  — "Burn for Extra Buy/Burn" (extra_buy special)
 NOTE: handlePutOnTop() was permanently removed (May 2026). Card 22 reworked from
-      put_on_top (Cactus $5) → trash_for_2 (River $3, $1 on draw). If a future card
+      put_on_top (Cactus $5) → burn_for_2 (River $3, $1 on draw). If a future card
       needs put_on_top logic, rebuild from git history (commit before this change).
 ```
 
