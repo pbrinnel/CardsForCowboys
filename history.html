@@ -390,10 +390,12 @@ function renderHistoryPage() {
     tr.appendChild(tdWinner);
 
     const tdReview = document.createElement('td');
-    if (r.gameCode && r.mode === 'mp') {
+    if (r.gameCode) {
       const link = document.createElement('a');
       link.className = 'btn-review';
-      link.href = `spectate.html?code=${r.gameCode}`;
+      link.href = r.mode === 'ai'
+        ? `spectate.html?code=${r.gameCode}&ai=1`
+        : `spectate.html?code=${r.gameCode}`;
       link.textContent = 'Review';
       link.target = '_blank';
       tdReview.appendChild(link);

@@ -723,10 +723,6 @@ const AI_SPEC = (() => {
     _code = null; // prevent further pushes
     try {
       await _fbSet(_fbRef(`liveGames/${code}/status`), 'finished');
-      // Remove the entry after 2 minutes so it doesn't clutter the DB
-      setTimeout(async () => {
-        try { await _fbRemove(_fbRef(`liveGames/${code}`)); } catch (e) {}
-      }, 2 * 60 * 1000);
     } catch (e) {}
   }
 
@@ -4057,6 +4053,13 @@ function gameOver() {
   } else {
     AI_SPEC.push();   // spectators see final game-over state
     AI_SPEC.finish(); // remove from live-games list
+
+    if (gameCode && !G.isDebug) {
+      const reviewLink = document.getElementById('gameover-review-link');
+      const base = location.pathname.replace('playgame.html', '');
+      reviewLink.href = `${location.origin}${base}spectate.html?code=${gameCode}&ai=1`;
+      reviewLink.classList.remove('hidden');
+    }
   }
 
   // Log game to global history (MP: host only; SP: always; never for debug games)
