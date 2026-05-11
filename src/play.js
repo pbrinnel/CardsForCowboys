@@ -2061,6 +2061,7 @@ async function startGame() {
     sessionStorage.removeItem('tutorial_mode');
     if (isTutorial) {
       G = initState(2); // 2-player: human vs AI
+      G.players[1].personality = 'sheriff';
       G.gameSeed = 0;
       G.seatOrder = [0, 1];
       G.quickStartMode = false;
@@ -2912,6 +2913,70 @@ const AI_PERSONALITIES = {
     act1DollarBonus: 0.5,  // mild economy interest early
     act3CowBonus:   2.5,   // ramps appropriately
     revealBonus:    2.0,   // uses denial + reveals to control the pyramid shape
+  },
+  greenhorn: {
+    bustThreshold2: 0.03,  // almost never draws with 2 bandits
+    bustThreshold1: 0.08,  // extremely timid — stops at the first sign of danger
+    dollarBuffer:   0,
+    cowWeight:      1.0,   // barely registers cows as the objective
+    dollarWeight:   3.5,   // hoards dollar engines
+    banditPenalty:  6.0,   // terrified of bandits
+    positionWeight: 0,
+    denialBurn:     false,
+    deckMemory:     0.2,   // poor deck tracking — plays blind
+    lethalBias:     2.5,   // maximum fear amplification
+    affordMult:     1.0,   // doesn't draw harder even when broke
+    act1DollarBonus: 3.0,  // obsessively economy-focused in Act 1
+    act3CowBonus:   0.3,   // barely pivots to cows even at the end
+    revealBonus:    3.5,   // wastes burns on pyramid reveals
+  },
+  prospector: {
+    bustThreshold2: 0.12,
+    bustThreshold1: 0.25,
+    dollarBuffer:   1.5,
+    cowWeight:      4.5,   // some cow sense but not sharp
+    dollarWeight:   1.5,
+    banditPenalty:  2.5,
+    positionWeight: 0.2,
+    denialBurn:     false,
+    deckMemory:     0.55,
+    lethalBias:     1.3,
+    affordMult:     1.3,
+    act1DollarBonus: 1.0,
+    act3CowBonus:   1.8,
+    revealBonus:    2.0,   // still drawn to shiny pyramid reveals
+  },
+  drifter: {
+    bustThreshold2: 0.18,
+    bustThreshold1: 0.35,
+    dollarBuffer:   2.5,
+    cowWeight:      7.0,   // solid cow buying, no special tricks
+    dollarWeight:   0.8,
+    banditPenalty:  2.0,
+    positionWeight: 0.3,
+    denialBurn:     false,
+    deckMemory:     0.65,
+    lethalBias:     1.1,
+    affordMult:     1.5,
+    act1DollarBonus: 0.3,
+    act3CowBonus:   2.8,
+    revealBonus:    0.8,
+  },
+  enforcer: {
+    bustThreshold2: 0.30,
+    bustThreshold1: 0.60,  // draws hard, calibrated not reckless
+    dollarBuffer:   3.0,
+    cowWeight:      9.5,   // near-optimal cow buying
+    dollarWeight:   1.5,
+    banditPenalty:  1.2,
+    positionWeight: 0.5,
+    denialBurn:     false, // unlike outlaw — wins through efficiency, not denial
+    deckMemory:     0.75,  // good tracking; paired with high lethalBias = precise fear
+    lethalBias:     1.8,
+    affordMult:     1.9,   // draws very hard when pyramid is out of reach
+    act1DollarBonus: 0,
+    act3CowBonus:   3.0,
+    revealBonus:    0.2,
   },
 };
 

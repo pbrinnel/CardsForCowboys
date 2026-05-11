@@ -188,6 +188,19 @@
       margin: 1rem auto;
     }
     .hidden { display: none !important; }
+    .diff-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .diff-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(30,22,16,0.5);
+      flex-shrink: 0;
+    }
     .mode-row {
       margin-bottom: 1.75rem;
     }
@@ -279,6 +292,14 @@
           <button class="toggle-btn active" id="p2-ai" onclick="setP2('ai')">AI</button>
           <button class="toggle-btn" id="p2-human" onclick="setP2('human')">Human</button>
         </div>
+        <div class="diff-row" id="p2-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="p2-diff-easy" onclick="setP2Diff('easy')">Easy</button>
+            <button class="toggle-btn active" id="p2-diff-medium" onclick="setP2Diff('medium')">Medium</button>
+            <button class="toggle-btn" id="p2-diff-hard" onclick="setP2Diff('hard')">Hard</button>
+          </div>
+        </div>
         <p class="invite-note hidden" id="invite-note" style="width:100%;">
           You'll get a game code to share after clicking Start.
         </p>
@@ -297,6 +318,14 @@
           <button class="toggle-btn active" id="s3-p2-ai" onclick="setSlot(3,2,'ai')">AI</button>
           <button class="toggle-btn" id="s3-p2-human" onclick="setSlot(3,2,'human')">Human</button>
         </div>
+        <div class="diff-row" id="s3-p2-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="s3-p2-diff-easy" onclick="setSlotDiff(3,2,'easy')">Easy</button>
+            <button class="toggle-btn active" id="s3-p2-diff-medium" onclick="setSlotDiff(3,2,'medium')">Medium</button>
+            <button class="toggle-btn" id="s3-p2-diff-hard" onclick="setSlotDiff(3,2,'hard')">Hard</button>
+          </div>
+        </div>
         <p class="invite-note hidden" id="s3-p2-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
       <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
@@ -304,6 +333,14 @@
         <div class="toggle-row">
           <button class="toggle-btn active" id="s3-p3-ai" onclick="setSlot(3,3,'ai')">AI</button>
           <button class="toggle-btn" id="s3-p3-human" onclick="setSlot(3,3,'human')">Human</button>
+        </div>
+        <div class="diff-row" id="s3-p3-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="s3-p3-diff-easy" onclick="setSlotDiff(3,3,'easy')">Easy</button>
+            <button class="toggle-btn active" id="s3-p3-diff-medium" onclick="setSlotDiff(3,3,'medium')">Medium</button>
+            <button class="toggle-btn" id="s3-p3-diff-hard" onclick="setSlotDiff(3,3,'hard')">Hard</button>
+          </div>
         </div>
         <p class="invite-note hidden" id="s3-p3-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
@@ -321,6 +358,14 @@
           <button class="toggle-btn active" id="s4-p2-ai" onclick="setSlot(4,2,'ai')">AI</button>
           <button class="toggle-btn" id="s4-p2-human" onclick="setSlot(4,2,'human')">Human</button>
         </div>
+        <div class="diff-row" id="s4-p2-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="s4-p2-diff-easy" onclick="setSlotDiff(4,2,'easy')">Easy</button>
+            <button class="toggle-btn active" id="s4-p2-diff-medium" onclick="setSlotDiff(4,2,'medium')">Medium</button>
+            <button class="toggle-btn" id="s4-p2-diff-hard" onclick="setSlotDiff(4,2,'hard')">Hard</button>
+          </div>
+        </div>
         <p class="invite-note hidden" id="s4-p2-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
       <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
@@ -329,6 +374,14 @@
           <button class="toggle-btn active" id="s4-p3-ai" onclick="setSlot(4,3,'ai')">AI</button>
           <button class="toggle-btn" id="s4-p3-human" onclick="setSlot(4,3,'human')">Human</button>
         </div>
+        <div class="diff-row" id="s4-p3-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="s4-p3-diff-easy" onclick="setSlotDiff(4,3,'easy')">Easy</button>
+            <button class="toggle-btn active" id="s4-p3-diff-medium" onclick="setSlotDiff(4,3,'medium')">Medium</button>
+            <button class="toggle-btn" id="s4-p3-diff-hard" onclick="setSlotDiff(4,3,'hard')">Hard</button>
+          </div>
+        </div>
         <p class="invite-note hidden" id="s4-p3-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
       <div class="slot" style="flex-wrap: wrap; row-gap: 0.35rem;">
@@ -336,6 +389,14 @@
         <div class="toggle-row">
           <button class="toggle-btn active" id="s4-p4-ai" onclick="setSlot(4,4,'ai')">AI</button>
           <button class="toggle-btn" id="s4-p4-human" onclick="setSlot(4,4,'human')">Human</button>
+        </div>
+        <div class="diff-row" id="s4-p4-diff-row">
+          <span class="diff-label">Difficulty:</span>
+          <div class="toggle-row">
+            <button class="toggle-btn" id="s4-p4-diff-easy" onclick="setSlotDiff(4,4,'easy')">Easy</button>
+            <button class="toggle-btn active" id="s4-p4-diff-medium" onclick="setSlotDiff(4,4,'medium')">Medium</button>
+            <button class="toggle-btn" id="s4-p4-diff-hard" onclick="setSlotDiff(4,4,'hard')">Hard</button>
+          </div>
         </div>
         <p class="invite-note hidden" id="s4-p4-note" style="width:100%;">You'll get a game code to share after clicking Start.</p>
       </div>
@@ -349,33 +410,46 @@
   </div>
 
   <script>
-    // --- AI name pools keyed by personality ---
+    // --- AI name pools keyed by personality (3 names each, 10 personalities) ---
     const AI_NAME_POOLS = {
-      sheriff:  ['Sheriff Flint', 'Dead-Eye Dean', 'The Duke', 'Lasso Lance', 'Ransom Stoddard'],
-      wild_bill:['Tombstone Tom', 'Jesse the Kid', 'Iron Otis', 'One-Shot Mitch', 'Hellfire Hailey'],
-      rancher:  ['Frontier Juliet', 'Briarpatch Brian', 'Arrowhead Archie', 'Sagebrush Susan', 'Andrew the Anvil'],
-      banker:   ['Gulch Gus', 'Noella Nightshade', 'Rowdy Rodney', 'Texas Thomas', 'Marty Feldman'],
-      outlaw:   ['Sixgun Sara', 'Deadshot Dave', 'Alamo Aly', 'Quickdraw Andrea', 'Casey the Convict'],
-      deputy:   ['Slick Simon', 'Zein of the Badlands', 'Nate the Drifter', 'JJ Double-Cross', 'Rob the Rustler'],
+      greenhorn:  ['Rowdy Rodney', 'Marty Feldman', 'Rob the Rustler'],
+      sheriff:    ['Sheriff Flint', 'Ransom Stoddard', 'Dead-Eye Dean'],
+      banker:     ['Gulch Gus', 'Texas Thomas', 'Noella Nightshade'],
+      prospector: ['Frontier Juliet', 'Lasso Lance', 'Arrowhead Archie'],
+      deputy:     ['Slick Simon', 'JJ Double-Cross', 'Zein of the Badlands'],
+      drifter:    ['Nate the Drifter', 'Briarpatch Brian', 'Sagebrush Susan'],
+      rancher:    ['The Duke', 'Andrew the Anvil', 'Iron Otis'],
+      wild_bill:  ['Jesse the Kid', 'One-Shot Mitch', 'Hellfire Hailey'],
+      enforcer:   ['Tombstone Tom', 'Deadshot Dave', 'Quickdraw Andrea'],
+      outlaw:     ['Sixgun Sara', 'Alamo Aly', 'Casey the Convict'],
     };
 
-    // Returns `count` AI assignments, each with a distinct personality and name.
-    // Shuffles the four personality keys and takes the first `count`, so no two
-    // AI players in the same game share a personality or a name.
-    function pickAiPersonalities(count) {
-      const keys = Object.keys(AI_NAME_POOLS).sort(() => Math.random() - 0.5);
-      return keys.slice(0, count).map(p => {
-        const pool = AI_NAME_POOLS[p];
-        const name = pool[Math.floor(Math.random() * pool.length)];
-        return { personality: p, name };
-      });
+    // Difficulty tiers — overlapping at boundaries (4 = easy/medium, 7 = medium/hard)
+    const DIFFICULTY_TIERS = {
+      easy:   ['greenhorn', 'sheriff', 'banker', 'prospector'],
+      medium: ['prospector', 'deputy', 'drifter', 'rancher'],
+      hard:   ['rancher', 'wild_bill', 'enforcer', 'outlaw'],
+    };
+
+    // Pick one AI for a slot, avoiding personalities already used in this game.
+    function pickAiForSlot(difficulty, usedPersonalities) {
+      const tier = DIFFICULTY_TIERS[difficulty];
+      const pool = tier.filter(p => !usedPersonalities.has(p));
+      const eligible = pool.length > 0 ? pool : tier;
+      const personality = eligible[Math.floor(Math.random() * eligible.length)];
+      usedPersonalities.add(personality);
+      const names = AI_NAME_POOLS[personality];
+      const name = names[Math.floor(Math.random() * names.length)];
+      return { personality, name };
     }
 
     let playerCount = 2;
     let p2Type = 'ai';
+    let p2Difficulty = 'medium';
     let quickStartMode = false;
     function toggleQuickStart(checked) { quickStartMode = checked; }
     const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
+    const slotDifficulties = { 3: { 2: 'medium', 3: 'medium' }, 4: { 2: 'medium', 3: 'medium', 4: 'medium' } };
 
     function selectCount(n) {
       playerCount = n;
@@ -392,6 +466,14 @@
       document.getElementById('p2-ai').classList.toggle('active', type === 'ai');
       document.getElementById('p2-human').classList.toggle('active', type === 'human');
       document.getElementById('invite-note').classList.toggle('hidden', type !== 'human');
+      document.getElementById('p2-diff-row').classList.toggle('hidden', type !== 'ai');
+    }
+
+    function setP2Diff(diff) {
+      p2Difficulty = diff;
+      ['easy', 'medium', 'hard'].forEach(d => {
+        document.getElementById('p2-diff-' + d).classList.toggle('active', d === diff);
+      });
     }
 
     function setSlot(n, i, type) {
@@ -399,6 +481,14 @@
       document.getElementById('s' + n + '-p' + i + '-ai').classList.toggle('active', type === 'ai');
       document.getElementById('s' + n + '-p' + i + '-human').classList.toggle('active', type === 'human');
       document.getElementById('s' + n + '-p' + i + '-note').classList.toggle('hidden', type !== 'human');
+      document.getElementById('s' + n + '-p' + i + '-diff-row').classList.toggle('hidden', type !== 'ai');
+    }
+
+    function setSlotDiff(n, i, diff) {
+      slotDifficulties[n][i] = diff;
+      ['easy', 'medium', 'hard'].forEach(d => {
+        document.getElementById('s' + n + '-p' + i + '-diff-' + d).classList.toggle('active', d === diff);
+      });
     }
 
     function startGame() {
@@ -406,7 +496,8 @@
       sessionStorage.setItem('quick_start_mode', quickStartMode ? '1' : '0');
       if (playerCount === 2) {
         if (p2Type === 'ai') {
-          const [ai] = pickAiPersonalities(1);
+          const usedPersonalities = new Set();
+          const ai = pickAiForSlot(p2Difficulty, usedPersonalities);
           sessionStorage.setItem('player_count', '2');
           sessionStorage.setItem('player_defs', JSON.stringify([
             { name: myName, isHuman: true },
@@ -419,20 +510,18 @@
         }
         return;
       }
-      // 3P / 4P: build slot defs — pre-assign all AI personalities at once
-      const aiCount = [...Array(playerCount - 1)].filter((_, i) =>
-        slotTypes[playerCount][i + 2] !== 'human').length;
-      const aiPool = pickAiPersonalities(aiCount);
-      let aiIdx = 0;
+      // 3P / 4P
+      const usedPersonalities = new Set();
       const defs = [{ name: myName, isHuman: true }];
       let anyHuman = false;
       for (let i = 2; i <= playerCount; i++) {
         const isHuman = slotTypes[playerCount][i] === 'human';
-        if (isHuman) anyHuman = true;
         if (isHuman) {
+          anyHuman = true;
           defs.push({ name: '', isHuman: true });
         } else {
-          const ai = aiPool[aiIdx++];
+          const diff = slotDifficulties[playerCount][i];
+          const ai = pickAiForSlot(diff, usedPersonalities);
           defs.push({ name: ai.name, isHuman: false, personality: ai.personality });
         }
       }
