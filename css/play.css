@@ -24,6 +24,8 @@
 .showdown-overlay {
   align-items: flex-start;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 1.5rem 0 2rem;
   background: rgba(20, 10, 3, 0.96);
   z-index: 110;

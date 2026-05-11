@@ -444,7 +444,7 @@ const MP = (() => {
   function showDisconnectMessage(playerName) {
     const who = playerName ? `${playerName} disconnected.` : 'A player disconnected.';
     setMessage(`${who} Game over.`);
-    setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'gamesetup.html'; } }]);
+    setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
     cleanup();
   }
 
@@ -2007,7 +2007,7 @@ async function startGame() {
       const state = await MP.fetchSpectatorState();
       if (!state) {
         setMessage('Could not restore game — the game may have ended.');
-        setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'gamesetup.html'; } }]);
+        setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
         return;
       }
       await reconstructG(state, cfg);
@@ -2122,7 +2122,7 @@ async function startGame() {
 function restartGame() {
   if (MP.active) {
     // In MP mode, can't restart — go back to lobby
-    window.location.href = 'gamesetup.html';
+    window.location.href = 'index.html';
     return;
   }
   startGame();
