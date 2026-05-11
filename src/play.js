@@ -3132,22 +3132,21 @@ async function handleBust(player) {
       }, 1300);
     });
     if (!TUTORIAL.active) clearActions();
-  } else {
-    await delay(2000);
-  }
 
-  // Move all drawn cards to discard, but keep discard_to_player cards in hand
-  // so resolvePassCards() can prompt the player to choose a recipient.
-  const toPass = player.hand.filter(c => c.special === 'discard_to_player');
-  player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
-  player.hand = toPass;
-  player.roundDollars = 0;
-  player.roundCows = 0;
-  render();
-  if (player.isHuman) mpSyncDraw();
-
-  if (player.isHuman) {
+    // Move all drawn cards to discard, but keep discard_to_player cards in hand
+    // so resolvePassCards() can prompt the player to choose a recipient.
+    const toPass = player.hand.filter(c => c.special === 'discard_to_player');
+    player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
+    player.hand = toPass;
+    player.roundDollars = 0;
+    player.roundCows = 0;
+    render();
+    mpSyncDraw();
     onPlayerDrawDone();
+  } else {
+    // AI: leave hand visible so player can review it — cleared in applyBuyOrder when buy phase starts.
+    await delay(2000);
+    render();
   }
 }
 
@@ -3476,6 +3475,15 @@ function startBuyPhase(startIdx, localIsChooser = false) {
 }
 
 function applyBuyOrder(order) {
+  // Flush busted AI hands to discard now that buy phase is starting
+  G.players.forEach(p => {
+    if (p.busted && !p.isHuman && p.hand.length > 0) {
+      p.discard.push(...p.hand.filter(c => c.special !== 'discard_to_player'));
+      p.hand = p.hand.filter(c => c.special === 'discard_to_player');
+      p.roundDollars = 0;
+      p.roundCows = 0;
+    }
+  });
   G.buyOrder = order;
   G.currentBuyerIdx = 0;
   mpLog('applyBuyOrder:', order.map(i => G.players[i]?.name));
