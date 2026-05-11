@@ -556,9 +556,10 @@ onValue(q, (snap) => {
   lbBodyEl.innerHTML = '';
   if (leaderboard.length > 0) {
     lbTableEl.style.display = 'table';
+    let rank = 0;
     leaderboard.forEach((entry, i) => {
+      if (i === 0 || entry.herd !== leaderboard[i - 1].herd) rank = i + 1;
       const tr = document.createElement('tr');
-      const rank = i + 1;
 
       const tdRank = document.createElement('td');
       tdRank.className = 'rank-cell' + (rank === 1 ? ' rank-gold' : rank === 2 ? ' rank-silver' : rank === 3 ? ' rank-bronze' : '');
