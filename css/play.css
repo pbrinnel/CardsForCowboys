@@ -612,8 +612,8 @@ body {
 
 .round-stats {
   display: flex;
-  gap: 1.8rem;
-  font-size: 0.85rem;
+  justify-content: space-around;
+  font-size: 1rem;
   padding: 0.25rem 0.5rem;
   background: rgba(30,22,16,0.07);
   border: 1px solid rgba(30,22,16,0.15);
@@ -630,6 +630,10 @@ body {
   height: 1.2em;
   width: auto;
   display: block;
+}
+
+.round-stats strong {
+  font-size: 1.3em;
 }
 
 /* Hand row (deck preview + drawn cards) */
