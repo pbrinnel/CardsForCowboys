@@ -4383,8 +4383,8 @@ function ensureOpponentZone(i, container) {
         '<span id="' + prefix + '-round-stats-inline" class="ai-inline-stats hidden">' +
           '<span class="sep">|</span>' +
           '$<strong id="' + prefix + '-round-dollars">0</strong>' +
-          '<span class="ai-stat-cow">\uD83D\uDC04<strong id="' + prefix + '-round-cows">0</strong></span>' +
-          '<span class="ai-stat-bandit">B:<strong id="' + prefix + '-round-bandits">0</strong></span>' +
+          '<span class="hud-stat-icon-wrap"><img src="assets/symbols/hud-cow.png" class="hud-stat-icon" alt="Cows"><strong id="' + prefix + '-round-cows">0</strong></span>' +
+          '<span class="hud-stat-icon-wrap"><img src="assets/symbols/hud-bandit.png" class="hud-stat-icon" alt="Bandits"><strong id="' + prefix + '-round-bandits">0</strong></span>' +
         '</span>' +
       '</div>' +
       '<span id="' + prefix + '-toggle" class="collapse-toggle">\u25BC</span>' +

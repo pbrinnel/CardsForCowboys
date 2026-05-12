@@ -612,12 +612,24 @@ body {
 
 .round-stats {
   display: flex;
-  gap: 1rem;
+  gap: 1.8rem;
   font-size: 0.85rem;
   padding: 0.25rem 0.5rem;
   background: rgba(30,22,16,0.07);
   border: 1px solid rgba(30,22,16,0.15);
   margin-bottom: 0.25rem;
+}
+
+.hud-stat-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.hud-stat-icon {
+  height: 1.2em;
+  width: auto;
+  display: block;
 }
 
 /* Hand row (deck preview + drawn cards) */
