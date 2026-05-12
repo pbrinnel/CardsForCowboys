@@ -1274,6 +1274,11 @@ function cardImgSrc(card, faceUp) {
   return CARD_IMG_PATH + card.img;
 }
 
+function setBanditCount(el, n) {
+  el.textContent = n;
+  el.style.color = n >= 2 ? '#e02020' : n === 1 ? '#b84040' : '';
+}
+
 function renderCardEl(card, faceUp, extraClasses) {
   const div = document.createElement('div');
   div.className = 'card' + (extraClasses ? ' ' + extraClasses : '');
@@ -1498,7 +1503,7 @@ function renderPlayerZone(player, prefix) {
       inlineStats.classList.remove('hidden');
       document.getElementById(prefix + '-round-dollars').textContent = player.roundDollars;
       document.getElementById(prefix + '-round-cows').textContent = player.roundCows;
-      document.getElementById(prefix + '-round-bandits').textContent = player.roundBandits;
+      setBanditCount(document.getElementById(prefix + '-round-bandits'), player.roundBandits);
     } else {
       inlineStats.classList.add('hidden');
     }
@@ -1509,7 +1514,7 @@ function renderPlayerZone(player, prefix) {
       statsEl.classList.remove('hidden');
       document.getElementById('player-round-dollars').textContent = player.roundDollars;
       document.getElementById('player-round-cows').textContent = player.roundCows;
-      document.getElementById('player-round-bandits').textContent = player.roundBandits;
+      setBanditCount(document.getElementById('player-round-bandits'), player.roundBandits);
     } else {
       statsEl.classList.add('hidden');
     }
