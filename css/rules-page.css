@@ -133,6 +133,64 @@
   max-width: 120px;
 }
 
+/* ── Pyramid diagrams ── */
+.pyramid-demos {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin: 1.25rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.pyramid-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pyramid-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.pyramid-row {
+  display: flex;
+  gap: 3px;
+}
+
+.pcard {
+  width: 22px;
+  height: 32px;
+  border: 1.5px solid #1e1610;
+  border-radius: 2px;
+  background: #6b4c32;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.06) 3px,
+    rgba(255,255,255,0.06) 4px
+  );
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+}
+
+.pcard.face-up {
+  background: #e9e0c6;
+  background-image: none;
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+
+.pyramid-demo-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #3a2a1a;
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* ── Footer CTA ── */
 .rules-footer {
   text-align: center;
