@@ -2630,16 +2630,16 @@ async function playerDraw() {
   animateDrawnCard(card);
 }
 
-function playerStopDraw() {
+async function playerStopDraw() {
   if (TUTORIAL.active && !TUTORIAL.isAllowed('stop')) { TUTORIAL.flashBlocked(); return; }
   const player = G.players[0];
   player.stoppedDrawing = true;
 
   addLog('You stopped drawing.');
-  onPlayerDrawDone();
+  await onPlayerDrawDone();
 }
 
-function onPlayerDrawDone() {
+async function onPlayerDrawDone() {
   if (TUTORIAL.active) TUTORIAL.onActionDone('stop');
   G.drawsDone[0] = true;
   clearActions();
@@ -2647,7 +2647,16 @@ function onPlayerDrawDone() {
 
   if (MP.active) {
     setMessage('Waiting for other players to finish drawing...');
-    MP.signalDrawDone(G.players[0]); // fire-and-forget is fine
+    // Await the signal so the write reaches Firebase before we call checkDrawPhaseComplete.
+    // Without this, we could enter buy phase locally before the opponent's listener fires,
+    // causing a deadlock where we wait for their buy action but they never entered buy phase.
+    try {
+      await MP.signalDrawDone(G.players[0]);
+    } catch (e) {
+      console.error('[MP] signalDrawDone failed:', e);
+      // Retry once — a missed signal causes a permanent softlock for the opponent
+      try { await MP.signalDrawDone(G.players[0]); } catch (e2) { console.error('[MP] signalDrawDone retry failed:', e2); }
+    }
   }
 
   checkDrawPhaseComplete();
@@ -3147,7 +3156,7 @@ async function handleBust(player) {
     player.roundCows = 0;
     render();
     mpSyncDraw();
-    onPlayerDrawDone();
+    await onPlayerDrawDone();
   } else {
     // AI: leave hand visible so player can review it — cleared in applyBuyOrder when buy phase starts.
     await delay(2000);
