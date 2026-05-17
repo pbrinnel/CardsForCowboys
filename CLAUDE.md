@@ -396,7 +396,22 @@ When implementing a difficulty picker, the intended mapping is:
 
 ---
 
-### 6. Fixed Footer Cuts Off Bottom Content on Narrow Viewports
+### 6. Draw-Done Race Condition (Fire-and-Forget signalDrawDone)
+**Commit:** `7b11ce6` (May 2026)
+
+**Symptom:** In a 4-player MP game, one player sees "Waiting for other players to finish drawing" and the other sees "Waiting for {player} to buy or burn." Both are permanently frozen.
+
+**Root cause:** `signalDrawDone()` in `onPlayerDrawDone()` was called without `await`. `checkDrawPhaseComplete()` ran immediately after, saw all local `G.drawsDone` flags set, and advanced to buy phase — before the Firebase write landed. The remote client's `waitForAllHumanDrawsDone()` listener never received the round-N signal, leaving it stuck in draw phase forever.
+
+**Confirmed by Firebase log (game DGB7W3):** `drawDone[1]` showed `{round:3, busted:true}` (stale from prior round) while `spectatorState.round` was 4 and `drawDone[0]` had the correct round-4 signal. The round-4 signal for slot 1 was never written.
+
+**Fix:** `onPlayerDrawDone()` is now `async`; it `await`s `MP.signalDrawDone()` (with one retry on failure) before calling `checkDrawPhaseComplete()`. `playerStopDraw()` and the bust path in `handleBust()` also `await` `onPlayerDrawDone()`.
+
+**Do not regress:** Never call `signalDrawDone()` without `await` in the draw-done path. The buy phase must not start until Firebase confirms receipt.
+
+---
+
+### 7. Fixed Footer Cuts Off Bottom Content on Narrow Viewports
 **Symptom:** The last element on a page (button, link, image) is obscured by the fixed footer bar when the viewport is narrow or the content is tall.
 
 **Root cause:** All pages use `position: fixed` footer. Body/page padding-bottom must exceed the footer height — but the footer can grow taller on narrow screens as its two lines of text reflow or wrap further.
@@ -415,17 +430,38 @@ When implementing a difficulty picker, the intended mapping is:
 Errors in MP games are almost always observable in Firebase Realtime Database logs before they manifest visually. The sequence:
 
 1. **Identify the game code** from the URL (`?mp` param) or from `sessionStorage.getItem('mp_code')` in the browser console.
-2. **Open Firebase Console → Realtime Database → Data** and navigate to `games/{code}/`.
-3. **Look at the relevant path first:**
+2. **Dump the game state with the Firebase CLI** (preferred — no browser required):
+   ```bash
+   # List all active game codes
+   firebase database:get /games --shallow --project cards-for-cowboys
+
+   # Dump a specific game (full JSON)
+   firebase database:get /games/GAMECODE --project cards-for-cowboys
+
+   # Dump just the paths you care about
+   firebase database:get /games/GAMECODE/drawDone --project cards-for-cowboys
+   firebase database:get /games/GAMECODE/buyOrder --project cards-for-cowboys
+   firebase database:get /games/GAMECODE/spectatorState --project cards-for-cowboys
+   ```
+   The CLI requires `firebase login` and the project alias `cards-for-cowboys` is already set in `.firebaserc`.
+3. **Or use the Firebase Console** → Realtime Database → Data → navigate to `games/{code}/`.
+4. **Look at the relevant path first:**
    - Draw sync issues → `drawState/{slot}` and `drawDone/{slot}`
    - Buy sync issues → `buyAction/{slot}` and `buyOrder`
    - Presence/disconnect → `slots/{slot}/connected`
    - Setup issues → `actSetup`
-4. **Compare what each client sees** — open the game in two browser windows and watch the Firebase paths update in real time.
-5. **Check timestamps** (`ts` fields) to determine ordering and whether stale data is being processed.
-6. Only after understanding the Firebase data flow should you trace back into the logic.
+   - Overall game state → `spectatorState` (has round, phase, player hands/decks, pyramid)
+5. **Cross-check round/act fields.** If a slot's `drawDone` shows a different `round` or `act` than the current game, that's a stale signal — the root cause of most softlocks.
+6. **Compare what each client sees** — open the game in two browser windows and watch the Firebase paths update in real time.
+7. **Check timestamps** (`ts` fields) to determine ordering and whether stale data is being processed.
+8. Only after understanding the Firebase data flow should you trace back into the logic.
 
 **Key principle:** The game logic runs identically on all clients. If players see different states, the divergence is almost always in what Firebase data was received, when, and whether stale guards fired correctly.
+
+**Real example (game DGB7W3, May 2026):**
+Softlock: PB saw "Waiting for other players to finish drawing"; Gus saw "Waiting for PB to buy or burn."
+Firebase dump showed: `drawDone[0]` = `{round:4, done:true}` (PB, correct); `drawDone[1]` = `{round:3, busted:true, done:true}` (Gus, stale from prior round). Gus's round-4 signal was never written because `signalDrawDone()` was fire-and-forget — `checkDrawPhaseComplete()` ran before the Firebase write landed, advancing Gus to buy phase while PB remained stuck in draw phase.
+Fix: `await MP.signalDrawDone()` before `checkDrawPhaseComplete()` in `onPlayerDrawDone()`. Commit `7b11ce6`.
 
 ---
 
