@@ -544,6 +544,7 @@
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));
+      if (anyHuman) sessionStorage.setItem('mp_name', myName);
       window.location.href = anyHuman ? 'creategame.html' : 'playgame.html';
     }
   </script>

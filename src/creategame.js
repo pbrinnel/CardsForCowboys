@@ -173,9 +173,13 @@ window.copySpectateLink = function() {
 };
 
 // --- Wire up ---
-// Pre-fill name if already entered on gamesetup page
+// Skip name screen if name was already entered on gamesetup page
 const _savedName = sessionStorage.getItem('mp_name');
-if (_savedName) document.getElementById('name-input').value = _savedName;
+if (_savedName) {
+  hide('screen-name');
+  document.getElementById('name-input').value = _savedName;
+  createGame();
+}
 
 document.getElementById('btn-create').addEventListener('click', createGame);
 document.getElementById('btn-cancel-host').addEventListener('click', cancelHost);
