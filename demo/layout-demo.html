@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layout Demo — Cards For Cowboys</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #e9e0c6;
+      font-family: Georgia, serif;
+      color: #1e1610;
+      padding-bottom: 2rem;
+    }
+
+    /* ── Header: always full width ── */
+    #game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #3a2a1a;
+      color: #e8c872;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+    #game-header .btns { display: flex; gap: 0.4rem; }
+    #game-header .btns button {
+      background: #b87838; color: #fff; border: none;
+      padding: 0.3rem 0.7rem; font-size: 0.75rem; cursor: pointer;
+    }
+
+    /* ── Turn order bar: always full width ── */
+    #turn-order-bar {
+      background: #2a6e1a;
+      color: #e8c872;
+      padding: 0.4rem 1rem;
+      font-size: 0.8rem;
+      text-align: center;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── THE TILE WRAPPER ── */
+    #game-tiles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.6rem;
+    }
+
+    /* ── Shared tile style ── */
+    .tile {
+      background: #f5f0e4;
+      border: 2px solid #1e1610;
+      box-shadow: 3px 3px 0 #1e1610;
+      padding: 0.7rem;
+      min-height: 80px;
+    }
+    .tile-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #888;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ── Individual tile flex sizing ──
+       flex: grow shrink basis
+       Tiles with a larger basis prefer more space;
+       they wrap to a new row when the container is too narrow to fit them side-by-side.
+    */
+
+    #opponents-zone {
+      flex: 1 1 300px;
+      background: #eae4d5;
+    }
+
+    #pyramid-zone {
+      flex: 2 1 320px;   /* pyramid wants the most horizontal space */
+      background: #f0ece0;
+    }
+
+    #action-zone {
+      flex: 1 1 260px;
+      background: #eae4d5;
+    }
+
+    #player-zone {
+      flex: 1 1 280px;
+      background: #eae4d5;
+    }
+
+    /* ── Mock content styles ── */
+    .mock-opp {
+      background: #3a2a1a;
+      color: #e8c872;
+      border-radius: 2px;
+      padding: 0.5rem 0.7rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.82rem;
+    }
+    .mock-opp .opp-row { display: flex; justify-content: space-between; }
+    .mock-opp .mini-cards { display: flex; gap: 3px; margin-top: 0.3rem; flex-wrap: wrap; }
+    .mock-card-back {
+      width: 28px; height: 40px;
+      background: #b87838;
+      border: 1px solid #e8c872;
+      border-radius: 1px;
+    }
+    .mock-card-back.red { background: #c84e18; }
+    .mock-card-back.blue { background: #1a7a96; }
+
+    .pyramid-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .pyr-card {
+      width: 46px; height: 64px;
+      border: 1.5px solid #1e1610;
+      box-shadow: 1px 1px 0 #1e1610;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem;
+      text-align: center;
+      padding: 2px;
+      background: #fff;
+    }
+    .pyr-card.face-down { background: #2a6e1a; color: transparent; }
+    .pyr-card.avail { background: #fffbe8; border-color: #b87838; }
+
+    .mock-message {
+      background: #3a2a1a;
+      color: #e8c872;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      min-height: 2.5rem;
+    }
+    .mock-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .mock-btn {
+      background: #b87838; color: #fff; border: 2px solid #1e1610;
+      padding: 0.4rem 0.9rem; font-size: 0.8rem; cursor: pointer;
+      box-shadow: 2px 2px 0 #1e1610;
+    }
+    .mock-btn.secondary { background: #e9e0c6; color: #1e1610; }
+
+    .player-hand {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 0.6rem;
+    }
+    .hand-card {
+      width: 52px; height: 73px;
+      border: 1.5px solid #1e1610;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; text-align: center; padding: 3px;
+      box-shadow: 1px 1px 0 #1e1610;
+    }
+    .hand-card.highlight { border-color: #b87838; background: #fffbe8; }
+
+    .deck-row {
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .deck-stack {
+      display: flex; flex-direction: column; align-items: center;
+      font-size: 0.65rem; color: #555; gap: 2px;
+    }
+    .deck-block {
+      width: 46px; height: 64px;
+      border: 1.5px solid #1e1610;
+      box-shadow: 1px 1px 0 #1e1610;
+    }
+    .deck-block.deck-bg { background: #2a6e1a; }
+    .deck-block.discard-bg { background: #c84e18; }
+
+    /* ── Width indicator (demo only) ── */
+    #width-indicator {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.8rem;
+      background: rgba(30,22,16,0.75);
+      color: #e8c872;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Always full-width header -->
+  <header id="game-header">
+    <span>Act 2 &nbsp;|&nbsp; Round 3</span>
+    <div class="btns">
+      <button>My Deck</button>
+      <button>Rules</button>
+    </div>
+  </header>
+
+  <!-- Always full-width turn order bar -->
+  <div id="turn-order-bar">
+    Turn order: &nbsp; <strong>You</strong> → Jesse → Doc → Tex
+  </div>
+
+  <!-- Tile wrapper — this is where the magic happens -->
+  <div id="game-tiles">
+
+    <!-- Tile 1: Opponents -->
+    <div class="tile" id="opponents-zone">
+      <div class="tile-label">Opponents</div>
+
+      <div class="mock-opp">
+        <div class="opp-row"><strong>Jesse</strong><span>🐄 12 &nbsp; 💵 $3</span></div>
+        <div class="mini-cards">
+          <div class="mock-card-back"></div>
+          <div class="mock-card-back"></div>
+          <div class="mock-card-back red"></div>
+        </div>
+      </div>
+
+      <div class="mock-opp">
+        <div class="opp-row"><strong>Doc</strong><span>🐄 8 &nbsp; 💵 $1</span></div>
+        <div class="mini-cards">
+          <div class="mock-card-back blue"></div>
+          <div class="mock-card-back"></div>
+        </div>
+      </div>
+
+      <div class="mock-opp">
+        <div class="opp-row"><strong>Tex</strong><span>🐄 15 &nbsp; ☠️ busted</span></div>
+        <div class="mini-cards">
+          <div class="mock-card-back red"></div>
+          <div class="mock-card-back red"></div>
+          <div class="mock-card-back red"></div>
+          <div class="mock-card-back red"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tile 2: Pyramid (store) -->
+    <div class="tile" id="pyramid-zone">
+      <div class="tile-label">Store</div>
+      <div class="pyramid-row">
+        <div class="pyr-card face-down"></div>
+      </div>
+      <div class="pyramid-row">
+        <div class="pyr-card face-down"></div>
+        <div class="pyr-card face-down"></div>
+      </div>
+      <div class="pyramid-row">
+        <div class="pyr-card face-down"></div>
+        <div class="pyr-card face-down"></div>
+        <div class="pyr-card face-down"></div>
+      </div>
+      <div class="pyramid-row">
+        <div class="pyr-card avail">River<br>$3<br>🐄🐄</div>
+        <div class="pyr-card avail">Cactus<br>$2<br>🐄</div>
+        <div class="pyr-card avail">Snake<br>$4<br>🐄🐄🐄</div>
+        <div class="pyr-card face-down"></div>
+      </div>
+      <div class="pyramid-row">
+        <div class="pyr-card avail">River<br>$1<br>💵</div>
+        <div class="pyr-card avail">Cactus<br>$2<br>🐄</div>
+        <div class="pyr-card avail">Snake<br>$5<br>🐄🐄🐄</div>
+        <div class="pyr-card avail">River<br>$3<br>🐄🐄</div>
+        <div class="pyr-card avail">Cactus<br>$1<br>💵</div>
+      </div>
+    </div>
+
+    <!-- Tile 3: Action zone -->
+    <div class="tile" id="action-zone">
+      <div class="tile-label">Actions</div>
+      <div class="mock-message">You have $5. Click a card in the store to buy it, or burn a card from your hand.</div>
+      <div class="mock-btns">
+        <button class="mock-btn">Stop Buying</button>
+        <button class="mock-btn secondary">Burn a Card</button>
+      </div>
+    </div>
+
+    <!-- Tile 4: Player zone -->
+    <div class="tile" id="player-zone">
+      <div class="tile-label">Your Hand &amp; Deck</div>
+      <div class="player-hand">
+        <div class="hand-card highlight">River<br>$3<br>🐄🐄</div>
+        <div class="hand-card">Cactus<br>$2<br>🐄</div>
+        <div class="hand-card">Snake<br>Bandit<br>☠️</div>
+        <div class="hand-card">River<br>$1<br>💵</div>
+        <div class="hand-card">Cactus<br>$2<br>🐄</div>
+      </div>
+      <div class="deck-row">
+        <div class="deck-stack">
+          <div class="deck-block deck-bg"></div>
+          <span>Deck (8)</span>
+        </div>
+        <div class="deck-stack">
+          <div class="deck-block discard-bg"></div>
+          <span>Discard (3)</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #game-tiles -->
+
+  <!-- Width indicator (demo only) -->
+  <div id="width-indicator">— px</div>
+
+  <script>
+    const ind = document.getElementById('width-indicator');
+    function updateWidth() { ind.textContent = window.innerWidth + 'px'; }
+    window.addEventListener('resize', updateWidth);
+    updateWidth();
+  </script>
+
+</body>
+</html>
