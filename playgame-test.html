@@ -12,35 +12,110 @@
        At ≥1100px, switch #game from a single column to a flex-wrap
        row so zones tile side by side. Narrow layout is 100% unchanged.
     ────────────────────────────────────────────────────────────────── */
+    /* Blank space fix: padding on .collapsible survives max-height:0 in content-box.
+       Add padding to the transition and zero it when collapsed. Applies at all widths. */
+    .opp-zone .collapsible {
+      transition: max-height 0.25s ease, opacity 0.25s ease, padding 0.25s ease;
+    }
+    .opp-zone .collapsible.collapsed {
+      padding: 0;
+    }
+
     @media (min-width: 1100px) {
+
+      /* Switch to wrapping row layout.
+         row-gap: 0 so header and turn-order-bar sit flush;
+         column-gap handles horizontal tile spacing;
+         tiles get margin-top to create the same vertical spacing as narrow mode. */
       #game {
         flex-direction: row;
         flex-wrap: wrap;
-        max-width: none;
+        width: 100%;          /* required for max-width to actually kick in */
+        max-width: 1800px;
+        margin-left: auto;
+        margin-right: auto;
         align-items: flex-start;
-        gap: 0.5rem;
+        row-gap: 0;
+        column-gap: 0.5rem;
         padding: 0 0.75rem 0.75rem;
       }
 
-      /* Full-width rows that never tile */
-      #game-header,
-      #turn-order-bar,
+      /* Turn-order-bar (order:0) and header (order:1) stay in their natural order —
+         no order overrides. row-gap:0 + margin:0 joins them flush. */
+      #turn-order-bar {
+        flex: 0 0 100%;
+        margin-top: 0;
+        margin-bottom: 0;   /* override base 0.4rem */
+      }
+      #game-header {
+        flex: 0 0 100%;
+        margin-top: 0;
+        margin-bottom: 0;   /* override base 0.5rem */
+      }
+
+      /* Log stays full width at the bottom */
       #log-zone {
         flex: 0 0 100%;
+        margin-top: 0.5rem;
         margin-bottom: 0;
       }
 
-      /* Tiles — basis sets comfortable minimum; grow/shrink fill remaining space */
-      #opponents-zone { flex: 1 1 260px; margin-bottom: 0; }
-      #pyramid-zone   { flex: 2 1 360px; margin-bottom: 0; }
-      #action-zone    { flex: 1 1 240px; margin-bottom: 0; }
-      #player-zone    { flex: 1 1 260px; margin-bottom: 0; }
+      /* Tiles — margin-top matches narrow-mode zone spacing */
+      #opponents-zone { flex: 1 1 260px; margin-top: 0.5rem; margin-bottom: 0; }
+      #pyramid-zone   { flex: 2 1 360px; max-width: 520px; margin-top: 0.5rem; margin-bottom: 0; }
+      #action-zone    { flex: 1 1 220px; margin-top: 0.5rem; margin-bottom: 0; }
+      #player-zone    { flex: 1 1 260px; margin-top: 0.5rem; margin-bottom: 0; }
 
-      /* Draw phase: neutralise the order shuffle — in wide mode all zones
-         are visible simultaneously so the narrow-screen reorder isn't needed */
+      /* ② Opponent zones always expanded on wide — disable the toggle click */
+      #opponents-zone .ai-summary {
+        cursor: default;
+        pointer-events: none;
+      }
+      #opponents-zone .collapse-toggle { display: none; }
+      .opp-zone .collapsible { max-height: 800px; }
+
+      /* ③ Action zone: stack buttons centered.
+            play.js sets margin-left:auto on Stop Drawing to push it right in
+            row-mode — override that here. */
+      #action-zone #actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      #action-zone #actions .btn {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        text-align: center;
+        justify-content: center;
+      }
+
+      /* ④ Draw phase: player zone spans full width so the hand has
+            the entire row to fill horizontally.
+            Deck-preview is the leftmost item in the hand row;
+            overflow:visible lets wrapped card rows show below. */
+      body.phase-draw #player-zone {
+        flex: 0 0 100%;
+      }
+      #player-zone .hand-row {
+        overflow: visible;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      #player-zone .hand-row .hand {
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+
+      /* Keep all tiles in their natural order during draw phase */
       body.phase-draw #action-zone  { order: 4; }
       body.phase-draw #player-zone  { order: 5; }
       body.phase-draw #pyramid-zone { order: 3; }
+
+      /* ⑤ Smooth card resize between phases instead of a hard snap */
+      #player-zone .card,
+      #player-zone .card-slot,
+      #player-deck-preview .card {
+        transition: width 0.25s ease, height 0.25s ease;
+      }
     }
   </style>
 </head>
@@ -208,5 +283,55 @@
   <script src="sim/tiebreaker.js"></script>
   <script src="src/tutorial.js"></script>
   <script src="src/play.js"></script>
+
+  <script>
+    // ── Opponent zone auto-expand on wide screens ──────────────────────────
+    // oppNarrowPref tracks what the user wants when the window is narrow:
+    //   null  = never manually set → use default (collapsed)
+    //   true  = user collapsed on narrow → stay collapsed when narrow
+    //   false = user expanded on narrow  → stay expanded when narrow
+    let oppNarrowPref = null;
+    const WIDE_BP = 1100;
+
+    function setOppZones(expand) {
+      let j = 1;
+      while (true) {
+        const detail = document.getElementById('opp-' + j + '-detail');
+        const toggle = document.getElementById('opp-' + j + '-toggle');
+        if (!detail) break;
+        detail.classList.toggle('collapsed', !expand);
+        if (toggle) toggle.textContent = expand ? '▲' : '▼';
+        j++;
+      }
+    }
+
+    function applyOppWidth() {
+      if (window.innerWidth >= WIDE_BP) {
+        setOppZones(true); // always expand on wide
+      } else {
+        // restore narrow preference; default is collapsed (null → collapse)
+        setOppZones(oppNarrowPref === false);
+      }
+    }
+
+    // Intercept toggleOppZone to record the user's intent.
+    // Note: DOMContentLoaded has already fired by the time this inline script
+    // runs (we're after play.js), so we set up directly — no event wrapper.
+    const _origToggle = window.toggleOppZone;
+    window.toggleOppZone = function(i) {
+      _origToggle(i);
+      // Only record preference from narrow-screen manual clicks
+      if (window.innerWidth < WIDE_BP) {
+        const detail = document.getElementById('opp-' + i + '-detail');
+        if (detail) oppNarrowPref = detail.classList.contains('collapsed');
+      }
+    };
+
+    // Auto-expand whenever opponent zones are added to the DOM
+    new MutationObserver(applyOppWidth)
+      .observe(document.getElementById('opponents-zone'), { childList: true });
+
+    window.addEventListener('resize', applyOppWidth);
+  </script>
 </body>
 </html>

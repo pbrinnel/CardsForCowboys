@@ -92,25 +92,44 @@
       background: #eae4d5;
     }
 
-    /* ── Mock content styles ── */
+    /* ── Mock opponent zones (mirrors real .opp-zone structure) ── */
     .mock-opp {
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      box-shadow: 2px 2px 0 #1e1610;
+      margin-bottom: 0.5rem;
+    }
+    .mock-opp:last-child { margin-bottom: 0; }
+    .mock-opp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background: #3a2a1a;
       color: #e8c872;
-      border-radius: 2px;
-      padding: 0.5rem 0.7rem;
-      margin-bottom: 0.4rem;
+      padding: 0.4rem 0.6rem;
       font-size: 0.82rem;
     }
-    .mock-opp .opp-row { display: flex; justify-content: space-between; }
-    .mock-opp .mini-cards { display: flex; gap: 3px; margin-top: 0.3rem; flex-wrap: wrap; }
-    .mock-card-back {
-      width: 28px; height: 40px;
-      background: #b87838;
-      border: 1px solid #e8c872;
-      border-radius: 1px;
+    .mock-opp-stats { opacity: 0.8; font-size: 0.75rem; }
+    .mock-opp-hand {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 0.5rem;
     }
-    .mock-card-back.red { background: #c84e18; }
+    .mock-card-back {
+      width: 46px; height: 64px;
+      border: 1.5px solid #1e1610;
+      box-shadow: 1px 1px 0 #1e1610;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; color: #fff; text-align: center;
+      background: #b87838;
+    }
+    .mock-card-back.red  { background: #c84e18; }
     .mock-card-back.blue { background: #1a7a96; }
+    .mock-card-back.face {
+      background: #fff; color: #1e1610;
+      font-size: 0.5rem; padding: 2px;
+    }
 
     .pyramid-row {
       display: flex;
@@ -213,27 +232,44 @@
       <div class="tile-label">Opponents</div>
 
       <div class="mock-opp">
-        <div class="opp-row"><strong>Jesse</strong><span>🐄 12 &nbsp; 💵 $3</span></div>
-        <div class="mini-cards">
-          <div class="mock-card-back"></div>
+        <div class="mock-opp-header">
+          <strong>Jesse</strong>
+          <span class="mock-opp-stats">Herd 12 &nbsp;|&nbsp; Deck: 4 &nbsp;|&nbsp; $3 🐄🐄</span>
+        </div>
+        <div class="mock-opp-hand">
+          <div class="mock-card-back blue"></div>
+          <div class="mock-card-back face">River<br>$3<br>🐄🐄</div>
           <div class="mock-card-back"></div>
           <div class="mock-card-back red"></div>
+          <div class="mock-card-back face">Cactus<br>$2<br>🐄</div>
+          <div class="mock-card-back blue"></div>
         </div>
       </div>
 
       <div class="mock-opp">
-        <div class="opp-row"><strong>Doc</strong><span>🐄 8 &nbsp; 💵 $1</span></div>
-        <div class="mini-cards">
+        <div class="mock-opp-header">
+          <strong>Doc</strong>
+          <span class="mock-opp-stats">Herd 8 &nbsp;|&nbsp; Deck: 6 &nbsp;|&nbsp; $1</span>
+        </div>
+        <div class="mock-opp-hand">
           <div class="mock-card-back blue"></div>
           <div class="mock-card-back"></div>
+          <div class="mock-card-back face">Snake<br>$5<br>🐄🐄🐄</div>
+          <div class="mock-card-back red"></div>
         </div>
       </div>
 
       <div class="mock-opp">
-        <div class="opp-row"><strong>Tex</strong><span>🐄 15 &nbsp; ☠️ busted</span></div>
-        <div class="mini-cards">
+        <div class="mock-opp-header">
+          <strong>Tex ☠️</strong>
+          <span class="mock-opp-stats">Herd 15 &nbsp;|&nbsp; Deck: 2 &nbsp;|&nbsp; busted</span>
+        </div>
+        <div class="mock-opp-hand">
           <div class="mock-card-back red"></div>
           <div class="mock-card-back red"></div>
+          <div class="mock-card-back face">Snake<br>Bandit<br>☠️</div>
+          <div class="mock-card-back red"></div>
+          <div class="mock-card-back"></div>
           <div class="mock-card-back red"></div>
           <div class="mock-card-back red"></div>
         </div>
@@ -284,21 +320,19 @@
     <div class="tile" id="player-zone">
       <div class="tile-label">Your Hand &amp; Deck</div>
       <div class="player-hand">
+        <div class="deck-stack" style="margin-right:4px">
+          <div class="deck-block deck-bg"></div>
+          <span>Deck (4)</span>
+        </div>
         <div class="hand-card highlight">River<br>$3<br>🐄🐄</div>
         <div class="hand-card">Cactus<br>$2<br>🐄</div>
         <div class="hand-card">Snake<br>Bandit<br>☠️</div>
         <div class="hand-card">River<br>$1<br>💵</div>
         <div class="hand-card">Cactus<br>$2<br>🐄</div>
-      </div>
-      <div class="deck-row">
-        <div class="deck-stack">
-          <div class="deck-block deck-bg"></div>
-          <span>Deck (8)</span>
-        </div>
-        <div class="deck-stack">
-          <div class="deck-block discard-bg"></div>
-          <span>Discard (3)</span>
-        </div>
+        <div class="hand-card highlight">Snake<br>$5<br>🐄🐄🐄</div>
+        <div class="hand-card">River<br>$3<br>🐄🐄</div>
+        <div class="hand-card">Cactus<br>Bandit<br>☠️</div>
+        <div class="hand-card">Snake<br>$4<br>🐄🐄🐄</div>
       </div>
     </div>
 
