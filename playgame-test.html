@@ -56,15 +56,7 @@
       #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; }
       #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
 
-      /* ② Opponent zones always expanded on wide — disable the toggle click */
-      #opponents-zone .ai-summary {
-        cursor: default;
-        pointer-events: none;
-      }
-      #opponents-zone .collapse-toggle { display: none; }
-      .opp-zone .collapsible { max-height: 800px; }
-
-      /* ③ Action zone: stack buttons centered.
+      /* ② Action zone: stack buttons centered.
             play.js sets margin-left:auto on Stop Drawing to push it right in
             row-mode — override that here. */
       #action-zone #actions {
@@ -344,73 +336,23 @@
   <script src="src/play.js"></script>
 
   <script>
-    // ── Player-count class → drives pyramid column width ──────────────────
-    // Stamps body.players-N when the game div becomes visible (startGame removes .hidden).
+    // ── Player-count class → drives pyramid column width in wide mode ─────────
+    // Stamps body.players-N as soon as G is ready. Watches both #game losing
+    // .hidden AND opponents being added to the DOM, since the latter fires after
+    // startGame() has fully initialised G (most reliable trigger).
     (function () {
-      const gameEl = document.getElementById('game');
-      new MutationObserver(() => {
-        if (!gameEl.classList.contains('hidden') && window.G && G.numPlayers) {
+      function stampPlayerCount() {
+        if (window.G && G.numPlayers) {
           document.body.classList.remove('players-2', 'players-3', 'players-4');
           document.body.classList.add('players-' + G.numPlayers);
         }
-      }).observe(gameEl, { attributes: true, attributeFilter: ['class'] });
+      }
+      new MutationObserver(stampPlayerCount)
+        .observe(document.getElementById('game'),
+                 { attributes: true, attributeFilter: ['class'] });
+      new MutationObserver(stampPlayerCount)
+        .observe(document.getElementById('opponents-zone'), { childList: true });
     })();
-
-    // ── Opponent zone auto-expand on wide screens ──────────────────────────
-    // oppNarrowPref tracks what the user wants when the window is narrow:
-    //   null  = never manually set → use default (collapsed)
-    //   true  = user collapsed on narrow → stay collapsed when narrow
-    //   false = user expanded on narrow  → stay expanded when narrow
-    let oppNarrowPref = null;
-    const WIDE_BP = 1200;
-
-    function setOppZones(expand) {
-      let j = 1;
-      while (true) {
-        const detail = document.getElementById('opp-' + j + '-detail');
-        const toggle = document.getElementById('opp-' + j + '-toggle');
-        if (!detail) break;
-        detail.classList.toggle('collapsed', !expand);
-        if (toggle) toggle.textContent = expand ? '▲' : '▼';
-        j++;
-      }
-    }
-
-    function applyOppWidth() {
-      // Stamp player-count class whenever we have G available — safe to repeat.
-      // applyOppWidth() is called by the opponents-zone MutationObserver, which
-      // fires after startGame() has fully initialised G, making this more
-      // reliable than watching #game.hidden alone.
-      if (window.G && G.numPlayers) {
-        document.body.classList.remove('players-2', 'players-3', 'players-4');
-        document.body.classList.add('players-' + G.numPlayers);
-      }
-      if (window.innerWidth >= WIDE_BP) {
-        setOppZones(true); // always expand on wide
-      } else {
-        // restore narrow preference; default is collapsed (null → collapse)
-        setOppZones(oppNarrowPref === false);
-      }
-    }
-
-    // Intercept toggleOppZone to record the user's intent.
-    // Note: DOMContentLoaded has already fired by the time this inline script
-    // runs (we're after play.js), so we set up directly — no event wrapper.
-    const _origToggle = window.toggleOppZone;
-    window.toggleOppZone = function(i) {
-      _origToggle(i);
-      // Only record preference from narrow-screen manual clicks
-      if (window.innerWidth < WIDE_BP) {
-        const detail = document.getElementById('opp-' + i + '-detail');
-        if (detail) oppNarrowPref = detail.classList.contains('collapsed');
-      }
-    };
-
-    // Auto-expand whenever opponent zones are added to the DOM
-    new MutationObserver(applyOppWidth)
-      .observe(document.getElementById('opponents-zone'), { childList: true });
-
-    window.addEventListener('resize', applyOppWidth);
   </script>
 </body>
 </html>
