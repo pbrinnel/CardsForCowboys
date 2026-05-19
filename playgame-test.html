@@ -90,16 +90,19 @@
         min-width: 0;
       }
 
-      /* Larger pyramid cards in buy phase (70×98 → 95×133) */
+      /* Pyramid cards: scale with viewport height so short+wide windows
+         don't push the player hand off-screen.
+         clamp(floor, 17.5vh, ceiling) → full size at ≥760px tall,
+         shrinks below that, floors at ~70% of full size.
+         Overlap (56% of card height) scales proportionally. */
       #pyramid-zone .pyramid-row .card,
       #pyramid-zone .pyramid-row .card-slot {
-        width: 95px;
-        height: 133px;
+        width: clamp(65px, 12.5vh, 95px);
+        height: clamp(91px, 17.5vh, 133px);
         transition: width 0.25s ease, height 0.25s ease;
       }
-      /* Recalculate row overlap for 133px-tall cards (≈56% of height) */
       #pyramid-zone .pyramid-row:nth-child(n+2) {
-        margin-top: -75px;
+        margin-top: clamp(-75px, -9.8vh, -51px);
       }
 
       /* Cost badge: keep bottom-left, just bigger to match the larger cards */
@@ -111,15 +114,14 @@
         background: rgba(30,22,16,0.88);
       }
 
-      /* Pyramid stays at buy-phase size in wide mode always —
-         draw-phase override removed so it never jumps */
+      /* Draw phase: same vh-based sizes so the pyramid never jumps */
       body.phase-draw #pyramid-zone .pyramid-row .card,
       body.phase-draw #pyramid-zone .pyramid-row .card-slot {
-        width: 95px;
-        height: 133px;
+        width: clamp(65px, 12.5vh, 95px);
+        height: clamp(91px, 17.5vh, 133px);
       }
       body.phase-draw #pyramid-zone .pyramid-row:nth-child(n+2) {
-        margin-top: -75px;
+        margin-top: clamp(-75px, -9.8vh, -51px);
       }
 
       /* Smooth transitions on everything that changes size between phases */
