@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="css/play.css">
   <style>
     /* ── Wide-screen tile layout ──────────────────────────────────────
-       At ≥1100px, switch #game from a single column to a flex-wrap
-       row so zones tile side by side. Narrow layout is 100% unchanged.
+       At ≥1200px, switch #game from a single column to CSS Grid so
+       zones tile side by side. Narrow layout is 100% unchanged.
     ────────────────────────────────────────────────────────────────── */
     /* Blank space fix: padding on .collapsible survives max-height:0 in content-box.
        Add padding to the transition and zero it when collapsed. Applies at all widths. */
@@ -25,15 +25,16 @@
 
       /* Switch to CSS Grid — tiles are locked to explicit columns so the action
          zone can never orphan itself on its own row at intermediate widths.
-         Minimum column widths: 240+560+280 + 2 gaps + padding ≈ 1120px, safely
-         below the 1200px breakpoint. */
+         Column order: action (fixed 240px) | pyramid (varies by player count) | opponents (fills rest)
+         Pyramid column: 560px (2P, 5-card base), 660px (3P, 6-card), 760px (4P, 7-card).
+         Minimum widths: 240 + 560 + 160 + 2 gaps ≈ 968px — safely below the 1200px breakpoint. */
       #game {
         display: grid;
-        grid-template-columns: 1fr 560px 280px;
+        grid-template-columns: 240px 560px minmax(160px, 1fr);
         grid-template-areas:
           "turnbar  turnbar  turnbar"
           "header   header   header"
-          "opp      pyramid  action"
+          "action   pyramid  opp"
           "player   player   player"
           "log      log      log";
         width: 100%;
@@ -46,13 +47,17 @@
         padding: 0 0.75rem 0.75rem;
       }
 
+      /* Pyramid column widens to fit more cards in 3P / 4P games */
+      body.players-3 #game { grid-template-columns: 240px 660px minmax(160px, 1fr); }
+      body.players-4 #game { grid-template-columns: 240px 760px minmax(160px, 1fr); }
+
       /* Grid area assignments */
       #turn-order-bar { grid-area: turnbar; margin: 0; }
       #game-header    { grid-area: header;  margin: 0; padding-left: 0.75rem; padding-right: 0.75rem; }
       #opponents-zone { grid-area: opp;     margin-top: 0.5rem; margin-bottom: 0; }
       #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; }
       #action-zone    { grid-area: action;  margin-top: 0.5rem; margin-bottom: 0; }
-      #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; max-width: 1400px; }
+      #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; }
       #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
 
       /* ② Opponent zones always expanded on wide — disable the toggle click */
@@ -77,13 +82,8 @@
         justify-content: center;
       }
 
-      /* ④ Draw phase: player zone spans full width so the hand has
-            the entire row to fill horizontally.
-            Deck-preview is the leftmost item in the hand row;
+      /* ④ Player hand: deck-preview is leftmost item in the hand row;
             overflow:visible lets wrapped card rows show below. */
-      body.phase-draw #player-zone {
-        flex: 0 0 100%;
-      }
       #player-zone .hand-row {
         overflow: visible;
         align-items: flex-start;
@@ -307,6 +307,18 @@
   <script src="src/play.js"></script>
 
   <script>
+    // ── Player-count class → drives pyramid column width ──────────────────
+    // Stamps body.players-N when the game div becomes visible (startGame removes .hidden).
+    (function () {
+      const gameEl = document.getElementById('game');
+      new MutationObserver(() => {
+        if (!gameEl.classList.contains('hidden') && window.G && G.numPlayers) {
+          document.body.classList.remove('players-2', 'players-3', 'players-4');
+          document.body.classList.add('players-' + G.numPlayers);
+        }
+      }).observe(gameEl, { attributes: true, attributeFilter: ['class'] });
+    })();
+
     // ── Opponent zone auto-expand on wide screens ──────────────────────────
     // oppNarrowPref tracks what the user wants when the window is narrow:
     //   null  = never manually set → use default (collapsed)
