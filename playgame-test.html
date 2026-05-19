@@ -30,7 +30,7 @@
          Minimum widths: 240 + 560 + 160 + 2 gaps ≈ 968px — safely below the 1200px breakpoint. */
       #game {
         display: grid;
-        grid-template-columns: 240px 560px minmax(160px, 1fr);
+        grid-template-columns: 240px max-content minmax(160px, 1fr);
         grid-template-areas:
           "turnbar  turnbar  turnbar"
           "header   header   header"
@@ -47,15 +47,11 @@
         padding: 0 0.75rem 0.75rem;
       }
 
-      /* Pyramid column widens to fit more cards in 3P / 4P games */
-      body.players-3 #game { grid-template-columns: 240px 660px minmax(160px, 1fr); }
-      body.players-4 #game { grid-template-columns: 240px 760px minmax(160px, 1fr); }
-
       /* Grid area assignments */
       #turn-order-bar { grid-area: turnbar; margin: 0; }
       #game-header    { grid-area: header;  margin: 0; padding-left: 0.75rem; padding-right: 0.75rem; }
       #opponents-zone { grid-area: opp;     margin-top: 0.5rem; margin-bottom: 0; }
-      #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; overflow: visible; }
+      #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; }
       #action-zone    { grid-area: action;  margin-top: 0.5rem; margin-bottom: 0; }
       #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; }
       #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
