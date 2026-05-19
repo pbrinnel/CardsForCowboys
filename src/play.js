@@ -3447,8 +3447,12 @@ function onDrawPhaseComplete() {
 }
 
 function showChooseFirstUI(nonBustedIndices) {
+  // Sort buttons into seat order so the list matches the turn order bar.
+  const sorted = [...nonBustedIndices].sort((a, b) =>
+    G.seatOrder.indexOf(G.playerOrder[a]) - G.seatOrder.indexOf(G.playerOrder[b])
+  );
   setMessage('Buy Phase — Who goes first?');
-  setActions(nonBustedIndices.map(i => ({
+  setActions(sorted.map(i => ({
     text: i === 0 ? 'I Go First' : `${G.players[i].name} Goes First`,
     onClick: () => {
       addLog(i === 0 ? 'You chose to go first.' : `You chose ${G.players[i].name} to go first.`);
