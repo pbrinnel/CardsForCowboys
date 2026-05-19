@@ -55,7 +55,7 @@
       #turn-order-bar { grid-area: turnbar; margin: 0; }
       #game-header    { grid-area: header;  margin: 0; padding-left: 0.75rem; padding-right: 0.75rem; }
       #opponents-zone { grid-area: opp;     margin-top: 0.5rem; margin-bottom: 0; }
-      #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; }
+      #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; overflow: visible; }
       #action-zone    { grid-area: action;  margin-top: 0.5rem; margin-bottom: 0; }
       #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; }
       #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
@@ -340,6 +340,14 @@
     }
 
     function applyOppWidth() {
+      // Stamp player-count class whenever we have G available — safe to repeat.
+      // applyOppWidth() is called by the opponents-zone MutationObserver, which
+      // fires after startGame() has fully initialised G, making this more
+      // reliable than watching #game.hidden alone.
+      if (window.G && G.numPlayers) {
+        document.body.classList.remove('players-2', 'players-3', 'players-4');
+        document.body.classList.add('players-' + G.numPlayers);
+      }
       if (window.innerWidth >= WIDE_BP) {
         setOppZones(true); // always expand on wide
       } else {
