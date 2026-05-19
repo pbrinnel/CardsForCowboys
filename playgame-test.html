@@ -21,50 +21,39 @@
       padding: 0;
     }
 
-    @media (min-width: 1100px) {
+    @media (min-width: 1200px) {
 
-      /* Switch to wrapping row layout.
-         row-gap: 0 so header and turn-order-bar sit flush;
-         column-gap handles horizontal tile spacing;
-         tiles get margin-top to create the same vertical spacing as narrow mode. */
+      /* Switch to CSS Grid — tiles are locked to explicit columns so the action
+         zone can never orphan itself on its own row at intermediate widths.
+         Minimum column widths: 240+560+280 + 2 gaps + padding ≈ 1120px, safely
+         below the 1200px breakpoint. */
       #game {
-        flex-direction: row;
-        flex-wrap: wrap;
-        width: 100%;          /* required for max-width to actually kick in */
+        display: grid;
+        grid-template-columns: 1fr 560px 280px;
+        grid-template-areas:
+          "turnbar  turnbar  turnbar"
+          "header   header   header"
+          "opp      pyramid  action"
+          "player   player   player"
+          "log      log      log";
+        width: 100%;
         max-width: 1800px;
-        margin-left: auto;
-        margin-right: auto;
-        align-items: flex-start;
-        row-gap: 0;
+        margin: 0 auto;
         column-gap: 0.5rem;
+        row-gap: 0;           /* header rows flush; tiles use margin-top */
+        align-items: start;
+        align-content: start; /* prevent min-height:100vh stretching row gaps */
         padding: 0 0.75rem 0.75rem;
       }
 
-      /* Turn-order-bar (order:0) and header (order:1) stay in their natural order —
-         no order overrides. row-gap:0 + margin:0 joins them flush. */
-      #turn-order-bar {
-        flex: 0 0 100%;
-        margin-top: 0;
-        margin-bottom: 0;   /* override base 0.4rem */
-      }
-      #game-header {
-        flex: 0 0 100%;
-        margin-top: 0;
-        margin-bottom: 0;   /* override base 0.5rem */
-      }
-
-      /* Log stays full width at the bottom */
-      #log-zone {
-        flex: 0 0 100%;
-        margin-top: 0.5rem;
-        margin-bottom: 0;
-      }
-
-      /* Tiles — margin-top matches narrow-mode zone spacing */
-      #opponents-zone { flex: 1 1 260px; margin-top: 0.5rem; margin-bottom: 0; }
-      #pyramid-zone   { flex: 2 1 360px; max-width: 520px; margin-top: 0.5rem; margin-bottom: 0; }
-      #action-zone    { flex: 1 1 220px; margin-top: 0.5rem; margin-bottom: 0; }
-      #player-zone    { flex: 1 1 260px; margin-top: 0.5rem; margin-bottom: 0; }
+      /* Grid area assignments */
+      #turn-order-bar { grid-area: turnbar; margin: 0; }
+      #game-header    { grid-area: header;  margin: 0; padding-left: 0.75rem; padding-right: 0.75rem; }
+      #opponents-zone { grid-area: opp;     margin-top: 0.5rem; margin-bottom: 0; }
+      #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; }
+      #action-zone    { grid-area: action;  margin-top: 0.5rem; margin-bottom: 0; }
+      #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; max-width: 1400px; }
+      #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
 
       /* ② Opponent zones always expanded on wide — disable the toggle click */
       #opponents-zone .ai-summary {
@@ -105,16 +94,49 @@
         min-width: 0;
       }
 
-      /* Keep all tiles in their natural order during draw phase */
-      body.phase-draw #action-zone  { order: 4; }
-      body.phase-draw #player-zone  { order: 5; }
-      body.phase-draw #pyramid-zone { order: 3; }
+      /* Larger pyramid cards in buy phase (70×98 → 95×133) */
+      #pyramid-zone .pyramid-row .card,
+      #pyramid-zone .pyramid-row .card-slot {
+        width: 95px;
+        height: 133px;
+        transition: width 0.25s ease, height 0.25s ease;
+      }
+      /* Recalculate row overlap for 133px-tall cards (≈56% of height) */
+      #pyramid-zone .pyramid-row:nth-child(n+2) {
+        margin-top: -75px;
+      }
 
-      /* ⑤ Smooth card resize between phases instead of a hard snap */
+      /* Cost badge: keep bottom-left, just bigger to match the larger cards */
+      #pyramid-zone .card-cost {
+        bottom: 4px;
+        left: 4px;
+        font-size: 0.9rem;
+        padding: 2px 6px;
+        background: rgba(30,22,16,0.88);
+      }
+
+      /* Pyramid stays at buy-phase size in wide mode always —
+         draw-phase override removed so it never jumps */
+      body.phase-draw #pyramid-zone .pyramid-row .card,
+      body.phase-draw #pyramid-zone .pyramid-row .card-slot {
+        width: 95px;
+        height: 133px;
+      }
+      body.phase-draw #pyramid-zone .pyramid-row:nth-child(n+2) {
+        margin-top: -75px;
+      }
+
+      /* Smooth transitions on everything that changes size between phases */
       #player-zone .card,
       #player-zone .card-slot,
       #player-deck-preview .card {
-        transition: width 0.25s ease, height 0.25s ease;
+        transition: width 0.3s ease, height 0.3s ease;
+      }
+      #player-zone .hand {
+        transition: min-height 0.3s ease;
+      }
+      #player-deck-preview {
+        transition: min-width 0.3s ease, min-height 0.3s ease;
       }
     }
   </style>
@@ -291,7 +313,7 @@
     //   true  = user collapsed on narrow → stay collapsed when narrow
     //   false = user expanded on narrow  → stay expanded when narrow
     let oppNarrowPref = null;
-    const WIDE_BP = 1100;
+    const WIDE_BP = 1200;
 
     function setOppZones(expand) {
       let j = 1;
