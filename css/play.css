@@ -334,6 +334,18 @@ body {
   box-shadow: none;
 }
 
+/* Host-only "force continue" recovery button — amber to signal a manual override. */
+.btn-force {
+  background: rgba(200,120,24,0.18);
+  color: #f0c47a;
+  border-color: rgba(200,120,24,0.7);
+}
+.btn-force:hover {
+  background: rgba(200,120,24,0.32);
+  color: #ffd98a;
+  border-color: rgba(200,120,24,0.95);
+}
+
 /* --- Draw Card button: shimmer + outward glow, escalates with bandit risk --- */
 @keyframes drawShimmer {
   0%   { background-position: 220% center; }

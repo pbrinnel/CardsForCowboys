@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report a Bug — Cards For Cowboys</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background-color: #e9e0c6;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1e1610;
+      padding: 2rem 1rem 7rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .wrap { width: 100%; max-width: 620px; }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 2.2rem;
+      margin-bottom: 0.4rem;
+    }
+    .sub { color: #3a2a1a; margin-bottom: 1.5rem; font-size: 0.98rem; line-height: 1.5; }
+    label { display: block; font-weight: bold; margin-bottom: 0.35rem; color: #3a2a1a; }
+    textarea, input[type="text"] {
+      width: 100%;
+      font-family: Georgia, serif;
+      font-size: 1rem;
+      color: #1e1610;
+      background: #f5efe0;
+      border: 2px solid #1e1610;
+      border-radius: 4px;
+      padding: 0.6rem 0.7rem;
+      margin-bottom: 1.1rem;
+    }
+    textarea { min-height: 150px; resize: vertical; }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.6rem;
+      background: #b87838;
+      color: #1e1610;
+      border: 2px solid #1e1610;
+      box-shadow: 3px 3px 0 #1e1610;
+      font-family: Georgia, serif;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.07s, box-shadow 0.07s;
+    }
+    .btn:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #1e1610; }
+    .btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: 3px 3px 0 #1e1610; }
+    .ctx-box {
+      background: rgba(30,22,16,0.05);
+      border: 1px solid rgba(30,22,16,0.25);
+      border-radius: 4px;
+      padding: 0.7rem 0.8rem;
+      margin-bottom: 1.1rem;
+      font-size: 0.88rem;
+      color: #3a2a1a;
+    }
+    .ctx-box strong { color: #1e1610; }
+    .ctx-box .none { font-style: italic; color: rgba(30,22,16,0.55); }
+    details { margin-top: 0.5rem; }
+    summary { cursor: pointer; color: #8a5a22; font-size: 0.82rem; }
+    pre {
+      margin-top: 0.5rem; white-space: pre-wrap; word-break: break-word;
+      font-family: ui-monospace, Menlo, monospace; font-size: 0.74rem;
+      max-height: 220px; overflow: auto; background: #f5efe0;
+      border: 1px solid rgba(30,22,16,0.2); border-radius: 4px; padding: 0.5rem;
+    }
+    #status { min-height: 1.4rem; margin-top: 0.8rem; font-style: italic; }
+    .links { margin-top: 1.6rem; }
+    .links a { color: #8a5a22; text-decoration: none; font-weight: bold; }
+    .links a:hover { text-decoration: underline; }
+    footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      text-align: center; padding: 0.6rem; font-size: 0.78rem;
+      color: rgba(233,224,198,0.5); background: #1e1610;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Report a Bug</h1>
+    <p class="sub">
+      Found something broken — a game that froze, a sync glitch, a button that won't work?
+      Tell us what happened. If you were in a game, we'll attach the game details automatically
+      so we can track it down.
+    </p>
+
+    <label for="bug-msg">What went wrong?</label>
+    <textarea id="bug-msg" maxlength="2000"
+      placeholder="e.g. 4-player game froze on 'Waiting for other players to finish drawing' and never moved on."></textarea>
+
+    <label for="bug-code">Game code (optional)</label>
+    <input id="bug-code" type="text" maxlength="20" placeholder="e.g. ABC123">
+
+    <div class="ctx-box" id="ctx-box">
+      <span class="none">No game info detected — that's fine, just describe the issue.</span>
+    </div>
+
+    <button id="bug-submit" class="btn">Send Report</button>
+    <p id="status"></p>
+
+    <div class="links">
+      <a href="index.html">&larr; Back to Home</a>
+    </div>
+  </div>
+
+  <footer>
+    Cards For Cowboys &mdash; Public Test Version
+  </footer>
+
+  <script type="module">
+    import { db } from './src/firebase-config.js';
+    import { ref, push } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+    const msgEl    = document.getElementById('bug-msg');
+    const codeEl   = document.getElementById('bug-code');
+    const btn      = document.getElementById('bug-submit');
+    const status   = document.getElementById('status');
+    const ctxBox   = document.getElementById('ctx-box');
+
+    // Load the game snapshot stashed by play.js (if the reporter just came from a game).
+    let context = null;
+    try {
+      const raw = localStorage.getItem('cfc_bug_context');
+      if (raw) {
+        const c = JSON.parse(raw);
+        // Only treat as "current" if it's recent (within the last 2 hours).
+        if (c && c.ts && (Date.now() - c.ts) < 2 * 60 * 60 * 1000) context = c;
+      }
+    } catch (e) {}
+
+    if (context) {
+      if (context.code) codeEl.value = context.code;
+      const players = (context.players || [])
+        .map(p => `${p.name}${p.busted ? ' (busted)' : ''} — hand ${p.hand}/deck ${p.deck}/disc ${p.discard}`)
+        .join('<br>');
+      ctxBox.innerHTML =
+        `<strong>Attaching game info:</strong><br>` +
+        `Code: <strong>${context.code || '(none)'}</strong> · ` +
+        `Mode: ${context.mode} · Act ${context.act}, Round ${context.round} · ${context.phase} phase<br>` +
+        (players ? players + '<br>' : '') +
+        `<details><summary>View raw snapshot</summary><pre>${escapeHtml(JSON.stringify(context, null, 2))}</pre></details>`;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    btn.addEventListener('click', async () => {
+      const message = msgEl.value.trim();
+      if (!message) {
+        status.style.color = '#c84e18';
+        status.textContent = 'Please describe what went wrong.';
+        return;
+      }
+      btn.disabled = true;
+      status.style.color = '#3a2a1a';
+      status.textContent = 'Sending…';
+
+      const entry = { message, ts: Date.now() };
+      const code = codeEl.value.trim();
+      if (code) entry.gameCode = code;
+      if (context) {
+        // Attach the full snapshot plus referrer, capped to fit the DB rules.
+        const ctxOut = Object.assign({ referrer: document.referrer || '' }, context);
+        entry.context = JSON.stringify(ctxOut).slice(0, 20000);
+      }
+      try {
+        entry.ua = (navigator.userAgent || '').slice(0, 500);
+      } catch (e) {}
+
+      try {
+        await push(ref(db, 'bugReports'), entry);
+        msgEl.value = '';
+        status.style.color = '#2a6e1a';
+        status.textContent = "Thanks! Your report was sent — it really helps.";
+        btn.textContent = 'Sent ✓';
+      } catch (e) {
+        btn.disabled = false;
+        status.style.color = '#c84e18';
+        status.textContent = 'Something went wrong sending the report. Please try again.';
+      }
+    });
+  </script>
+</body>
+</html>

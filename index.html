@@ -114,6 +114,8 @@
       background: #1e1610;
       line-height: 1.6;
     }
+    .footer-link { color: rgba(233,224,198,0.7); text-decoration: underline; }
+    .footer-link:hover { color: #e9e0c6; }
     .signup-section {
       margin-top: 1.75rem;
       padding-top: 1.25rem;
@@ -159,6 +161,14 @@
       font-style: italic;
       min-height: 1.2em;
     }
+    .signup-consent {
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: rgba(58,42,26,0.75);
+      max-width: 32rem;
+    }
+    .signup-consent a { color: #8a5a22; }
     .wip-tag {
       display: inline-block;
       font-size: 0.62rem;
@@ -200,6 +210,11 @@
         <button id="signup-btn" class="signup-btn">Notify Me</button>
       </div>
       <p id="signup-msg" class="signup-msg"></p>
+      <p class="signup-consent">
+        By signing up you consent to receive occasional launch updates by email. We use your
+        address only for this, never sell or share it, and you can ask us to remove it at any
+        time. See our <a href="privacy.html">Privacy Policy</a>.
+      </p>
     </div>
 
     <div style="margin-top: 1rem;">
@@ -208,7 +223,10 @@
   </div>
   <footer>
     A Game by Paul &amp; Sara Brinnel &mdash; All Rights Reserved<br>
-    Kickstarter Launching 2027 &nbsp;&bull;&nbsp; Public Test Version &mdash; Everything is Subject to Change
+    Kickstarter Launching 2027 &nbsp;&bull;&nbsp; Public Test Version &mdash; Everything is Subject to Change<br>
+    <a href="bugreport.html" class="footer-link">Report a Bug</a>
+    &nbsp;&bull;&nbsp;
+    <a href="privacy.html" class="footer-link">Privacy</a>
   </footer>
 
   <script type="module">

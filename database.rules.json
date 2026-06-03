@@ -86,6 +86,30 @@
         },
         "$other": { ".validate": false }
       }
+    },
+
+    "bugReports": {
+      ".read": false,
+      "$entry": {
+        ".write": "!data.exists()",
+        ".validate": "newData.hasChildren(['message', 'ts'])",
+        "message": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 2000"
+        },
+        "ts": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "gameCode": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "context": {
+          ".validate": "newData.isString() && newData.val().length <= 20000"
+        },
+        "ua": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "$other": { ".validate": false }
+      }
     }
   }
 }

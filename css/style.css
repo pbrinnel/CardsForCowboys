@@ -201,6 +201,8 @@ footer {
   font-size: 0.85rem;
   border-top: 2.5px solid #1e1610;
 }
+.footer-link { color: rgba(233,224,198,0.7); text-decoration: underline; }
+.footer-link:hover { color: #e9e0c6; }
 
 /* ── Mobile ── */
 @media (max-width: 768px) {

@@ -195,6 +195,19 @@ const MP = (() => {
     });
   }
 
+  // Host-only recovery: force-mark a (stuck/disconnected) human slot's draw as done
+  // using last-known stats, so every client's waitForAllHumanDrawsDone advances.
+  async function forceSignalDrawDone(slotIdx, stats) {
+    if (!initialized) return;
+    await fbSet(gameRef(`drawDone/${slotIdx}`), {
+      done: true, forced: true,
+      round: G.roundNumber, act: G.currentAct,
+      dollars: stats.dollars || 0, cows: stats.cows || 0, bandits: stats.bandits || 0,
+      busted: !!stats.busted, handCount: 0,
+      hasBuyBurnFirst: !!stats.hasBuyBurnFirst, hasExtraBuy: !!stats.hasExtraBuy,
+    });
+  }
+
   // For each human opponent slot, fires slotDoneCallback(slotIdx) when they signal done
   function waitForAllHumanDrawsDone(slotDoneCallback) {
     if (!initialized) return;
@@ -391,6 +404,16 @@ const MP = (() => {
     await fbSet(gameRef(`buyAction/${slotIdx}`), null);
   }
 
+  // Host-only recovery: broadcast a 'skip' action for a stuck slot so every client's
+  // waitForBuyAction fires and the buy phase advances past the unresponsive player.
+  async function forceBuyAction(slotIdx) {
+    if (!initialized) return;
+    await fbSet(gameRef(`buyAction/${slotIdx}`), {
+      action: 'skip', forced: true,
+      round: G.roundNumber, act: G.currentAct, ts: Date.now(),
+    });
+  }
+
   // Listen for a specific slot's buy action.
   // Captures expected round+act so stale values from prior rounds are ignored.
   function waitForBuyAction(slotIdx, callback) {
@@ -553,6 +576,7 @@ const MP = (() => {
     pushDrawState,
     watchOpponentDrawStates,
     signalDrawDone,
+    forceSignalDrawDone,
     waitForAllHumanDrawsDone,
     resetRound,
     clearActSetup,
@@ -560,6 +584,7 @@ const MP = (() => {
     waitForActSetup,
     pushBuyAction,
     clearBuyAction,
+    forceBuyAction,
     waitForBuyAction,
     pushBuyOrder,
     waitForBuyOrder,
@@ -1399,6 +1424,31 @@ function updateZoneStates() {
   }
 }
 
+// Snapshot the current game into localStorage for the bug-report page to attach.
+function updateBugContext() {
+  try {
+    if (!G) return;
+    const code = (MP.active && sessionStorage.getItem('mp_code')) || '';
+    const ctx = {
+      mode: MP.active ? 'mp' : 'sp',
+      code,
+      mySlot: MP.active ? MP.mySlot : null,
+      act: G.currentAct, round: G.roundNumber, phase: G.phase,
+      numPlayers: G.numPlayers,
+      players: (G.players || []).map(p => ({
+        name: p.name, isHuman: p.isHuman, slot: p.slotIdx,
+        busted: p.busted, stopped: p.stoppedDrawing,
+        hand: p.hand ? p.hand.length : 0,
+        deck: p.deck ? p.deck.length : 0,
+        discard: p.discard ? p.discard.length : 0,
+        cows: p.roundCows, dollars: p.roundDollars,
+      })),
+      ts: Date.now(),
+    };
+    localStorage.setItem('cfc_bug_context', JSON.stringify(ctx));
+  } catch (e) { /* localStorage may be unavailable; ignore */ }
+}
+
 function render() {
   if (!G || G.phase === 'start' || G.phase === 'draft') return;
 
@@ -1416,6 +1466,10 @@ function render() {
   // Header
   document.getElementById('act-display').textContent = 'Act ' + G.currentAct;
   document.getElementById('round-display').textContent = 'Round ' + G.roundNumber;
+
+  // Keep a lightweight game snapshot in localStorage so the bug-report page can
+  // auto-attach context (game code, act/round/phase, per-player counts) to a report.
+  updateBugContext();
 
   // Players
   renderPlayerZone(G.players[0], 'player');
@@ -1993,8 +2047,19 @@ async function startGame() {
   document.getElementById('opponents-zone').innerHTML = ''; // clear for fresh game
 
   if (MP.active) {
-    const isRejoin = new URLSearchParams(location.search).has('rejoin');
-    setMessage(isRejoin ? 'Reconnecting to game...' : 'Connecting to game...');
+    const params = new URLSearchParams(location.search);
+    // A page refresh / re-navigation must NEVER re-initialize an in-progress game.
+    // (Re-running the normal path makes the host rebuild Act 1 and clobber everyone —
+    //  the root cause of the May 2026 4-player softlocks; see CLAUDE.md bug #8.)
+    // Treat re-entry as a rejoin if the explicit ?rejoin flag is present OR this tab
+    // has already started this game code once. The per-tab marker survives an F5 but
+    // is absent on a fresh navigation from the lobby for a brand-new code, so a guest
+    // joining a new game still takes the normal path.
+    const code = sessionStorage.getItem('mp_code') || '';
+    const reentryKey = code ? 'cfc_started_' + code : null;
+    const markerSet = reentryKey && sessionStorage.getItem(reentryKey) === '1';
+    const isRejoin = params.has('rejoin') || markerSet;
+    setMessage(isRejoin ? 'Reconnecting to your game…' : 'Connecting to game...');
     clearActions();
     try {
       await MP.init();
@@ -2010,27 +2075,39 @@ async function startGame() {
     if (isRejoin) {
       // --- Rejoin path: restore G from spectatorState ---
       const state = await MP.fetchSpectatorState();
-      if (!state) {
+      if (state) {
+        await reconstructG(state, cfg);
+        if (MP.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
+        render();
+        addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
+        if (reentryKey) sessionStorage.setItem(reentryKey, '1');
+        if (state.phase === 'draw') {
+          await resumeDrawPhase();
+        } else if (state.phase === 'buy') {
+          resumeBuyPhase();
+        } else if (state.phase === 'gameOver') {
+          gameOver();
+        } else {
+          // Fallback: re-arm spectator state and wait
+          setMessage('Waiting for the current phase to begin…');
+        }
+        return;
+      }
+      // No game state to restore.
+      if (params.has('rejoin')) {
+        // Explicit rejoin request but nothing exists — the game has ended.
         setMessage('Could not restore game — the game may have ended.');
         setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
         return;
       }
-      await reconstructG(state, cfg);
-      if (MP.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
-      render();
-      addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
-      if (state.phase === 'draw') {
-        await resumeDrawPhase();
-      } else if (state.phase === 'buy') {
-        resumeBuyPhase();
-      } else if (state.phase === 'gameOver') {
-        gameOver();
-      } else {
-        // Fallback: re-arm spectator state and wait
-        setMessage('Waiting for the current phase to begin…');
-      }
-      return;
+      // Marker-only re-entry with no state yet (e.g. refresh during the initial
+      // connecting handshake, before any setup was pushed) — fall through and start
+      // fresh. setupAct will no-op safely on the host because no actSetup exists yet.
     }
+
+    // Mark this game as started in this tab so a later refresh resumes instead of
+    // re-initializing the game from scratch.
+    if (reentryKey) sessionStorage.setItem(reentryKey, '1');
 
     // --- Normal path ---
     // Initialize seeded RNG for each AI slot
@@ -2318,6 +2395,7 @@ async function setupAct(act) {
 }
 
 async function startRound() {
+  clearForceContinue();
   for (const player of G.players) {
     resetPlayerRound(player);
   }
@@ -2672,7 +2750,74 @@ function checkDrawPhaseComplete() {
     setMessage(MP.active
       ? 'Waiting for other players to finish drawing...'
       : `Waiting for ${waiting > 1 ? 'opponents' : 'AI'} to finish drawing...`);
+    // Host-only safety valve: if the wait drags on, let the host force the phase forward.
+    armForceContinue(forceDrawPhase);
   }
+}
+
+// --- HOST-ONLY "FORCE CONTINUE" SAFETY VALVE ---
+// MP games can softlock if a player disconnects or a sync signal is lost. After 30s of
+// the host waiting on others, show a host-only button that broadcasts a forcing signal
+// through Firebase so every client advances uniformly (skipping the stuck player's turn).
+let _forceTimer = null;
+
+function armForceContinue(forceFn) {
+  clearForceContinue();
+  if (!(MP.active && MP.isHost)) return;
+  const phaseAtArm = G.phase;
+  _forceTimer = setTimeout(() => {
+    _forceTimer = null;
+    if (G.phase !== phaseAtArm) return; // phase moved on — nothing to force
+    setActions([{
+      text: 'Force continue ▸',
+      className: 'btn-secondary btn-force',
+      onClick: () => {
+        clearForceContinue();
+        try { forceFn(); } catch (e) { console.error('[force-continue]', e); }
+      },
+    }]);
+    render();
+  }, 30000);
+}
+
+function clearForceContinue() {
+  if (_forceTimer) { clearTimeout(_forceTimer); _forceTimer = null; }
+}
+
+// Force every not-yet-done human opponent to "done" using last-known stats.
+function forceDrawPhase() {
+  addLog('Host force-continued the draw phase.', 'log-score');
+  for (let i = 1; i < G.players.length; i++) {
+    const p = G.players[i];
+    if (!p.isHuman || G.drawsDone[i]) continue;
+    addLog(`${p.name} was skipped (no response).`, 'log-score');
+    MP.forceSignalDrawDone(p.slotIdx, {
+      dollars: p.roundDollars, cows: p.roundCows, bandits: p.roundBandits,
+      busted: p.busted, hasBuyBurnFirst: p.hasBuyBurnFirst, hasExtraBuy: p.hasExtraBuy,
+    });
+  }
+  // The host's own waitForAllHumanDrawsDone listeners fire on these writes and advance.
+}
+
+// Force-skip the current (stuck) buyer; broadcast so all clients advance together.
+function forceBuyTurn() {
+  const playerIdx = G.buyOrder[G.currentBuyerIdx];
+  const player = G.players[playerIdx];
+  if (!player) return;
+  addLog(`Host force-continued: ${player.name}'s buy turn was skipped.`, 'log-score');
+  MP.forceBuyAction(player.slotIdx); // host's own waitForBuyAction fires and advances
+}
+
+// Force a default buy order (seat order of non-busted players) when the chooser is stuck.
+function forceBuyOrder() {
+  const nonBusted = G.players
+    .map((p, i) => ({ p, i }))
+    .filter(c => !c.p.busted)
+    .sort((a, b) => G.seatOrder.indexOf(G.playerOrder[a.i]) - G.seatOrder.indexOf(G.playerOrder[b.i]))
+    .map(c => c.i);
+  const slotOrder = nonBusted.map(i => G.playerOrder[i]);
+  addLog('Host force-continued: buy order set automatically.', 'log-score');
+  MP.pushBuyOrder(slotOrder); // host's own waitForBuyOrder fires and applies it
 }
 
 // --- AI DRAW PHASE ---
@@ -3368,6 +3513,7 @@ async function handleExtraBuy(player, card) {
 // determineBuyWinner() is defined in sim/tiebreaker.js (loaded via <script> before play.js)
 
 function onDrawPhaseComplete() {
+  clearForceContinue();
   G.phase = 'buy';
 
   mpLog('onDrawPhaseComplete — player stats:', G.players.map((p, i) => ({
@@ -3386,7 +3532,9 @@ function onDrawPhaseComplete() {
       setMessage(`Waiting for ${G.players[priorityIdx].name} to choose who buys first...`);
       clearActions();
       render();
+      armForceContinue(forceBuyOrder); // host-only: auto-set order if chooser stalls
       MP.waitForBuyOrder((slotOrder) => {
+        clearForceContinue();
         const localOrder = slotOrder.map(s => MP.slotToPlayer[s]);
         mpLog('waitForBuyOrder (hasBuyBurnFirst remote priority) fired:', localOrder);
         applyBuyOrder(localOrder);
@@ -3435,7 +3583,9 @@ function onDrawPhaseComplete() {
     setMessage(`Waiting for ${winnerName} to choose who buys first...`);
     clearActions();
     render();
+    armForceContinue(forceBuyOrder); // host-only: auto-set order if chooser stalls
     MP.waitForBuyOrder((slotOrder) => {
+      clearForceContinue();
       const localOrder = slotOrder.map(s => MP.slotToPlayer[s]);
       mpLog('waitForBuyOrder (remote winner chose) fired:', { slotOrder, localOrder, names: localOrder.map(i => G.players[i]?.name) });
       const firstLocalIdx = localOrder[0];
@@ -3511,6 +3661,7 @@ function applyBuyOrder(order) {
 }
 
 function processBuyTurn() {
+  clearForceContinue();
   if (G.currentBuyerIdx >= G.buyOrder.length) {
     endBuyPhase();
     return;
@@ -3549,13 +3700,22 @@ function mpOpponentBuyTurn(opp) {
   setMessage(`Waiting for ${opp.name} to buy or burn...`);
   clearActions();
   render();
+  armForceContinue(forceBuyTurn); // host-only: skip this buyer if they never respond
   MP.waitForBuyAction(opp.slotIdx, (data) => {
     mpLog('waitForBuyAction fired for', opp.name, data);
+    clearForceContinue();
     // Clear the consumed action so the NEXT waitForBuyAction for this slot in the
     // same round doesn't immediately re-fire with this stale same-round value.
     MP.clearBuyAction(opp.slotIdx);
     if (data.action === 'buy') {
       executeBuyLocal(opp, data.row, data.col);
+    } else if (data.action === 'skip') {
+      // Forced skip (host recovery) — advance past this player's turn unconditionally
+      // (don't honor extra-buy, which would re-enter the wait).
+      addLog(`${opp.name}'s turn was skipped.`, 'log-score');
+      G.currentBuyerIdx++;
+      if (isPyramidEmpty(G.pyramid)) endBuyPhase();
+      else processBuyTurn();
     } else {
       executeBurnLocal(opp, data.row, data.col);
     }
@@ -3919,6 +4079,7 @@ async function resolveSinglePassCard(fromIdx, card, findCardTemplate) {
 // --- END PHASES ---
 
 function endBuyPhase() {
+  clearForceContinue();
   G.phase = 'score';
   scoreRound();
 }

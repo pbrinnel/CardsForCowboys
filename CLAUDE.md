@@ -28,6 +28,8 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
 | `history.html` | Game history + leaderboard |
 | `aboutthecreators.html` | About page |
+| `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
+| `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: pbrinnel@gmail.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 
 ### `src/` — App JavaScript
@@ -423,6 +425,27 @@ When implementing a difficulty picker, the intended mapping is:
 
 ---
 
+### 8. Page Refresh Re-initializes an In-Progress MP Game (Root cause of the May 28 2026 4-player softlocks)
+**Commit:** (June 2026)
+
+**Symptom:** A 4-player game reaches Act 2, then suddenly resets to Act 1 / Round 1 / draw and softlocks — `drawState`/`drawDone` empty, nobody can finish drawing. Confirmed in games **ESN2RK** and **UQJTLL** (both Thu May 28 2026): a fresh `actSetup{act:1}` + `spectatorState{act:1,round:1,draw}` was written ~2 min *after* a `buyOrder{act:2}` already existed.
+
+**Root cause:** `startGame()` decided rejoin-vs-fresh-start solely from the `?rejoin` URL param. A plain browser **refresh** keeps the current URL (which never had `?rejoin`), so it ran the normal path → `setupAct(1)`. On the **host**, `setupAct` unconditionally rebuilds the pyramid, clears+pushes `actSetup`, and resets `spectatorState` — clobbering the in-progress game for everyone. A guest refresh instead waited forever for an Act-1 setup that would never come.
+
+**Fix in place:** `startGame()` now treats re-entry as a rejoin if `?rejoin` is present **OR** a per-tab marker `sessionStorage['cfc_started_<code>']` is set (written once the game starts; survives F5 but not a fresh lobby navigation for a new code). On rejoin it reconstructs from `spectatorState` and resumes — it only falls through to a fresh start when **no** `spectatorState` exists yet. **Do not regress:** never gate resume-vs-fresh-start on the URL param alone; a refresh must never call `setupAct` on an in-progress game.
+
+---
+
+### Host-only "Force Continue" safety valve (recovery for any softlock)
+Companion to bug #8 — the general backstop for MP softlocks. After **30s** of the host waiting on others, a host-only amber **"Force continue ▸"** button appears. It broadcasts the forcing signal through Firebase so **all** clients advance uniformly (not just the host's local view):
+- Draw wait → `MP.forceSignalDrawDone(slot, stats)` writes each stuck human's `drawDone` (last-known stats) → everyone's `waitForAllHumanDrawsDone` fires.
+- Buy-turn wait → `MP.forceBuyAction(slot)` writes `{action:'skip'}` → `mpOpponentBuyTurn`'s listener skips that buyer everywhere.
+- Buy-order wait → `forceBuyOrder()` pushes a default seat-order `buyOrder`.
+
+Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `waitForBuyOrder` sites; `clearForceContinue()` runs at every phase transition (`onDrawPhaseComplete`, `processBuyTurn`, `startRound`, `endBuyPhase`) and inside each wait-resolution callback. Helpers: `armForceContinue(forceFn)` / `clearForceContinue()` / `forceDrawPhase()` / `forceBuyTurn()` / `forceBuyOrder()` (just below `checkDrawPhaseComplete`). Styled `.btn-force` in `play.css`.
+
+---
+
 ## Debugging Approach for Multiplayer Issues
 
 **Always start with Firebase logs, not blind code review.**
@@ -475,7 +498,11 @@ The Firebase API key is **intentionally public** — Firebase web app keys are n
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)
+  - `emailSignups` / `bugReports` — `read:false`, append-only (`!data.exists()`), shape-validated with length caps and `$other:false`. Both are pulled with the **CLI** (`firebase database:get`), never with a database secret.
 - [ ] Never add server-side secrets (service account keys, admin SDK credentials) to any file in this repo.
+
+### Legacy Database Secret — REVOKE (June 2026)
+A long-lived Firebase **database secret** (`meXe…XALp`) used to be hardcoded in `get-emails.js`, `export-emails.html`, and stale `.claude/settings.local.json` allowlist entries. It grants full admin read/write and bypasses all rules. It has been **scrubbed from the working tree** (those files now point to `admin/get-emails.sh`). **Action still required:** revoke it in Firebase Console → Project Settings → Service accounts → Database secrets. Pull emails/bugs only via the CLI tools in `admin/` (`firebase login`–based; no secret in any file).
 
 ### .gitignore
 Currently gitignored sensitive files: `get-emails.js`, `retrieve-emails.js`, `export-emails.html`, `package-lock.json`
