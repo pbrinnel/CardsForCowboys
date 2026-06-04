@@ -3251,7 +3251,10 @@ function showBustAnimation() {
     .filter(c => c.bandits > 0)
     .forEach((c, i) => {
       setTimeout(() => {
-        const el = document.querySelector(`[data-uid="${c.uid}"]`);
+        // Scope to #player-hand: an unscoped lookup can match a pyramid card
+        // that shares this data-uid and pulse it instead (pyramid renders first
+        // in the DOM, so querySelector would return it). See animateDrawnCard.
+        const el = document.querySelector(`#player-hand [data-uid="${c.uid}"]`);
         if (!el) return;
         el.classList.add('bust-bandit-pulse');
         el.addEventListener('animationend', () => el.classList.remove('bust-bandit-pulse'), { once: true });

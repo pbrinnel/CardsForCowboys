@@ -446,6 +446,19 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 ---
 
+### 9. Bust Pulse Hits a Pyramid Card Instead of the Hand Bandit (Unscoped `data-uid` lookup)
+**Commit:** (June 2026)
+
+**Symptom:** On bust, one or more cards **in the pyramid/store pulse in size** (sequential scale, ~3 cards one at a time) instead of the bandit cards in your hand.
+
+**Root cause:** `showBustAnimation()` (`~line 3247`) looked up each hand bandit card with an **unscoped** `document.querySelector(\`[data-uid="${c.uid}"]\`)`. If any other live element shares that `data-uid`, `querySelector` returns the **first match in DOM order** — and `#pyramid-zone` renders *before* `#player-zone`, so a pyramid card gets the `.bust-bandit-pulse` class. Confirmed in-browser: forcing a hand card's uid to equal a pyramid card's uid made the pyramid card pulse; scoping the query fixed it.
+
+**Fix in place:** Query is now scoped — `document.querySelector(\`#player-hand [data-uid="${c.uid}"]\`)` — mirroring the already-correct scoped lookup in `animateDrawnCard` (`~line 1733`).
+
+**Do not regress:** Any `data-uid` lookup that targets a hand card must be scoped to `#player-hand`. `data-uid` is set on *every* rendered card (pyramid, hand, deck preview), so a bare `[data-uid=...]` query is ambiguous whenever uids can coincide (e.g. rejoin/refresh reconstruction rebuilds both pyramid and hand from saved state).
+
+---
+
 ## Debugging Approach for Multiplayer Issues
 
 **Always start with Firebase logs, not blind code review.**
