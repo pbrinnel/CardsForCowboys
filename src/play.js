@@ -24,9 +24,32 @@ const MP = (() => {
   const isMP = new URLSearchParams(location.search).has('mp');
   if (!isMP) return { active: false };
 
-  const code      = sessionStorage.getItem('mp_code');
-  const mySlotStr = sessionStorage.getItem('mp_slot');  // '0' = host, '1+' = guest
-  const myName    = sessionStorage.getItem('mp_name');
+  // Identity is normally handed off via sessionStorage when the lobby navigates
+  // to playgame.html. But mobile browsers evict backgrounded tabs aggressively;
+  // when the player reopens the tab from history, sessionStorage is gone even
+  // though ?mp is still in the URL. Recover identity from the durable
+  // localStorage rejoin record so a bare page reload can resume on its own —
+  // no detour back to the home-screen "Rejoin" banner required. `recovered`
+  // tells startGame to take the resume path rather than re-initialize.
+  let recovered = false;
+  let code      = sessionStorage.getItem('mp_code');
+  let mySlotStr = sessionStorage.getItem('mp_slot');  // '0' = host, '1+' = guest
+  let myName    = sessionStorage.getItem('mp_name');
+
+  if (!code || mySlotStr === null || !myName) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('cfc_rejoin') || 'null');
+      if (saved && saved.code && saved.slot != null && saved.name) {
+        code = saved.code;
+        mySlotStr = String(saved.slot);
+        myName = saved.name;
+        sessionStorage.setItem('mp_code', code);
+        sessionStorage.setItem('mp_slot', mySlotStr);
+        sessionStorage.setItem('mp_name', myName);
+        recovered = true;
+      }
+    } catch (e) {}
+  }
 
   if (!code || mySlotStr === null || !myName) return { active: false };
 
@@ -571,7 +594,7 @@ const MP = (() => {
 
   return {
     active: true,
-    code, mySlot, isHost, myName,
+    code, mySlot, isHost, myName, recovered,
     slotToPlayer: {},  // slotIdx → G.players index; set in startGame()
     init,
     buildPlayersConfig,
@@ -2058,10 +2081,13 @@ async function startGame() {
     // has already started this game code once. The per-tab marker survives an F5 but
     // is absent on a fresh navigation from the lobby for a brand-new code, so a guest
     // joining a new game still takes the normal path.
+    // MP.recovered covers the mobile case the marker can't: an evicted tab
+    // reopened from history has lost sessionStorage (and thus the marker), so
+    // identity was recovered from localStorage — that is always a resume.
     const code = sessionStorage.getItem('mp_code') || '';
     const reentryKey = code ? 'cfc_started_' + code : null;
     const markerSet = reentryKey && sessionStorage.getItem(reentryKey) === '1';
-    const isRejoin = params.has('rejoin') || markerSet;
+    const isRejoin = params.has('rejoin') || markerSet || MP.recovered;
     setMessage(isRejoin ? 'Reconnecting to your game…' : 'Connecting to game...');
     clearActions();
     try {
