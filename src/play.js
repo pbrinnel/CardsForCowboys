@@ -27,28 +27,43 @@ const MP = (() => {
   // Identity is normally handed off via sessionStorage when the lobby navigates
   // to playgame.html. But mobile browsers evict backgrounded tabs aggressively;
   // when the player reopens the tab from history, sessionStorage is gone even
-  // though ?mp is still in the URL. Recover identity from the durable
-  // localStorage rejoin record so a bare page reload can resume on its own —
-  // no detour back to the home-screen "Rejoin" banner required. `recovered`
-  // tells startGame to take the resume path rather than re-initialize.
+  // though ?mp is still in the URL. Recover identity from the URL or the
+  // durable localStorage rejoin record so a bare page reload can resume on its
+  // own — no detour back to the home-screen "Rejoin" banner required.
+  // `recovered` tells startGame to take the resume path rather than re-init.
   let recovered = false;
   let code      = sessionStorage.getItem('mp_code');
   let mySlotStr = sessionStorage.getItem('mp_slot');  // '0' = host, '1+' = guest
   let myName    = sessionStorage.getItem('mp_name');
 
   if (!code || mySlotStr === null || !myName) {
-    try {
-      const saved = JSON.parse(localStorage.getItem('cfc_rejoin') || 'null');
-      if (saved && saved.code && saved.slot != null && saved.name) {
-        code = saved.code;
-        mySlotStr = String(saved.slot);
-        myName = saved.name;
-        sessionStorage.setItem('mp_code', code);
-        sessionStorage.setItem('mp_slot', mySlotStr);
-        sessionStorage.setItem('mp_name', myName);
-        recovered = true;
-      }
-    } catch (e) {}
+    // Recover identity for a fresh page load (evicted mobile tab, opened link).
+    // Prefer the URL — it survives tab eviction and works on any device that
+    // has the link — then fall back to the durable localStorage rejoin record.
+    const qp = new URLSearchParams(location.search);
+    const urlCode = qp.get('code');
+    const urlSlot = qp.get('slot');
+    if (urlCode && urlSlot !== null) {
+      code = urlCode;
+      mySlotStr = urlSlot;
+      myName = qp.get('name') || myName || 'Player';
+      recovered = true;
+    } else {
+      try {
+        const saved = JSON.parse(localStorage.getItem('cfc_rejoin') || 'null');
+        if (saved && saved.code && saved.slot != null && saved.name) {
+          code = saved.code;
+          mySlotStr = String(saved.slot);
+          myName = saved.name;
+          recovered = true;
+        }
+      } catch (e) {}
+    }
+    if (recovered) {
+      sessionStorage.setItem('mp_code', code);
+      sessionStorage.setItem('mp_slot', mySlotStr);
+      sessionStorage.setItem('mp_name', myName);
+    }
   }
 
   if (!code || mySlotStr === null || !myName) return { active: false };

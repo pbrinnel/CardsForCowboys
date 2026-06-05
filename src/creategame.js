@@ -134,7 +134,9 @@ async function createGame() {
     if (allHumanSlotsFilled(data.slots)) {
       cleanup();
       await onDisconnect(gameRef).cancel();
-      window.location.href = 'playgame.html?mp=1';
+      // Carry identity in the URL so reopening the tab from history resumes
+      // without depending on sessionStorage (which mobile eviction wipes).
+      window.location.href = `playgame.html?mp=1&code=${gameCode}&slot=0&name=${encodeURIComponent(myName)}`;
     }
   });
 }

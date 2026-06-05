@@ -111,7 +111,9 @@ async function joinGame(codeOverride) {
     renderSlotList(d.slots, d.numPlayers, 'joining-slot-list');
     if (allHumanSlotsFilled(d.slots)) {
       cleanup();
-      window.location.href = 'playgame.html?mp=1';
+      // Carry identity in the URL so reopening the tab from history resumes
+      // without depending on sessionStorage (which mobile eviction wipes).
+      window.location.href = `playgame.html?mp=1&code=${gameCode}&slot=${claimedSlot}&name=${encodeURIComponent(myName)}`;
     }
   });
 }
@@ -183,7 +185,7 @@ async function checkRejoinUrl() {
   sessionStorage.setItem('mp_slot', String(savedSlot));
   sessionStorage.setItem('mp_name', slot.name || 'Player');
 
-  window.location.href = 'playgame.html?mp=1&rejoin=1';
+  window.location.href = `playgame.html?mp=1&rejoin=1&code=${rejoinCode}&slot=${savedSlot}&name=${encodeURIComponent(slot.name || 'Player')}`;
 }
 
 // --- Wire up ---
