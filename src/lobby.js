@@ -4,7 +4,7 @@
 
 import { db } from './firebase-config.js';
 import {
-  ref, get, update, onValue, onDisconnect
+  ref, get, onValue, onDisconnect, runTransaction
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 // --- UI helpers ---
@@ -75,15 +75,27 @@ async function joinGame(codeOverride) {
   const data = snap.val();
   if (data.status !== 'waiting') { showError('That game is already in progress or has ended.'); return; }
 
-  // Find first unclaimed human slot (index > 0, isHuman=true, name empty)
+  // Atomically claim the first open human slot. A plain read-then-write races:
+  // two guests joining at once can both see slot 1 empty, both write their
+  // name, clobber one another, and both navigate in as slot 1. A transaction
+  // on the slots node serializes the claim so each guest gets a distinct slot.
+  const numPlayers = data.numPlayers;
   let claimedSlot = -1;
-  for (let i = 1; i < data.numPlayers; i++) {
-    const s = data.slots[i];
-    if (s && s.isHuman && !s.name) { claimedSlot = i; break; }
-  }
-  if (claimedSlot === -1) { showError('No open slots in this game.'); return; }
+  const txn = await runTransaction(ref(db, `games/${gameCode}/slots`), (slots) => {
+    if (!slots) return; // no slot data in this cache pass — abort; Firebase retries with server data
+    claimedSlot = -1;
+    for (let i = 1; i < numPlayers; i++) {
+      const s = slots[i];
+      if (s && s.isHuman && !s.name) {
+        slots[i] = { ...s, name: myName };
+        claimedSlot = i;
+        return slots;
+      }
+    }
+    return; // no open slot — abort
+  });
 
-  await update(ref(db, `games/${gameCode}/slots/${claimedSlot}`), { name: myName });
+  if (!txn.committed || claimedSlot === -1) { showError('No open slots in this game.'); return; }
 
   onDisconnect(gameRef).cancel();
 
