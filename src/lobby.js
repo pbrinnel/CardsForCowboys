@@ -77,25 +77,26 @@ async function joinGame(codeOverride) {
 
   // Atomically claim the first open human slot. A plain read-then-write races:
   // two guests joining at once can both see slot 1 empty, both write their
-  // name, clobber one another, and both navigate in as slot 1. A transaction
-  // on the slots node serializes the claim so each guest gets a distinct slot.
+  // name, clobber one another, and both navigate in as slot 1. We instead run
+  // a transaction on each candidate slot's `name` node: an empty/null name is
+  // the "open → claim" case (return myName), a non-empty name means already
+  // taken (return undefined → abort, try the next slot). Transacting on the
+  // name node — where null is the claim case, not an abort case — sidesteps
+  // the Firebase gotcha that returning undefined on an uncached null value
+  // aborts the whole transaction before server data is ever consulted.
   const numPlayers = data.numPlayers;
   let claimedSlot = -1;
-  const txn = await runTransaction(ref(db, `games/${gameCode}/slots`), (slots) => {
-    if (!slots) return; // no slot data in this cache pass — abort; Firebase retries with server data
-    claimedSlot = -1;
-    for (let i = 1; i < numPlayers; i++) {
-      const s = slots[i];
-      if (s && s.isHuman && !s.name) {
-        slots[i] = { ...s, name: myName };
-        claimedSlot = i;
-        return slots;
-      }
-    }
-    return; // no open slot — abort
-  });
+  for (let i = 1; i < numPlayers; i++) {
+    const s = data.slots[i];
+    if (!s || !s.isHuman || s.name) continue; // skip AI/already-filled per the snapshot
+    const res = await runTransaction(ref(db, `games/${gameCode}/slots/${i}/name`), (cur) => {
+      if (cur) return;   // someone else claimed it first — abort, try next slot
+      return myName;     // claim atomically
+    });
+    if (res.committed && res.snapshot.val() === myName) { claimedSlot = i; break; }
+  }
 
-  if (!txn.committed || claimedSlot === -1) { showError('No open slots in this game.'); return; }
+  if (claimedSlot === -1) { showError('No open slots in this game.'); return; }
 
   onDisconnect(gameRef).cancel();
 
