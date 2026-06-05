@@ -80,9 +80,10 @@ Line numbers are approximate (±10). Grep to verify exact location.
 
 ### MP Layer (IIFE, lines 22–580)
 ```
+(IIFE identity hydration)   ~27   — resolves identity sessionStorage → URL(code/slot/name) → localStorage(cfc_rejoin); sets MP.recovered on a recovery load
 gameRef(path)               ~52   — builds Firebase ref under games/{code}/
 init()                      ~56   — dynamic Firebase ESM import, arms onDisconnect
-startPresence()             ~81   — marks slot connected, watches opponent drops
+startPresence()             ~81   — marks slot connected, watches opponent drops (30s grace, debounced message)
 watchOpponentDrawStates()   ~168  — live-syncs opp hand/deck/discard/stats from drawState/{slot}
 waitForAllHumanDrawsDone()  ~199  — resolves when all human slots push drawDone
 waitForPassCard()           ~229  — waits for discard_to_player card from opponent
@@ -456,6 +457,27 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 **Fix in place:** Query is now scoped — `document.querySelector(\`#player-hand [data-uid="${c.uid}"]\`)` — mirroring the already-correct scoped lookup in `animateDrawnCard` (`~line 1733`).
 
 **Do not regress:** Any `data-uid` lookup that targets a hand card must be scoped to `#player-hand`. `data-uid` is set on *every* rendered card (pyramid, hand, deck preview), so a bare `[data-uid=...]` query is ambiguous whenever uids can coincide (e.g. rejoin/refresh reconstruction rebuilds both pyramid and hand from saved state).
+
+---
+
+### MP Identity Recovery Model (mobile tab eviction)
+**Commits:** (June 2026) — companion hardening to bug #8.
+
+**Problem:** Mobile browsers evict backgrounded tabs. Reopening the game tab from history is a *fresh page load* with `?mp` still in the URL but **empty sessionStorage**. Previously the MP IIFE read identity only from sessionStorage and returned `{active:false}` when it was gone — the game didn't even recognize itself as MP, so it couldn't resume. Recovery required the player to navigate back to the home screen and tap the localStorage "Rejoin" banner, which non-technical players don't know to do.
+
+**Design now in place (three layers, do not collapse):**
+- **Identity resolution order (IIFE ~line 27):** sessionStorage → URL params (`code`/`slot`/`name`) → `localStorage['cfc_rejoin']`. The first hit wins; the result is written back into sessionStorage so all downstream reads are unchanged. A recovery (URL or localStorage) sets **`MP.recovered = true`**.
+- **`startGame` rejoin decision (~line 2087):** `isRejoin = ?rejoin param || cfc_started_<code> marker || MP.recovered`. `MP.recovered` covers exactly the case the per-tab marker can't (marker lives in the wiped sessionStorage). All resume still flows through `reconstructG` from `spectatorState`.
+- **Self-identifying URL:** host (`creategame.js`) and guest (`lobby.js`, both join and rejoin navigations) append `&code=&slot=&name=` (name `encodeURIComponent`'d) to `playgame.html`. On the *normal first* navigation sessionStorage is already set, so these params are ignored — they only fire on a recovery load.
+
+**Do not regress:**
+- Never gate "is this MP?" on sessionStorage alone — the IIFE must fall back to URL/localStorage before returning `{active:false}`.
+- `MP.recovered` must remain part of the `isRejoin` decision; without it an evicted-tab reload (no marker, no `?rejoin`) would hit the **fresh-start path and the host would clobber the game** (bug #8 class).
+- The `cfc_started_<code>` marker and the resume-vs-fresh guard are intentionally left intact — recovery is *additive*, not a replacement.
+- Nothing may `history.replaceState` away the `code/slot/name` query params, or a later reload loses the URL recovery channel (localStorage still covers same-device).
+
+### Lobby Slot Claim Is Atomic (do not revert to read-then-write)
+**Commit:** (June 2026). `lobby.js` claims the first open human slot with a **`runTransaction`** on `games/{code}/slots`, not a `get` + `update`. Two guests joining simultaneously previously could both read slot 1 as empty and both write their name — one clobbered the other and both navigated in as slot 1. The transaction serializes the claim so each guest gets a distinct slot. Keep it a transaction.
 
 ---
 
