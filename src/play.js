@@ -4233,13 +4233,9 @@ async function startShowdown() {
     // Build tally display
     const tallyEl = document.getElementById(`showdown-tally-${i}`);
 
-    const formulaHTML = totalCows > 0
-      ? `<span class="tally-cows">+${totalCows} cows from cards</span>`
-      : '<span class="tally-zero">No scoring cards</span>';
-
-    tallyEl.innerHTML =
-      `<span class="tally-formula">${formulaHTML}</span>` +
-      `<span class="tally-total">+${gained} → Final Herd: ${player.herd}</span>`;
+    tallyEl.innerHTML = totalCows > 0
+      ? `<span class="tally-cows">+${totalCows} cows → Final Herd: ${player.herd}</span>`
+      : `<span class="tally-zero">No scoring cards → Final Herd: ${player.herd}</span>`;
     tallyEl.classList.remove('hidden');
 
     await delay(350);
