@@ -385,10 +385,11 @@ function renderShowdown(state) {
       const tallyEl = document.createElement('div');
       tallyEl.className = 'sdp-tally';
       const parts = [];
-      if (tally.totalCows !== 0) parts.push(`${tally.totalCows > 0 ? '+' : ''}${tally.totalCows} cows from cards`);
+      if (tally.totalCows !== 0) parts.push(`${tally.totalCows > 0 ? '+' : ''}${tally.totalCows} cows`);
       if (tally.bonusCows > 0) parts.push(`+${tally.bonusCows} bonus ($${tally.totalDollars})`);
+      const gained = tally.gained >= 0 ? `+${tally.gained}` : `${tally.gained}`;
       const formula = parts.length ? parts.join(' + ') : 'No scoring cards';
-      tallyEl.textContent = `${formula} = ${tally.gained >= 0 ? '+' : ''}${tally.gained} from showdown`;
+      tallyEl.textContent = `${formula} → Final Herd: ${tally.finalHerd}`;
       block.appendChild(tallyEl);
     }
 
