@@ -102,13 +102,16 @@ const MP = (() => {
       const unsub = fbOnValue(gameRef(`slots/${slotIdx}/connected`), (snap) => {
         const connected = snap.val();
         if (connected === false) {
-          // Start 15-second grace period, then open a 5-minute rejoin window
+          // Start a 30-second grace period, then open a 5-minute rejoin window.
+          // Mobile players background the tab constantly (reading a text, lock
+          // screen); a brief blip must NOT spam every other player. So we stay
+          // silent during the grace window and only surface a message once it
+          // expires into the countdown. The grace is generous on purpose.
           if (!disconnectTimers[slotIdx] && !rejoinCountdowns[slotIdx]) {
-            setMessage(`${playerName} lost connection. Waiting 15 seconds…`);
             disconnectTimers[slotIdx] = setTimeout(() => {
               delete disconnectTimers[slotIdx];
               startRejoinCountdown(slotIdx, playerName);
-            }, 15000);
+            }, 30000);
           }
         } else if (connected === true) {
           // Reconnected — cancel any pending timers and resume
