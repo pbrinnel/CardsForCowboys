@@ -11,3 +11,6 @@ export-emails.html
 package-lock.json
 test-results/
 tutorial-plan.md
+
+# Local Firebase data backups (large, contain game state)
+admin/firebase-backups/
