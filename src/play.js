@@ -2501,17 +2501,15 @@ async function startRound() {
       opp.hasBuyBurnFirst   = state.hasBuyBurnFirst || false;
       opp.hasExtraBuy       = state.hasExtraBuy     || false;
       if (state.discardCount !== undefined) opp._syncedDiscardCount = state.discardCount;
-      // If opponent busted this round, treat them as done immediately (don't wait for
-      // the drawDone signal which fires after a 2s animation delay on their side).
-      if (state.busted && !G.drawsDone[playerIdx]) {
-        G.drawsDone[playerIdx] = true;
-        render();
-        MP.pushSpectatorState();
-        checkDrawPhaseComplete();
-      } else {
-        render();
-        MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
-      }
+      // Do NOT mark a busted opponent done from drawState. A busting human stays in the
+      // draw phase locally until they press "Clear Hand" (which fires their drawDone signal).
+      // Treating bust as done here desynced the table: everyone else advanced to the buy
+      // phase while the busted player was still on the Clear Hand screen, then waited forever
+      // for a buy turn that player couldn't take (bug: buy-before-draw-finished). Mark done
+      // ONLY via the authoritative drawDone signal in waitForAllHumanDrawsDone below — this
+      // matches resumeDrawPhase, which never had the premature shortcut.
+      render();
+      MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
     });
 
     // One-shot done signal per remote human opponent

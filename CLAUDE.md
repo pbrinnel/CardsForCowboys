@@ -460,6 +460,19 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 ---
 
+### 10. Busted Player Left Behind in Draw Phase (Buy-before-draw-finished desync)
+**Commit:** (June 2026). Reported by playtesters; confirmed in bug reports for games **XZDCUX** ("I was allowed to buy before P2 had finished drawing") and **Z5EPD7** ("buy round ended for Player 1, other players stuck waiting").
+
+**Symptom:** A player busts but doesn't immediately press "Clear Hand." The rest of the table finishes drawing and advances into the buy phase **without** them. The busted player stays stuck on the draw-phase "Clear Hand" screen; when they finally clear, they enter the buy phase late and wait forever on buy turns that already happened.
+
+**Root cause (asymmetry):** `handleBust` (`~line 3310`) calls `mpSyncDraw()` immediately (pushing `drawState.busted=true`) but then blocks on the "Clear Hand" button before calling `onPlayerDrawDone()`→`signalDrawDone()`. Meanwhile `startRound`'s `watchOpponentDrawStates` callback (`~line 2504`) saw `state.busted` and marked that opponent `G.drawsDone[playerIdx]=true` **immediately** + called `checkDrawPhaseComplete()`. So everyone else counted the busted player as done at bust time, but the busted player's OWN client didn't transition until the button press. When the remaining drawers finished, the table advanced without them.
+
+**Fix in place:** Removed the premature "busted = done" shortcut in the `startRound` watcher. The drawState watch now only syncs stats + re-renders; a busted opponent is marked done **only** via the authoritative `drawDone` signal in `waitForAllHumanDrawsDone` (`~line 2518`), which fires when they press "Clear Hand." This matches `resumeDrawPhase` (`~line 2326`), which never had the shortcut. Nothing advances past the draw phase until the busted player clears; the host "Force continue" valve (30s) covers a true disconnect/stall.
+
+**Do not regress:** Never mark a human opponent done from `drawState.busted`. `drawState` is for live display only; `drawDone` is the sole authoritative done signal. The two draw-phase code paths (`startRound`, `resumeDrawPhase`) must stay consistent on this.
+
+---
+
 ### MP Identity Recovery Model (mobile tab eviction)
 **Commits:** (June 2026) — companion hardening to bug #8.
 
