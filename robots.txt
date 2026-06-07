@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# App-shell / interactive pages — no SEO value, keep out of the index
+Disallow: /playgame.html
+Disallow: /gamesetup.html
+Disallow: /creategame.html
+Disallow: /lobby.html
+Disallow: /spectate.html
+Disallow: /history.html
+Disallow: /bugreport.html
+Disallow: /debug.html
+
+Sitemap: https://cardsforcowboys.com/sitemap.xml
