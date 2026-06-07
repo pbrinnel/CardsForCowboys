@@ -4,6 +4,7 @@
     ".write": false,
 
     "games": {
+      ".read": true,
       "$gameCode": {
         ".read": true,
         ".write": true
@@ -67,6 +68,7 @@
     },
 
     "liveGames": {
+      ".read": true,
       "$gameCode": {
         ".read": true,
         ".write": true
