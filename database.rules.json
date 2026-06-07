@@ -75,6 +75,14 @@
       }
     },
 
+    "liveSummary": {
+      ".read": true,
+      "$gameCode": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
     "emailSignups": {
       ".read": false,
       "$entry": {

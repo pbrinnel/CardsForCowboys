@@ -431,31 +431,25 @@ function formatDate(ts) {
 
 // ── Live games ──────────────────────────────────────────────
 
-// Merge MP games (games/) and AI games (liveGames/) into one live list.
-// We keep two Maps keyed by code and re-render whenever either updates.
-const mpLive  = new Map(); // code → game object
-const aiLive  = new Map(); // code → game object
+// Live Now reads the slim `liveSummary` node (written by play.js), NOT the full
+// games/ + liveGames/ collections. Each summary is a few hundred bytes (players,
+// mode, phase, act, round, ts, status) — no hands/decks/pyramid. Full game state
+// is loaded only when a visitor clicks Spectate (→ spectate.html reads the full
+// games/{code} or liveGames/{code} node by code). This keeps the list payload
+// tiny no matter how many finished/abandoned games accumulate.
+const liveSummaries = new Map(); // code → summary object
 
 function renderLive() {
   const now = Date.now();
   const live = [];
 
-  mpLive.forEach((g, code) => {
-    if (g.status !== 'active') return;
-    if (!g.spectatorState) return;
-    // Stale-detection: if last spectator push was >10 min ago, hide (game likely abandoned)
-    const lastTs = g.spectatorState?.ts || g.createdAt || 0;
-    if (now - lastTs > 10 * 60 * 1000) return;
-    live.push({ code, spectateUrl: `spectate.html?code=${code}`, ...g });
-  });
-
-  aiLive.forEach((g, code) => {
-    if (g.status !== 'active') return;
-    // Stale-detection: if last push was >5 min ago the tab probably closed
-    const lastTs = g.spectatorState?.ts || g.createdAt || 0;
-    if (now - lastTs > STALE_MS) return;
-    if (!g.spectatorState) return;
-    live.push({ code, spectateUrl: `spectate.html?code=${code}&ai=1`, ...g });
+  liveSummaries.forEach((g, code) => {
+    if (g.status !== 'active') return;                 // excludes finished/disbanded
+    if (now - (g.ts || 0) > STALE_MS) return;          // hide abandoned (no push in >5 min)
+    const spectateUrl = g.mode === 'ai'
+      ? `spectate.html?code=${code}&ai=1`
+      : `spectate.html?code=${code}`;
+    live.push({ code, spectateUrl, ...g });
   });
 
   liveCardsEl.innerHTML = '';
@@ -468,10 +462,10 @@ function renderLive() {
   live.forEach(g => {
     const players = g.players || [];
     const playerStr = players.map(p => p.name + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
-    const phase = g.spectatorState?.phase || '';
-    const act   = g.spectatorState?.act   || '';
-    const round = g.spectatorState?.round || '';
-    const phaseLabel = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', showdown: 'Showdown!', gameOver: 'Game Over' }[phase] || '';
+    const phase = g.phase || '';
+    const act   = g.act   || '';
+    const round = g.round || '';
+    const phaseLabel = { draw: 'Draw Phase', buy: 'Buy Phase', score: 'Scoring', showdown: 'Showdown!', gameover: 'Game Over' }[phase] || '';
 
     const card = document.createElement('div');
     card.className = 'live-card';
@@ -508,22 +502,12 @@ function renderLive() {
   });
 }
 
-// MP games: games/ path (status written by host via setLiveStatus)
-onValue(ref(db, 'games'), (snap) => {
-  mpLive.clear();
+// Single slim source for both MP and AI live games (mode field distinguishes them)
+onValue(ref(db, 'liveSummary'), (snap) => {
+  liveSummaries.clear();
   snap.forEach(child => {
     const g = child.val();
-    if (g) mpLive.set(child.key, g);
-  });
-  renderLive();
-});
-
-// AI games: liveGames/ path (written by AI_SPEC in play.js)
-onValue(ref(db, 'liveGames'), (snap) => {
-  aiLive.clear();
-  snap.forEach(child => {
-    const g = child.val();
-    if (g) aiLive.set(child.key, g);
+    if (g) liveSummaries.set(child.key, g);
   });
   renderLive();
 });

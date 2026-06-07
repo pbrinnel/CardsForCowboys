@@ -26,7 +26,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `creategame.html` | Online game creation |
 | `rules.html` | Standalone rules page |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
-| `history.html` | Game history + leaderboard |
+| `history.html` | Game history + leaderboard; "Live Now" list reads the slim `liveSummary/` node |
 | `aboutthecreators.html` | About page |
 | `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
 | `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
@@ -88,6 +88,8 @@ watchOpponentDrawStates()   ~168  — live-syncs opp hand/deck/discard/stats fro
 waitForAllHumanDrawsDone()  ~199  — resolves when all human slots push drawDone
 waitForPassCard()           ~229  — waits for discard_to_player card from opponent
 waitForDraftRoundPicks()    ~252  — waits for all draft picks in a round
+pushSpectatorState()        ~362  — host pushes full game snapshot to spectatorState; also calls pushLiveSummary()
+pushLiveSummary()           ~401  — host writes slim liveSummary/{code} for the Live Now list (no card state)
 waitForActSetup()           ~361  — non-hosts wait for host to push actSetup (pyramid card IDs)
 waitForBuyAction()          ~396  — waits for a specific slot's buyAction push
 waitForBuyOrder()           ~426  — waits for host to push buyOrder
@@ -557,7 +559,8 @@ Run through this whenever touching Firebase-related files, auth, or configuratio
 The Firebase API key is **intentionally public** — Firebase web app keys are not secrets; security is enforced via Database Rules. However:
 - [ ] The key is hardcoded in TWO places: `src/firebase-config.js` line 9 and `src/play.js` line 13. If the key ever changes, update both.
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
-  - `games` / `liveGames` — **collection-level `.read:true` is required** (in addition to the per-`$gameCode` read) so `history.html`'s Live Now list can enumerate them via `onValue(ref(db,'games'))` / `onValue(ref(db,'liveGames'))`. RTDB read rules do NOT cascade upward — per-`$gameCode` read alone makes the whole-collection read fail with Permission denied, leaving Live Now permanently empty. Do not remove the collection-level read when tightening rules. (This intentionally makes all active games' full state publicly enumerable; spectating is a public feature and codes are listed anyway.)
+  - `liveSummary` — **collection-level `.read:true` required** (same RTDB no-upward-cascade reason as below). This is the node `history.html`'s Live Now list reads via `onValue(ref(db,'liveSummary'))`. Each `liveSummary/$gameCode` is a slim summary (`mode, status, numPlayers, players[{name,isHuman}], phase, act, round, ts`) — **no hands/decks/pyramid**. Written by `MP.pushLiveSummary()` (host only, from `pushSpectatorState`) and `AI_SPEC.push()`. Status flips to `finished` (gameover / `AI_SPEC.finish` / onDisconnect) or `disbanded` (`MP.disband`); stale entries (no push >5 min) are hidden by the list's `ts` filter. Full game state is still loaded only when a visitor opens `spectate.html` (which reads the full `games/{code}` or `liveGames/{code}` node by code). Do NOT make Live Now read the full collections again — that ships ~KB–MB of card state to every visitor (the pre-June-2026 behavior).
+  - `games` / `liveGames` — collection-level `.read:true` is also present (legacy: Live Now used to enumerate these directly). RTDB read rules do NOT cascade upward — per-`$gameCode` read alone makes a whole-collection read fail with Permission denied. Live Now no longer reads these (it reads `liveSummary`), but `spectate.html` still reads them per-code for full state. (This makes all games' full state publicly enumerable; spectating is a public feature and codes are listed anyway.)
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)
   - `emailSignups` / `bugReports` — `read:false`, append-only (`!data.exists()`), shape-validated with length caps and `$other:false`. Both are pulled with the **CLI** (`firebase database:get`), never with a database secret.

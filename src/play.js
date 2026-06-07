@@ -392,10 +392,32 @@ const MP = (() => {
         ts: Date.now(),
       };
       await fbSet(gameRef('spectatorState'), state);
+      await pushLiveSummary();
     } catch (e) {
       // Non-critical — spectator state is best-effort
       console.warn('[MP] pushSpectatorState failed:', e);
     }
+  }
+
+  // Slim public summary for history.html's "Live Now" list (host only).
+  // Lets the list render without downloading full game state (hands/decks/
+  // pyramid) for every visitor. Full state stays in games/{code} and is
+  // loaded only when someone opens spectate.html. Kept in sync because this
+  // is called from pushSpectatorState (the single MP spectator chokepoint).
+  async function pushLiveSummary() {
+    if (!initialized || !isHost || !G || G.phase === 'start') return;
+    try {
+      await fbSet(fbRef(db, `liveSummary/${code}`), {
+        mode: 'mp',
+        status: G.phase === 'gameover' ? 'finished' : 'active',
+        numPlayers: G.numPlayers,
+        players: G.players.map(p => ({ name: p.name, isHuman: p.isHuman })),
+        phase: G.phase,
+        act: G.currentAct,
+        round: G.roundNumber,
+        ts: Date.now(),
+      });
+    } catch (e) { /* best-effort */ }
   }
 
   // Clear actSetup (between acts)
@@ -561,8 +583,10 @@ const MP = (() => {
           numPlayers: G.numPlayers,
           players: G.players.map(p => ({ name: p.name, isHuman: p.isHuman })),
         });
+        await pushLiveSummary();
       } else {
         await fbSet(gameRef('status'), status);
+        try { await fbSet(fbRef(db, `liveSummary/${code}/status`), status); } catch (e) {}
       }
     } catch (e) {}
   }
@@ -588,6 +612,7 @@ const MP = (() => {
     cleanup();
     clearRejoinInfo();
     await fbUpdate(dbRef, { status: 'disbanded', disbandedAt: Date.now() });
+    try { await fbSet(fbRef(db, `liveSummary/${code}/status`), 'disbanded'); } catch (e) {}
     window.location.href = 'index.html';
   }
 
@@ -772,14 +797,29 @@ const AI_SPEC = (() => {
       _code = null;
       return;
     }
-    // Best-effort: mark finished if the tab closes mid-game
+    // Best-effort: mark finished if the tab closes mid-game (both the full
+    // node and the slim summary used by the Live Now list)
     try { _fbOnDisconnect(liveRef('status')).set('finished'); } catch (e) {}
+    try { _fbOnDisconnect(_fbRef(`liveSummary/${_code}/status`)).set('finished'); } catch (e) {}
   }
 
   async function push() {
     if (!_code || !initialized || !G || G.phase === 'start') return;
     try {
       await _fbSet(liveRef('spectatorState'), buildSpectatorState());
+    } catch (e) { /* non-critical */ }
+    // Slim summary for history.html's Live Now list (no full card state)
+    try {
+      await _fbSet(_fbRef(`liveSummary/${_code}`), {
+        mode: 'ai',
+        status: G.phase === 'gameover' ? 'finished' : 'active',
+        numPlayers: G.numPlayers,
+        players: G.players.map(p => ({ name: p.name, isHuman: p.isHuman })),
+        phase: G.phase,
+        act: G.currentAct,
+        round: G.roundNumber,
+        ts: Date.now(),
+      });
     } catch (e) { /* non-critical */ }
   }
 
@@ -789,6 +829,7 @@ const AI_SPEC = (() => {
     _code = null; // prevent further pushes
     try {
       await _fbSet(_fbRef(`liveGames/${code}/status`), 'finished');
+      await _fbSet(_fbRef(`liveSummary/${code}/status`), 'finished');
     } catch (e) {}
   }
 
