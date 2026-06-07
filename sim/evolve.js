@@ -257,10 +257,20 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
       player.hand.push(card);
       core.applyCardEffects(player, card, isFirst);
 
-      // draw4: draw 4 extra immediately
+      // draw4: 4 mandatory draws, with a between-draw jail-negate window (parity with live game)
       if (card.special === 'draw4' && !player.busted) {
         for (let d = 0; d < 4; d++) {
           if (player.busted) break;
+          // Proactively negate with a held jail (-1 bandit) card before each draw if at 2+ bandits.
+          if (player.roundBandits >= 2) {
+            const jail = player.hand.find(c => c.special === 'burn_to_use' && c.bandits < 0);
+            if (jail) {
+              player.hand.splice(player.hand.indexOf(jail), 1);
+              player.roundDollars += jail.dollars;
+              player.roundBandits = Math.max(0, player.roundBandits + jail.bandits);
+              player.roundCows += jail.cows;
+            }
+          }
           const extra = drawFromDeckSeeded(player, rng);
           if (!extra) break;
           player.hand.push(extra);

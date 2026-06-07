@@ -294,6 +294,18 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
     if (card.special === 'draw4' && !player.busted) {
       for (let i = 0; i < 4; i++) {
         if (player.busted) break;
+        // Parity with the live game: BEFORE each mandatory draw, proactively activate a held
+        // jail (-1 bandit) card while at/over jailThreshold bandits, so the AI gets the same
+        // between-draw window to negate before busting (mirrors the main-loop jail logic).
+        if (player.roundBandits >= strategy.jailThreshold) {
+          const jail = player.hand.find(c => c.special === 'burn_to_use' && c.bandits < 0);
+          if (jail) {
+            player.hand.splice(player.hand.indexOf(jail), 1);
+            player.roundDollars += jail.dollars;
+            player.roundBandits = Math.max(0, player.roundBandits + jail.bandits);
+            player.roundCows += jail.cows;
+          }
+        }
         const extra = core.drawFromDeck(player);
         if (!extra) break;
         player.hand.push(extra);

@@ -1121,6 +1121,7 @@ function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
     hasBuyBurnFirst: false,
     hasExtraBuy: false,
     extraBuyUsed: false,
+    forcedDraws: 0,   // mandatory draws still owed from a "Draw 4" (human path)
   };
 }
 
@@ -1286,6 +1287,7 @@ function resetPlayerRound(player) {
   player.hasBuyBurnFirst = false;
   player.hasExtraBuy = false;
   player.extraBuyUsed = false;
+  player.forcedDraws = 0;
 }
 
 // --- CARD EFFECTS ---
@@ -2633,13 +2635,16 @@ function startPlayerDraw() {
 
   if (player.deck.length === 0 && player.discard.length === 0) {
     player.stoppedDrawing = true;
+    player.forcedDraws = 0;   // truly out of cards — end any Draw-4 obligation
     addLog('You have no cards left to draw.');
     onPlayerDrawDone();
     return;
   }
 
-  // Deck empty but discard available — show shuffle prompt directly (skip in tutorial: draw queue handles it)
-  if (!TUTORIAL.active && player.deck.length === 0 && player.discard.length > 0) {
+  // Deck empty but discard available — show shuffle prompt directly (skip in tutorial: draw
+  // queue handles it; skip during a forced Draw-4 so we don't offer "Stop" — playerDraw
+  // auto-reshuffles instead).
+  if (!TUTORIAL.active && player.forcedDraws === 0 && player.deck.length === 0 && player.discard.length > 0) {
     setMessage(`Your deck is empty! Shuffle ${player.discard.length} cards from discard into a new deck?`);
     setActions([
       { text: 'Shuffle Discard', onClick: () => {
@@ -2663,9 +2668,11 @@ function startPlayerDraw() {
     return;
   }
 
+  const forced = player.forcedDraws > 0;
   const activatable = getActivatableCards(player);
   const buttons = [
-    { text: getDrawButtonText(player), onClick: () => playerDraw(), className: getDrawButtonClass(player) },
+    { text: forced ? `Draw Card (${player.forcedDraws} left)` : getDrawButtonText(player),
+      onClick: () => playerDraw(), className: getDrawButtonClass(player) },
   ];
 
   for (const card of activatable) {
@@ -2676,9 +2683,17 @@ function startPlayerDraw() {
     });
   }
 
-  buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0, style: 'margin-left: auto' });
+  // During a forced Draw-4 the player must complete all 4 draws — no early stop. The
+  // activate buttons above stay available so burn-to-use cards can be used between draws.
+  if (!forced) {
+    buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0, style: 'margin-left: auto' });
+  }
 
-  if (!TUTORIAL.active) setMessage(getDrawPhaseMessage(player));
+  if (!TUTORIAL.active) {
+    setMessage(forced
+      ? `Draw 4 — ${player.forcedDraws} mandatory draw${player.forcedDraws > 1 ? 's' : ''} left. Activate cards now if you want them.`
+      : getDrawPhaseMessage(player));
+  }
   setActions(buttons);
   render();
 }
@@ -2694,21 +2709,26 @@ async function playerDraw() {
   if (player.deck.length === 0) {
     if (player.discard.length === 0) {
       player.stoppedDrawing = true;
+      player.forcedDraws = 0;   // nothing left to draw — any Draw-4 obligation ends here
       addLog('No cards left to draw!');
       G.busy = false;
       onPlayerDrawDone();
       return;
     }
-    G.busy = false;
-    const proceed = await playerDrawWithReshuffleCheck();
-    if (!proceed) {
-      onPlayerDrawDone();
+    // During a forced Draw-4 the player can't stop, so skip the Shuffle/Stop prompt and
+    // let drawFromDeck auto-reshuffle below — reshuffle and continue the mandatory draws.
+    if (player.forcedDraws === 0) {
+      G.busy = false;
+      const proceed = await playerDrawWithReshuffleCheck();
+      if (!proceed) {
+        onPlayerDrawDone();
+        return;
+      }
+      // After reshuffle, return to draw prompt so player can see the new deck
+      render();
+      startPlayerDraw();
       return;
     }
-    // After reshuffle, return to draw prompt so player can see the new deck
-    render();
-    startPlayerDraw();
-    return;
   }
 
   const card = drawFromDeck(player);
@@ -2741,34 +2761,19 @@ async function playerDraw() {
   render();
   mpSyncDraw();
 
-  // Handle special: draw4
+  // This draw satisfies one mandatory draw owed from a prior "Draw 4".
+  if (player.forcedDraws > 0) player.forcedDraws--;
+
+  // Handle special: draw4 — grant 4 mandatory draws the player resolves one at a time
+  // through this same flow, so burn-to-use cards can be activated between draws (and thus
+  // before busting). startPlayerDraw hides "Stop" while forcedDraws > 0. (+= so a Draw 4
+  // pulled during another Draw 4 stacks correctly.)
   if (card.special === 'draw4') {
     addLog('Draw 4 more cards!');
+    player.forcedDraws += 4;
     G.busy = false;
-    for (let i = 0; i < 4; i++) {
-      await delay(700);
-      if (player.busted) break;
-      const extraCard = drawFromDeck(player);
-      if (!extraCard) {
-        addLog('Deck and discard both empty — draw 4 cut short.');
-        break;
-      }
-      player.hand.push(extraCard);
-      applyCardEffects(player, extraCard, false);
-      render();
-      animateDrawnCard(extraCard);
-      mpSyncDraw();
-      // Check bust after each draw — busting during draw 4 is possible
-      if (player.roundBandits >= 3) {
-        addLog(`Busted on draw ${i + 1} of 4!`, 'log-bust');
-        await handleBust(player);
-        return;
-      }
-    }
-    render();
-    if (!player.busted) {
-      startPlayerDraw();
-    }
+    if (!player.busted) startPlayerDraw();
+    animateDrawnCard(card);
     return;
   }
 
@@ -2946,6 +2951,21 @@ async function aiDrawPhase(playerIdx) {
     if (card.special === 'draw4' && !ai.busted) {
       for (let i = 0; i < 4; i++) {
         if (ai.busted) break;
+        // Parity with the human path: BEFORE each mandatory draw, proactively activate a
+        // held jail (-1 bandit) card while sitting at 2+ bandits, so the AI gets the same
+        // between-draw window to avoid an otherwise-lethal bust (rule: activate before busting).
+        if (ai.roundBandits >= 2) {
+          const jail = ai.hand.find(c => c.special === 'burn_to_use' && c.bandits < 0);
+          if (jail) {
+            ai.hand.splice(ai.hand.indexOf(jail), 1);
+            ai.roundDollars += jail.dollars;
+            ai.roundBandits = Math.max(0, ai.roundBandits + jail.bandits);
+            ai.roundCows += jail.cows;
+            addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
+            render();
+            await delay(500);
+          }
+        }
         const extra = drawFromDeck(ai);
         if (!extra) break;
         ai.hand.push(extra);
@@ -3352,6 +3372,7 @@ function showBustAnimation() {
 
 async function handleBust(player) {
   player.busted = true;
+  player.forcedDraws = 0;   // busting ends any outstanding Draw-4 obligation
   if (player.isHuman) {
     clearActions();
     setMessage('BUSTED! Review your hand, then clear it when ready.');
@@ -4755,6 +4776,30 @@ function applyDebugScenario(name) {
     special_dollar1_other()      { makeSpecialScenario('card_24', 2); },
     special_discard_to_player()  { makeSpecialScenario('card_4',  2, AI3); },
     special_look3_immediate()    { makeSpecialScenario('card_31', 3); },
+
+    // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
+    // jail card as the very next (first forced) draw. Tests the activate-before-bust window:
+    // draw the 2 bandits, draw the Draw 4, then activate the jail card before the next draws.
+    draw4_jail_2bandits() {
+      const order = [
+        'card_17',    // 1 bandit
+        'card_60',    // 1 bandit   → 2 bandits banked before Draw 4
+        'card_54',    // Draw 4
+        'card_50',    // burn-to-use -1 bandit (the "right after" card)
+        'card_30',    // 1 bandit
+        'starter_91', // safe $1
+        'starter_94', // safe $1
+        'card_43',    // 2 bandits — lethal on the last forced draw unless the jail card is used
+      ];
+      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+      G = initState(2, players);
+      G.currentAct = 2;     // card_54 (Draw 4) is an Act 2 card
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      initAiRng(1, DEBUG_SEED);
+    },
   };
 
   const fn = SCENARIOS[name];

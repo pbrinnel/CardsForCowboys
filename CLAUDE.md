@@ -196,12 +196,22 @@ startRound()                ~2311 — resets players, deals, starts draw phase
 ### Draw Phase (lines ~2413–2670)
 ```
 getActivatableCards(player) ~2417
-startPlayerDraw()           ~2456 — sets up human draw UI
-playerDraw()                ~2512 — resolves a single draw action
+startPlayerDraw()           ~2456 — sets up human draw UI; hides "Stop" while player.forcedDraws > 0
+playerDraw()                ~2512 — resolves a single draw action; decrements forcedDraws; draw4 → forcedDraws += 4
 playerStopDraw()            ~2624
 onPlayerDrawDone()          ~2640 — human done; triggers MP sync + checkDrawPhaseComplete
 checkDrawPhaseComplete()    ~2654 — advances to buy phase when all draws done
 ```
+NOTE (Draw 4 / `forcedDraws`): "Draw 4" (card_54) no longer auto-loops the 4 extra draws.
+It sets `player.forcedDraws += 4`; the player resolves each draw through the normal
+playerDraw flow, so burn-to-use cards (esp. the "-1 bandit" jail cards card_50/card_39)
+can be activated BETWEEN draws — i.e. before busting (matches rules errata). startPlayerDraw
+omits the "Stop" button while forcedDraws > 0, so the 4 draws stay mandatory. Activating a
+card does NOT consume a forced draw. forcedDraws is cleared in handleBust + resetPlayerRound,
+and zeroed when both piles are empty. It is local-human-only state (NOT synced to Firebase) —
+a hard-refresh mid-Draw-4 resets it (accepted edge). AI parity: the aiDrawPhase draw4 loop
+proactively activates a held jail card at 2+ bandits before each forced draw (mirrored in
+sim/ai-player.js and sim/evolve.js).
 
 ### AI Draw Phase (lines ~2667–2950)
 ```
@@ -485,6 +495,19 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 **Fix in place:** Both watcher sites now ALWAYS set discard, treating absent as empty: `opp.discard = (state.discard || []).map(...).filter(Boolean)` — mirroring `hand`/`deck`. `pushDrawState` always writes `discard`, so an absent value unambiguously means empty.
 
 **Do not regress:** Any field synced from Firebase that can legitimately be an empty array (`discard`, and any future array field) must be read with `(value || [])`, never gated on `!== undefined`. Firebase will silently drop the empty case. Verified empirically: writing `discard: []` via REST reads back with the key absent.
+
+---
+
+### 12. "Draw 4" Denied the Burn-to-Use Activation Window (auto-loop drew through bust)
+**Commit:** (June 2026). Reported as unfun: a "Draw 4" could pull a jail ("-1 bandit") card AND a lethal bandit in the same burst, busting you before you could activate the jail card.
+
+**Symptom:** Drawing card_54 ("Draw 4") auto-drew all 4 extra cards back-to-back with no interaction. If a `burn_to_use` -1-bandit card (card_50/card_39) and a 3rd bandit both landed in the burst, you busted without ever getting the activate button — violating the existing rules errata ("Jail cards must be activated *before* busting").
+
+**Root cause:** `playerDraw()`'s draw4 handler was a `for` loop that drew, applied effects, and bust-checked each of the 4 cards with no return to the draw UI between them. The activate buttons only render in `startPlayerDraw()` (between draws), which the loop bypassed. The AI had the identical gap (its draw4 loop bust-checked before reaching its jail-activation block).
+
+**Fix in place:** Draw 4 now sets `player.forcedDraws += 4` and routes each extra draw through the normal `playerDraw`/`startPlayerDraw` flow, so the activate buttons (incl. jail) appear between draws. `startPlayerDraw` hides "Stop" while `forcedDraws > 0` (draws stay mandatory — preserves the card's risk/balance); activating a card does NOT decrement `forcedDraws`. Empty deck mid-Draw-4 auto-reshuffles and continues (only ends when both piles are empty). AI parity: the draw4 loops in `play.js`, `sim/ai-player.js`, and `sim/evolve.js` proactively activate a held jail card at 2+ bandits before each forced draw.
+
+**Do not regress:** Never re-introduce an auto-loop that draws multiple cards without returning to `startPlayerDraw` between them — that's the only place burn-to-use cards can be activated, and skipping it re-breaks the activate-before-bust rule. Keep "Stop" hidden while `forcedDraws > 0`, and keep `forcedDraws` cleared in `handleBust`/`resetPlayerRound`. Errata in rules.html documents the caveat for players.
 
 ---
 
