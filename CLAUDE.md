@@ -557,6 +557,7 @@ Run through this whenever touching Firebase-related files, auth, or configuratio
 The Firebase API key is **intentionally public** — Firebase web app keys are not secrets; security is enforced via Database Rules. However:
 - [ ] The key is hardcoded in TWO places: `src/firebase-config.js` line 9 and `src/play.js` line 13. If the key ever changes, update both.
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
+  - `games` / `liveGames` — **collection-level `.read:true` is required** (in addition to the per-`$gameCode` read) so `history.html`'s Live Now list can enumerate them via `onValue(ref(db,'games'))` / `onValue(ref(db,'liveGames'))`. RTDB read rules do NOT cascade upward — per-`$gameCode` read alone makes the whole-collection read fail with Permission denied, leaving Live Now permanently empty. Do not remove the collection-level read when tightening rules. (This intentionally makes all active games' full state publicly enumerable; spectating is a public feature and codes are listed anyway.)
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)
   - `emailSignups` / `bugReports` — `read:false`, append-only (`!data.exists()`), shape-validated with length caps and `$other:false`. Both are pulled with the **CLI** (`firebase database:get`), never with a database secret.
