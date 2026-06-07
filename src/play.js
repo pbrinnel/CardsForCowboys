@@ -2341,13 +2341,15 @@ async function resumeDrawPhase() {
       const tmpl = findCard(id);
       return tmpl ? createCardInstance(tmpl) : null;
     }).filter(Boolean);
-    // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles)
-    if (drawState.discard !== undefined) {
-      opp.discard = drawState.discard.map(id => {
-        const tmpl = findCard(id);
-        return tmpl ? createCardInstance(tmpl) : null;
-      }).filter(Boolean);
-    }
+    // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles).
+    // ALWAYS set it (treat absent as empty): Firebase omits empty arrays, so a freshly-reshuffled
+    // discard (discard:[]) reads back as undefined. Guarding on `!== undefined` would leave opp.discard
+    // STALE (still holding the pre-reshuffle cards), and scoreRound's discard.push(...hand) would then
+    // double-count those cards. Mirror how hand/deck are restored above with `|| []`.
+    opp.discard = (drawState.discard || []).map(id => {
+      const tmpl = findCard(id);
+      return tmpl ? createCardInstance(tmpl) : null;
+    }).filter(Boolean);
     opp.roundDollars    = drawState.dollars;
     opp.roundCows       = drawState.cows;
     opp.roundBandits    = drawState.bandits;
@@ -2486,13 +2488,15 @@ async function startRound() {
         const tmpl = findCard(id);
         return tmpl ? createCardInstance(tmpl) : null;
       }).filter(Boolean);
-      // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles)
-      if (state.discard !== undefined) {
-        opp.discard = state.discard.map(id => {
-          const tmpl = findCard(id);
-          return tmpl ? createCardInstance(tmpl) : null;
-        }).filter(Boolean);
-      }
+      // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles).
+      // ALWAYS set it (treat absent as empty): Firebase omits empty arrays, so a freshly-reshuffled
+      // discard (discard:[]) reads back as undefined. Guarding on `!== undefined` would leave opp.discard
+      // STALE (still holding the pre-reshuffle cards), and scoreRound's discard.push(...hand) would then
+      // double-count those cards. Mirror how hand/deck are restored above with `|| []`.
+      opp.discard = (state.discard || []).map(id => {
+        const tmpl = findCard(id);
+        return tmpl ? createCardInstance(tmpl) : null;
+      }).filter(Boolean);
       opp.roundDollars      = state.dollars;
       opp.roundCows         = state.cows;
       opp.roundBandits      = state.bandits;

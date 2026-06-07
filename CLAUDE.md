@@ -473,6 +473,19 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 ---
 
+### 11. Opponent Deck Duplication via Empty-Array Omission (rejoin "double starter cards")
+**Commit:** (June 2026). Reported as "after rejoining, non-host players got a second copy of all starter cards" (game 2S5VM9). Confirmed host-side inflation in live data for games 2S5VM9, 73HGM8, DGB7W3, XZDCUX.
+
+**Symptom:** The host's view of a human opponent's deck grows extra copies of cards — specifically the cards that were reshuffled that round. The opponent's OWN client is correct; only the host's `spectatorState` is inflated. On rejoin, `reconstructG` reads the inflated `spectatorState`, so the duplication becomes real for the rejoiner and **compounds with each rejoin**. NOT a rejoin-only bug and NOT related to bug #10 — it happens in normal play whenever an opponent reshuffles; the bust correlation is incidental (busting = heavy drawing = reshuffles).
+
+**Root cause:** Firebase Realtime Database **omits empty arrays** on write. When an opponent reshuffles mid-draw (`discard → deck`), their `discard` becomes `[]`; `pushDrawState` writes `discard: []` but Firebase drops it, so it reads back as `undefined`. The host's `watchOpponentDrawStates` guarded the update with `if (state.discard !== undefined)` (in BOTH `startRound` ~line 2490 AND `resumeDrawPhase` ~line 2345), so it **skipped** the update and left `opp.discard` STALE (still holding the pre-reshuffle cards). Then `scoreRound`'s `opp.discard.push(...opp.hand)` (~line 4148) folded the hand — which now contains those same reshuffled cards — into the stale discard, double-counting them. (`hand`/`deck` were never affected because they're restored with `(state.x || [])`.)
+
+**Fix in place:** Both watcher sites now ALWAYS set discard, treating absent as empty: `opp.discard = (state.discard || []).map(...).filter(Boolean)` — mirroring `hand`/`deck`. `pushDrawState` always writes `discard`, so an absent value unambiguously means empty.
+
+**Do not regress:** Any field synced from Firebase that can legitimately be an empty array (`discard`, and any future array field) must be read with `(value || [])`, never gated on `!== undefined`. Firebase will silently drop the empty case. Verified empirically: writing `discard: []` via REST reads back with the key absent.
+
+---
+
 ### MP Identity Recovery Model (mobile tab eviction)
 **Commits:** (June 2026) — companion hardening to bug #8.
 
