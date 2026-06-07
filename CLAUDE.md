@@ -29,7 +29,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `history.html` | Game history + leaderboard |
 | `aboutthecreators.html` | About page |
 | `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
-| `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: pbrinnel@gmail.com) |
+| `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 
 ### `src/` — App JavaScript
