@@ -296,8 +296,9 @@ showRules() / closeRules()  ~4087
 showDeck() / closeDeck()    ~4097  — My Deck modal (2-row × 3-col suit grid)
 showDeckPeek()              ~4147  — draw-phase ordered deck back preview
 showCardZoom()              ~4186
-toggleOppZone(i)            ~4219
-ensureOpponentZone(i)       ~4232  — creates opp zone DOM only if not already present
+toggleOppZone()             ~4219  — flips opponent-hand visibility for the CURRENT viewport bucket only (see oppHands note below)
+applyOppHands()             ~4219  — applies the current bucket's pref (.collapsed class + arrow) to every opp zone; called from render() and on matchMedia change
+ensureOpponentZone(i)       ~4232  — creates opp zone DOM only if not already present (detail starts WITHOUT .collapsed; applyOppHands sets it)
 toggleLog()                 ~4274
 preloadImages()             ~4283
 applyDebugScenario(name)    ~4302
@@ -425,6 +426,8 @@ When implementing a difficulty picker, the intended mapping is:
 **Root cause:** `render()` was clearing and rebuilding all opponent DOM zones on every call.
 
 **Fix in place:** `ensureOpponentZone(i, container)` (line ~4232) returns early if the zone already exists. `render()` must NOT remove opponent zone elements — only `startGame()` clears them. Do not regress this.
+
+**Opponent-hand default visibility (per-viewport):** opp hands default **expanded on wide / collapsed on mobile** (768px breakpoint), and the header click still toggles all of them. State is two session-only in-memory buckets — `oppHandsPref = {wide:'open', mobile:'closed'}` (NOT persisted; reload resets). `oppHandsBucket()` picks the bucket from `matchMedia('(max-width:768px)')`; `applyOppHands()` writes that bucket's pref onto every opp zone and runs from `render()` (synchronous → no flicker) and on the matchMedia `change` event; `toggleOppZone()` flips only the current bucket. Crossing the breakpoint just shows the other bucket's value — the two are independent. **Collapse reuses the existing `.collapsed` class** (its max-height/opacity/transition are in play.css and its `padding:0` is in playgame.html's inline `<style>`). **Do not** reimplement collapse via separate attribute-selector CSS — doing so orphans that inline `.collapsed { padding:0 }` rule and leaves an ~8px padding sliver in the "collapsed" state (a regression that already cost one debugging session — verify with a screenshot, not `getComputedStyle`, which reads unreliably mid-transition in preview).
 
 ---
 
