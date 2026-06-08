@@ -46,6 +46,19 @@
       margin-left: 0.5rem;
     }
     #spec-phase { color: #d49848; font-style: italic; }
+    #spec-modes { display: inline-flex; gap: 0.35rem; margin-left: 0.6rem; vertical-align: middle; }
+    #spec-modes .mode-badge {
+      background: #2a6e1a;
+      color: #e9e0c6;
+      padding: 0.12rem 0.45rem;
+      font-size: 0.62rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 2px;
+      font-family: Georgia, serif;
+    }
+    #spec-modes .mode-badge.hidden-herd { background: #7a3a8f; }
 
     /* ── Layout ── */
     #spec-main {
@@ -274,6 +287,7 @@
   <div>
     Cards For Cowboys
     <span class="code-badge" id="spec-code">------</span>
+    <span id="spec-modes"></span>
     <span style="margin-left:0.75rem" id="spec-actround"></span>
   </div>
   <div id="spec-phase">Connecting…</div>
@@ -448,6 +462,24 @@ function renderSpectatorState(state) {
   document.getElementById('spec-actround').textContent =
     `Act ${state.act} · Round ${state.round}`;
   document.getElementById('spec-phase').textContent = phaseLabel(state.phase);
+
+  // Mode tags (only render once — flags don't change mid-game)
+  const modesEl = document.getElementById('spec-modes');
+  if (modesEl && !modesEl.dataset.rendered) {
+    modesEl.dataset.rendered = '1';
+    if (state.quickStartMode) {
+      const b = document.createElement('span');
+      b.className = 'mode-badge quick-draft';
+      b.textContent = 'Quick Draft';
+      modesEl.appendChild(b);
+    }
+    if (state.hiddenHerdMode) {
+      const b = document.createElement('span');
+      b.className = 'mode-badge hidden-herd';
+      b.textContent = 'Hidden Herd';
+      modesEl.appendChild(b);
+    }
+  }
 
   // Status bar
   const statusEl = document.getElementById('spec-status-bar');

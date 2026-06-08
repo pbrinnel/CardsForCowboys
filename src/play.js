@@ -721,6 +721,8 @@ function buildSpectatorState() {
     round: G.roundNumber,
     act: G.currentAct,
     numPlayers: G.numPlayers,
+    quickStartMode: !!G.quickStartMode,
+    hiddenHerdMode: !!G.hiddenHerdMode,
     pyramid: G.pyramid.map(row => row.map(slot => ({
       card: serializeCard(slot.card),
       faceUp: slot.faceUp,
