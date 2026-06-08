@@ -5009,6 +5009,13 @@ function applyDebugScenario(name) {
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
 
+    // Same as act3_one_card but with Hidden Herd mode on — opponents' herds show as
+    // "?" until the showdown reveal. Tests the hidden-herd showdown reveal path.
+    act3_one_card_hidden() {
+      SCENARIOS.act3_one_card();
+      G.hiddenHerdMode = true;
+    },
+
     // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
     // jail card as the very next (first forced) draw. Tests the activate-before-bust window:
     // draw the 2 bandits, draw the Draw 4, then activate the jail card before the next draws.
