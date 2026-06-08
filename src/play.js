@@ -4929,6 +4929,24 @@ function applyDebugScenario(name) {
     revealUncovered(pyramid);
   }
 
+  // Removes every pyramid slot except the last card of the bottom row, leaving exactly
+  // one available card. Buying it empties the pyramid → showdown (in Act 3).
+  function oneCardPyramid(pyramid) {
+    const bottom = pyramid[pyramid.length - 1];
+    const keepCol = bottom.length - 1;
+    for (let r = 0; r < pyramid.length; r++) {
+      for (let c = 0; c < pyramid[r].length; c++) {
+        const slot = pyramid[r][c];
+        if (r === pyramid.length - 1 && c === keepCol) {
+          slot.removed = false; slot.faceUp = true;
+        } else {
+          slot.removed = true; slot.faceUp = true;
+        }
+      }
+    }
+    revealUncovered(pyramid);
+  }
+
   function makeSpecialScenario(specialCardId, act, extraNames) {
     const numPlayers = extraNames ? extraNames.length + 1 : 2;
     const players = [createPlayer('You', true, 0)];
@@ -4974,6 +4992,22 @@ function applyDebugScenario(name) {
     special_dollar1_other()      { makeSpecialScenario('card_24', 2); },
     special_discard_to_player()  { makeSpecialScenario('card_4',  2, AI3); },
     special_look3_immediate()    { makeSpecialScenario('card_31', 3); },
+
+    // Act 3 store down to a single available card. Buy it to empty the pyramid and
+    // trigger the showdown immediately — quick way to test the showdown sequence.
+    act3_one_card() {
+      const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
+      const herds  = [32, 29, 35, 28];
+      const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
+      players.forEach((p, i) => { p.herd = herds[i]; });
+      G = initState(4, players);
+      G.currentAct = 3;
+      G.roundNumber = 9;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(3);
+      oneCardPyramid(G.pyramid);
+      for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+    },
 
     // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
     // jail card as the very next (first forced) draw. Tests the activate-before-bust window:
