@@ -175,7 +175,7 @@ mpSyncDraw()                ~1770 — pushes local draw state to Firebase drawSt
 ### Game Flow — Setup (lines ~1779–2130)
 ```
 seededDraftShuffle()        ~1786
-aiDraftPick(pack)           ~1801
+aiDraftPick(pack, ai)       ~1801 — quick-draft AI pick; scores each card via scoreCardForAI(card, ai) (personality-driven, cost-free) and takes the max, tiebreak by card id for cross-client determinism. Scored under current act (Act 1 lens, draft runs before setupAct(2)). NOT mirrored in sim (quick-draft isn't simulated).
 showDraftPackAndWait(pack)  ~1822 — human draft pick UI
 runQuickStartDraft()        ~1900 — full draft flow (3 rounds × N players)
 startGame()                 ~1982 — entry point; branches MP rejoin vs normal; calls setupAct

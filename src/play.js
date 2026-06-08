@@ -1955,14 +1955,16 @@ function seededDraftShuffle(arr, gameSeed) {
   return a;
 }
 
-// AI picks the highest-cost card; tiebreak by most cows, then card id for determinism
-function aiDraftPick(pack) {
+// AI drafts by buy-phase card value (personality-driven). The pick is free, so cost
+// is irrelevant — we reuse scoreCardForAI (the cost-free value half of the buy decision)
+// so draft choices match how each AI values cards everywhere else. Scored under the
+// current act (Act 1 economy lens; the draft runs before setupAct(2)). Ties break by
+// card id for cross-client determinism — all clients compute AI draft picks locally.
+function aiDraftPick(pack, ai) {
   if (!pack || pack.length === 0) return null;
-  return pack.slice().sort((a, b) => {
-    if (b.cost !== a.cost) return b.cost - a.cost;
-    if (b.cows !== a.cows) return b.cows - a.cows;
-    return a.id.localeCompare(b.id);
-  })[0].id;
+  return pack
+    .map(card => ({ id: card.id, score: scoreCardForAI(card, ai) }))
+    .sort((a, b) => (b.score - a.score) || a.id.localeCompare(b.id))[0].id;
 }
 
 // Append a line to the draft overlay's running log
@@ -2093,11 +2095,11 @@ async function runQuickStartDraft() {
       const opponentPicks = await MP.waitForDraftRoundPicks(round);
       for (let i = 1; i < G.numPlayers; i++) {
         const p = G.players[i];
-        picks[i] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packs[i]);
+        picks[i] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packs[i], p);
       }
     } else {
       for (let i = 1; i < G.numPlayers; i++) {
-        picks[i] = aiDraftPick(packs[i]);
+        picks[i] = aiDraftPick(packs[i], G.players[i]);
       }
     }
 
