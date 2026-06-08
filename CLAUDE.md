@@ -237,6 +237,23 @@ NOTE: handlePutOnTop() was permanently removed (May 2026). Card 22 reworked from
       needs put_on_top logic, rebuild from git history (commit before this change).
 ```
 
+### Pass Card — `discard_to_player` (card_4 only) (lines ~4124–4188)
+```
+aiPickPassTarget(fromIdx)   ~4128 — AI chooses the recipient (see note)
+resolvePassCards()          ~4146 — resolves all held discard_to_player cards at scoreRound
+resolveSinglePassCard()     ~4159 — human prompt / AI pick / remote-human Firebase wait
+```
+NOTE (card_4 is a BENEFIT, not a curse): card_4 is the only `discard_to_player` card —
+stats `{dollars:0, cows:0, bandits:-1}`, so when the recipient eventually draws it, it
+gives them −1 bandit (raises their bust ceiling) with zero downside. `cacti` is cosmetic
+(suit identity only; never scored/tiebroken). Therefore `aiPickPassTarget` hands it to the
+WEAKEST opponent (lowest `herd`) to minimize help to a rival — NOT the leader. Ties (several
+opponents at the lowest herd) break via a seeded LCG over their sorted Firebase slots so all
+MP clients pick the same recipient deterministically. This matches the "pass to weakest
+opponent" logic the AI was tuned against in `sim/simulate.js` (~line 210). **Do not regress
+to giving it to the leader** — that was the old (June 2026) behavior and it actively helped
+the front-runner. Card is opponents-only (passer cannot keep it) in both the human UI and AI.
+
 ### Buy Phase (lines ~3265–3590)
 ```
 onDrawPhaseComplete()       ~3269 — called when all draw phases done; kicks off buy ordering
@@ -508,6 +525,35 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 **Fix in place:** Draw 4 now sets `player.forcedDraws += 4` and routes each extra draw through the normal `playerDraw`/`startPlayerDraw` flow, so the activate buttons (incl. jail) appear between draws. `startPlayerDraw` hides "Stop" while `forcedDraws > 0` (draws stay mandatory — preserves the card's risk/balance); activating a card does NOT decrement `forcedDraws`. Empty deck mid-Draw-4 auto-reshuffles and continues (only ends when both piles are empty). AI parity: the draw4 loops in `play.js`, `sim/ai-player.js`, and `sim/evolve.js` proactively activate a held jail card at 2+ bandits before each forced draw.
 
 **Do not regress:** Never re-introduce an auto-loop that draws multiple cards without returning to `startPlayerDraw` between them — that's the only place burn-to-use cards can be activated, and skipping it re-breaks the activate-before-bust rule. Keep "Stop" hidden while `forcedDraws > 0`, and keep `forcedDraws` cleared in `handleBust`/`resetPlayerRound`. Errata in rules.html documents the caveat for players.
+
+---
+
+### 13. Showdown Title/Subtitle Cut Off at Top (CSS specificity: `.overlay` beats `.showdown-overlay`)
+**Commit:** (June 2026)
+
+**Symptom:** During the showdown, the title and "Cards on the table, cowboys." subtitle are clipped off the top of the screen and can't be scrolled to (worse with 4 players / short viewports).
+
+**Root cause:** `.showdown-overlay` (top of `play.css`) set `align-items: flex-start`, but the generic `.overlay` rule is defined **later** in the same file with **equal specificity**, so `align-items: center` won. Tall showdown content was vertically centered and overflowed above the scroll origin — unreachable. (`.overlay`'s background also clobbered the showdown's darker bg.)
+
+**Fix in place:** selector changed to `.overlay.showdown-overlay` (higher specificity) so flex-start + the showdown background win. **Do not regress:** when a base class and a variant class live in the same file, the variant must out-specify the base (compound selector), not rely on source order.
+
+---
+
+### 14. "Burn & Look 3" Didn't Reshuffle Discard When Deck < 3
+**Commit:** (June 2026)
+
+**Symptom:** Activating a look3/rearrange card with fewer than 3 cards in the draw pile only showed the 1–2 remaining cards instead of reshuffling the discard and showing a full top 3.
+
+**Root cause:** `handleLook3` (`~line 3473`) did `player.deck.splice(0, Math.min(3, deck.length))` with no reshuffle — peeking past the deck should pull from discard, mirroring `drawFromDeck`.
+
+**Fix in place:** `handleLook3` reshuffles `discard → deck` (via `shuffleForPlayer`, then `mpSyncDraw`) when `deck.length < 3 && discard.length > 0` before taking the top 3. Both human look-3 paths (`look3_immediate` and `look3_rearrange`) route through `handleLook3`, so both are covered.
+
+**AI parity:** the same reshuffle was mirrored into both AI handlers in `aiDrawPhase` (`look3_rearrange` and `look3_immediate`, ~lines 3021/3033) using `shuffleForPlayer(ai.discard, ai.slotIdx, false)` — the seeded path in MP, so every client's AI deck stays identical (same mechanism as `drawFromDeck`'s reshuffle; no desync). Mirrored in the sim too: `sim/ai-player.js` (uses `core.shuffle`, matching its `core.drawFromDeck`) and `sim/evolve.js` (uses `seededShuffle(discard, rng)`, matching `drawFromDeckSeeded`). The AI burn-decision gate (`deck.length >= 2`) was intentionally left unchanged — only the in-branch reshuffle mechanic was added, so AI burn frequency / personality balance is untouched.
+
+---
+
+### Peek-at-stats overlay must drop dimming/blur
+While the "👁 Peek at stats" mode is active on the rearrange modal, `#special-modal.peeking` sets `background: transparent; backdrop-filter: none` so the player can actually read the game state behind it. Only `#special-modal-content` is `visibility:hidden`; don't reintroduce the dark/blurred backdrop on the peeking state.
 
 ---
 

@@ -356,6 +356,11 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
     if (card.special === 'look3_rearrange' && strategy.look3 === 'always' && player.deck.length >= 2) {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
+      // Parity with game: reshuffle discard in if the draw pile can't fill a top-3.
+      if (player.deck.length < 3 && player.discard.length > 0) {
+        player.deck.push(...core.shuffle(player.discard));
+        player.discard = [];
+      }
       const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
       player.deck.unshift(...top3);
@@ -363,6 +368,11 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
     // Handle look3_immediate (peek and rearrange without burning)
     if (card.special === 'look3_immediate' && player.deck.length >= 2) {
+      // Parity with game: reshuffle discard in if the draw pile can't fill a top-3.
+      if (player.deck.length < 3 && player.discard.length > 0) {
+        player.deck.push(...core.shuffle(player.discard));
+        player.discard = [];
+      }
       const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
       top3.sort((a, b) => a.bandits - b.bandits);
       player.deck.unshift(...top3);

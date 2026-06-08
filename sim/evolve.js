@@ -313,6 +313,11 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
         const idx = player.hand.indexOf(card);
         if (idx >= 0) {
           player.hand.splice(idx, 1);
+          // Parity with game: reshuffle discard in if the draw pile can't fill a top-3.
+          if (player.deck.length < 3 && player.discard.length > 0) {
+            player.deck.push(...seededShuffle(player.discard, rng));
+            player.discard = [];
+          }
           const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
           top3.sort((a, b) => a.bandits - b.bandits);
           player.deck.unshift(...top3);
@@ -321,6 +326,11 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
 
       // look3_immediate: keep card, sort top 3 deck cards (least bandits first)
       if (card.special === 'look3_immediate' && player.deck.length >= 2) {
+        // Parity with game: reshuffle discard in if the draw pile can't fill a top-3.
+        if (player.deck.length < 3 && player.discard.length > 0) {
+          player.deck.push(...seededShuffle(player.discard, rng));
+          player.discard = [];
+        }
         const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
         top3.sort((a, b) => a.bandits - b.bandits);
         player.deck.unshift(...top3);

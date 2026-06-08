@@ -3021,6 +3021,12 @@ async function aiDrawPhase(playerIdx) {
     if (card.special === 'look3_rearrange' && ai.deck.length >= 2) {
       const idx = ai.hand.indexOf(card);
       if (idx >= 0) ai.hand.splice(idx, 1);
+      // Parity with human handleLook3: reshuffle discard in if the draw pile can't fill a top-3.
+      // Seeded shuffle (isHuman=false) keeps every client's AI deck identical.
+      if (ai.deck.length < 3 && ai.discard.length > 0) {
+        ai.deck.push(...shuffleForPlayer(ai.discard, ai.slotIdx, false));
+        ai.discard = [];
+      }
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
       // Sort by full personality-weighted score: draw best cards first
       top3.sort((a, b) => scoreCardForAI(a, ai) - scoreCardForAI(b, ai));
@@ -3031,6 +3037,11 @@ async function aiDrawPhase(playerIdx) {
 
     // Handle look3_immediate for AI
     if (card.special === 'look3_immediate' && ai.deck.length >= 2) {
+      // Parity with human handleLook3: reshuffle discard in if the draw pile can't fill a top-3.
+      if (ai.deck.length < 3 && ai.discard.length > 0) {
+        ai.deck.push(...shuffleForPlayer(ai.discard, ai.slotIdx, false));
+        ai.discard = [];
+      }
       const top3 = ai.deck.splice(0, Math.min(3, ai.deck.length));
       // Sort by full personality-weighted score: draw best cards first
       top3.sort((a, b) => scoreCardForAI(a, ai) - scoreCardForAI(b, ai));
@@ -3471,6 +3482,15 @@ async function handleBurnBuyFirst(player, card) {
 }
 
 async function handleLook3(player) {
+  // If the draw pile can't supply a full peek, reshuffle the discard in first —
+  // drawing/peeking past the deck should pull from discard, not just show fewer cards.
+  if (player.deck.length < 3 && player.discard.length > 0) {
+    const shuffled = shuffleForPlayer(player.discard, player.slotIdx, player.isHuman);
+    player.discard = [];
+    player.deck.push(...shuffled);
+    addLog(`Shuffled ${shuffled.length} cards from discard to look at the top 3.`, 'log-score');
+    mpSyncDraw();
+  }
   const top3 = player.deck.splice(0, Math.min(3, player.deck.length));
   if (top3.length === 0) {
     startPlayerDraw();
@@ -3528,8 +3548,8 @@ async function handleLook3(player) {
 
       // Peek button — always shown at bottom
       const peekBtn = document.createElement('button');
-      peekBtn.className = 'btn btn-secondary btn-small modal-peek-btn';
-      peekBtn.textContent = '👁 Peek at stats';
+      peekBtn.className = 'btn btn-secondary modal-peek-btn';
+      peekBtn.innerHTML = '<span class="peek-eye">👁</span><span class="peek-label">Peek at stats</span>';
       peekBtn.onclick = () => modal.classList.add('peeking');
       content.appendChild(peekBtn);
     }
@@ -4114,17 +4134,26 @@ function pyramidRevealBonus(row, col, revealBonus) {
 
 // --- PASS CARD (discard_to_player) ---
 
-// AI passes the curse card to the current leader (largest herd);
-// tiebreak by lowest Firebase slot index (deterministic on all clients).
+// card_4 (-1 bandit, zero downside) is a BENEFIT to whoever draws it, so the AI
+// hands it to the WEAKEST opponent (smallest herd) to minimize help to a rival.
+// Ties (multiple opponents at the lowest herd) are broken by a seeded draw over the
+// tied players' Firebase slots, so every client deterministically picks the same
+// recipient. Matches the "pass to weakest opponent" logic in sim/simulate.js.
 function aiPickPassTarget(fromPlayerIdx) {
-  return G.players
+  const opponents = G.players
     .map((p, i) => ({ p, i }))
-    .filter(c => c.i !== fromPlayerIdx)
-    .sort((a, b) => {
-      const herdDiff = b.p.herd - a.p.herd;  // descending: target leader first
-      if (herdDiff !== 0) return herdDiff;
-      return G.playerOrder[a.i] - G.playerOrder[b.i];
-    })[0].i;
+    .filter(c => c.i !== fromPlayerIdx);
+  const minHerd = Math.min(...opponents.map(c => c.p.herd));
+  const tied = opponents.filter(c => c.p.herd === minHerd);
+  if (tied.length === 1) return tied[0].i;
+
+  // Deterministic tiebreak: seed an LCG from gameSeed + act/round + passer slot and
+  // pick over the SORTED tied slot indices, so all clients agree without messaging.
+  const tiedSlots = tied.map(c => G.playerOrder[c.i]).sort((a, b) => a - b);
+  let lcg = (((G.gameSeed || 1) ^ (G.act * 73856093) ^ (G.round * 19349663) ^ (fromPlayerIdx + 1)) >>> 0) || 1;
+  lcg = (Math.imul(1664525, lcg) + 1013904223) >>> 0;
+  const pickedSlot = tiedSlots[lcg % tiedSlots.length];
+  return tied.find(c => G.playerOrder[c.i] === pickedSlot).i;
 }
 
 // Resolve all discard_to_player cards across all players before hands are cleared.

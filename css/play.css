@@ -21,7 +21,11 @@
 
 /* ─── Showdown Screen ─── */
 
-.showdown-overlay {
+/* .overlay.showdown-overlay (not bare .showdown-overlay): the generic .overlay rule
+   is defined later in this file with equal specificity, so it would otherwise win and
+   force align-items:center — which vertically centers tall showdown content and pushes
+   the title/subtitle above the scroll origin (cut off, unreachable). */
+.overlay.showdown-overlay {
   align-items: flex-start;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1228,16 +1232,45 @@ body.phase-draw #player-deck-preview {
   box-shadow: 0 0 0 3px #b87838;
 }
 
-/* Peek button inside rearrange modal */
+/* Peek button inside rearrange modal — large, centered eye.
+   The cream modal needs dark-on-light contrast, not the btn-secondary
+   light-on-dark scheme (which is invisible here). */
 .modal-peek-btn {
-  display: block;
-  margin: 1rem auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 1.25rem auto 0;
+  padding: 0.7rem 1.4rem;
+  background: rgba(30, 22, 16, 0.06);
+  color: #1e1610;
+  border: 2px solid #1e1610;
+}
+
+.modal-peek-btn:hover {
+  background: rgba(30, 22, 16, 0.14);
+  color: #1e1610;
+}
+
+.modal-peek-btn .peek-eye {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.modal-peek-btn .peek-label {
   font-size: 0.85rem;
 }
 
 /* Peek mode: hide form content, show restore bar */
 #special-modal.peeking #special-modal-content {
   visibility: hidden;
+}
+
+/* While peeking, drop the overlay's dimming + blur so the player can actually
+   read the game state behind the modal (the "👁 Peek at stats" affordance). */
+#special-modal.peeking {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 #peek-restore-bar {
