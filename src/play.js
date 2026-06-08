@@ -2140,7 +2140,7 @@ async function runQuickStartDraft() {
 }
 
 async function startGame() {
-  document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('showdown-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   document.getElementById('opponents-zone').innerHTML = ''; // clear for fresh game
 
@@ -4420,15 +4420,14 @@ async function startShowdown() {
   }
 
   await delay(300);
-  footer.classList.remove('hidden');
+  // Pause so the last herd bump lands before the winner is crowned, then resolve.
+  await delay(500);
+  showShowdownResult();
 }
 
-function revealWinner() {
-  document.getElementById('showdown-screen').classList.add('hidden');
-  gameOver();
-}
-
-function gameOver() {
+// Crown the winning player's section inline on the showdown screen and reveal the
+// action footer (Play Again / Review / Home). Replaces the old separate game-over screen.
+function showShowdownResult() {
   G.phase = 'gameOver';
   const me = G.players[0];
 
@@ -4446,15 +4445,66 @@ function gameOver() {
     title = "It's a Tie!";
   }
 
-  document.getElementById('gameover-title').textContent = title;
-  document.getElementById('gameover-scores').innerHTML = G.players.map(p =>
-    `<p style="font-size:1.1rem;margin:0.75rem 0">${p === me ? 'You' : p.name}: <strong>${p.herd}</strong> cows</p>`
-  ).join('');
+  document.getElementById('showdown-winner-title').textContent = title;
 
-  document.getElementById('gameover-screen').classList.remove('hidden');
+  // Crown the winning section(s) — sections render in G.players order.
+  const sections = document.querySelectorAll('#showdown-players .showdown-player');
+  G.players.forEach((p, i) => {
+    if (topPlayers.includes(p) && sections[i]) sections[i].classList.add('showdown-winner');
+  });
+
+  document.getElementById('showdown-footer').classList.remove('hidden');
+
   const logParts = G.players.map(p => `${p === me ? 'You' : p.name}: ${p.herd}`).join(', ');
   addLog(`Game Over! ${logParts}.`, 'log-score');
 
+  finalizeGame(topPlayers);
+}
+
+// Rejoin into an already-finished game: there is no live showdown animation to ride,
+// so render the showdown board statically (cards face-up, final herds) then crown + show actions.
+function gameOver() {
+  const screen = document.getElementById('showdown-screen');
+  const playersDiv = document.getElementById('showdown-players');
+  const me = G.players[0];
+
+  playersDiv.innerHTML = '';
+  document.getElementById('showdown-footer').classList.add('hidden');
+  screen.classList.remove('hidden');
+
+  G.players.forEach((player) => {
+    const allCards = [...player.deck, ...player.hand, ...player.discard];
+    const section = document.createElement('div');
+    section.className = 'showdown-player';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'showdown-player-name';
+    nameEl.textContent = player === me ? 'You' : player.name;
+
+    const herdEl = document.createElement('div');
+    herdEl.className = 'showdown-player-herd';
+    herdEl.innerHTML = `Herd: <strong class="showdown-herd-val">${player.herd}</strong>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'showdown-card-grid';
+    allCards.forEach(card => {
+      const el = renderCardEl(card, true);
+      el.onclick = (e) => { e.stopPropagation(); showCardZoom(cardImgSrc(card, true)); };
+      grid.appendChild(el);
+    });
+
+    section.appendChild(nameEl);
+    section.appendChild(herdEl);
+    section.appendChild(grid);
+    playersDiv.appendChild(section);
+  });
+
+  showShowdownResult();
+}
+
+// End-of-game bookkeeping (MP cleanup, history log, review link). DOM result display
+// lives in showShowdownResult(); this only handles persistence/cleanup.
+function finalizeGame(topPlayers) {
   // Capture before AI_SPEC.finish() nulls _code
   const gameCode = MP.active ? (sessionStorage.getItem('mp_code') || null) : (AI_SPEC.code || null);
 

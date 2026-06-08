@@ -210,19 +210,11 @@
       </div>
       <div id="showdown-players"></div>
       <div id="showdown-footer" class="hidden">
-        <button class="btn btn-large" onclick="revealWinner()">See Who Wins</button>
+        <h2 id="showdown-winner-title" class="showdown-winner-title"></h2>
+        <button class="btn btn-large" onclick="restartGame()">Play Again</button>
+        <a id="gameover-review-link" class="btn btn-large hidden" target="_blank">Review Game</a>
+        <a href="index.html" class="back-link">Back to Home</a>
       </div>
-    </div>
-  </div>
-
-  <!-- Game Over Screen -->
-  <div id="gameover-screen" class="overlay hidden">
-    <div class="overlay-content">
-      <h1 id="gameover-title">Game Over</h1>
-      <div id="gameover-scores"></div>
-      <button class="btn btn-large" onclick="restartGame()">Play Again</button>
-      <a id="gameover-review-link" class="btn btn-large hidden" target="_blank">Review Game</a>
-      <a href="index.html" class="back-link">Back to Home</a>
     </div>
   </div>
 

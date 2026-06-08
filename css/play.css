@@ -170,10 +170,42 @@
   margin-top: 0.1rem;
 }
 
+/* Winner crown — applied to the top-herd player's section after scoring resolves */
+.showdown-player.showdown-winner {
+  border-color: #e8c872;
+  position: relative;
+  animation: winnerGlow 1.4s ease-in-out infinite alternate;
+}
+
+.showdown-player.showdown-winner::before {
+  content: "\1F3C6"; /* trophy */
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.7rem;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+}
+
+@keyframes winnerGlow {
+  from { box-shadow: 0 0 0 2px #e8c872, 2px 2px 0 #1e1610, 0 0 14px rgba(232,200,114,0.4); }
+  to   { box-shadow: 0 0 0 2px #e8c872, 2px 2px 0 #1e1610, 0 0 30px rgba(232,200,114,0.85); }
+}
+
 #showdown-footer {
   text-align: center;
   padding: 0.5rem 1rem 1rem;
   animation: tallyAppear 0.5s ease-out both;
+}
+
+.showdown-winner-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: 2rem;
+  color: #e8c872;
+  text-shadow: 0 0 24px rgba(232,200,114,0.6), 0 2px 4px rgba(0,0,0,0.8);
+  margin-bottom: 0.9rem;
+  animation: showdownReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (max-width: 480px) {

@@ -284,11 +284,19 @@ pyramidRevealBonus(r, c, b) ~3707  — b = cfg.revealBonus (per-personality, was
 endBuyPhase()               ~3807
 scoreRound()                ~3812
 endAct()                    ~3846
-startShowdown()             ~3861 — final scoring, card flip animations
-revealWinner()              ~3996
-gameOver()                  ~4001
+startShowdown()             ~3861 — final scoring + card flip animations; ends by calling showShowdownResult (no more "See Who Wins" button / separate game-over screen)
+showShowdownResult()        ~4426 — crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
+gameOver()                  ~4470 — REJOIN-ONLY now: rebuilds the showdown board statically (cards face-up, final herds) for a rejoin into an already-finished game, then calls showShowdownResult. (Animated live games go through startShowdown instead.)
+finalizeGame(topPlayers)    ~4505 — end-of-game bookkeeping only (MP cleanup, gameHistory log, AI review link). No result DOM.
 disbandGame()               ~4064
 ```
+NOTE (final screen, June 2026): the old two-step "See Who Wins" button → separate
+`#gameover-screen` overlay was removed. The showdown screen IS the results screen now —
+after scoring resolves, the winner's section is crowned in place and the action footer
+(`#showdown-footer`) reveals Play Again / Review / Back to Home. `revealWinner()` is gone;
+the `#gameover-screen` / `#gameover-title` / `#gameover-scores` markup was deleted from
+playgame.html (the review link kept its `#gameover-review-link` id, now inside the footer).
+`startGame()` hides `#showdown-screen` (not the deleted gameover screen) on replay.
 
 ### UI Helpers (lines ~4070–4380)
 ```
