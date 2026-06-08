@@ -1562,6 +1562,7 @@ function render() {
     ensureOpponentZone(i, oz);
     renderPlayerZone(G.players[i], 'opp-' + i);
   }
+  applyOppHands();
 
   // Pyramid
   renderPyramid();
@@ -4761,18 +4762,34 @@ function hideCardHoverPreview() {
 
 // --- COLLAPSIBLE SECTIONS ---
 
-function toggleOppZone(i) {
-  // Determine the new state from the clicked zone, then apply to all opponent zones
-  const clickedDetail = document.getElementById('opp-' + i + '-detail');
-  const nowCollapsed = !clickedDetail.classList.contains('collapsed');
+// Opponent hand visibility is remembered independently per viewport (wide vs
+// mobile), session-only \u2014 no persistence across reloads. Defaults: expanded on
+// wide screens, collapsed on mobile. Crossing the breakpoint shows whatever the
+// other bucket is currently set to. Collapse itself reuses the existing
+// `.collapsed` class (max-height/opacity/padding/transition already styled);
+// this only decides which opponent zones carry it.
+const OPP_HANDS_MQ = window.matchMedia('(max-width: 768px)');
+const oppHandsPref = { wide: 'open', mobile: 'closed' };
+function oppHandsBucket() { return OPP_HANDS_MQ.matches ? 'mobile' : 'wide'; }
+// Apply the current viewport bucket's preference to every opponent zone.
+function applyOppHands() {
+  if (typeof G === 'undefined' || !G || !G.numPlayers) return;
+  const collapsed = oppHandsPref[oppHandsBucket()] === 'closed';
   for (let j = 1; j < G.numPlayers; j++) {
     const detail = document.getElementById('opp-' + j + '-detail');
     const toggle = document.getElementById('opp-' + j + '-toggle');
     if (!detail) continue;
-    detail.classList.toggle('collapsed', nowCollapsed);
-    toggle.textContent = nowCollapsed ? '\u25bc' : '\u25b2';
+    detail.classList.toggle('collapsed', collapsed);
+    if (toggle) toggle.textContent = collapsed ? '\u25bc' : '\u25b2';
   }
 }
+// Clicking any opponent header toggles all opponent hands for the current viewport only.
+function toggleOppZone() {
+  const b = oppHandsBucket();
+  oppHandsPref[b] = oppHandsPref[b] === 'open' ? 'closed' : 'open';
+  applyOppHands();
+}
+OPP_HANDS_MQ.addEventListener('change', applyOppHands);
 
 function ensureOpponentZone(i, container) {
   if (document.getElementById('opp-zone-' + i)) return; // already present — preserve collapse state
@@ -4804,7 +4821,7 @@ function ensureOpponentZone(i, container) {
       '</div>' +
       '<span id="' + prefix + '-toggle" class="collapse-toggle">▼</span>' +
     '</div>' +
-    '<div id="' + prefix + '-detail" class="collapsible collapsed">' +
+    '<div id="' + prefix + '-detail" class="collapsible">' +
       '<div class="player-info">' +
         '<span class="discard-display">Discard: <strong id="' + prefix + '-discard-count">0</strong></span>' +
       '</div>' +
