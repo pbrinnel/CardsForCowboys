@@ -777,6 +777,37 @@ body.phase-draw #player-deck-preview {
   min-height: 50px;
 }
 
+/* Opponent drawn cards are laid out as a flat overlapping fan (JS sets each
+   card's absolute left/top/z-index in layoutOpponentFan). Cards spread across
+   up to 3 rows and tighten as the count grows, so the hand never overflows the
+   collapsible or needs a scrollbar. Card size MUST match cardW/cardH in
+   layoutOpponentFan(). */
+.opp-zone .hand {
+  position: relative;
+  display: block;
+  flex-wrap: nowrap;
+  /* Absolutely-positioned fan cards contribute no intrinsic width, so claim the
+     remaining row width explicitly — otherwise the hand collapses to 0 and the
+     fan can't measure its container. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.opp-zone .hand .card {
+  width: 52px;
+  height: 73px;
+  /* slightly faster than the base card transition so the hover lift feels snappy */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Lift the hovered card clear of its neighbours so it's fully readable in a
+   tight fan (the floating hover-preview also pops a large copy alongside). */
+.opp-zone .hand .card:hover {
+  transform: translateY(-8px) scale(1.06);
+  z-index: 600 !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+}
+
 /* Hand (drawn cards) */
 .hand {
   display: flex;

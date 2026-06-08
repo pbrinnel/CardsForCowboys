@@ -291,6 +291,12 @@
           <strong>Quick Start</strong> — Skip Act 1. Each player drafts 4 cards from the Act 1 deck, then Act 2 begins.
         </span>
       </label>
+      <label class="mode-toggle">
+        <input type="checkbox" id="hh-checkbox" onchange="toggleHiddenHerd(this.checked)">
+        <span class="mode-toggle-text">
+          <strong>Hidden Herd</strong> — Opponents' herd totals stay secret until the final showdown.
+        </span>
+      </label>
     </div>
 
     <div class="section-label">How many players?</div>
@@ -474,6 +480,8 @@
     let p2Difficulty = 'medium';
     let quickStartMode = false;
     function toggleQuickStart(checked) { quickStartMode = checked; }
+    let hiddenHerdMode = false;
+    function toggleHiddenHerd(checked) { hiddenHerdMode = checked; }
     const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
     const slotDifficulties = { 3: { 2: 'medium', 3: 'medium' }, 4: { 2: 'medium', 3: 'medium', 4: 'medium' } };
 
@@ -520,6 +528,7 @@
     function startGame() {
       const myName = document.getElementById('player-name').value.trim() || 'Cowboy';
       sessionStorage.setItem('quick_start_mode', quickStartMode ? '1' : '0');
+      sessionStorage.setItem('hidden_herd_mode', hiddenHerdMode ? '1' : '0');
       if (playerCount === 2) {
         if (p2Type === 'ai') {
           const usedPersonalities = new Set();

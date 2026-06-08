@@ -157,7 +157,9 @@ getDrawLeaders()            ~1303 — used by turn order bar
 updateTurnOrderBar()        ~1339
 updateZoneStates()          ~1374 — greys out zones, manages pointer-events
 render()                    ~1403 — full DOM refresh; does NOT clear opp zones
-renderPlayerZone(player)    ~1482
+renderPlayerZone(player)    ~1482 — opponents fan their hand via layoutOpponentFan (local player hand untouched)
+layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed). Card size must match `.opp-zone .hand .card` in play.css (52×73).
+relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
 renderPyramid()             ~1585
 renderLog()                 ~1638
@@ -316,6 +318,8 @@ G = {
   playerOrder: [slotIdx],  // Firebase slot index for each G.players[i]
   gameSeed: number,
   buyOrder: [playerIdx],   // G.players indices in buy sequence this round
+  quickStartMode: bool,    // skip Act 1, draft 4 cards (gamesetup checkbox)
+  hiddenHerdMode: bool,    // conceal opponents' herd totals until showdown (gamesetup checkbox)
 }
 
 // Player object
@@ -327,6 +331,18 @@ player = {
   _syncedDiscardCount,  // MP: synced from Firebase, used in renderPlayerZone
 }
 ```
+
+---
+
+## Game Mode / Setup Flags
+
+Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed 3-layer path. To add a new one, mirror an existing flag (`quickStartMode`, `hiddenHerdMode`) at each layer:
+
+1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
+2. **`src/creategame.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
+3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 187); `startGame` sets `G.<flag>Mode` in all branches (MP cfg ~2225, tutorial ~2236, AI/sessionStorage ~2251); **rejoin must also set it in `reconstructG`** (~2347) or a refresh loses the mode.
+
+**Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
 ---
 

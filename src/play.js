@@ -184,7 +184,7 @@ const MP = (() => {
       const s = (data.slots && data.slots[i]) || {};
       _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
-    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false };
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false, hiddenHerdMode: data.hiddenHerdMode || false };
   }
 
   // Push local player's full draw state (hand + deck + stats) after every draw action
@@ -1621,8 +1621,16 @@ function triggerHerdBump(prefix) {
 
 function renderPlayerZone(player, prefix) {
   const herdEl = document.getElementById(prefix + '-herd');
-  herdEl.textContent = player.herd;
-  applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), player.herd);
+  // Hidden Herd mode: conceal opponents' herd totals until the final showdown.
+  // The local player (prefix 'player') always sees their own herd.
+  const concealHerd = G.hiddenHerdMode && prefix !== 'player' && G.phase !== 'showdown';
+  if (concealHerd) {
+    herdEl.textContent = '?';
+    applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), 0);
+  } else {
+    herdEl.textContent = player.herd;
+    applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), player.herd);
+  }
   document.getElementById(prefix + '-deck-count').textContent = player.deck.length;
   // For remote players, use the synced discard count (current pile size, not cumulative),
   // since their local discard array isn't kept in sync after reshuffles.
@@ -1679,6 +1687,9 @@ function renderPlayerZone(player, prefix) {
       const el = renderCardEl(card, showFaceUp, classes);
       handEl.appendChild(el);
     }
+    // Opponents fan their drawn cards into a fixed 3-row space; the local player
+    // keeps the normal wrapping hand (intentionally untouched).
+    if (prefix !== 'player') layoutOpponentFan(handEl);
   }
 
   // Deck preview (show back of next card)
@@ -2223,6 +2234,7 @@ async function startGame() {
     // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
     G.quickStartMode = cfg.quickStartMode || false;
+    G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   } else {
     // Tutorial mode: skip gamesetup.html entirely
     const isTutorial = new URLSearchParams(location.search).has('tutorial') ||
@@ -2234,6 +2246,7 @@ async function startGame() {
       G.gameSeed = 0;
       G.seatOrder = [0, 1];
       G.quickStartMode = false;
+      G.hiddenHerdMode = false;
       TUTORIAL.init(G);
     } else {
       // Read player config from sessionStorage (set by game.html for 3P/4P)
@@ -2249,6 +2262,7 @@ async function startGame() {
       G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
       G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
       G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
+      G.hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
     }
   }
 
@@ -2341,6 +2355,7 @@ async function reconstructG(state, cfg) {
 
   G = initState(cfg.numPlayers, players);
   G.playerOrder = G_playerOrder;
+  G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   G.phase       = state.phase;
   G.currentAct  = state.act;
   G.roundNumber = state.round;
@@ -4229,9 +4244,16 @@ async function scoreRound() {
   G.players.forEach((player, playerIdx) => {
     if (!player.busted && player.roundCows !== 0) {
       player.herd = Math.max(0, player.herd + player.roundCows);
-      addLog(`${player.name} adds ${player.roundCows} cows to herd (total: ${player.herd}).`, 'log-score');
       const prefix = playerIdx === 0 ? 'player' : `opp-${playerIdx}`;
-      triggerHerdBump(prefix);
+      // Hidden Herd mode: don't reveal opponents' running totals (or even that they
+      // scored) via the log or the bump animation — only the cows-this-round count.
+      const concealHerd = G.hiddenHerdMode && playerIdx !== 0;
+      if (concealHerd) {
+        addLog(`${player.name} adds ${player.roundCows} cows to their herd.`, 'log-score');
+      } else {
+        addLog(`${player.name} adds ${player.roundCows} cows to herd (total: ${player.herd}).`, 'log-score');
+        triggerHerdBump(prefix);
+      }
     }
   });
 
@@ -4637,6 +4659,84 @@ function initHoverDelegation() {
     const slot = G.pyramid?.[row]?.[col];
     return (slot && slot.faceUp && !slot.removed) ? slot.card : null;
   });
+
+  // Opponent fans live in dynamically-created zones, so delegate on the static
+  // #opponents-zone container. uids are globally unique → search every opponent.
+  attachDelegated(document.getElementById('opponents-zone'), (el) => {
+    if (!G) return null;
+    const uid = +el.dataset.uid;
+    for (let i = 1; i < G.players.length; i++) {
+      const c = G.players[i].hand.find(cc => cc.uid === uid);
+      if (c) return c;
+    }
+    return null;
+  });
+
+  // Opponent fans are sized from the live container width, which changes when the
+  // window resizes (zones are flex:1 and reflow with player count / viewport).
+  let fanResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(fanResizeTimer);
+    fanResizeTimer = setTimeout(relayoutOpponentFans, 120);
+  });
+}
+
+// Re-runs the fan layout for every opponent hand from its current DOM cards.
+// Pure geometry off the live container width — safe to call on resize.
+function relayoutOpponentFans() {
+  if (!G) return;
+  for (let i = 1; i < G.numPlayers; i++) {
+    const handEl = document.getElementById('opp-' + i + '-hand');
+    if (handEl) layoutOpponentFan(handEl);
+  }
+}
+
+// Flat overlap "fan" for an opponent's drawn cards (opp zones only — never the
+// local player's hand). Cards spread across up to 3 rows (oldest top-left →
+// newest bottom-right); rows are added before any overlap, and only once all 3
+// rows are full do the cards start overlapping — tighter as the count grows, so
+// nothing is ever clipped or needs a scrollbar. Newest card always sits on top.
+function layoutOpponentFan(handEl) {
+  const cards = Array.from(handEl.children).filter(el => el.classList.contains('card'));
+  const N = cards.length;
+  handEl.style.position = 'relative';
+  if (N === 0) { handEl.style.height = ''; return; }
+
+  // Card size here must match `.opp-zone .hand .card` in play.css.
+  const cardW = 52, cardH = 73, gap = 6, rowGap = 6;
+  let W = handEl.clientWidth;
+  if (!W || W < cardW) W = 240; // fallback before first layout settles
+
+  const perRowNoOverlap = Math.max(1, Math.floor((W + gap) / (cardW + gap)));
+  // Prefer adding rows (up to 3) over overlapping — "spread evenly across rows".
+  const rows = Math.min(3, Math.max(1, Math.ceil(N / perRowNoOverlap)));
+
+  // Distribute cards across the rows, earlier (upper) rows taking any remainder
+  // so the oldest cards sit top-left and the newest end bottom-right.
+  const base = Math.floor(N / rows);
+  const rem  = N % rows;
+  let idx = 0;
+  for (let r = 0; r < rows; r++) {
+    const k = base + (r < rem ? 1 : 0);
+    const top = r * (cardH + rowGap);
+    const fullWidth = k * cardW + (k - 1) * gap;
+    let step, startX;
+    if (fullWidth <= W) {
+      step = cardW + gap;
+      startX = (W - fullWidth) / 2;     // center a non-overlapping row
+    } else {
+      step = (W - cardW) / (k - 1);     // overlap to fit exactly → tightens as k grows
+      startX = 0;
+    }
+    for (let c = 0; c < k; c++, idx++) {
+      const el = cards[idx];
+      el.style.position = 'absolute';
+      el.style.left = (startX + c * step) + 'px';
+      el.style.top = top + 'px';
+      el.style.zIndex = String(idx);    // global draw order → newest on top everywhere
+    }
+  }
+  handEl.style.height = (rows * cardH + (rows - 1) * rowGap) + 'px';
 }
 
 function showCardHoverPreview(cardEl, card) {
@@ -4670,7 +4770,7 @@ function toggleOppZone(i) {
     const toggle = document.getElementById('opp-' + j + '-toggle');
     if (!detail) continue;
     detail.classList.toggle('collapsed', nowCollapsed);
-    toggle.textContent = nowCollapsed ? '\u25BC' : '\u25B2';
+    toggle.textContent = nowCollapsed ? '\u25bc' : '\u25b2';
   }
 }
 
@@ -4702,7 +4802,7 @@ function ensureOpponentZone(i, container) {
           '<span class="hud-stat-icon-wrap"><img src="assets/symbols/hud-bandit.png" class="hud-stat-icon" alt="Bandits"><strong id="' + prefix + '-round-bandits">0</strong></span>' +
         '</span>' +
       '</div>' +
-      '<span id="' + prefix + '-toggle" class="collapse-toggle">\u25BC</span>' +
+      '<span id="' + prefix + '-toggle" class="collapse-toggle">▼</span>' +
     '</div>' +
     '<div id="' + prefix + '-detail" class="collapsible collapsed">' +
       '<div class="player-info">' +
