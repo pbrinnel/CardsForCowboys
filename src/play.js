@@ -3549,7 +3549,7 @@ async function handleLook3(player) {
       // Peek button — always shown at bottom
       const peekBtn = document.createElement('button');
       peekBtn.className = 'btn btn-secondary modal-peek-btn';
-      peekBtn.innerHTML = '<span class="peek-eye">👁</span><span class="peek-label">Peek at stats</span>';
+      peekBtn.textContent = 'Peek at Table';
       peekBtn.onclick = () => modal.classList.add('peeking');
       content.appendChild(peekBtn);
     }
