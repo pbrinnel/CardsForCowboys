@@ -109,6 +109,13 @@
       cursor: pointer;
       text-decoration: underline;
     }
+    .btn-share { background: #2a6e1a; color: #f3ead2; }
+    .share-hint {
+      font-size: 0.75rem;
+      color: #5c3a1e;
+      margin: 0.5rem 0 0.25rem;
+      font-style: italic;
+    }
     .back-link {
       display: block;
       margin-top: 1.5rem;
@@ -170,10 +177,11 @@
 
   <!-- Screen 2: Waiting for opponents (host) -->
   <div id="screen-waiting" class="hidden">
-    <p class="section-label">Game created! Share this code:</p>
+    <p class="section-label">Game created! Invite your friends:</p>
+    <button class="btn btn-share" id="btn-share-invite" onclick="shareInvite()">🔗 Share Invite Link</button>
+    <p class="share-hint">Or have them enter this code:</p>
     <div class="game-code" id="display-code"></div>
-    <div class="share-link" id="share-link" onclick="copyShareLink()">Click to copy invite link</div>
-    <div class="share-link" id="spectate-link" onclick="copySpectateLink()" style="margin-top:-0.25rem;font-size:0.7rem;color:#5c3a1e">Copy spectator link</div>
+    <div class="share-link" id="spectate-link" onclick="copySpectateLink()" style="font-size:0.7rem;color:#5c3a1e">Copy spectator link</div>
     <div id="waiting-slot-list" class="slot-list"></div>
     <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
   </div>

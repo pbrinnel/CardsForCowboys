@@ -114,8 +114,7 @@ async function createGame() {
   // Invite link points to lobby.html (join page)
   const base = location.origin + location.pathname.replace('creategame.html', '');
   const link = `${base}lobby.html?join=${gameCode}`;
-  document.getElementById('share-link').dataset.link = link;
-  document.getElementById('share-link').textContent = link;
+  document.getElementById('btn-share-invite').dataset.link = link;
   // Spectator link
   const spectateLink = `${base}spectate.html?code=${gameCode}`;
   const spectateEl = document.getElementById('spectate-link');
@@ -154,15 +153,40 @@ function cleanup() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
 }
 
-// --- Copy invite link ---
-window.copyShareLink = function() {
-  const el = document.getElementById('share-link');
-  navigator.clipboard.writeText(el.dataset.link).then(() => {
-    const prev = el.textContent;
-    el.textContent = '\u2713 Copied!';
-    setTimeout(() => { el.textContent = prev; }, 2000);
-  });
+// --- Share invite link (native share sheet on mobile, clipboard fallback) ---
+window.shareInvite = async function() {
+  const el = document.getElementById('btn-share-invite');
+  const link = el.dataset.link;
+  if (!link) return;
+  // Native share sheet (mobile) \u2014 best UX where available
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Cards For Cowboys',
+        text: 'Join my game of Cards For Cowboys!',
+        url: link,
+      });
+      return;
+    } catch (err) {
+      // User cancelled the share sheet \u2014 do nothing
+      if (err && err.name === 'AbortError') return;
+      // Otherwise fall through to clipboard copy
+    }
+  }
+  // Clipboard fallback
+  try {
+    await navigator.clipboard.writeText(link);
+    flashShareButton(el, '\u2713 Link copied!');
+  } catch (err) {
+    flashShareButton(el, link);
+  }
 };
+
+function flashShareButton(el, msg) {
+  const prev = el.textContent;
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = prev; }, 2000);
+}
 
 // --- Copy spectator link ---
 window.copySpectateLink = function() {
