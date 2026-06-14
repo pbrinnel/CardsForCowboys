@@ -44,9 +44,9 @@ const TUTORIAL = (() => {
       .replace(/\[bandit\]/g,  sym('1 Bandit-01.png',         'Bandit'))
       .replace(/\[cow\]/g,     sym('1 Cow-01.png',            'Cow'))
       .replace(/\[dollar\]/g,  sym('$1-01.png',               '$'))
-      .replace(/\[river\]/g,   back('Blue Inline-01.jpg',     'River'))
-      .replace(/\[cactus\]/g,  back('Yellow Inline-01.jpg',   'Cactus'))
-      .replace(/\[rattle\]/g,  back('Red Inline-01.jpg',      'Rattlesnake'))
+      .replace(/\[river\]/g,   back('River Back.jpg',         'River'))
+      .replace(/\[cactus\]/g,  back('Cactus Back.jpg',        'Cactus'))
+      .replace(/\[rattle\]/g,  back('Rattlesnake Back.jpg',   'Rattlesnake'))
       .replace(/\n/g,          '<br>');
   }
 

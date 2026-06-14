@@ -852,7 +852,7 @@ function mpLog(...args) {
 
 const CARD_IMG_PATH = 'assets/cards/All-Cards/';
 const BACK_IMG_PATH = 'assets/backs/';
-const CACTI_BACK = { 1: 'Blue Inline-01.jpg', 2: 'Yellow Inline-01.jpg', 3: 'Red Inline-01.jpg' };
+const CACTI_BACK = { 1: 'River Back.jpg', 2: 'Cactus Back.jpg', 3: 'Rattlesnake Back.jpg' };
 
 // --- CARD DATABASE ---
 
@@ -1380,7 +1380,7 @@ function addLog(text, className) {
 
 function cardImgSrc(card, faceUp) {
   if (!faceUp) {
-    return BACK_IMG_PATH + (CACTI_BACK[card.cacti] || 'Blue Inline-01.jpg');
+    return BACK_IMG_PATH + (CACTI_BACK[card.cacti] || 'River Back.jpg');
   }
   return CARD_IMG_PATH + card.img;
 }
