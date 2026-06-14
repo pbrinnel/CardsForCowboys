@@ -37,8 +37,8 @@
     body {
       min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
+      overflow-x: hidden;
       background-color: #e9e0c6;
       font-family: Georgia, 'Times New Roman', serif;
       color: #1e1610;
@@ -46,6 +46,7 @@
     .home {
       text-align: center;
       padding: 2rem 2rem 6rem;
+      margin: auto;
     }
     h1 {
       font-family: 'Playfair Display', Georgia, serif;
@@ -61,6 +62,54 @@
       color: #3a2a1a;
       font-style: italic;
       margin-bottom: 2rem;
+    }
+    .deck-fan {
+      position: relative;
+      width: 330px;
+      height: 232px;
+      margin: 0 auto 1.6rem;
+    }
+    .deck-fan .fan-card {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 150px;
+      margin-left: -75px;
+      transform-origin: bottom center;
+      transition: transform 0.45s cubic-bezier(0.2, 0.85, 0.2, 1);
+    }
+    .deck-fan .fan-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      box-shadow: 4px 6px 0 rgba(30, 22, 16, 0.22);
+    }
+    .deck-fan .fan-card.l { transform: translateX(-70px) rotate(-12deg); z-index: 1; }
+    .deck-fan .fan-card.m { transform: translateX(0) rotate(0deg); z-index: 3; }
+    .deck-fan .fan-card.r { transform: translateX(70px) rotate(12deg); z-index: 2; }
+    .fan-bandit {
+      position: absolute;
+      left: 50%;
+      top: 18px;
+      width: 86px;
+      margin-left: -43px;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .fan-bandit img { display: block; width: 100%; }
+    .fan-bandit.b1 { transform: translateX(-100px); }
+    .fan-bandit.b2 { transform: translateX(100px); }
+    @media (hover: hover) {
+      .deck-fan:hover .fan-card.l { transform: translateX(-150px) translateY(-10px) rotate(-19deg); }
+      .deck-fan:hover .fan-card.r { transform: translateX(150px) translateY(-10px) rotate(19deg); }
+      .deck-fan:hover .fan-card.m { transform: translateY(-22px) scale(1.04); }
+    }
+    .deck-fan.fanned .fan-card.l { transform: translateX(-150px) translateY(-10px) rotate(-19deg); }
+    .deck-fan.fanned .fan-card.r { transform: translateX(150px) translateY(-10px) rotate(19deg); }
+    .deck-fan.fanned .fan-card.m { transform: translateY(-22px) scale(1.04); }
+    @media (max-width: 540px) {
+      .deck-fan { transform: scale(0.66); transform-origin: top center; height: 154px; cursor: pointer; }
     }
     .menu-stack {
       display: flex;
@@ -212,6 +261,14 @@
     <h1>Cards For Cowboys</h1>
     <p class="tagline">A Streamlined Deck Builder<br>No Draw Limits — But Watch Out for Those Bandits!</p>
 
+    <div class="deck-fan" aria-hidden="true">
+      <div class="fan-bandit b1"><img src="assets/symbols/1%20Bandit-01.png" alt=""></div>
+      <div class="fan-bandit b2"><img src="assets/symbols/1%20Bandit-01.png" alt=""></div>
+      <div class="fan-card l"><img src="assets/backs/River%20Back.jpg" alt=""></div>
+      <div class="fan-card r"><img src="assets/backs/Rattlesnake%20Back.jpg" alt=""></div>
+      <div class="fan-card m"><img src="assets/backs/Cactus%20Back.jpg" alt=""></div>
+    </div>
+
     <div id="rejoin-banner">
       <strong>Game in progress!</strong> You were in game <span id="rejoin-code"></span>.
       <div class="rejoin-btns">
@@ -305,6 +362,19 @@
       try { localStorage.removeItem('cfc_rejoin'); } catch (e) {}
       document.getElementById('rejoin-banner').style.display = 'none';
     }
+  </script>
+
+  <script>
+    (function() {
+      var fan = document.querySelector('.deck-fan');
+      if (!fan) return;
+      // On touch / no-hover devices, tap the deck to toggle the fan-out.
+      if (window.matchMedia('(hover: none)').matches) {
+        fan.addEventListener('click', function() {
+          fan.classList.toggle('fanned');
+        });
+      }
+    })();
   </script>
 </body>
 </html>
