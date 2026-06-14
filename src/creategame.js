@@ -115,13 +115,6 @@ async function createGame() {
   const base = location.origin + location.pathname.replace('creategame.html', '');
   const link = `${base}lobby.html?join=${gameCode}`;
   document.getElementById('btn-share-invite').dataset.link = link;
-  // Spectator link
-  const spectateLink = `${base}spectate.html?code=${gameCode}`;
-  const spectateEl = document.getElementById('spectate-link');
-  if (spectateEl) {
-    spectateEl.dataset.link = spectateLink;
-    spectateEl.textContent = 'Copy spectator link';
-  }
   renderSlotList(slots, numPlayers, 'waiting-slot-list');
 
   hide('screen-name');
@@ -153,31 +146,16 @@ function cleanup() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
 }
 
-// --- Share invite link (native share sheet on mobile, clipboard fallback) ---
+// --- Copy invite URL to clipboard ---
 window.shareInvite = async function() {
   const el = document.getElementById('btn-share-invite');
   const link = el.dataset.link;
   if (!link) return;
-  // Native share sheet (mobile) \u2014 best UX where available
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: 'Cards For Cowboys',
-        text: 'Join my game of Cards For Cowboys!',
-        url: link,
-      });
-      return;
-    } catch (err) {
-      // User cancelled the share sheet \u2014 do nothing
-      if (err && err.name === 'AbortError') return;
-      // Otherwise fall through to clipboard copy
-    }
-  }
-  // Clipboard fallback
   try {
     await navigator.clipboard.writeText(link);
-    flashShareButton(el, '\u2713 Link copied!');
+    flashShareButton(el, '\u2713 Copied to clipboard!');
   } catch (err) {
+    // Clipboard blocked \u2014 surface the URL so it can be copied manually
     flashShareButton(el, link);
   }
 };
@@ -187,17 +165,6 @@ function flashShareButton(el, msg) {
   el.textContent = msg;
   setTimeout(() => { el.textContent = prev; }, 2000);
 }
-
-// --- Copy spectator link ---
-window.copySpectateLink = function() {
-  const el = document.getElementById('spectate-link');
-  if (!el || !el.dataset.link) return;
-  navigator.clipboard.writeText(el.dataset.link).then(() => {
-    const prev = el.textContent;
-    el.textContent = '\u2713 Spectator link copied!';
-    setTimeout(() => { el.textContent = prev; }, 2000);
-  });
-};
 
 // --- Wire up ---
 // Skip name screen if name was already entered on gamesetup page
