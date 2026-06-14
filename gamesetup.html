@@ -196,6 +196,50 @@
       border-top: 2px solid rgba(30,22,16,0.2);
       margin: 1rem auto;
     }
+    .btn-join {
+      display: block;
+      width: 100%;
+      padding: 0.8rem 1.5rem;
+      background: transparent;
+      color: #1e1610;
+      text-decoration: none;
+      border: 2.5px solid #1e1610;
+      font-size: 1.05rem;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #1e1610;
+      transition: transform 0.07s, box-shadow 0.07s, background 0.07s;
+      text-align: center;
+      min-width: auto;
+    }
+    .btn-join:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 #1e1610;
+      background: rgba(30,22,16,0.06);
+    }
+    .join-note {
+      font-size: 0.8rem;
+      color: #3a2a1a;
+      font-style: italic;
+      margin-top: 0.5rem;
+    }
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 2rem 0 1.75rem;
+      color: rgba(30,22,16,0.45);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .or-divider::before,
+    .or-divider::after {
+      content: "";
+      flex: 1;
+      border-top: 2px solid rgba(30,22,16,0.2);
+    }
     .hidden { display: none !important; }
     .diff-row {
       width: 100%;
@@ -283,21 +327,10 @@
     <div class="section-label">Your name</div>
     <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
 
-    <div class="section-label">Mode</div>
-    <div class="mode-row">
-      <label class="mode-toggle">
-        <input type="checkbox" id="qs-checkbox" onchange="toggleQuickStart(this.checked)">
-        <span class="mode-toggle-text">
-          <strong>Quick Start</strong> — Skip Act 1. Each player drafts 4 cards from the Act 1 deck, then Act 2 begins.
-        </span>
-      </label>
-      <label class="mode-toggle">
-        <input type="checkbox" id="hh-checkbox" onchange="toggleHiddenHerd(this.checked)">
-        <span class="mode-toggle-text">
-          <strong>Hidden Herd</strong> — Opponents' herd totals stay secret until the final showdown.
-        </span>
-      </label>
-    </div>
+    <a href="lobby.html" class="btn btn-join">Join a Lobby</a>
+    <p class="join-note">Got a game code from a friend? Jump straight in.</p>
+
+    <div class="or-divider"><span>or start a new game</span></div>
 
     <div class="section-label">How many players?</div>
     <div class="count-row">
@@ -434,10 +467,25 @@
       </div>
     </div>
 
+    <div class="section-label">Mode</div>
+    <div class="mode-row">
+      <label class="mode-toggle">
+        <input type="checkbox" id="qs-checkbox" onchange="toggleQuickStart(this.checked)">
+        <span class="mode-toggle-text">
+          <strong>Quick Start</strong> — Skip Act 1. Each player drafts 4 cards from the Act 1 deck, then Act 2 begins.
+        </span>
+      </label>
+      <label class="mode-toggle">
+        <input type="checkbox" id="hh-checkbox" onchange="toggleHiddenHerd(this.checked)">
+        <span class="mode-toggle-text">
+          <strong>Hidden Herd</strong> — Opponents' herd totals stay secret until the final showdown.
+        </span>
+      </label>
+    </div>
+
     <button class="btn" onclick="startGame()">Start Game</button>
 
     <hr class="divider">
-    <a href="lobby.html" class="btn btn-ghost">Join a Lobby</a>
     <a href="rules.html" class="btn btn-ghost">Rules</a>
   </div>
 
