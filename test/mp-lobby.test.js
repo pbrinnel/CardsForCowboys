@@ -64,12 +64,33 @@ async function getActionButtons(page) {
   ).catch(() => []);
 }
 
-// Is the game-over overlay visible?
+// Is the game over? The June-2026 merge folded the old #gameover-screen into the
+// showdown screen: #showdown-screen is visible during the (live) flip/score animation
+// too, so the authoritative "results are in" signal is the #showdown-footer being
+// revealed — it un-hides only in showShowdownResult(), after G.phase === 'gameOver'.
 async function isGameOver(page) {
   return page.evaluate(() => {
-    const el = document.getElementById('gameover-screen');
-    return el && !el.classList.contains('hidden');
+    const footer = document.getElementById('showdown-footer');
+    return !!footer && !footer.classList.contains('hidden');
   }).catch(() => false);
+}
+
+// Read the final results off the showdown screen (replaces the old #gameover-* reads).
+// Scores are reconstructed from the per-player sections ("You"/name + herd value).
+async function readShowdown(page) {
+  return page.evaluate(() => {
+    const footer = document.getElementById('showdown-footer');
+    const footerVisible = !!footer && !footer.classList.contains('hidden');
+    const title = document.getElementById('showdown-winner-title')?.textContent ?? '';
+    const scores = [...document.querySelectorAll('#showdown-players .showdown-player')]
+      .map(s => {
+        const name = s.querySelector('.showdown-player-name')?.textContent.trim() || '';
+        const herd = s.querySelector('.showdown-herd-val')?.textContent.trim() || '';
+        return `${name}: ${herd}`;
+      })
+      .join('\n');
+    return { footerVisible, title, scores };
+  }).catch(() => ({ footerVisible: false, title: '', scores: '' }));
 }
 
 // Is the special card modal (look3 / replay) visible?
@@ -273,13 +294,14 @@ async function drivePlayer(page, name, { maxSteps = 3000 } = {}) {
 
 // ---------- lobby helpers ----------
 
-async function createGame(page, hostName, playerDefs) {
-  await page.goto(`${BASE}/creategame.html`);
-  await page.evaluate((defs) => {
-    sessionStorage.setItem('player_defs', JSON.stringify(defs));
-  }, playerDefs);
-  await page.fill('#name-input', hostName);
-  await page.click('#btn-create');
+// Host flow now lives inline on gamesetup.html (the former creategame.html page
+// was merged in). Tests use a 2-player all-human game: name → make seat 2 Human
+// → Start Game → inline waiting room (#display-code).
+async function createGame(page, hostName /*, playerDefs */) {
+  await page.goto(`${BASE}/gamesetup.html`);
+  await page.fill('#player-name', hostName);
+  await page.click('#p2-human');
+  await page.click('button:has-text("Start Game")');
   await page.waitForSelector('#display-code', { timeout: 8000 });
   return (await page.textContent('#display-code')).trim();
 }
@@ -310,8 +332,8 @@ async function testLobbyFlow(browser) {
     await joinGame(guestPage, 'Bob', code);
 
     await Promise.all([
-      hostPage.waitForURL(`**/playgame.html?mp=1`,  { timeout: 12000 }),
-      guestPage.waitForURL(`**/playgame.html?mp=1`, { timeout: 12000 }),
+      hostPage.waitForURL(`**/playgame.html?mp=1*`,  { timeout: 12000 }),
+      guestPage.waitForURL(`**/playgame.html?mp=1*`, { timeout: 12000 }),
     ]);
     ok(true, 'Both navigated to playgame.html');
 
@@ -342,8 +364,8 @@ async function testInviteLink(browser) {
     await guestPage.click('#btn-join-invite');
 
     await Promise.all([
-      hostPage.waitForURL(`**/playgame.html?mp=1`,  { timeout: 12000 }),
-      guestPage.waitForURL(`**/playgame.html?mp=1`, { timeout: 12000 }),
+      hostPage.waitForURL(`**/playgame.html?mp=1*`,  { timeout: 12000 }),
+      guestPage.waitForURL(`**/playgame.html?mp=1*`, { timeout: 12000 }),
     ]);
     ok(true, 'Invite link: both navigated to playgame.html');
     ok(await guestPage.evaluate(() => sessionStorage.getItem('mp_slot')) === '1', 'Invite guest slot=1');
@@ -388,8 +410,8 @@ async function testFullGame(browser) {
     await joinGame(guestPage, 'Player2', code);
 
     await Promise.all([
-      hostPage.waitForURL(`**/playgame.html?mp=1`,  { timeout: 12000 }),
-      guestPage.waitForURL(`**/playgame.html?mp=1`, { timeout: 12000 }),
+      hostPage.waitForURL(`**/playgame.html?mp=1*`,  { timeout: 12000 }),
+      guestPage.waitForURL(`**/playgame.html?mp=1*`, { timeout: 12000 }),
     ]);
 
     // Wait for game to initialise (message changes from "Connecting...")
@@ -411,28 +433,24 @@ async function testFullGame(browser) {
     ok(hostDone,  'Host reached game over');
     ok(guestDone, 'Guest reached game over');
 
-    // Both should show the game-over screen
-    const hostGO  = await hostPage.evaluate(() =>
-      !document.getElementById('gameover-screen').classList.contains('hidden')
-    );
-    const guestGO = await guestPage.evaluate(() =>
-      !document.getElementById('gameover-screen').classList.contains('hidden')
-    );
-    ok(hostGO,  'Host shows game-over screen');
-    ok(guestGO, 'Guest shows game-over screen');
+    // Both should show the showdown results (footer revealed = winner crowned)
+    const host  = await readShowdown(hostPage);
+    const guest = await readShowdown(guestPage);
+    ok(host.footerVisible,  'Host shows showdown results');
+    ok(guest.footerVisible, 'Guest shows showdown results');
 
-    // Read final scores
-    const hostTitle  = await hostPage.textContent('#gameover-title');
-    const hostScores = await hostPage.textContent('#gameover-scores');
-    const guestTitle = await guestPage.textContent('#gameover-title');
+    // Read final scores from the showdown screen
+    const hostTitle  = host.title;
+    const hostScores = host.scores;
+    const guestTitle = guest.title;
 
     console.log(`\n  Host sees:  "${hostTitle}"`);
     console.log(`             ${hostScores.replace(/\n/g, ' | ').trim()}`);
     console.log(`  Guest sees: "${guestTitle}"`);
 
-    // Both should agree: host sees "You Win!" or "Tie!", guest sees "[Name] Wins!" or "Tie!"
-    // Normalise: "You Win!" on host = host won, "Player1 Wins!" on guest = Player1 won.
-    // These both mean Player1 won, so they agree.
+    // Both should agree: host sees "You Win!" or "It's a Tie!", guest sees "[Name] Wins!"
+    // or "It's a Tie!". Normalise: "You Win!" on host = host won, "Player1 Wins!" on guest
+    // = Player1 won. These both mean Player1 won, so they agree.
     const hostWon   = hostTitle === 'You Win!' || hostTitle.includes('You Win');
     const guestHostWon = guestTitle.includes('Player1');
     const bothAgree = (hostWon === guestHostWon) || (hostTitle === guestTitle);
