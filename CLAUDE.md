@@ -21,7 +21,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 |------|---------|
 | `index.html` | Landing page. Two front-door buttons: **Play** (→ gamesetup.html) and **Join with Code** (→ lobby.html). Plus Tutorial / Rules / History and the rejoin banner. |
 | `playgame.html` | Game UI shell |
-| `gamesetup.html` | **The "Table" screen.** Two states: (A) config — name, player count, per-seat AI/Human + difficulty, modes; (B) inline **host waiting room** (code, share, live slot list, "Start now → fill with AI", Cancel). Solo/all-AI games go straight to playgame; any Human seat creates the game in-place (via `src/host.js`) and shows state B. The former separate `creategame.html` page was merged in here (June 2026) — no more redundant second name prompt. |
+| `gamesetup.html` | **The "Table" screen.** Two states: (A) config — name, player count, per-seat AI/Human + difficulty, modes; (B) inline **host waiting room** (code, share, live slot list, Cancel). The game cannot start until every Human seat has joined (no "fill with AI" shortcut). Solo/all-AI games go straight to playgame; any Human seat creates the game in-place (via `src/host.js`) and shows state B. The former separate `creategame.html` page was merged in here (June 2026) — no more redundant second name prompt. |
 | `lobby.html` | **The "Join" screen** (online matchmaking). Name + code entry, invite-link mode (`?join=CODE`), rejoin (`?rejoin=CODE`), and the guest waiting room. |
 | `rules.html` | Standalone rules page |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
@@ -38,7 +38,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `src/tutorial.js` | Tutorial mode hooks (loaded before play.js) |
 | `src/lobby.js` | Join (guest) flow for lobby.html; sets `sessionStorage` keys for play.js. Atomic slot claim via `runTransaction`. |
 | `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js / host.js as ESM module |
-| `src/host.js` | Host (create) flow + inline waiting room on gamesetup.html. Exposes `window.CFC_startHosting()`; reuses `window.CFC_pickAi` (from gamesetup) for "Start now". Replaces the old `src/creategame.js`. |
+| `src/host.js` | Host (create) flow + inline waiting room on gamesetup.html. Exposes `window.CFC_startHosting()`. Game auto-launches only when all human slots fill. Replaces the old `src/creategame.js`. |
 
 ### `css/` — Stylesheets
 | File | Purpose |

@@ -492,8 +492,7 @@
       <button class="btn btn-share" id="btn-share-invite" onclick="shareInvite()">🔗 Share Invite Link</button>
       <p class="share-hint">Or have them tap “Join with Code” on the home screen and enter:</p>
       <div class="game-code" id="display-code"></div>
-<div id="waiting-slot-list" class="slot-list"></div>
-      <button class="btn btn-start-now hidden" id="btn-start-now">Start now — fill empty seats with AI</button>
+      <div id="waiting-slot-list" class="slot-list"></div>
       <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
     </div>
   </div>
@@ -531,9 +530,6 @@
       const name = names[Math.floor(Math.random() * names.length)];
       return { personality, name };
     }
-    // host.js (Start now → fill empty seats with AI) reuses this picker.
-    window.CFC_pickAi = pickAiForSlot;
-
     // Enter the inline host waiting room (replaces navigating to creategame.html).
     function startHostingFlow() {
       document.getElementById('table-config').classList.add('hidden');

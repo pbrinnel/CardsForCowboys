@@ -13,7 +13,7 @@
 
 import { db } from './firebase-config.js';
 import {
-  ref, set, get, onValue, onDisconnect, remove, update
+  ref, set, get, onValue, onDisconnect, remove
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 // --- DOM helpers ---
@@ -125,7 +125,6 @@ async function startHosting() {
     spectateEl.textContent = 'Copy spectator link';
   }
   renderSlotList(slots, numPlayers);
-  document.getElementById('btn-start-now').classList.remove('hidden');
 
   showWaiting();
 
@@ -152,29 +151,6 @@ async function cancelHost() {
   }
   gameRef = null;
   showConfig();
-}
-
-// --- Start now: convert any unfilled human seats to AI, then launch ---
-// The launch condition is "all human slots filled", so flipping empty human
-// seats to AI satisfies it and every client auto-launches via the onValue
-// listener above. Only the host runs this.
-async function startNow() {
-  if (!gameRef) return;
-  const snap = await get(gameRef);
-  const data = snap.val();
-  if (!data) return;
-  const used = new Set();
-  Object.values(data.slots).forEach(s => { if (s.personality) used.add(s.personality); });
-  const updates = {};
-  for (let i = 1; i < data.numPlayers; i++) {
-    const s = data.slots[i];
-    if (s && s.isHuman && !s.name) {
-      const ai = (window.CFC_pickAi ? window.CFC_pickAi('medium', used) : { name: 'AI Cowboy', personality: null });
-      updates[`slots/${i}`] = { name: ai.name, isHuman: false, personality: ai.personality };
-    }
-  }
-  if (Object.keys(updates).length) await update(gameRef, updates);
-  // onValue fires for everyone → allHumanSlotsFilled → auto-launch.
 }
 
 // --- Share invite link (native share sheet on mobile, clipboard fallback) ---
@@ -217,4 +193,3 @@ window.copySpectateLink = function () {
 // --- Expose entry point + wire waiting-room buttons ---
 window.CFC_startHosting = startHosting;
 document.getElementById('btn-cancel-host').addEventListener('click', cancelHost);
-document.getElementById('btn-start-now').addEventListener('click', startNow);
