@@ -644,6 +644,26 @@ Softlock: PB saw "Waiting for other players to finish drawing"; Gus saw "Waiting
 Firebase dump showed: `drawDone[0]` = `{round:4, done:true}` (PB, correct); `drawDone[1]` = `{round:3, busted:true, done:true}` (Gus, stale from prior round). Gus's round-4 signal was never written because `signalDrawDone()` was fire-and-forget — `checkDrawPhaseComplete()` ran before the Firebase write landed, advancing Gus to buy phase while PB remained stuck in draw phase.
 Fix: `await MP.signalDrawDone()` before `checkDrawPhaseComplete()` in `onPlayerDrawDone()`. Commit `7b11ce6`.
 
+### Cleaning up test games
+Test and debugging games write real records to `gameHistory`, `games/`, and `liveGames/` — they will appear in the finished game log on `history.html`. After any testing session, delete those records:
+
+```bash
+# Delete a specific game node (MP games)
+firebase database:remove /games/GAMECODE --project cards-for-cowboys
+
+# Delete a specific game node (AI/solo games)
+firebase database:remove /liveGames/GAMECODE --project cards-for-cowboys
+
+# Delete the gameHistory entry (find its push key first)
+firebase database:get /gameHistory --project cards-for-cowboys --shallow
+firebase database:remove /gameHistory/PUSHKEY --project cards-for-cowboys
+
+# Delete the liveSummary entry
+firebase database:remove /liveSummary/GAMECODE --project cards-for-cowboys
+```
+
+The game code appears in the URL (`?mp=GAMECODE`) and in `sessionStorage.getItem('mp_code')` in the browser console. The `gameHistory` push key can be found by dumping `/gameHistory --shallow` and identifying the entry by timestamp or by cross-referencing the game code in the entry's `code` field.
+
 ---
 
 ## Security Checklist
