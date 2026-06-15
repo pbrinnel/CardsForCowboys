@@ -707,6 +707,138 @@ const HISTORY = (() => {
 })();
 
 // ============================================================
+// DECISION LOG — per-decision human-vs-shadow-AI telemetry.
+// At each LOCAL HUMAN draw/buy decision we also compute what the hard AI
+// (outlaw) would do in the exact same state, and record both + state
+// features. Writes append-only to decisionLog/{code}. Research data for
+// AI tuning — never read by clients (pulled via the Firebase CLI).
+// ============================================================
+const DLOG_BASELINE = 'outlaw'; // hard-AI personality used as the counterfactual
+
+const DLOG = (() => {
+  let db = null;
+  let _fbRef, _fbPush;
+  let initialized = false;
+
+  async function init() {
+    if (initialized) return;
+    const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const app = fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(FIREBASE_CONFIG);
+    db = fbMod.getDatabase(app);
+    _fbRef  = (path) => fbMod.ref(db, path);
+    _fbPush = (r, v) => fbMod.push(r, v);
+    initialized = true;
+  }
+
+  async function push(code, record) {
+    try {
+      await init();
+      await _fbPush(_fbRef(`decisionLog/${code}`), record);
+    } catch (e) {
+      console.warn('[DLOG] Failed to log decision:', e);
+    }
+  }
+
+  return { push };
+})();
+
+// Active game code for decision logging (MP or AI mode), or null if none yet.
+function decisionGameCode() {
+  return MP.active ? (sessionStorage.getItem('mp_code') || null) : (AI_SPEC.code || null);
+}
+
+// Runs fn with the player's personality temporarily set to the hard-AI baseline so the
+// AI decision functions (which read player.personality) evaluate the same state as outlaw.
+// Always restores the original personality, even on throw.
+function withShadowAI(player, fn) {
+  const prev = player.personality;
+  try { player.personality = DLOG_BASELINE; return fn(); }
+  finally { player.personality = prev; }
+}
+
+// Log a draw-phase decision (humanDrew = true for a draw, false for a stop).
+// Only fires for genuine optional decisions where the player could also have done the other.
+function logDrawDecision(player, humanDrew) {
+  if (G.isDebug || TUTORIAL.active) return;
+  const code = decisionGameCode();
+  if (!code) return;
+  const cfg = AI_PERSONALITIES[DLOG_BASELINE];
+  // Cards that would bust on the very next single draw (push current bandits to 3+).
+  const lethalNext = player.deck.filter(c => (player.roundBandits + (c.bandits || 0)) >= 3).length;
+  const bustProb = player.roundBandits >= 1
+    ? calcBustProb(player, Math.min(player.roundBandits, 2), cfg)
+    : 0;
+  const aiWouldDraw = withShadowAI(player, () => aiShouldDraw(player));
+  DLOG.push(code, {
+    kind: 'draw',
+    ts: Date.now(),
+    mode: MP.active ? 'mp' : 'ai',
+    player: player.name,
+    act: G.currentAct,
+    round: G.roundNumber,
+    bandits: player.roundBandits,
+    cows: player.roundCows,
+    dollars: player.roundDollars,
+    handSize: player.hand.length,
+    deckRemaining: player.deck.length,
+    lethalNext,
+    bustProb: Math.round(bustProb * 1000) / 1000,
+    humanDrew,
+    aiWouldDraw,
+  });
+}
+
+// Log a buy-phase decision: the human's pick (or burn) vs the hard AI's ranking of the
+// same affordable cards. humanPickRank = 1-based rank of the human's card in the AI's order.
+function logBuyDecision(player, humanAction, row, col) {
+  if (G.isDebug || TUTORIAL.active) return;
+  const code = decisionGameCode();
+  if (!code) return;
+  const cfg = AI_PERSONALITIES[DLOG_BASELINE];
+  const boughtSlot = humanAction === 'buy' ? G.pyramid[row] && G.pyramid[row][col] : null;
+  const humanCardId = boughtSlot && boughtSlot.card ? boughtSlot.card.id : null;
+  const available = getAvailablePyramidCards(G.pyramid);
+  const affordable = available.filter(a => a.slot.card.cost <= player.roundDollars);
+
+  let aiAction = 'burn';
+  let aiCardId = null;
+  let humanPickRank = null;
+  withShadowAI(player, () => {
+    const ranked = affordable
+      .map(a => ({ id: a.slot.card.id, score: scoreCardForAI(a.slot.card, player) + pyramidRevealBonus(a.row, a.col, cfg.revealBonus) }))
+      .sort((x, y) => y.score - x.score);
+    if (ranked.length > 0) {
+      aiAction = 'buy';
+      aiCardId = ranked[0].id;
+      if (humanCardId) {
+        const idx = ranked.findIndex(r => r.id === humanCardId);
+        if (idx >= 0) humanPickRank = idx + 1;
+      }
+    }
+  });
+
+  const record = {
+    kind: 'buy',
+    ts: Date.now(),
+    mode: MP.active ? 'mp' : 'ai',
+    player: player.name,
+    act: G.currentAct,
+    round: G.roundNumber,
+    dollars: player.roundDollars,
+    humanAction,
+    aiAction,
+    numAffordable: affordable.length,
+    numAvailable: available.length,
+  };
+  // Firebase omits null/undefined; only attach optional fields when present.
+  if (humanCardId) record.humanCardId = humanCardId;
+  if (aiCardId) record.aiCardId = aiCardId;
+  if (humanPickRank !== null) record.humanPickRank = humanPickRank;
+  DLOG.push(code, record);
+}
+
+// ============================================================
 // SPECTATOR STATE HELPERS — shared by MP and AI_SPEC
 // ============================================================
 
@@ -2725,6 +2857,10 @@ async function playerDraw() {
 
   const player = G.players[0];
 
+  // Decision telemetry: log only genuine optional draws (not a mandatory first draw or a
+  // forced Draw-4 continuation), where stopping was an equally legal choice.
+  if (player.forcedDraws === 0 && player.hand.length >= 1) logDrawDecision(player, true);
+
   // Check if deck is empty and needs reshuffle
   if (player.deck.length === 0) {
     if (player.discard.length === 0) {
@@ -2823,6 +2959,10 @@ async function playerDraw() {
 async function playerStopDraw() {
   if (TUTORIAL.active && !TUTORIAL.isAllowed('stop')) { TUTORIAL.flashBlocked(); return; }
   const player = G.players[0];
+
+  // Decision telemetry: a stop is always a genuine choice (only reachable when not forced).
+  logDrawDecision(player, false);
+
   player.stoppedDrawing = true;
 
   addLog('You stopped drawing.');
@@ -3929,6 +4069,7 @@ function onPyramidCardClick(row, col) {
 
 // Human buy: push to Firebase (MP, local human only) then apply locally
 function executeBuy(player, row, col) {
+  if (player === G.players[0]) logBuyDecision(player, 'buy', row, col); // log before state changes
   if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col);
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('buy');
   executeBuyLocal(player, row, col);
@@ -3988,6 +4129,7 @@ function executeBurn(player, row, col) {
   if (TUTORIAL.active && player === G.players[0] && !TUTORIAL.isAllowed('burn', { row, col })) {
     TUTORIAL.flashBlocked(); return;
   }
+  if (player === G.players[0]) logBuyDecision(player, 'burn', row, col); // log before state changes
   if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);

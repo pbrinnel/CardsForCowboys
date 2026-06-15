@@ -398,6 +398,49 @@ When implementing a difficulty picker, the intended mapping is:
 
 ---
 
+## Decision Telemetry (`decisionLog`)
+
+**Purpose:** capture *how* the local human plays vs what the hard AI (`outlaw`) would do in the
+**same state**, so we can learn what to tune in AI opponents. Outcome-only `gameHistory` can't
+answer this (no move data); the in-game log is an in-memory rolling 50-entry buffer never
+persisted. This is the move-level dataset.
+
+**Design (in `src/play.js`, the `DLOG` module + `logDrawDecision` / `logBuyDecision`, ~line 709):**
+- At each **local-human** draw/buy decision, we also run the AI decision functions with the
+  player's personality temporarily set to `DLOG_BASELINE = 'outlaw'` (`withShadowAI` save/restore,
+  never mutates persisted state), and log both the human choice and the AI counterfactual + state
+  features. Only `G.players[0]` (the local human) is logged → naturally de-dupes across MP clients.
+- **Draw** (`logDrawDecision`, hooked at the top of `playerDraw` for genuine optional draws —
+  `forcedDraws===0 && hand.length>=1` — and in `playerStopDraw`): records `bandits, cows, dollars,
+  handSize, deckRemaining, lethalNext` (cards that bust on the next single draw), `bustProb`
+  (`calcBustProb` under outlaw), `humanDrew`, `aiWouldDraw` (`aiShouldDraw` under outlaw).
+- **Buy** (`logBuyDecision`, hooked in `executeBuy`/`executeBurn` for `player===G.players[0]`,
+  *before* state changes): records `humanAction` (buy|burn), `humanCardId`, `aiAction`, `aiCardId`
+  (outlaw's top pick via `scoreCardForAI` + `pyramidRevealBonus`), `humanPickRank` (1-based rank of
+  the human's card in outlaw's ordering), `numAffordable`, `numAvailable`. Optional fields are
+  omitted when null (Firebase drops them).
+- Logged in **both AI mode and MP** (players[0] is always human); keyed by the active game code
+  (`decisionGameCode()` → `mp_code` or `AI_SPEC.code`). Skips debug + tutorial games.
+
+**Storage:** top-level `decisionLog/{code}` (push list), **deliberately NOT under `games/{code}`** —
+`spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the
+anti-pattern the `liveSummary` slim-node redesign fixed). Append-only, shape-validated rules;
+`.read:false` (pulled only via the Firebase CLI, owner creds bypass rules). ~250 bytes/record,
+~70 records/human/game → tens of KB/game; fits the free tier for thousands of games.
+
+**Lifecycle:** treated like `gameHistory` — **permanent research data**, NOT purged by
+`admin/cleanup-games.sh` (which only clears transient game-state nodes). Delete test/analyzed logs
+by code (`firebase database:remove /decisionLog/CODE`). A future analysis/pull script does
+pull→analyze→prune. **Do not** add `decisionLog` removal to the routine game cleanup — losing
+un-analyzed human data is the costly mistake.
+
+**Analysis goal (not yet built):** draw-vs-buy decomposition — agreement rate + divergence
+direction on draw (does the human bank earlier/later than outlaw, and who scores more?), and the
+distribution of `humanPickRank` on buys (which valuations outlaw under/over-rates). Tells you which
+of the 14 personality params to move.
+
+---
+
 ## Known Bug Watch List
 
 ### 1. Discard Desync (Recurring — fixed twice)
@@ -660,6 +703,9 @@ firebase database:remove /gameHistory/PUSHKEY --project cards-for-cowboys
 
 # Delete the liveSummary entry
 firebase database:remove /liveSummary/GAMECODE --project cards-for-cowboys
+
+# Delete the decision-telemetry entry (keyed by game code — see Decision Telemetry section)
+firebase database:remove /decisionLog/GAMECODE --project cards-for-cowboys
 ```
 
 The game code appears in the URL (`?mp=GAMECODE`) and in `sessionStorage.getItem('mp_code')` in the browser console. The `gameHistory` push key can be found by dumping `/gameHistory --shallow` and identifying the entry by timestamp or by cross-referencing the game code in the entry's `code` field.
@@ -675,6 +721,7 @@ The Firebase API key is **intentionally public** — Firebase web app keys are n
 - [ ] The key is hardcoded in TWO places: `src/firebase-config.js` line 9 and `src/play.js` line 13. If the key ever changes, update both.
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
   - `liveSummary` — **collection-level `.read:true` required** (same RTDB no-upward-cascade reason as below). This is the node `history.html`'s Live Now list reads via `onValue(ref(db,'liveSummary'))`. Each `liveSummary/$gameCode` is a slim summary (`mode, status, numPlayers, players[{name,isHuman}], phase, act, round, ts`) — **no hands/decks/pyramid**. Written by `MP.pushLiveSummary()` (host only, from `pushSpectatorState`) and `AI_SPEC.push()`. Status flips to `finished` (gameover / `AI_SPEC.finish` / onDisconnect) or `disbanded` (`MP.disband`); stale entries (no push >5 min) are hidden by the list's `ts` filter. Full game state is still loaded only when a visitor opens `spectate.html` (which reads the full `games/{code}` or `liveGames/{code}` node by code). Do NOT make Live Now read the full collections again — that ships ~KB–MB of card state to every visitor (the pre-June-2026 behavior).
+  - `decisionLog` — **`.read:false`** (research telemetry; pulled only via the Firebase CLI). Per `decisionLog/$gameCode/$entry`: append-only (`!data.exists()`), shape-validated over the union of draw+buy fields with `$other:false`. No client ever reads it. See the Decision Telemetry section.
   - `games` / `liveGames` — collection-level `.read:true` is also present (legacy: Live Now used to enumerate these directly). RTDB read rules do NOT cascade upward — per-`$gameCode` read alone makes a whole-collection read fail with Permission denied. Live Now no longer reads these (it reads `liveSummary`), but `spectate.html` still reads them per-code for full state. (This makes all games' full state publicly enumerable; spectating is a public feature and codes are listed anyway.)
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)

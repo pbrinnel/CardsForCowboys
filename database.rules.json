@@ -67,6 +67,46 @@
       }
     },
 
+    "decisionLog": {
+      // Research data: per-decision human-vs-shadow-AI records, keyed by game code.
+      // Read-only via the Firebase CLI (owner creds bypass rules); never read by clients.
+      // Append-only pushes; each record shape-validated (union of 'draw' + 'buy' fields).
+      ".read": false,
+      "$gameCode": {
+        "$entry": {
+          ".write": "!data.exists()",
+          ".validate": "newData.hasChildren(['ts', 'kind'])",
+
+          "ts":   { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "kind": { ".validate": "newData.isString() && (newData.val() === 'draw' || newData.val() === 'buy')" },
+          "mode": { ".validate": "newData.isString() && (newData.val() === 'mp' || newData.val() === 'ai')" },
+          "player": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30" },
+          "act":   { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+          "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+          "dollars": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99" },
+
+          "bandits": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+          "cows":    { ".validate": "newData.isNumber() && newData.val() >= -20 && newData.val() <= 200" },
+          "handSize": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+          "deckRemaining": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+          "lethalNext": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+          "bustProb": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+          "humanDrew":   { ".validate": "newData.isBoolean()" },
+          "aiWouldDraw": { ".validate": "newData.isBoolean()" },
+
+          "humanAction": { ".validate": "newData.isString() && (newData.val() === 'buy' || newData.val() === 'burn')" },
+          "humanCardId": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+          "aiAction":  { ".validate": "newData.isString() && (newData.val() === 'buy' || newData.val() === 'burn')" },
+          "aiCardId":  { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+          "humanPickRank": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+          "numAffordable": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+          "numAvailable":  { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 60" },
+
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
     "liveGames": {
       ".read": true,
       "$gameCode": {
