@@ -275,11 +275,58 @@
       outline: none;
       box-shadow: 0 0 0 2px #b87838;
     }
+
+    /* Waiting-room state (host) */
+    #table-waiting .btn {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      padding: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+    .btn-secondary { background: #e9e0c6; color: #1e1610; font-weight: normal; }
+    .btn-share { background: #2a6e1a; color: #f3ead2; }
+    .game-code {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #d49848;
+      letter-spacing: 6px;
+      padding: 0.5rem;
+      background: #3a2a1a;
+      border: 2.5px solid #1e1610;
+      margin: 0.75rem 0;
+    }
+    .share-hint { font-size: 0.78rem; color: #5c3a1e; margin: 0.5rem 0 0.25rem; font-style: italic; }
+    .share-link {
+      font-size: 0.7rem;
+      color: #5c3a1e;
+      word-break: break-all;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .slot-list { margin: 1rem 0; display: flex; flex-direction: column; gap: 0.4rem; text-align: left; }
+    .lobby-slot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      background: #e9e0c6;
+      border: 2px solid #1e1610;
+      font-size: 0.9rem;
+    }
+    .lobby-slot-label { color: #1e1610; }
+    .slot-status { font-size: 0.8rem; padding: 0.2rem 0.5rem; font-style: italic; }
+    .slot-status.filled { background: rgba(42,110,26,0.15); color: #2a6e1a; font-style: normal; font-weight: bold; }
+    .slot-status.waiting { background: rgba(184,120,56,0.15); color: #b87838; }
+    .slot-status.ai { background: rgba(26,122,150,0.15); color: #1a7a96; }
   </style>
 </head>
 <body>
   <div class="home">
     <a href="index.html" style="text-decoration: none; color: inherit; display: block;"><h1>Cards For Cowboys</h1></a>
+
+    <div id="table-config">
     <div class="section-label">Your name</div>
     <input type="text" id="player-name" class="name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
 
@@ -438,6 +485,18 @@
 
     <hr class="divider">
     <a href="rules.html" class="btn btn-ghost">Rules</a>
+    </div><!-- /#table-config -->
+
+    <div id="table-waiting" class="hidden">
+      <div class="section-label">Game created — invite your friends</div>
+      <button class="btn btn-share" id="btn-share-invite" onclick="shareInvite()">🔗 Share Invite Link</button>
+      <p class="share-hint">Or have them tap “Join with Code” on the home screen and enter:</p>
+      <div class="game-code" id="display-code"></div>
+      <div class="share-link" id="spectate-link" onclick="copySpectateLink()">Copy spectator link</div>
+      <div id="waiting-slot-list" class="slot-list"></div>
+      <button class="btn btn-start-now hidden" id="btn-start-now">Start now — fill empty seats with AI</button>
+      <button class="btn btn-secondary" id="btn-cancel-host">Cancel</button>
+    </div>
   </div>
 
   <script>
@@ -472,6 +531,14 @@
       const names = AI_NAME_POOLS[personality];
       const name = names[Math.floor(Math.random() * names.length)];
       return { personality, name };
+    }
+    // host.js (Start now → fill empty seats with AI) reuses this picker.
+    window.CFC_pickAi = pickAiForSlot;
+
+    // Enter the inline host waiting room (replaces navigating to creategame.html).
+    function startHostingFlow() {
+      document.getElementById('table-config').classList.add('hidden');
+      if (window.CFC_startHosting) window.CFC_startHosting();
     }
 
     let playerCount = 2;
@@ -539,8 +606,13 @@
           ]));
           window.location.href = 'playgame.html';
         } else {
+          sessionStorage.setItem('player_count', '2');
+          sessionStorage.setItem('player_defs', JSON.stringify([
+            { name: myName, isHuman: true },
+            { name: '', isHuman: true },
+          ]));
           sessionStorage.setItem('mp_name', myName);
-          window.location.href = 'creategame.html';
+          startHostingFlow();
         }
         return;
       }
@@ -561,9 +633,14 @@
       }
       sessionStorage.setItem('player_count', playerCount);
       sessionStorage.setItem('player_defs', JSON.stringify(defs));
-      if (anyHuman) sessionStorage.setItem('mp_name', myName);
-      window.location.href = anyHuman ? 'creategame.html' : 'playgame.html';
+      if (anyHuman) {
+        sessionStorage.setItem('mp_name', myName);
+        startHostingFlow();
+      } else {
+        window.location.href = 'playgame.html';
+      }
     }
   </script>
+  <script type="module" src="src/host.js"></script>
 </body>
 </html>

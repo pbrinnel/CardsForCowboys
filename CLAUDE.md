@@ -19,11 +19,10 @@ When starting a new task, **check this file before reading raw source code.** Us
 ### Root (HTML pages + config)
 | File | Purpose |
 |------|---------|
-| `index.html` | Landing page (Play vs AI / Play Online / Rules) |
+| `index.html` | Landing page. Two front-door buttons: **Play** (→ gamesetup.html) and **Join with Code** (→ lobby.html). Plus Tutorial / Rules / History and the rejoin banner. |
 | `playgame.html` | Game UI shell |
-| `gamesetup.html` | Player count + slot config screen |
-| `lobby.html` | Online matchmaking lobby |
-| `creategame.html` | Online game creation |
+| `gamesetup.html` | **The "Table" screen.** Two states: (A) config — name, player count, per-seat AI/Human + difficulty, modes; (B) inline **host waiting room** (code, share, live slot list, "Start now → fill with AI", Cancel). Solo/all-AI games go straight to playgame; any Human seat creates the game in-place (via `src/host.js`) and shows state B. The former separate `creategame.html` page was merged in here (June 2026) — no more redundant second name prompt. |
+| `lobby.html` | **The "Join" screen** (online matchmaking). Name + code entry, invite-link mode (`?join=CODE`), rejoin (`?rejoin=CODE`), and the guest waiting room. |
 | `rules.html` | Standalone rules page |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
 | `history.html` | Game history + leaderboard; "Live Now" list reads the slim `liveSummary/` node |
@@ -37,9 +36,9 @@ When starting a new task, **check this file before reading raw source code.** Us
 |------|---------|
 | `src/play.js` | Entire game engine — MP layer (IIFE, top), card DB, game state, rendering, flow |
 | `src/tutorial.js` | Tutorial mode hooks (loaded before play.js) |
-| `src/lobby.js` | Online matchmaking logic, sets `sessionStorage` keys for play.js |
-| `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js as ESM module |
-| `src/creategame.js` | Online game creation logic |
+| `src/lobby.js` | Join (guest) flow for lobby.html; sets `sessionStorage` keys for play.js. Atomic slot claim via `runTransaction`. |
+| `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js / host.js as ESM module |
+| `src/host.js` | Host (create) flow + inline waiting room on gamesetup.html. Exposes `window.CFC_startHosting()`; reuses `window.CFC_pickAi` (from gamesetup) for "Start now". Replaces the old `src/creategame.js`. |
 
 ### `css/` — Stylesheets
 | File | Purpose |
@@ -348,7 +347,7 @@ player = {
 Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed 3-layer path. To add a new one, mirror an existing flag (`quickStartMode`, `hiddenHerdMode`) at each layer:
 
 1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
-2. **`src/creategame.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
+2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
 3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 187); `startGame` sets `G.<flag>Mode` in all branches (MP cfg ~2225, tutorial ~2236, AI/sessionStorage ~2251); **rejoin must also set it in `reconstructG`** (~2347) or a refresh loses the mode.
 
 **Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
@@ -592,7 +591,7 @@ While the "👁 Peek at stats" mode is active on the rearrange modal, `#special-
 **Design now in place (three layers, do not collapse):**
 - **Identity resolution order (IIFE ~line 27):** sessionStorage → URL params (`code`/`slot`/`name`) → `localStorage['cfc_rejoin']`. The first hit wins; the result is written back into sessionStorage so all downstream reads are unchanged. A recovery (URL or localStorage) sets **`MP.recovered = true`**.
 - **`startGame` rejoin decision (~line 2087):** `isRejoin = ?rejoin param || cfc_started_<code> marker || MP.recovered`. `MP.recovered` covers exactly the case the per-tab marker can't (marker lives in the wiped sessionStorage). All resume still flows through `reconstructG` from `spectatorState`.
-- **Self-identifying URL:** host (`creategame.js`) and guest (`lobby.js`, both join and rejoin navigations) append `&code=&slot=&name=` (name `encodeURIComponent`'d) to `playgame.html`. On the *normal first* navigation sessionStorage is already set, so these params are ignored — they only fire on a recovery load.
+- **Self-identifying URL:** host (`host.js`) and guest (`lobby.js`, both join and rejoin navigations) append `&code=&slot=&name=` (name `encodeURIComponent`'d) to `playgame.html`. On the *normal first* navigation sessionStorage is already set, so these params are ignored — they only fire on a recovery load.
 
 **Do not regress:**
 - Never gate "is this MP?" on sessionStorage alone — the IIFE must fall back to URL/localStorage before returning `{active:false}`.
