@@ -5059,7 +5059,7 @@ function layoutOpponentFan(handEl) {
     let step, startX;
     if (fullWidth <= W) {
       step = cardW + gap;
-      startX = (W - fullWidth) / 2;     // center a non-overlapping row
+      startX = 0;                        // left-anchor so draw order reads left→right
     } else {
       step = (W - cardW) / (k - 1);     // overlap to fit exactly → tightens as k grows
       startX = 0;
