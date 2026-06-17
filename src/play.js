@@ -1342,6 +1342,8 @@ function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
     busted: false,
     stoppedDrawing: false,
     copyNextActive: false,
+    copyNextCard: null,   // the Copy Next card instance currently pending a donor
+    copyNextDonor: null,  // the activatable donor card (set when an activatable card is drawn after Copy Next)
     hasBuyBurnFirst: false,
     hasExtraBuy: false,
     extraBuyUsed: false,
@@ -1508,6 +1510,8 @@ function resetPlayerRound(player) {
   player.busted = false;
   player.stoppedDrawing = false;
   player.copyNextActive = false;
+  player.copyNextCard = null;
+  player.copyNextDonor = null;
   player.hasBuyBurnFirst = false;
   player.hasExtraBuy = false;
   player.extraBuyUsed = false;
@@ -1517,15 +1521,30 @@ function resetPlayerRound(player) {
 // --- CARD EFFECTS ---
 
 function applyCardEffects(player, card, isFirstCard) {
-  // Special: burn_to_use — card contributes nothing when drawn; effects apply only on activation
-  if (card.special === 'burn_to_use') {
-    return { dollars: 0, cows: 0, bandits: 0 };
-  }
+  let multiplier = 1;
 
-  let multiplier = player.copyNextActive ? 2 : 1;
+  // Copy Next interaction: this card is the donor — determine whether to double stats
+  // at draw time (regular card) or link Copy Next as a second burnable copy (activatable card).
   if (player.copyNextActive) {
     player.copyNextActive = false;
-    addLog(`Copy Next Card doubled this card's effects!`);
+    if (ACTIVATABLE_SPECIALS.includes(card.special)) {
+      // Activatable donor: Copy Next card in hand becomes a second burnable copy of this card.
+      // The "bonus" is the extra activation, not doubled draw stats — so multiplier stays 1.
+      player.copyNextDonor = card;
+      addLog(`Copy Next linked! You can also burn the Copy Next card as a second "${getSpecialLabel(card)}".`);
+    } else {
+      // Regular card: double its draw-time stats.
+      multiplier = 2;
+      addLog(`Copy Next doubled this card's effects!`);
+      player.copyNextCard = null;
+    }
+  }
+
+  // burn_to_use: contributes nothing at draw time; effects apply only on activation.
+  // NOTE: this is now AFTER the copyNextActive check so that Copy Next correctly links
+  // to burn_to_use donors instead of skipping them (the old early-return was the bug).
+  if (card.special === 'burn_to_use') {
+    return { dollars: 0, cows: 0, bandits: 0 };
   }
 
   let dollars = card.dollars * multiplier;
@@ -1542,15 +1561,15 @@ function applyCardEffects(player, card, isFirstCard) {
   player.roundCows += cows;
   player.roundBandits += bandits;
 
-  // Special: copy_next
+  // Special: copy_next — arm the pending-donor state
   if (card.special === 'copy_next') {
     player.copyNextActive = true;
+    player.copyNextCard = card;
+    player.copyNextDonor = null;
   }
 
-  // Special: burn_buy_first
-  if (card.special === 'burn_buy_first') {
-    // Will handle in UI - player can choose to burn for priority
-  }
+  // Special: burn_buy_first — handled in UI
+  if (card.special === 'burn_buy_first') { }
 
   // Special: dollar1_other — gives $1 to each other player
   if (card.special === 'dollar1_other' && G) {

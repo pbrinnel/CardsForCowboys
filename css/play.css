@@ -463,9 +463,9 @@ body {
 }
 
 .btn-burn:hover {
-  color: #1e1610;
+  color: #e05c20;
   border-color: #c84e18;
-  background: rgba(200,78,24,0.1);
+  background: rgba(200,78,24,0.18);
   transform: none;
   box-shadow: none;
 }
@@ -479,9 +479,9 @@ body {
 }
 
 .btn-special:hover {
-  color: #1e1610;
+  color: #1e9ab8;
   border-color: #1a7a96;
-  background: rgba(26,122,150,0.1);
+  background: rgba(26,122,150,0.18);
   transform: none;
   box-shadow: none;
 }
