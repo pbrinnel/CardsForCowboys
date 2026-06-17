@@ -1,0 +1,95 @@
+ID,Act,Players,Suit,Graphic 1,Graphic 2,Proj Cost,Cost,Bargain,Notes,TextLayoutType,MainText,Text1Printed,Text1,Text2,$,Bandits,Cows,Graphic Layout Type,@maingraphic,@suitPNG,@graphic1PNG,@graphic2PNG,@act
+1,1,4+P,Cactus,$1,,$1.5,$2,$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+2,1,4+P,Cactus,1 Cow,,$2.0,$2,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+3,1,4+P,Cactus,1 Cow,If Drawn 1st + Cow,$2.0,$3,$1.0,UPDATED,,,,,,$0,,,Double,,./assets/Cactus-01.png,./assets/1 Cow-01.png,./assets/If Drawn 1st + Cow-01.png,./assets/Act1-01.png
+4,2,4+P,Cactus,-1 Bandit,,$5.0*,$0,,,,,,,Discard to Another Player's Discard Pile,$0,-1,,Double,,./assets/Cactus-01.png,./assets/-1 Bandit-01.png,,./assets/Act2-01.png
+5,2,4+P,Cactus,$1,Or Burn For $2,$1.0*,$2,,UPDATED,,,,,,$1,,,Double,,./assets/Cactus-01.png,./assets/$1-01.png,./assets/Or Burn For $2-01.png,./assets/Act2-01.png
+6,2,4+P,Cactus,$2,,$4.0,$4,,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Cactus-01.png,,,./assets/Act2-01.png
+7,2,4+P,Cactus,,,$0.0*,$4,,,Main Text,Copy Next Card,,Copy Next Card,,$0,,,,,./assets/Cactus-01.png,,,./assets/Act2-01.png
+8,3,4+P,Cactus,1 Bandit,4 Cows,$6.5,$7,$0.5,,,,,,,$0,1,4,Double,,./assets/Cactus-01.png,./assets/1 Bandit-01.png,./assets/4 Cows-01.png,./assets/Act3-01.png
+9,3,4+P,Cactus,$3,2 Cows,$8.0,$8,,,,,,,,$3,,2,Double,,./assets/Cactus-01.png,./assets/$3-01.png,./assets/2 Cows-01.png,./assets/Act3-01.png
+10,1,,Cactus,$1,,$1.5,$2,$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+11,1,,Cactus,1 Cow,,$2.0,$2,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+12,1,,Cactus,1 Cow,,$2.0,$2,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+13,1,,Cactus,1 Cow,,$2.0,$2,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/Cactus-01.png,,,./assets/Act1-01.png
+14,1,,Cactus,,Burn If Used,$0.0*,$2,,UPDATED,,,Go 1st In Buy Phase,Go 1st In Buy Phase,,$0,,,Double,,./assets/Cactus-01.png,,./assets/Burn If Used-01.png,./assets/Act1-01.png
+15,1,,Cactus,1 Cow,If Drawn 1st + Cow,$2.0,$3,$1.0,UPDATED,,,,,,$0,,,Double,,./assets/Cactus-01.png,./assets/1 Cow-01.png,./assets/If Drawn 1st + Cow-01.png,./assets/Act1-01.png
+16,2,,Cactus,$1,Or Burn For $2,$1.0*,$2,,UPDATED,,,,,,$1,,,Double,,./assets/Cactus-01.png,./assets/$1-01.png,./assets/Or Burn For $2-01.png,./assets/Act2-01.png
+17,2,,Cactus,1 Bandit,$4,$6.0,$3,-$3.0,,,,,,,$4,1,,Double,,./assets/Cactus-01.png,./assets/1 Bandit-01.png,./assets/$4-01.png,./assets/Act2-01.png
+18,2,,Cactus,2 Cows,,$4.0,$4,,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/Cactus-01.png,,,./assets/Act2-01.png
+19,2,,Cactus,,Burn If Used,$0.0*,$4,,UPDATED,,,Peek at Top 3 Cards and Re-Order,Peek at Top 3 Cards and Re-Order,,$0,,,Double,,./assets/Cactus-01.png,,./assets/Burn If Used-01.png,./assets/Act2-01.png
+20,2,,Cactus,,,$0.0*,$4,,,Main Text,Copy Next Card,,Copy Next Card,,$0,,,,,./assets/Cactus-01.png,,,./assets/Act2-01.png
+21,2,,Cactus,,Burn If Used,$0.0*,$4,,UPDATED,,,1 Extra Buy/Burn During Buy Phase,1 Extra Buy/Burn During Buy Phase,,$0,,,Double,,./assets/Cactus-01.png,,./assets/Burn If Used-01.png,./assets/Act2-01.png
+22,2,,River,$1,Or Burn For $2,$2.5*,$3,,REWORKED Cactus $5 Put Card on Top,,,,,,$1,,,Double,,./assets/River-01.png,./assets/$1-01.png,./assets/Or Burn For $2-01.png,./assets/Act2-01.png
+23,2,,Cactus,,Burn If Used,$0.0*,$5,,UPDATED,,,Replay Any Discarded Card,Replay Any Discarded Card,,$0,,,Double,,./assets/Cactus-01.png,,./assets/Burn If Used-01.png,./assets/Act2-01.png
+24,2,,Cactus,$3,& $1 for Other Players,$6.0,$6,,UPDATED,,,,,,$3,,,Double,,./assets/Cactus-01.png,./assets/$3-01.png,./assets/& $1 for Other Players-01.png,./assets/Act2-01.png
+25,3,,Cactus,-1 Bandit,2 Cows,$9.5,$10,$0.5,,,,,,,$0,-1,2,Double,,./assets/Cactus-01.png,./assets/-1 Bandit-01.png,./assets/2 Cows-01.png,./assets/Act3-01.png
+26,3,,Cactus,$3,,$5.0,$5,,,,,,,,$3,,,Main,./assets/$3-01.png,./assets/Cactus-01.png,,,./assets/Act3-01.png
+27,3,,Cactus,$3,,$5.0,$5,,,,,,,,$3,,,Main,./assets/$3-01.png,./assets/Cactus-01.png,,,./assets/Act3-01.png
+28,3,,Cactus,3 Cows,,$6.0,$6,,,,,,,,$0,,3,Main,./assets/3 Cows-01.png,./assets/Cactus-01.png,,,./assets/Act3-01.png
+29,3,,Cactus,3 Cows,,$6.0,$6,,,,,,,,$0,,3,Main,./assets/3 Cows-01.png,./assets/Cactus-01.png,,,./assets/Act3-01.png
+30,3,,Cactus,1 Bandit,4 Cows,$6.5,$7,$0.5,,,,,,,$0,1,4,Double,,./assets/Cactus-01.png,./assets/1 Bandit-01.png,./assets/4 Cows-01.png,./assets/Act3-01.png
+31,3,,Cactus,,,$0.0*,$8,,UPDATED,Main Text,Immediately Peek at Top 3 Cards and Re-Order,,Immediately Peek at Top 3 Cards and Re-Order,,$0,,,,,./assets/Cactus-01.png,,,./assets/Act3-01.png
+32,3,,Cactus,4 Cows,,$9.0,$9,,,,,,,,$0,,4,Main,./assets/4 Cows-01.png,./assets/Cactus-01.png,,,./assets/Act3-01.png
+33,,,Cactus,$1,1 Cow,,,,,,,,,,$1,,1,Double,,./assets/Cactus-01.png,./assets/$1-01.png,./assets/1 Cow-01.png,
+34,,,Cactus,1 Bandit,,,,,,,,,,,$0,1,,Main,./assets/1 Bandit-01.png,./assets/Cactus-01.png,,,
+35,1,3+P,Rattlesnake,$2,,$3.5,$3,-$0.5,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+36,1,3+P,Rattlesnake,$2,,$3.5,$3,-$0.5,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+37,1,3+P,Rattlesnake,2 Cows,,$3.5,$5,$1.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+38,2,3+P,Rattlesnake,$2,,$3.0,$3,,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,./assets/Act2-01.png
+39,2,3+P,Rattlesnake,-1 Bandit,Burn If Used,$2.4*,$4,,UPDATED,,,,,,$0,-1,,Double,,./assets/Rattlesnake-01.png,./assets/-1 Bandit-01.png,./assets/Burn If Used-01.png,./assets/Act2-01.png
+40,1,4+P,Rattlesnake,2 Cows,,$3.5,$5,$1.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+41,2,4+P,Rattlesnake,$2,1 Cow,$4.5,$4,-$0.5,,,,,,,$2,,1,Double,,./assets/Rattlesnake-01.png,./assets/$2-01.png,./assets/1 Cow-01.png,./assets/Act2-01.png
+42,2,4+P,Rattlesnake,$2,1 Cow,$4.5,$4,-$0.5,,,,,,,$2,,1,Double,,./assets/Rattlesnake-01.png,./assets/$2-01.png,./assets/1 Cow-01.png,./assets/Act2-01.png
+43,2,4+P,Rattlesnake,2 Bandits,5 Cows,$4.5,$4,-$0.5,,,,,,,$0,2,5,Double,,./assets/Rattlesnake-01.png,./assets/2 Bandits-01.png,./assets/5 Cows-01.png,./assets/Act2-01.png
+44,3,4+P,Rattlesnake,5 Cows,,$11.0,$11,,,,,,,,$0,,5,Main,./assets/5 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act3-01.png
+45,3,4+P,Rattlesnake,4 Cows,,$8.0,$8,,,,,,,,$0,,4,Main,./assets/4 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act3-01.png
+46,1,,Rattlesnake,$2,,$3.5,$3,-$0.5,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+47,1,,Rattlesnake,$2,,$3.5,$3,-$0.5,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+48,1,,Rattlesnake,2 Cows,,$3.5,$5,$1.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+49,1,,Rattlesnake,2 Cows,,$3.5,$5,$1.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act1-01.png
+50,2,,Rattlesnake,-1 Bandit,Burn If Used,$2.4*,$4,,UPDATED,,,,,,$0,-1,,Double,,./assets/Rattlesnake-01.png,./assets/-1 Bandit-01.png,./assets/Burn If Used-01.png,./assets/Act2-01.png
+51,2,,Rattlesnake,2 Bandits,5 Cows,$4.5,$4,-$0.5,,,,,,,$0,2,5,Double,,./assets/Rattlesnake-01.png,./assets/2 Bandits-01.png,./assets/5 Cows-01.png,./assets/Act2-01.png
+52,2,,Rattlesnake,$3,,$5.0,$5,,,,,,,,$3,,,Main,./assets/$3-01.png,./assets/Rattlesnake-01.png,,,./assets/Act2-01.png
+53,2,,Rattlesnake,$3,,$5.0,$5,,,,,,,,$3,,,Main,./assets/$3-01.png,./assets/Rattlesnake-01.png,,,./assets/Act2-01.png
+54,2,,Rattlesnake,3 Cows,,$6.0*,$5,,,,,,,& Draw 4 Cards,$0,,3,Double,,./assets/Rattlesnake-01.png,./assets/3 Cows-01.png,,./assets/Act2-01.png
+55,3,,Rattlesnake,$3,3 Cows,$10.0,$10,,,,,,,,$3,,3,Double,,./assets/Rattlesnake-01.png,./assets/$3-01.png,./assets/3 Cows-01.png,./assets/Act3-01.png
+56,3,,Rattlesnake,5 Cows,,$11.0,$11,,,,,,,,$0,,5,Main,./assets/5 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act3-01.png
+57,3,,Rattlesnake,2 Bandits,5 Cows,$4.5,$4,-$0.5,,,,,,,$0,2,5,Double,,./assets/Rattlesnake-01.png,./assets/2 Bandits-01.png,./assets/5 Cows-01.png,./assets/Act3-01.png
+58,3,,Rattlesnake,4 Cows,,$8.0,$8,,,,,,,,$0,,4,Main,./assets/4 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act3-01.png
+59,3,,Rattlesnake,4 Cows,,$8.0,$8,,,,,,,,$0,,4,Main,./assets/4 Cows-01.png,./assets/Rattlesnake-01.png,,,./assets/Act3-01.png
+60,3,,Rattlesnake,1 Bandit,5 Cows,$8.5,$9,$0.5,,,,,,,$0,1,5,Double,,./assets/Rattlesnake-01.png,./assets/1 Bandit-01.png,./assets/5 Cows-01.png,./assets/Act3-01.png
+61,,,Rattlesnake,$2,,,,,,,,,,,$2,,,Main,./assets/$2-01.png,./assets/Rattlesnake-01.png,,,
+62,,,Rattlesnake,1 Bandit,1 Cow,,,,,,,,,,$0,1,1,Double,,./assets/Rattlesnake-01.png,./assets/1 Bandit-01.png,./assets/1 Cow-01.png,
+63,,,Rattlesnake,1 Bandit,1 Cow,,,,,,,,,,$0,1,1,Double,,./assets/Rattlesnake-01.png,./assets/1 Bandit-01.png,./assets/1 Cow-01.png,
+64,,,Rattlesnake,2 Bandits,2 Cows,,,,,,,,,,$0,2,2,Double,,./assets/Rattlesnake-01.png,./assets/2 Bandits-01.png,./assets/2 Cows-01.png,
+65,1,3+P,River,1 Cow,,$4.0,$4,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+66,2,3+P,River,$1,1 Cow,$4.0,$4,,,,,,,,$1,,1,Double,,./assets/River-01.png,./assets/$1-01.png,./assets/1 Cow-01.png,./assets/Act2-01.png
+67,2,3+P,River,2 Cows,,$5.5,$6,$0.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/River-01.png,,,./assets/Act2-01.png
+68,1,4+P,River,$1,,$3.5,$3,-$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+69,1,4+P,River,$1,,$3.5,$3,-$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+70,1,4+P,River,$2,Burn If Used,$4.2*,$3,,UPDATED,,,,,,$2,,,Double,,./assets/River-01.png,./assets/$2-01.png,./assets/Burn If Used-01.png,./assets/Act1-01.png
+71,3,4+P,River,-1 Bandit,-1 Cow,$4.5,$5,$0.5,,,,,,,$0,-1,-1,Double,,./assets/River-01.png,./assets/-1 Bandit-01.png,./assets/-1 Cow-01.png,./assets/Act3-01.png
+72,3,4+P,River,3 Cows,,$7.0,$7,,,,,,,,$0,,3,Main,./assets/3 Cows-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+73,3,4+P,River,$4,,$8.0,$8,,,,,,,,$4,,,Main,./assets/$4-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+74,1,,River,$1,,$3.5,$3,-$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+75,1,,River,$1,,$3.5,$3,-$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+76,1,,River,$1,,$3.5,$3,-$0.5,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+77,1,,River,$2,Burn If Used,$4.2*,$3,,UPDATED,,,,,,$2,,,Double,,./assets/River-01.png,./assets/$2-01.png,./assets/Burn If Used-01.png,./assets/Act1-01.png
+78,1,,River,$2,Burn If Used,$4.2*,$3,,UPDATED,,,,,,$2,,,Double,,./assets/River-01.png,./assets/$2-01.png,./assets/Burn If Used-01.png,./assets/Act1-01.png
+79,1,,River,1 Cow,,$4.0,$4,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+80,1,,River,1 Cow,,$4.0,$4,,,,,,,,$0,,1,Main,./assets/1 Cow-01.png,./assets/River-01.png,,,./assets/Act1-01.png
+81,2,,River,$1,1 Cow,$4.0,$4,,,,,,,,$1,,1,Double,,./assets/River-01.png,./assets/$1-01.png,./assets/1 Cow-01.png,./assets/Act2-01.png
+82,2,,River,$1,1 Cow,$4.0,$4,,,,,,,,$1,,1,Double,,./assets/River-01.png,./assets/$1-01.png,./assets/1 Cow-01.png,./assets/Act2-01.png
+83,2,,River,2 Cows,,$5.5,$6,$0.5,,,,,,,$0,,2,Main,./assets/2 Cows-01.png,./assets/River-01.png,,,./assets/Act2-01.png
+84,3,,River,-1 Bandit,-1 Cow,$4.5,$5,$0.5,,,,,,,$0,-1,-1,Double,,./assets/River-01.png,./assets/-1 Bandit-01.png,./assets/-1 Cow-01.png,./assets/Act3-01.png
+85,3,,River,-1 Bandit,-1 Cow,$4.5,$5,$0.5,,,,,,,$0,-1,-1,Double,,./assets/River-01.png,./assets/-1 Bandit-01.png,./assets/-1 Cow-01.png,./assets/Act3-01.png
+86,3,,River,$3,,$6.0,$6,,,,,,,,$3,,,Main,./assets/$3-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+87,3,,River,3 Cows,,$7.0,$7,,,,,,,,$0,,3,Main,./assets/3 Cows-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+88,3,,River,3 Cows,,$7.0,$7,,,,,,,,$0,,3,Main,./assets/3 Cows-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+89,3,,River,$4,,$8.0,$8,,,,,,,,$4,,,Main,./assets/$4-01.png,./assets/River-01.png,,,./assets/Act3-01.png
+90,3,,River,$2,3 Cows,$9.0,$9,,,,,,,,$2,,3,Double,,./assets/River-01.png,./assets/$2-01.png,./assets/3 Cows-01.png,./assets/Act3-01.png
+91,,,River,$1,,,,,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,
+92,,,River,$1,,,,,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,
+93,,,River,$1,,,,,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,
+94,,,River,$1,,,,,,,,,,,$1,,,Main,./assets/$1-01.png,./assets/River-01.png,,,
