@@ -311,12 +311,14 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
     const isFirst = player.hand.length === 0;
     player.hand.push(card);
+    const copyNextWasActive = player.copyNextActive;
     core.applyCardEffects(player, card, isFirst);
     // Note: bandits:-1 on card is already applied by applyCardEffects above
 
-    // Handle draw4
+    // Handle draw4 — Copy Next doubles forced draws (4 → 8).
     if (card.special === 'draw4' && !player.busted) {
-      for (let i = 0; i < 4; i++) {
+      const draws = copyNextWasActive ? 8 : 4;
+      for (let i = 0; i < draws; i++) {
         if (player.busted) break;
         // Parity with the live game: BEFORE each mandatory draw, proactively activate a held
         // jail (-1 bandit) card while at/over jailThreshold bandits, so the AI gets the same

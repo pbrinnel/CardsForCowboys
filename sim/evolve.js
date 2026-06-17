@@ -279,11 +279,14 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
 
       const isFirst = player.hand.length === 0;
       player.hand.push(card);
+      const copyNextWasActive = player.copyNextActive;
       core.applyCardEffects(player, card, isFirst);
 
-      // draw4: 4 mandatory draws, with a between-draw jail-negate window (parity with live game)
+      // draw4: mandatory draws, with a between-draw jail-negate window (parity with live game).
+      // Copy Next doubles forced draws (4 → 8).
       if (card.special === 'draw4' && !player.busted) {
-        for (let d = 0; d < 4; d++) {
+        const draws = copyNextWasActive ? 8 : 4;
+        for (let d = 0; d < draws; d++) {
           if (player.busted) break;
           // Proactively negate with a held jail (-1 bandit) card before each draw if at 2+ bandits.
           if (player.roundBandits >= 2) {

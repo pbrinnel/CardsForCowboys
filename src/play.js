@@ -3027,6 +3027,9 @@ async function playerDraw() {
   const isFirst = player.hand.length === 0;
   player.hand.push(card);
 
+  // Capture before applyCardEffects clears it — needed to double draw4 forced draws below.
+  const copyNextWasActive = player.copyNextActive;
+
   // Apply effects
   const effects = applyCardEffects(player, card, isFirst);
 
@@ -3047,13 +3050,15 @@ async function playerDraw() {
   // This draw satisfies one mandatory draw owed from a prior "Draw 4".
   if (player.forcedDraws > 0) player.forcedDraws--;
 
-  // Handle special: draw4 — grant 4 mandatory draws the player resolves one at a time
+  // Handle special: draw4 — grant mandatory draws the player resolves one at a time
   // through this same flow, so burn-to-use cards can be activated between draws (and thus
   // before busting). startPlayerDraw hides "Stop" while forcedDraws > 0. (+= so a Draw 4
   // pulled during another Draw 4 stacks correctly.)
+  // Copy Next doubles the forced draws (4 → 8) — same rule as for stat effects.
   if (card.special === 'draw4') {
-    addLog('Draw 4 more cards!');
-    player.forcedDraws += 4;
+    const draws = copyNextWasActive ? 8 : 4;
+    addLog(copyNextWasActive ? `Copy Next doubled Draw 4 — draw ${draws} more cards!` : 'Draw 4 more cards!');
+    player.forcedDraws += draws;
     G.busy = false;
     if (!player.busted) startPlayerDraw();
     animateDrawnCard(card);
@@ -3223,6 +3228,7 @@ async function aiDrawPhase(playerIdx) {
 
     const isFirst = ai.hand.length === 0;
     ai.hand.push(card);
+    const aiCopyNextWasActive = ai.copyNextActive;
     applyCardEffects(ai, card, isFirst);
 
     if (card.special === 'burn_to_use') {
@@ -3233,9 +3239,10 @@ async function aiDrawPhase(playerIdx) {
     render();
     await delay(800);
 
-    // Handle draw4
+    // Handle draw4 — Copy Next doubles forced draws (4 → 8).
     if (card.special === 'draw4' && !ai.busted) {
-      for (let i = 0; i < 4; i++) {
+      const aiDraws = aiCopyNextWasActive ? 8 : 4;
+      for (let i = 0; i < aiDraws; i++) {
         if (ai.busted) break;
         // Parity with the human path: BEFORE each mandatory draw, proactively activate a
         // held jail (-1 bandit) card while sitting at 2+ bandits, so the AI gets the same
@@ -5671,6 +5678,33 @@ function applyDebugScenario(name) {
         'starter_92',
         'starter_93',
       ]);
+    },
+
+    // Copy Next → Draw 4: Copy Next doubles the forced draws (4 → 8). Stats also doubled
+    // (3 cows → 6). Deck is stacked with 2 bandits at positions 3 and 7 of the 8 forced
+    // draws, so the jail card (card_50) at position 4 is critical — activate it between
+    // draws to avoid busting on the second bandit before the 8 draws are done.
+    copy_next_draw4() {
+      const order = [
+        'card_20',    // Copy Next → arms copyNextActive
+        'card_54',    // Draw 4 → 6 cows (doubled) + 8 forced draws
+        'starter_91', // forced draw 1: safe $1
+        'card_17',    // forced draw 2: 1 bandit (1 total)
+        'card_50',    // forced draw 3: burn_to_use −1 bandit (activate between draws!)
+        'starter_92', // forced draw 4: safe $1
+        'starter_93', // forced draw 5: safe $1
+        'card_60',    // forced draw 6: 1 bandit (1 or 2 total depending on jail use)
+        'starter_94', // forced draw 7: safe $1
+        'starter_91', // forced draw 8: safe $1
+      ];
+      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+      G = initState(2, players);
+      G.currentAct = 2;
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      initAiRng(1, DEBUG_SEED);
     },
 
     // Copy Next → Copy Next → regular card: chaining two Copy Nexts in a row.
