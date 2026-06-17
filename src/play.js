@@ -800,43 +800,58 @@ function trajIds(cards) {
   return (cards || []).map(c => c.id);
 }
 
+// FAILSAFE: every capture hook runs through this. Trajectory capture is pure
+// research telemetry — nothing in the game protocol reads `traj`, and a write
+// is fire-and-forget (TRAJ.push is async and never awaited). This guard makes
+// the *synchronous* record-building incapable of throwing into game flow either,
+// so a bug here can never crash, stall, or desync a game — it just drops a record.
+function trajTry(fn) {
+  try { fn(); } catch (e) { console.warn('[TRAJ] capture error (game unaffected):', e); }
+}
+
 // --- Header: once per game, host/local client ---
 function trajLogHeader() {
-  if (!trajActive() || !amTrajHost()) return;
-  const seats = {};
-  G.players.forEach(p => { seats[p.slotIdx] = { isHuman: !!p.isHuman, personality: p.personality || null }; });
-  TRAJ.push(trajGameCode(), {
-    kind: 'hdr', ts: Date.now(),
-    schemaV: TRAJ_SCHEMA_V, gameV: GAME_V, cardDbHash: cardDbHash(),
-    mode: MP.active ? 'mp' : 'ai',
-    gameSeed: G.gameSeed || 0,
-    numPlayers: G.numPlayers,
-    quickStartMode: !!G.quickStartMode,
-    hiddenHerdMode: !!G.hiddenHerdMode,
-    seats,
+  trajTry(() => {
+    if (!trajActive() || !amTrajHost()) return;
+    const seats = {};
+    G.players.forEach(p => { seats[p.slotIdx] = { isHuman: !!p.isHuman, personality: p.personality || null }; });
+    TRAJ.push(trajGameCode(), {
+      kind: 'hdr', ts: Date.now(),
+      schemaV: TRAJ_SCHEMA_V, gameV: GAME_V, cardDbHash: cardDbHash(),
+      mode: MP.active ? 'mp' : 'ai',
+      gameSeed: G.gameSeed || 0,
+      numPlayers: G.numPlayers,
+      quickStartMode: !!G.quickStartMode,
+      hiddenHerdMode: !!G.hiddenHerdMode,
+      seats,
+    });
   });
 }
 
 // --- Act setup: pyramid card IDs for an act, host only ---
 function trajLogActSetup(act, cardIds) {
-  if (!trajActive() || !amTrajHost()) return;
-  TRAJ.push(trajGameCode(), { kind: 'act', ts: Date.now(), act, cardIds });
+  trajTry(() => {
+    if (!trajActive() || !amTrajHost()) return;
+    TRAJ.push(trajGameCode(), { kind: 'act', ts: Date.now(), act, cardIds });
+  });
 }
 
 // --- Round snapshot: a seat's deck order + piles at round start ---
 // Logged for the local human (every client) and for AI seats (host only).
 function trajLogRoundSnaps() {
-  if (!trajActive()) return;
-  const code = trajGameCode();
-  G.players.forEach(p => {
-    const mine = p === G.players[0];
-    const aiOnHost = !p.isHuman && amTrajHost();
-    if (!mine && !aiOnHost) return; // remote humans log their own seat
-    TRAJ.push(code, {
-      kind: 'snap', ts: Date.now(),
-      act: G.currentAct, round: G.roundNumber, slot: p.slotIdx,
-      deck: trajIds(p.deck), hand: trajIds(p.hand), discard: trajIds(p.discard),
-      herd: p.herd,
+  trajTry(() => {
+    if (!trajActive()) return;
+    const code = trajGameCode();
+    G.players.forEach(p => {
+      const mine = p === G.players[0];
+      const aiOnHost = !p.isHuman && amTrajHost();
+      if (!mine && !aiOnHost) return; // remote humans log their own seat
+      TRAJ.push(code, {
+        kind: 'snap', ts: Date.now(),
+        act: G.currentAct, round: G.roundNumber, slot: p.slotIdx,
+        deck: trajIds(p.deck), hand: trajIds(p.hand), discard: trajIds(p.discard),
+        herd: p.herd,
+      });
     });
   });
 }
@@ -844,44 +859,52 @@ function trajLogRoundSnaps() {
 // --- Draw event: the local human drew a specific card (outcome, since human shuffles
 // use Math.random and aren't reproducible from seed) ---
 function trajLogDraw(player, card) {
-  if (!trajActive() || player !== G.players[0]) return;
-  TRAJ.push(trajGameCode(), {
-    kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
-    slot: player.slotIdx, action: 'draw', drew: card.id,
+  trajTry(() => {
+    if (!trajActive() || player !== G.players[0]) return;
+    TRAJ.push(trajGameCode(), {
+      kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+      slot: player.slotIdx, action: 'draw', drew: card.id,
+    });
   });
 }
 
 // --- Stop event: the local human stopped drawing ---
 function trajLogStop(player) {
-  if (!trajActive() || player !== G.players[0]) return;
-  TRAJ.push(trajGameCode(), {
-    kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
-    slot: player.slotIdx, action: 'stop',
+  trajTry(() => {
+    if (!trajActive() || player !== G.players[0]) return;
+    TRAJ.push(trajGameCode(), {
+      kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+      slot: player.slotIdx, action: 'stop',
+    });
   });
 }
 
 // --- Special activation: the local human activated a special card. `detail` carries any
 // stat/deck-affecting sub-choice (e.g. replay_discard's picked card). ---
 function trajLogSpecial(player, special, cardId, detail) {
-  if (!trajActive() || player !== G.players[0]) return;
-  const rec = {
-    kind: 's', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
-    slot: player.slotIdx, special, cardId,
-  };
-  if (detail != null) rec.detail = detail;
-  TRAJ.push(trajGameCode(), rec);
+  trajTry(() => {
+    if (!trajActive() || player !== G.players[0]) return;
+    const rec = {
+      kind: 's', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+      slot: player.slotIdx, special, cardId,
+    };
+    if (detail != null) rec.detail = detail;
+    TRAJ.push(trajGameCode(), rec);
+  });
 }
 
 // --- Buy/burn event: local human (every client) or AI seat (host only). Remote humans
 // log their own via their executeBuy/executeBurn (they never reach this client's). ---
 function trajLogBuy(player, action, row, col) {
-  if (!trajActive()) return;
-  const mine = player === G.players[0];
-  const aiOnHost = !player.isHuman && amTrajHost();
-  if (!mine && !aiOnHost) return;
-  TRAJ.push(trajGameCode(), {
-    kind: 'b', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
-    slot: player.slotIdx, action, row, col,
+  trajTry(() => {
+    if (!trajActive()) return;
+    const mine = player === G.players[0];
+    const aiOnHost = !player.isHuman && amTrajHost();
+    if (!mine && !aiOnHost) return;
+    TRAJ.push(trajGameCode(), {
+      kind: 'b', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+      slot: player.slotIdx, action, row, col,
+    });
   });
 }
 
@@ -889,16 +912,18 @@ function trajLogBuy(player, action, row, col) {
 // The offline reconstructor asserts replayed state against these to catch engine/
 // card-DB drift loudly instead of silently misreconstructing. ---
 function trajLogCanary() {
-  if (!trajActive() || !amTrajHost()) return;
-  const herds = {}, deckCounts = {}, discardCounts = {};
-  G.players.forEach(p => {
-    herds[p.slotIdx] = p.herd;
-    deckCounts[p.slotIdx] = p.deck.length;
-    discardCounts[p.slotIdx] = p.discard.length;
-  });
-  TRAJ.push(trajGameCode(), {
-    kind: 'ck', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
-    herds, deckCounts, discardCounts,
+  trajTry(() => {
+    if (!trajActive() || !amTrajHost()) return;
+    const herds = {}, deckCounts = {}, discardCounts = {};
+    G.players.forEach(p => {
+      herds[p.slotIdx] = p.herd;
+      deckCounts[p.slotIdx] = p.deck.length;
+      discardCounts[p.slotIdx] = p.discard.length;
+    });
+    TRAJ.push(trajGameCode(), {
+      kind: 'ck', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+      herds, deckCounts, discardCounts,
+    });
   });
 }
 
