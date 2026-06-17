@@ -168,6 +168,42 @@
     </button>
   </div>
 
+  <div class="section-title">Copy Next Interactions</div>
+  <div class="scenario-grid">
+    <button class="scenario-btn" onclick="launch('copy_next_jail')">
+      <span class="label">Copy Next → Jail (−1 Bandit)</span>
+      <span class="desc">Act 2 · card_20→card_50 · both become activatable; 2 bandits follow to test them</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_dollar')">
+      <span class="label">Copy Next → Burn-to-Use $2</span>
+      <span class="desc">Act 2 · card_20→card_77 · both activatable for $2 each → up to $4</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_burn_for_2')">
+      <span class="label">Copy Next → Burn for $2</span>
+      <span class="desc">Act 2 · card_20→card_16 · Copy Next becomes 2nd activatable copy for $2</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_priority')">
+      <span class="label">Copy Next → Buy Priority</span>
+      <span class="desc">Act 2 · card_20→card_14 · both burnable for buy priority</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_look3')">
+      <span class="label">Copy Next → Look 3 Rearrange</span>
+      <span class="desc">Act 2 · card_20→card_19 · both burnable for a separate peek+reorder</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_replay')">
+      <span class="label">Copy Next → Replay Discard</span>
+      <span class="desc">Act 2 · card_20→card_23 · discard seeded; both burnable for a separate replay</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_extra_buy')">
+      <span class="label">Copy Next → Extra Buy</span>
+      <span class="desc">Act 2 · card_20→card_21 · both burnable for a bonus buy/burn each</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('copy_next_chain')">
+      <span class="label">Copy Next → Copy Next → card</span>
+      <span class="desc">Act 2 · card_20→card_20→card_79 · chain: 2nd Copy Next re-arms doubling for 3rd draw</span>
+    </button>
+  </div>
+
   <a href="index.html" class="back-link">← Back to Home</a>
 
   <script>

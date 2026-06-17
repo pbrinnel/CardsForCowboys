@@ -2863,10 +2863,19 @@ async function startRound() {
 const ACTIVATABLE_SPECIALS = ['burn_for_2', 'burn_buy_first', 'look3_rearrange', 'replay_discard', 'burn_to_use', 'extra_buy'];
 
 function getActivatableCards(player) {
-  return player.hand.filter(c => c.special && ACTIVATABLE_SPECIALS.includes(c.special));
+  return player.hand.filter(c => {
+    if (c.special && ACTIVATABLE_SPECIALS.includes(c.special)) return true;
+    // A Copy Next card becomes activatable once it has been linked to an activatable donor.
+    if (c.special === 'copy_next' && c === player.copyNextCard && player.copyNextDonor) return true;
+    return false;
+  });
 }
 
-function getSpecialLabel(card) {
+function getSpecialLabel(card, player) {
+  // Copy Next with a linked donor: show what it copies.
+  if (card.special === 'copy_next' && player && card === player.copyNextCard && player.copyNextDonor) {
+    return `Copy: ${getSpecialLabel(player.copyNextDonor)}`;
+  }
   switch (card.special) {
     case 'burn_for_2': return 'Burn for $2';
     case 'burn_buy_first': return 'Burn for Priority';
@@ -2949,7 +2958,7 @@ function startPlayerDraw() {
 
   for (const card of activatable) {
     buttons.push({
-      text: getSpecialLabel(card),
+      text: getSpecialLabel(card, player),
       onClick: () => activateSpecialCard(player, card),
       className: 'btn-special',
     });
@@ -3232,12 +3241,17 @@ async function aiDrawPhase(playerIdx) {
         // held jail (-1 bandit) card while sitting at 2+ bandits, so the AI gets the same
         // between-draw window to avoid an otherwise-lethal bust (rule: activate before busting).
         if (ai.roundBandits >= 2) {
-          const jail = ai.hand.find(c => c.special === 'burn_to_use' && c.bandits < 0);
+          const jail = ai.hand.find(c =>
+            (c.special === 'burn_to_use' && c.bandits < 0) ||
+            (c.special === 'copy_next' && c === ai.copyNextCard && ai.copyNextDonor?.special === 'burn_to_use' && ai.copyNextDonor.bandits < 0)
+          );
           if (jail) {
             ai.hand.splice(ai.hand.indexOf(jail), 1);
-            ai.roundDollars += jail.dollars;
-            ai.roundBandits = Math.max(0, ai.roundBandits + jail.bandits);
-            ai.roundCows += jail.cows;
+            const jailEffect = (jail.special === 'copy_next') ? ai.copyNextDonor : jail;
+            if (jail.special === 'copy_next') { ai.copyNextDonor = null; ai.copyNextCard = null; }
+            ai.roundDollars += jailEffect.dollars;
+            ai.roundBandits = Math.max(0, ai.roundBandits + jailEffect.bandits);
+            ai.roundCows += jailEffect.cows;
             addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
             render();
             await delay(500);
@@ -3262,12 +3276,18 @@ async function aiDrawPhase(playerIdx) {
     // (where the AI knows it's done drawing) or at buy phase start (after pyramid updates).
     // Activating a dollar card mid-draw then continuing to draw is wasteful — if you bust,
     // the activation was pointless, and the bandit count doesn't gate a purchasing decision.
-    for (const tCard of ai.hand.filter(c => c.special === 'burn_to_use' && c.bandits < 0)) {
+    // Also activates the Copy Next card if it's linked to a jail donor.
+    for (const tCard of ai.hand.filter(c =>
+      (c.special === 'burn_to_use' && c.bandits < 0) ||
+      (c.special === 'copy_next' && c === ai.copyNextCard && ai.copyNextDonor?.special === 'burn_to_use' && ai.copyNextDonor.bandits < 0)
+    )) {
       if (ai.roundBandits < 2) continue;
       const idx = ai.hand.indexOf(tCard);
       if (idx < 0) continue;
       ai.hand.splice(idx, 1);
-      ai.roundBandits = Math.max(0, ai.roundBandits + tCard.bandits);
+      const effectCard = (tCard.special === 'copy_next') ? ai.copyNextDonor : tCard;
+      if (tCard.special === 'copy_next') { ai.copyNextDonor = null; ai.copyNextCard = null; }
+      ai.roundBandits = Math.max(0, ai.roundBandits + effectCard.bandits);
       addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
       render();
       await delay(500);
@@ -3325,18 +3345,24 @@ async function aiDrawPhase(playerIdx) {
 
     // AI decision to continue
     if (!aiShouldDraw(ai)) {
-      // Before stopping: activate $N burn_to_use cards if it helps afford a better card
-      for (const tCard of ai.hand.filter(c => c.special === 'burn_to_use' && c.dollars > 0)) {
+      // Before stopping: activate $N burn_to_use cards (including Copy Next copies) if it
+      // helps afford a better card.
+      for (const tCard of ai.hand.filter(c =>
+        (c.special === 'burn_to_use' && c.dollars > 0) ||
+        (c.special === 'copy_next' && c === ai.copyNextCard && ai.copyNextDonor?.special === 'burn_to_use' && ai.copyNextDonor.dollars > 0)
+      )) {
+        const effectCard = (tCard.special === 'copy_next') ? ai.copyNextDonor : tCard;
         const avail = getAvailablePyramidCards(G.pyramid);
         const unlocksBetter = avail.some(a =>
-          a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + tCard.dollars
+          a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + effectCard.dollars
         );
         if (unlocksBetter) {
           const idx = ai.hand.indexOf(tCard);
           if (idx >= 0) {
             ai.hand.splice(idx, 1);
-            ai.roundDollars += tCard.dollars;
-            addLog(`${aiLabel} activated card: $${tCard.dollars}.`, 'log-burn');
+            if (tCard.special === 'copy_next') { ai.copyNextDonor = null; ai.copyNextCard = null; }
+            ai.roundDollars += effectCard.dollars;
+            addLog(`${aiLabel} activated card: $${effectCard.dollars}.`, 'log-burn');
             render();
             await delay(500);
           }
@@ -3626,6 +3652,129 @@ async function activateSpecialCard(player, card) {
     case 'extra_buy':
       await handleExtraBuy(player, card);
       break;
+    case 'copy_next':
+      await handleCopyNextActivation(player, card);
+      break;
+  }
+}
+
+// Activates the Copy Next card as a second independent copy of its linked donor.
+// Called when the player burns the Copy Next card itself (not the donor).
+// Each of donor and Copy Next can be burned independently for the same effect.
+async function handleCopyNextActivation(player, copyCard) {
+  const donor = player.copyNextDonor;
+  if (!donor) return;
+
+  switch (donor.special) {
+    case 'burn_to_use': {
+      const idx = player.hand.indexOf(copyCard);
+      if (idx >= 0) player.hand.splice(idx, 1);
+      player.copyNextDonor = null; player.copyNextCard = null;
+      player.roundDollars += donor.dollars;
+      player.roundBandits = Math.max(0, player.roundBandits + donor.bandits);
+      player.roundCows += donor.cows;
+      const parts = [];
+      if (donor.dollars > 0) parts.push(`$${donor.dollars}`);
+      if (donor.bandits < 0) parts.push('−1 bandit negated');
+      if (donor.cows > 0) parts.push(`+${donor.cows} cow`);
+      addLog(`Copy Next activated: ${parts.join(', ')}.`, 'log-burn');
+      render(); mpSyncDraw(); startPlayerDraw();
+      break;
+    }
+    case 'burn_for_2': {
+      const idx = player.hand.indexOf(copyCard);
+      if (idx >= 0) player.hand.splice(idx, 1);
+      player.copyNextDonor = null; player.copyNextCard = null;
+      // Copy Next gave $0 on draw; donor gave $1. Full burn_for_2 value = $2, so add $2.
+      const bonus = donor.dollars + 1;
+      player.roundDollars += bonus;
+      addLog(`Copy Next activated as Burn for $${bonus}.`, 'log-burn');
+      render(); mpSyncDraw(); startPlayerDraw();
+      break;
+    }
+    case 'burn_buy_first': {
+      setMessage('Burn Copy Next card for Buy Priority?');
+      setActions([
+        { text: 'Burn for Priority', onClick: () => {
+          const idx = player.hand.indexOf(copyCard);
+          if (idx >= 0) player.hand.splice(idx, 1);
+          player.copyNextDonor = null; player.copyNextCard = null;
+          player.hasBuyBurnFirst = true;
+          addLog('Copy Next activated for buy priority!', 'log-burn');
+          render(); mpSyncDraw(); startPlayerDraw();
+        }},
+        { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
+      ]);
+      break;
+    }
+    case 'look3_rearrange': {
+      setMessage('Burn Copy Next card to rearrange your top 3?');
+      setActions([
+        { text: 'Burn & Look', onClick: async () => {
+          const idx = player.hand.indexOf(copyCard);
+          if (idx >= 0) player.hand.splice(idx, 1);
+          player.copyNextDonor = null; player.copyNextCard = null;
+          addLog('Copy Next activated: rearrange top 3.', 'log-burn');
+          render();
+          await handleLook3(player);
+          startPlayerDraw();
+        }},
+        { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
+      ]);
+      break;
+    }
+    case 'replay_discard': {
+      if (player.discard.length === 0) {
+        addLog('Copy Next copy: no cards in discard to replay.');
+        startPlayerDraw();
+        return;
+      }
+      setMessage('Burn Copy Next card to replay a card from your discard?');
+      setActions([
+        { text: 'Burn & Replay', onClick: () => {
+          const idx = player.hand.indexOf(copyCard);
+          if (idx >= 0) player.hand.splice(idx, 1);
+          player.copyNextDonor = null; player.copyNextCard = null;
+          const modal = document.getElementById('special-modal');
+          const content = document.getElementById('special-modal-content');
+          content.innerHTML = '<h2>Choose a Card to Replay</h2>';
+          const cardsDiv = document.createElement('div');
+          cardsDiv.className = 'modal-cards';
+          player.discard.forEach((discardCard, i) => {
+            const el = renderCardEl(discardCard, true, 'clickable');
+            el.onclick = () => {
+              trajLogSpecial(player, 'replay_pick', discardCard.id);
+              applyCardEffects(player, discardCard, false);
+              player.discard.splice(i, 1);
+              player.hand.push(discardCard);
+              addLog(`Copy Next replayed: ${discardCard.id.replace(/_/g, ' ')}`, 'log-buy');
+              modal.classList.add('hidden');
+              render(); mpSyncDraw(); startPlayerDraw();
+            };
+            cardsDiv.appendChild(el);
+          });
+          content.appendChild(cardsDiv);
+          modal.classList.remove('hidden');
+        }},
+        { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
+      ]);
+      break;
+    }
+    case 'extra_buy': {
+      setMessage('Burn Copy Next card for an extra Buy Phase turn?');
+      setActions([
+        { text: 'Burn for Extra Buy/Burn', onClick: () => {
+          const idx = player.hand.indexOf(copyCard);
+          if (idx >= 0) player.hand.splice(idx, 1);
+          player.copyNextDonor = null; player.copyNextCard = null;
+          player.hasExtraBuy = true;
+          addLog('Copy Next activated: extra buy/burn!', 'log-burn');
+          render(); mpSyncDraw(); startPlayerDraw();
+        }},
+        { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
+      ]);
+      break;
+    }
   }
 }
 
@@ -5262,6 +5411,22 @@ function applyDebugScenario(name) {
     revealUncovered(pyramid);
   }
 
+  // Returns a deck: [copy_next (card_20), donor card, ...padding starters]
+  function makeCopyNextScenario(donorId, extraDeckIds) {
+    const baseOrder = ['card_20', donorId, ...(extraDeckIds || [
+      'starter_91', 'starter_92', 'starter_93', 'starter_94',
+      'starter_91', 'starter_92', 'starter_93', 'starter_94',
+    ])];
+    const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+    players[0].deck = baseOrder.map(id => getCardById(id)).filter(Boolean);
+    G = initState(2, players);
+    G.currentAct = 2;
+    G.roundNumber = 1;
+    G.gameSeed = DEBUG_SEED;
+    G.pyramid = buildPyramid(2);
+    initAiRng(1, DEBUG_SEED);
+  }
+
   function makeSpecialScenario(specialCardId, act, extraNames) {
     const numPlayers = extraNames ? extraNames.length + 1 : 2;
     const players = [createPlayer('You', true, 0)];
@@ -5403,6 +5568,132 @@ function applyDebugScenario(name) {
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
       G.currentAct = 2;     // card_54 (Draw 4) is an Act 2 card
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      initAiRng(1, DEBUG_SEED);
+    },
+
+    // Copy Next → burn_to_use jail (-1 bandit): both Copy Next card and the jail card
+    // become activatable independently. Draw card_20, then card_50 — no bandits applied
+    // at draw time. Then 2 bandits follow, but you hold two separate -1 bandit activations:
+    // use both to cancel them and keep drawing safely.
+    copy_next_jail() {
+      makeCopyNextScenario('card_50', [
+        'card_17',    // 1 bandit
+        'card_60',    // 1 bandit → 2 total; hold both jails to cancel them
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_94',
+      ]);
+    },
+
+    // Copy Next → burn_to_use dollar (+$2): both become activatable for $2 each.
+    // Draw card_20, then card_77 (burn_to_use $2, $0 on draw) — both sit in hand ready
+    // to activate for $2 apiece during buy phase → up to $4 from two activations.
+    copy_next_dollar() {
+      makeCopyNextScenario('card_77', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+    },
+
+    // Copy Next → burn_for_2 ($1 on draw / +$1 on burn): Copy Next card also becomes
+    // an activatable copy. Donor gives $1 at draw time + $1 on activation = $2 total.
+    // Copy Next gave $0 at draw, so its activation pays donor.dollars + 1 = $2, for a
+    // combined total of $4 from both copies (2× the card's $2 value).
+    copy_next_burn_for_2() {
+      makeCopyNextScenario('card_16', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+    },
+
+    // Copy Next → burn_buy_first: Copy Next card becomes a second "Burn for Priority" you
+    // can activate independently. Burn either (or both) during draw phase to gain buy priority.
+    copy_next_priority() {
+      makeCopyNextScenario('card_14', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+    },
+
+    // Copy Next → look3_rearrange: Copy Next becomes a second "Peek at Top 3" you can
+    // activate. Burn either during draw phase to view and re-order the top 3 deck cards.
+    copy_next_look3() {
+      makeCopyNextScenario('card_19', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+    },
+
+    // Copy Next → replay_discard: Copy Next becomes a second "Burn & Replay". Discard is
+    // pre-seeded with a cow card and a dollar card so the replay modal has meaningful options.
+    copy_next_replay() {
+      makeCopyNextScenario('card_23', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+      // Seed discard with cards worth replaying
+      const replayable = ['card_79', 'card_74', 'card_16'].map(id => getCardById(id)).filter(Boolean);
+      G.players[0].discard.push(...replayable);
+    },
+
+    // Copy Next → extra_buy: Copy Next becomes a second "1 Extra Buy/Burn" activation.
+    // Both can be burned independently during draw phase for a bonus buy/burn each.
+    copy_next_extra_buy() {
+      makeCopyNextScenario('card_21', [
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ]);
+    },
+
+    // Copy Next → Copy Next → regular card: chaining two Copy Nexts in a row.
+    // Drawing the second card_20 while copyNextActive "doubles" the first Copy Next
+    // (which has no stats, so no visible effect) then resets copyNextActive — meaning
+    // the THIRD card drawn gets doubled. Demonstrates that chaining through a second
+    // Copy Next re-arms the doubling for the next card.
+    copy_next_chain() {
+      const order = [
+        'card_20',    // first Copy Next → activates copyNextActive
+        'card_20',    // second Copy Next consumed as donor → re-arms copyNextActive
+        'card_79',    // 1 cow (regular) → drawn with multiplier=2 → 2 cows
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+      ];
+      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+      G = initState(2, players);
+      G.currentAct = 2;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
       G.pyramid = buildPyramid(2);

@@ -189,6 +189,8 @@ function createPlayer(name, personality) {
     busted: false,
     stoppedDrawing: false,
     copyNextActive: false,
+    copyNextCard: null,
+    copyNextDonor: null,
     hasBuyBurnFirst: false,
     hasExtraBuy: false,
     extraBuyUsed: false,
@@ -203,6 +205,8 @@ function resetPlayerRound(player) {
   player.busted = false;
   player.stoppedDrawing = false;
   player.copyNextActive = false;
+  player.copyNextCard = null;
+  player.copyNextDonor = null;
   player.hasBuyBurnFirst = false;
   player.hasExtraBuy = false;
   player.extraBuyUsed = false;
@@ -303,15 +307,26 @@ function drawFromDeck(player) {
 
 // --- CARD EFFECTS ---
 
-function applyCardEffects(player, card, isFirstCard) {
-  // Activatable specials — card contributes nothing when drawn; effects apply only on activation
-  if (card.special === 'burn_to_use' || card.special === 'extra_buy') {
-    return { dollars: 0, cows: 0, bandits: 0 };
-  }
+// Activatable specials that give nothing at draw time (effects deferred to activation)
+const ACTIVATABLE_ON_DRAW = new Set(['burn_to_use', 'extra_buy']);
 
-  let multiplier = player.copyNextActive ? 2 : 1;
+function applyCardEffects(player, card, isFirstCard) {
+  let multiplier = 1;
+
   if (player.copyNextActive) {
     player.copyNextActive = false;
+    if (ACTIVATABLE_ON_DRAW.has(card.special)) {
+      // Activatable donor: link Copy Next as a second burnable copy; no stat doubling.
+      player.copyNextDonor = card;
+    } else {
+      multiplier = 2;
+      player.copyNextCard = null;
+    }
+  }
+
+  // burn_to_use / extra_buy give nothing at draw time (after copyNextActive is handled above)
+  if (ACTIVATABLE_ON_DRAW.has(card.special)) {
+    return { dollars: 0, cows: 0, bandits: 0 };
   }
 
   let dollars = card.dollars * multiplier;
@@ -328,6 +343,8 @@ function applyCardEffects(player, card, isFirstCard) {
 
   if (card.special === 'copy_next') {
     player.copyNextActive = true;
+    player.copyNextCard = card;
+    player.copyNextDonor = null;
   }
 
   return { dollars, cows, bandits };

@@ -322,12 +322,17 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
         // jail (-1 bandit) card while at/over jailThreshold bandits, so the AI gets the same
         // between-draw window to negate before busting (mirrors the main-loop jail logic).
         if (player.roundBandits >= strategy.jailThreshold) {
-          const jail = player.hand.find(c => c.special === 'burn_to_use' && c.bandits < 0);
+          const jail = player.hand.find(c =>
+            (c.special === 'burn_to_use' && c.bandits < 0) ||
+            (c.special === 'copy_next' && c === player.copyNextCard && player.copyNextDonor?.special === 'burn_to_use' && player.copyNextDonor.bandits < 0)
+          );
           if (jail) {
             player.hand.splice(player.hand.indexOf(jail), 1);
-            player.roundDollars += jail.dollars;
-            player.roundBandits = Math.max(0, player.roundBandits + jail.bandits);
-            player.roundCows += jail.cows;
+            const jailEffect = (jail.special === 'copy_next') ? player.copyNextDonor : jail;
+            if (jail.special === 'copy_next') { player.copyNextDonor = null; player.copyNextCard = null; }
+            player.roundDollars += jailEffect.dollars;
+            player.roundBandits = Math.max(0, player.roundBandits + jailEffect.bandits);
+            player.roundCows += jailEffect.cows;
           }
         }
         const extra = core.drawFromDeck(player);
@@ -344,12 +349,18 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
     // Handle burn_to_use: jail cards only (-1 bandit) — dollar cards are saved for the
     // before-stopping window or buy phase (activating mid-draw then continuing is wasteful).
-    for (const tCard of player.hand.filter(c => c.special === 'burn_to_use' && c.bandits < 0)) {
+    // Also activates Copy Next if it's linked to a jail donor.
+    for (const tCard of player.hand.filter(c =>
+      (c.special === 'burn_to_use' && c.bandits < 0) ||
+      (c.special === 'copy_next' && c === player.copyNextCard && player.copyNextDonor?.special === 'burn_to_use' && player.copyNextDonor.bandits < 0)
+    )) {
       if (player.roundBandits < strategy.jailThreshold) continue;
       const idx = player.hand.indexOf(tCard);
       if (idx >= 0) {
         player.hand.splice(idx, 1);
-        player.roundBandits = Math.max(0, player.roundBandits + tCard.bandits);
+        const effectCard = (tCard.special === 'copy_next') ? player.copyNextDonor : tCard;
+        if (tCard.special === 'copy_next') { player.copyNextDonor = null; player.copyNextCard = null; }
+        player.roundBandits = Math.max(0, player.roundBandits + effectCard.bandits);
       }
     }
 
@@ -433,18 +444,24 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
     // Decision to continue drawing
     if (!shouldDraw(player, strategy, pyramid, currentAct)) {
-      // Before stopping: activate $N burn_to_use cards if it helps afford a better card
-      for (const tCard of player.hand.filter(c => c.special === 'burn_to_use' && c.dollars > 0)) {
+      // Before stopping: activate $N burn_to_use cards (including Copy Next copies) if it
+      // helps afford a better card.
+      for (const tCard of player.hand.filter(c =>
+        (c.special === 'burn_to_use' && c.dollars > 0) ||
+        (c.special === 'copy_next' && c === player.copyNextCard && player.copyNextDonor?.special === 'burn_to_use' && player.copyNextDonor.dollars > 0)
+      )) {
+        const effectCard = (tCard.special === 'copy_next') ? player.copyNextDonor : tCard;
         const avail = core.getAvailablePyramidCards(pyramid);
         const unlocksBetter = avail.some(a =>
-          a.slot.card.cost > player.roundDollars && a.slot.card.cost <= player.roundDollars + tCard.dollars
+          a.slot.card.cost > player.roundDollars && a.slot.card.cost <= player.roundDollars + effectCard.dollars
         );
         if (unlocksBetter) {
           const idx = player.hand.indexOf(tCard);
           if (idx >= 0) {
             player.hand.splice(idx, 1);
-            player.roundDollars += tCard.dollars;
-            player.roundCows += tCard.cows;
+            if (tCard.special === 'copy_next') { player.copyNextDonor = null; player.copyNextCard = null; }
+            player.roundDollars += effectCard.dollars;
+            player.roundCows += effectCard.cows;
           }
         }
       }
