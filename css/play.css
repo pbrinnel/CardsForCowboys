@@ -840,6 +840,13 @@ body.phase-draw #player-deck-preview {
   box-shadow: 0 6px 16px rgba(0,0,0,0.45);
 }
 
+/* Most recently drawn opponent card gets a subtle golden outline so you can
+   tell at a glance what they just drew without changing the fan layout. */
+.opp-zone .hand .card.card-newest {
+  outline: 2px solid rgba(220, 175, 40, 0.85);
+  outline-offset: -1px;
+}
+
 /* Hand (drawn cards) */
 .hand {
   display: flex;

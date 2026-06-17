@@ -1913,7 +1913,11 @@ function renderPlayerZone(player, prefix) {
     }
     // Opponents fan their drawn cards into a fixed 3-row space; the local player
     // keeps the normal wrapping hand (intentionally untouched).
-    if (prefix !== 'player') layoutOpponentFan(handEl);
+    if (prefix !== 'player') {
+      const lastCard = handEl.lastElementChild;
+      if (lastCard) lastCard.classList.add('card-newest');
+      layoutOpponentFan(handEl);
+    }
   }
 
   // Deck preview (show back of next card)
