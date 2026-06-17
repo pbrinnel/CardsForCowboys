@@ -460,11 +460,20 @@ un-analyzed human data is the costly mistake.
 decision) is retired. Its 4 captured games remain as a frozen cohort, read by `admin/analyze-decisions.py`.
 Its `.read:false` rules stay in place; nothing writes it anymore.
 
-**Roadmap (Phase 1+, offline, not built):** reconstructor in `sim/` (replay + canary validation) → static
+**Roadmap (Phase 1+, offline, not built):** full plan in **[`docs/TRAJECTORY_PHASE1_PLAN.md`](docs/TRAJECTORY_PHASE1_PLAN.md)**
+— read it before starting Phase 1. In brief: reconstructor in `sim/` (replay + canary validation) → static
 decision-puzzle benchmark → Monte Carlo **value oracle** (EV-label decisions; measure *quality* not just
 human-similarity) → fit a new personality by swapping `sim/evolve.js`'s fitness to human-decision-agreement
 (optionally winner-weighted). **Do not draw AI-tuning conclusions until the corpus is large** (the binding
 constraint — the site produces few completed games).
+
+**Risk to monitor (not yet observed):** all Firebase writes share one WebSocket, and a 4-player MP game
+now fires extra `traj` pushes (snaps + per-draw events + canaries) alongside the protocol writes
+(`drawDone`/`buyAction`/`spectatorState`). In theory a flood could *delay* a protocol write and contribute
+to an MP stall. Low risk (volume is modest, spread over human thinking-time, pushes are queued not
+synchronous, and `traj` writes are fire-and-forget + try/caught + read by nobody — see `trajTry`). **If MP
+stalls/softlocks recur, instrument `traj` write volume/latency first**, and the cheap mitigation is to
+batch or throttle `snap` writes. This is the only place trajectory capture touches a shared resource.
 
 ---
 
