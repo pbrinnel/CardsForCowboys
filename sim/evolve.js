@@ -160,6 +160,21 @@ function chooseBuy(player, genome, pyramid, act, allPlayers) {
   const avail = core.getAvailablePyramidCards(pyramid);
   if (avail.length === 0) return { action: 'pass' };
 
+  // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
+  for (const tCard of player.hand.filter(c =>
+    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+  )) {
+    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const unlocks = avail.some(a =>
+      (a.slot.card.cost || 0) > player.roundDollars &&
+      (a.slot.card.cost || 0) <= player.roundDollars + bonus
+    );
+    if (unlocks) {
+      player.hand.splice(player.hand.indexOf(tCard), 1);
+      player.roundDollars += bonus;
+    }
+  }
+
   const affordable = avail.filter(a => (a.slot.card.cost || 0) <= player.roundDollars);
   if (affordable.length > 0) {
     let best = null, bestScore = -Infinity;

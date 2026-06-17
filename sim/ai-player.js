@@ -230,6 +230,21 @@ function shouldDraw(player, strategy, pyramid, currentAct) {
 
 function chooseBuy(player, strategy, pyramid, currentAct) {
   const available = core.getAvailablePyramidCards(pyramid);
+
+  // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
+  for (const tCard of player.hand.filter(c =>
+    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+  )) {
+    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const unlocks = available.some(a =>
+      a.slot.card.cost > player.roundDollars && a.slot.card.cost <= player.roundDollars + bonus
+    );
+    if (unlocks) {
+      player.hand.splice(player.hand.indexOf(tCard), 1);
+      player.roundDollars += bonus;
+    }
+  }
+
   const affordable = available.filter(a => a.slot.card.cost <= player.roundDollars);
 
   if (affordable.length > 0) {

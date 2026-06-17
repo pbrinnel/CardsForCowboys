@@ -881,7 +881,7 @@ function trajLogStop(player) {
 
 // --- Special activation: the local human activated a special card. `detail` carries any
 // stat/deck-affecting sub-choice (e.g. replay_discard's picked card). ---
-function trajLogSpecial(player, special, cardId, detail) {
+function trajLogSpecial(player, special, cardId, detail, phase) {
   trajTry(() => {
     if (!trajActive() || player !== G.players[0]) return;
     const rec = {
@@ -889,6 +889,7 @@ function trajLogSpecial(player, special, cardId, detail) {
       slot: player.slotIdx, special, cardId,
     };
     if (detail != null) rec.detail = detail;
+    if (phase != null) rec.phase = phase;
     TRAJ.push(trajGameCode(), rec);
   });
 }
@@ -3720,6 +3721,18 @@ async function handleBurnFor2(player, card) {
   startPlayerDraw();
 }
 
+async function activateDollarCardInBuyPhase(player, card) {
+  const bonus = card.special === 'burn_for_2' ? 1 : card.dollars;
+  const idx = player.hand.indexOf(card);
+  if (idx < 0) return;
+  player.hand.splice(idx, 1);
+  player.roundDollars += bonus;
+  addLog(`You activated ${SUIT_NAME[card.cacti]} card: +$${bonus}.`, 'log-burn');
+  trajLogSpecial(player, card.special, card.id, null, 'buy');
+  render();
+  humanBuyTurn(player);
+}
+
 async function handleBurnBuyFirst(player, card) {
   setMessage('Burn this card to go 1st in the Buy Phase?');
   setActions([
@@ -4126,6 +4139,15 @@ function humanBuyTurn(player) {
   }
 
   clearActions();
+  const activatable = player.hand.filter(c =>
+    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+  );
+  if (activatable.length > 0) {
+    setActions(activatable.map(c => {
+      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2' : `Burn for $${c.dollars}`;
+      return { text: label, onClick: () => activateDollarCardInBuyPhase(player, c), className: 'btn-burn' };
+    }));
+  }
   render();
   if (TUTORIAL.active) TUTORIAL.onBuyPhaseStart();
 }
@@ -4263,6 +4285,22 @@ async function aiBuyTurn(ai) {
   setMessage(`${ai.name} is buying\u2026`);
   clearActions();
   await delay(1000);
+
+  // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
+  for (const tCard of ai.hand.filter(c =>
+    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+  )) {
+    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const avail = getAvailablePyramidCards(G.pyramid);
+    const unlocks = avail.some(a =>
+      a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + bonus
+    );
+    if (unlocks) {
+      ai.hand.splice(ai.hand.indexOf(tCard), 1);
+      ai.roundDollars += bonus;
+      addLog(`${ai.name} activated card: +$${bonus}.`, 'log-burn');
+    }
+  }
 
   const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
   const available = getAvailablePyramidCards(G.pyramid);
@@ -5264,6 +5302,60 @@ function applyDebugScenario(name) {
     // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
     // jail card as the very next (first forced) draw. Tests the activate-before-bust window:
     // draw the 2 bandits, draw the Draw 4, then activate the jail card before the next draws.
+    // Tests buy-phase burn-to-use dollar activation.
+    // Deck is stacked: draw starter ($1), starter ($1), then card_77 (burn_to_use +$2, $0 on draw).
+    // Stop after drawing all three — you'll have $2 and card_77 in hand.
+    // Can't afford a $4 cow card (card_79/80) yet; activate card_77 in buy phase to reach $4.
+    buy_phase_burn_to_use() {
+      const order = [
+        'starter_91',  // $1
+        'starter_92',  // $1 → $2 total; not enough for $4 cards
+        'card_77',     // burn_to_use +$2 (gives $0 on draw — hold it for buy phase)
+        'starter_93',  // padding
+        'starter_94',
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_94',
+        'starter_91',
+      ];
+      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+      G = initState(2, players);
+      G.currentAct = 1;
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(1);
+      initAiRng(1, DEBUG_SEED);
+    },
+
+    // Tests buy-phase activation with every dollar-producing card in hand at once.
+    // 4 activatable cards: card_77/78 (burn_to_use +$2 each) + card_16/22 (burn_for_2 +$1 each).
+    // After drawing all four you have $2 natural (the burn_for_2s give $1 on draw) and can
+    // activate up to +$6 more in buy phase. Act 2 pyramid has expensive cards worth unlocking.
+    buy_phase_all_activatable() {
+      const order = [
+        'card_77',     // burn_to_use +$2 ($0 on draw)
+        'card_78',     // burn_to_use +$2 ($0 on draw)
+        'card_16',     // burn_for_2: $1 on draw, +$1 on activate
+        'card_22',     // burn_for_2: $1 on draw, +$1 on activate
+        'starter_91',
+        'starter_92',
+        'starter_93',
+        'starter_94',
+        'starter_91',
+        'starter_92',
+      ];
+      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+      G = initState(2, players);
+      G.currentAct = 2;
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      initAiRng(1, DEBUG_SEED);
+    },
+
     draw4_jail_2bandits() {
       const order = [
         'card_17',    // 1 bandit
