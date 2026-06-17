@@ -5288,7 +5288,7 @@ function applyDebugScenario(name) {
     special_burn_to_use()        { makeSpecialScenario('card_77', 1); },
     special_2cow_if_first()      { makeSpecialScenario('card_15', 1); },
     special_burn_buy_first()     { makeSpecialScenario('card_14', 1); },
-    special_burn_for_2()         { makeSpecialScenario('card_16', 2); },
+    special_burn_for_2_card16()  { makeSpecialScenario('card_16', 2); },
     special_look3_rearrange()    { makeSpecialScenario('card_19', 2); },
     special_copy_next()          { makeSpecialScenario('card_20', 2); },
     special_burn_for_2()         { makeSpecialScenario('card_22', 2); },
