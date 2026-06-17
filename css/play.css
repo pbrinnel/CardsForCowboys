@@ -1035,6 +1035,13 @@ body.phase-draw #player-deck-preview {
   flex-wrap: wrap;
 }
 
+#draw-specials {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
 /* Player Zone */
 #player-zone {
   padding: 0.5rem;

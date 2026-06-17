@@ -2051,6 +2051,8 @@ function setActions(buttons) {
   if (TUTORIAL.active && TUTORIAL.popupVisible) return;
   const el = document.getElementById('actions');
   el.innerHTML = '';
+  const ds = document.getElementById('draw-specials');
+  if (ds) { ds.innerHTML = ''; ds.style.display = 'none'; }
   for (const btn of buttons) {
     const b = document.createElement('button');
     b.className = 'btn' + (btn.className ? ' ' + btn.className : '');
@@ -2065,6 +2067,8 @@ function setActions(buttons) {
 function clearActions() {
   if (TUTORIAL.active && TUTORIAL.popupVisible) return;
   document.getElementById('actions').innerHTML = '';
+  const ds = document.getElementById('draw-specials');
+  if (ds) { ds.innerHTML = ''; ds.style.display = 'none'; }
   clearCardPreview();
 }
 
@@ -2951,21 +2955,15 @@ function startPlayerDraw() {
 
   const forced = player.forcedDraws > 0;
   const activatable = getActivatableCards(player);
+
+  // Primary buttons always stay in the same positions (Draw left, Stop right)
   const buttons = [
     { text: forced ? `Draw Card (${player.forcedDraws} left)` : getDrawButtonText(player),
       onClick: () => playerDraw(), className: getDrawButtonClass(player) },
   ];
 
-  for (const card of activatable) {
-    buttons.push({
-      text: getSpecialLabel(card, player),
-      onClick: () => activateSpecialCard(player, card),
-      className: 'btn-special',
-    });
-  }
-
   // During a forced Draw-4 the player must complete all 4 draws — no early stop. The
-  // activate buttons above stay available so burn-to-use cards can be used between draws.
+  // special buttons below stay available so burn-to-use cards can be used between draws.
   if (!forced) {
     buttons.push({ text: 'Stop Drawing', onClick: () => playerStopDraw(), className: 'btn-secondary', disabled: player.hand.length === 0, style: 'margin-left: auto' });
   }
@@ -2975,7 +2973,21 @@ function startPlayerDraw() {
       ? `Draw 4 — ${player.forcedDraws} mandatory draw${player.forcedDraws > 1 ? 's' : ''} left. Activate cards now if you want them.`
       : getDrawPhaseMessage(player));
   }
-  setActions(buttons);
+  setActions(buttons);  // clears #draw-specials first
+
+  // Special action buttons go in a separate row below Draw/Stop so they never displace them
+  if (activatable.length > 0) {
+    const ds = document.getElementById('draw-specials');
+    ds.style.display = '';
+    for (const card of activatable) {
+      const b = document.createElement('button');
+      b.className = 'btn btn-special';
+      b.textContent = getSpecialLabel(card, player);
+      b.onclick = () => activateSpecialCard(player, card);
+      ds.appendChild(b);
+    }
+  }
+
   render();
 }
 
