@@ -2856,9 +2856,9 @@ function getSpecialLabel(card) {
     case 'burn_to_use': {
       const parts = [];
       if (card.dollars > 0) parts.push(`$${card.dollars}`);
-      if (card.bandits < 0) parts.push('-1 Bandit');
+      if (card.bandits < 0) parts.push('−1 Bandit');
       if (card.cows > 0) parts.push(`+${card.cows} Cow`);
-      return `Activate (${parts.join(', ')})`;
+      return `Burn: ${parts.join(', ')}`;
     }
     case 'extra_buy': return 'Burn for Extra Buy/Burn';
     default: return 'Use';
@@ -3238,27 +3238,18 @@ async function aiDrawPhase(playerIdx) {
       if (ai.busted) break;
     }
 
-    // Handle burn_to_use activation
-    for (const tCard of ai.hand.filter(c => c.special === 'burn_to_use')) {
-      let activate = false;
-      if (tCard.bandits < 0 && ai.roundBandits >= 2) activate = true;
-      if (tCard.dollars > 0 && ai.roundBandits >= 2) {
-        // Only activate if these dollars actually bridge the gap to an available card
-        const avail = getAvailablePyramidCards(G.pyramid);
-        const bridgesGap = avail.some(a =>
-          a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + tCard.dollars
-        );
-        if (bridgesGap) activate = true;
-      }
-      if (!activate) continue;
+    // Handle burn_to_use activation — jail cards only (bandits < 0)
+    // Dollar burn_to_use cards are NOT activated mid-draw; they're activated before stopping
+    // (where the AI knows it's done drawing) or at buy phase start (after pyramid updates).
+    // Activating a dollar card mid-draw then continuing to draw is wasteful — if you bust,
+    // the activation was pointless, and the bandit count doesn't gate a purchasing decision.
+    for (const tCard of ai.hand.filter(c => c.special === 'burn_to_use' && c.bandits < 0)) {
+      if (ai.roundBandits < 2) continue;
       const idx = ai.hand.indexOf(tCard);
       if (idx < 0) continue;
       ai.hand.splice(idx, 1);
-      ai.roundDollars += tCard.dollars;
       ai.roundBandits = Math.max(0, ai.roundBandits + tCard.bandits);
-      ai.roundCows += tCard.cows;
-      const label = tCard.dollars > 0 ? `$${tCard.dollars}` : '-1 bandit negated';
-      addLog(`${aiLabel} activated card: ${label}.`, 'log-burn');
+      addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
       render();
       await delay(500);
     }
@@ -4154,9 +4145,9 @@ function humanBuyTurn(player) {
   );
   if (activatable.length > 0) {
     setActions(activatable.map(c => {
-      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2'
+      const label = c.special === 'burn_for_2' ? 'Burn for $2'
                   : c.special === 'extra_buy'  ? 'Burn for Extra Buy/Burn'
-                  : `Burn for $${c.dollars}`;
+                  : `Burn: $${c.dollars}`;
       return { text: label, onClick: () => activateCardInBuyPhase(player, c), className: 'btn-burn' };
     }));
   }
@@ -4191,7 +4182,7 @@ function onPyramidCardClick(row, col) {
   if (canAfford) {
     buttons.push({ text: `Buy ($${slot.card.cost})`, onClick: () => executeBuy(player, row, col) });
   }
-  buttons.push({ text: 'Burn', onClick: () => executeBurn(player, row, col), className: 'btn-burn' });
+  buttons.push({ text: 'Burn Card', onClick: () => executeBurn(player, row, col), className: 'btn-burn' });
   buttons.push({ text: 'Cancel', onClick: () => {
     G.selectedPyramidCard = null;
     humanBuyTurn(player);

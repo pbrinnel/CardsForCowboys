@@ -342,21 +342,14 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
       if (player.busted) break;
     }
 
-    // Handle burn_to_use: activate based on situation (card contributed nothing on draw)
-    for (const tCard of player.hand.filter(c => c.special === 'burn_to_use')) {
-      let activate = false;
-      if (tCard.bandits < 0 && player.roundBandits >= strategy.jailThreshold) activate = true;
-      if (tCard.dollars > 0 && player.roundBandits >= 2) {
-        const bestCost = getBestScoredCost(player, strategy, pyramid, currentAct || 1);
-        if (player.roundDollars < bestCost) activate = true;
-      }
-      if (!activate) continue;
+    // Handle burn_to_use: jail cards only (-1 bandit) — dollar cards are saved for the
+    // before-stopping window or buy phase (activating mid-draw then continuing is wasteful).
+    for (const tCard of player.hand.filter(c => c.special === 'burn_to_use' && c.bandits < 0)) {
+      if (player.roundBandits < strategy.jailThreshold) continue;
       const idx = player.hand.indexOf(tCard);
       if (idx >= 0) {
         player.hand.splice(idx, 1);
-        player.roundDollars += tCard.dollars;
         player.roundBandits = Math.max(0, player.roundBandits + tCard.bandits);
-        player.roundCows += tCard.cows;
       }
     }
 
