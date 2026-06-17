@@ -1589,7 +1589,7 @@ const SPECIAL_LABEL = {
   discard_to_player:   'Discard to Player',
   burn_buy_first:'Burn: Buy/Burn 1st',
   '2cow_if_first':     '2 Cows if 1st',
-  burn_for_2:         'Burn for $2',
+  burn_for_2:         'Burn $1 for $2',
   look3_rearrange:     'Burn: Rearrange 3',
   copy_next:           'Copy Next',
 
@@ -2881,7 +2881,7 @@ function getSpecialLabel(card, player) {
     return `Copy: ${getSpecialLabel(player.copyNextDonor)}`;
   }
   switch (card.special) {
-    case 'burn_for_2': return 'Burn for $2';
+    case 'burn_for_2': return 'Burn $1 for $2';
     case 'burn_buy_first': return 'Burn for Priority';
     case 'look3_rearrange': return 'Burn & Rearrange Top 3';
     case 'replay_discard': return 'Burn & Replay Discard';
@@ -4332,7 +4332,7 @@ function humanBuyTurn(player) {
   );
   if (activatable.length > 0) {
     setActions(activatable.map(c => {
-      const label = c.special === 'burn_for_2' ? 'Burn for $2'
+      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2'
                   : c.special === 'extra_buy'  ? 'Burn for Extra Buy/Burn'
                   : `Burn: $${c.dollars}`;
       return { text: label, onClick: () => activateCardInBuyPhase(player, c), className: 'btn-burn' };
