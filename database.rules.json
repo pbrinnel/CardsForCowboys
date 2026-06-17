@@ -107,6 +107,64 @@
       }
     },
 
+    "traj": {
+      // Durable replayable trajectory capture (Phase 0) — header + per-round deck
+      // snapshots + ordered decision events + canaries, keyed by game code then push.
+      // Read-only via the Firebase CLI; never read by clients. Append-only; each record
+      // shape-validated over the union of record-kind fields with $other:false.
+      ".read": false,
+      "$gameCode": {
+        "$entry": {
+          ".write": "!data.exists()",
+          ".validate": "newData.hasChildren(['ts', 'kind'])",
+
+          "ts":   { ".validate": "newData.isNumber() && newData.val() > 0" },
+          "kind": { ".validate": "newData.isString() && newData.val().length <= 6" },
+
+          "schemaV":    { ".validate": "newData.isNumber()" },
+          "gameV":      { ".validate": "newData.isNumber()" },
+          "cardDbHash": { ".validate": "newData.isString() && newData.val().length <= 16" },
+          "mode":       { ".validate": "newData.isString() && newData.val().length <= 4" },
+          "gameSeed":   { ".validate": "newData.isNumber()" },
+          "numPlayers": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 4" },
+          "quickStartMode": { ".validate": "newData.isBoolean()" },
+          "hiddenHerdMode": { ".validate": "newData.isBoolean()" },
+          "seats": {
+            "$slot": {
+              ".validate": "newData.hasChildren(['isHuman'])",
+              "isHuman":     { ".validate": "newData.isBoolean()" },
+              "personality": { ".validate": "newData.isString() && newData.val().length <= 20" },
+              "$other": { ".validate": false }
+            }
+          },
+
+          "act":   { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+          "round": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+          "slot":  { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+          "herd":  { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+
+          "cardIds": { "$i": { ".validate": "newData.isString() && newData.val().length <= 20" } },
+          "deck":    { "$i": { ".validate": "newData.isString() && newData.val().length <= 20" } },
+          "hand":    { "$i": { ".validate": "newData.isString() && newData.val().length <= 20" } },
+          "discard": { "$i": { ".validate": "newData.isString() && newData.val().length <= 20" } },
+
+          "action":  { ".validate": "newData.isString() && newData.val().length <= 5" },
+          "drew":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "special": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "cardId":  { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "detail":  { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "row": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+          "col": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+
+          "herds":         { "$slot": { ".validate": "newData.isNumber()" } },
+          "deckCounts":    { "$slot": { ".validate": "newData.isNumber()" } },
+          "discardCounts": { "$slot": { ".validate": "newData.isNumber()" } },
+
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
     "liveGames": {
       ".read": true,
       "$gameCode": {

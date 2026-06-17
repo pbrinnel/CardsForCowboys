@@ -707,15 +707,50 @@ const HISTORY = (() => {
 })();
 
 // ============================================================
-// DECISION LOG — per-decision human-vs-shadow-AI telemetry.
-// At each LOCAL HUMAN draw/buy decision we also compute what the hard AI
-// (outlaw) would do in the exact same state, and record both + state
-// features. Writes append-only to decisionLog/{code}. Research data for
-// AI tuning — never read by clients (pulled via the Firebase CLI).
+// TRAJECTORY CAPTURE (traj/{code}) — durable, replayable record of human play.
+// Captures a compact trajectory (header + per-round deck snapshots + ordered
+// decision events + round-boundary canaries) so any FUTURE AI can be scored
+// against the human offline, without re-instrumenting the game. Replaces the
+// v1 decisionLog "shadow-AI" logger (which anchored everything to one bot).
+//
+// Versioning (three independent axes, all stamped in the header):
+//   TRAJ_SCHEMA_V — record format. Bump on any field/kind change.
+//   GAME_V        — game content+logic version. Bump on rules/card-stat changes.
+//   cardDbHash    — auto content hash of the card table (backstop under GAME_V).
+// Stored data is immutable/append-only; all version handling lives in the
+// offline reader (read-time normalization), never a write-time migration.
+//
+// De-identified: keyed by slotIdx, no player names. Header carries only
+// {isHuman, personality} per seat. Research data — never read by clients.
 // ============================================================
-const DLOG_BASELINE = 'outlaw'; // hard-AI personality used as the counterfactual
+const TRAJ_SCHEMA_V = 1; // trajectory record format version
+const GAME_V        = 1; // bump on any rules / card-stat change (see CLAUDE.md version table)
 
-const DLOG = (() => {
+// Stable content hash of the card-stat table — lets the offline reconstructor
+// refuse to replay a trajectory captured under a different card balance.
+// Computed lazily (memoized): STARTER_TEMPLATES/STORE_CARDS are defined later in
+// the file, so eager evaluation here would hit their temporal dead zone.
+let _cardDbHash = null;
+function cardDbHash() {
+  if (_cardDbHash !== null) return _cardDbHash;
+  try {
+    const cards = [...STARTER_TEMPLATES, ...STORE_CARDS]
+      .map(c => `${c.id}:${c.cows}:${c.dollars}:${c.bandits}:${c.cost || 0}:${c.special || ''}`)
+      .sort()
+      .join('|');
+    let h = 0x811c9dc5; // FNV-1a 32-bit
+    for (let i = 0; i < cards.length; i++) {
+      h ^= cards.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    _cardDbHash = ('0000000' + h.toString(16)).slice(-8);
+  } catch (e) {
+    _cardDbHash = 'unknown';
+  }
+  return _cardDbHash;
+}
+
+const TRAJ = (() => {
   let db = null;
   let _fbRef, _fbPush;
   let initialized = false;
@@ -734,108 +769,137 @@ const DLOG = (() => {
   async function push(code, record) {
     try {
       await init();
-      await _fbPush(_fbRef(`decisionLog/${code}`), record);
+      await _fbPush(_fbRef(`traj/${code}`), record);
     } catch (e) {
-      console.warn('[DLOG] Failed to log decision:', e);
+      console.warn('[TRAJ] Failed to log trajectory record:', e);
     }
   }
 
   return { push };
 })();
 
-// Active game code for decision logging (MP or AI mode), or null if none yet.
-function decisionGameCode() {
+// Active game code (MP or AI mode), or null if none yet.
+function trajGameCode() {
   return MP.active ? (sessionStorage.getItem('mp_code') || null) : (AI_SPEC.code || null);
 }
 
-// Runs fn with the player's personality temporarily set to the hard-AI baseline so the
-// AI decision functions (which read player.personality) evaluate the same state as outlaw.
-// Always restores the original personality, even on throw.
-function withShadowAI(player, fn) {
-  const prev = player.personality;
-  try { player.personality = DLOG_BASELINE; return fn(); }
-  finally { player.personality = prev; }
+// True for the authoritative client: the MP host, or the single client in AI mode.
+// The host writes the header, act setups, AI seats' buys, and canaries (de-duped);
+// each human client writes its own seat's snapshots + decisions.
+function amTrajHost() {
+  return !MP.active || MP.isHost;
 }
 
-// Log a draw-phase decision (humanDrew = true for a draw, false for a stop).
-// Only fires for genuine optional decisions where the player could also have done the other.
-function logDrawDecision(player, humanDrew) {
-  if (G.isDebug || TUTORIAL.active) return;
-  const code = decisionGameCode();
-  if (!code) return;
-  const cfg = AI_PERSONALITIES[DLOG_BASELINE];
-  // Cards that would bust on the very next single draw (push current bandits to 3+).
-  const lethalNext = player.deck.filter(c => (player.roundBandits + (c.bandits || 0)) >= 3).length;
-  const bustProb = player.roundBandits >= 1
-    ? calcBustProb(player, Math.min(player.roundBandits, 2), cfg)
-    : 0;
-  const aiWouldDraw = withShadowAI(player, () => aiShouldDraw(player));
-  DLOG.push(code, {
-    kind: 'draw',
-    ts: Date.now(),
+// Whether trajectory capture should run at all for this game.
+function trajActive() {
+  return !G.isDebug && !TUTORIAL.active && !!trajGameCode();
+}
+
+// Compact card-instance serialization for snapshots (id only — stats come from the card DB).
+function trajIds(cards) {
+  return (cards || []).map(c => c.id);
+}
+
+// --- Header: once per game, host/local client ---
+function trajLogHeader() {
+  if (!trajActive() || !amTrajHost()) return;
+  const seats = {};
+  G.players.forEach(p => { seats[p.slotIdx] = { isHuman: !!p.isHuman, personality: p.personality || null }; });
+  TRAJ.push(trajGameCode(), {
+    kind: 'hdr', ts: Date.now(),
+    schemaV: TRAJ_SCHEMA_V, gameV: GAME_V, cardDbHash: cardDbHash(),
     mode: MP.active ? 'mp' : 'ai',
-    player: player.name,
-    act: G.currentAct,
-    round: G.roundNumber,
-    bandits: player.roundBandits,
-    cows: player.roundCows,
-    dollars: player.roundDollars,
-    handSize: player.hand.length,
-    deckRemaining: player.deck.length,
-    lethalNext,
-    bustProb: Math.round(bustProb * 1000) / 1000,
-    humanDrew,
-    aiWouldDraw,
+    gameSeed: G.gameSeed || 0,
+    numPlayers: G.numPlayers,
+    quickStartMode: !!G.quickStartMode,
+    hiddenHerdMode: !!G.hiddenHerdMode,
+    seats,
   });
 }
 
-// Log a buy-phase decision: the human's pick (or burn) vs the hard AI's ranking of the
-// same affordable cards. humanPickRank = 1-based rank of the human's card in the AI's order.
-function logBuyDecision(player, humanAction, row, col) {
-  if (G.isDebug || TUTORIAL.active) return;
-  const code = decisionGameCode();
-  if (!code) return;
-  const cfg = AI_PERSONALITIES[DLOG_BASELINE];
-  const boughtSlot = humanAction === 'buy' ? G.pyramid[row] && G.pyramid[row][col] : null;
-  const humanCardId = boughtSlot && boughtSlot.card ? boughtSlot.card.id : null;
-  const available = getAvailablePyramidCards(G.pyramid);
-  const affordable = available.filter(a => a.slot.card.cost <= player.roundDollars);
+// --- Act setup: pyramid card IDs for an act, host only ---
+function trajLogActSetup(act, cardIds) {
+  if (!trajActive() || !amTrajHost()) return;
+  TRAJ.push(trajGameCode(), { kind: 'act', ts: Date.now(), act, cardIds });
+}
 
-  let aiAction = 'burn';
-  let aiCardId = null;
-  let humanPickRank = null;
-  withShadowAI(player, () => {
-    const ranked = affordable
-      .map(a => ({ id: a.slot.card.id, score: scoreCardForAI(a.slot.card, player) + pyramidRevealBonus(a.row, a.col, cfg.revealBonus) }))
-      .sort((x, y) => y.score - x.score);
-    if (ranked.length > 0) {
-      aiAction = 'buy';
-      aiCardId = ranked[0].id;
-      if (humanCardId) {
-        const idx = ranked.findIndex(r => r.id === humanCardId);
-        if (idx >= 0) humanPickRank = idx + 1;
-      }
-    }
+// --- Round snapshot: a seat's deck order + piles at round start ---
+// Logged for the local human (every client) and for AI seats (host only).
+function trajLogRoundSnaps() {
+  if (!trajActive()) return;
+  const code = trajGameCode();
+  G.players.forEach(p => {
+    const mine = p === G.players[0];
+    const aiOnHost = !p.isHuman && amTrajHost();
+    if (!mine && !aiOnHost) return; // remote humans log their own seat
+    TRAJ.push(code, {
+      kind: 'snap', ts: Date.now(),
+      act: G.currentAct, round: G.roundNumber, slot: p.slotIdx,
+      deck: trajIds(p.deck), hand: trajIds(p.hand), discard: trajIds(p.discard),
+      herd: p.herd,
+    });
   });
+}
 
-  const record = {
-    kind: 'buy',
-    ts: Date.now(),
-    mode: MP.active ? 'mp' : 'ai',
-    player: player.name,
-    act: G.currentAct,
-    round: G.roundNumber,
-    dollars: player.roundDollars,
-    humanAction,
-    aiAction,
-    numAffordable: affordable.length,
-    numAvailable: available.length,
+// --- Draw event: the local human drew a specific card (outcome, since human shuffles
+// use Math.random and aren't reproducible from seed) ---
+function trajLogDraw(player, card) {
+  if (!trajActive() || player !== G.players[0]) return;
+  TRAJ.push(trajGameCode(), {
+    kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+    slot: player.slotIdx, action: 'draw', drew: card.id,
+  });
+}
+
+// --- Stop event: the local human stopped drawing ---
+function trajLogStop(player) {
+  if (!trajActive() || player !== G.players[0]) return;
+  TRAJ.push(trajGameCode(), {
+    kind: 'd', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+    slot: player.slotIdx, action: 'stop',
+  });
+}
+
+// --- Special activation: the local human activated a special card. `detail` carries any
+// stat/deck-affecting sub-choice (e.g. replay_discard's picked card). ---
+function trajLogSpecial(player, special, cardId, detail) {
+  if (!trajActive() || player !== G.players[0]) return;
+  const rec = {
+    kind: 's', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+    slot: player.slotIdx, special, cardId,
   };
-  // Firebase omits null/undefined; only attach optional fields when present.
-  if (humanCardId) record.humanCardId = humanCardId;
-  if (aiCardId) record.aiCardId = aiCardId;
-  if (humanPickRank !== null) record.humanPickRank = humanPickRank;
-  DLOG.push(code, record);
+  if (detail != null) rec.detail = detail;
+  TRAJ.push(trajGameCode(), rec);
+}
+
+// --- Buy/burn event: local human (every client) or AI seat (host only). Remote humans
+// log their own via their executeBuy/executeBurn (they never reach this client's). ---
+function trajLogBuy(player, action, row, col) {
+  if (!trajActive()) return;
+  const mine = player === G.players[0];
+  const aiOnHost = !player.isHuman && amTrajHost();
+  if (!mine && !aiOnHost) return;
+  TRAJ.push(trajGameCode(), {
+    kind: 'b', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+    slot: player.slotIdx, action, row, col,
+  });
+}
+
+// --- Canary: ground-truth herds + pile counts at a round boundary, host only.
+// The offline reconstructor asserts replayed state against these to catch engine/
+// card-DB drift loudly instead of silently misreconstructing. ---
+function trajLogCanary() {
+  if (!trajActive() || !amTrajHost()) return;
+  const herds = {}, deckCounts = {}, discardCounts = {};
+  G.players.forEach(p => {
+    herds[p.slotIdx] = p.herd;
+    deckCounts[p.slotIdx] = p.deck.length;
+    discardCounts[p.slotIdx] = p.discard.length;
+  });
+  TRAJ.push(trajGameCode(), {
+    kind: 'ck', ts: Date.now(), act: G.currentAct, round: G.roundNumber,
+    herds, deckCounts, discardCounts,
+  });
 }
 
 // ============================================================
@@ -2433,6 +2497,8 @@ async function startGame() {
     if (AI_SPEC.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
   }
 
+  trajLogHeader(); // trajectory: header (seed, seats, version stamps) once the game code exists
+
   if (G.quickStartMode) {
     await runQuickStartDraft();
   } else {
@@ -2630,6 +2696,10 @@ async function setupAct(act) {
     G.pyramid = buildPyramid(act, pyramidIds);
   }
 
+  // trajectory: record this act's pyramid (host only). Read IDs from the built pyramid
+  // so it works on every branch (host/guest/AI), not just where cardIds was computed.
+  trajLogActSetup(act, G.pyramid.flatMap(row => row.map(slot => slot.card.id)));
+
   addLog(`--- Act ${act} begins! ---`, 'log-score');
   render();
   startRound();
@@ -2640,6 +2710,7 @@ async function startRound() {
   for (const player of G.players) {
     resetPlayerRound(player);
   }
+  trajLogRoundSnaps(); // trajectory: per-seat deck/pile snapshot at round start
   G.selectedPyramidCard = null;
   G.phase = 'draw';
   G.drawsDone = {};
@@ -2857,10 +2928,6 @@ async function playerDraw() {
 
   const player = G.players[0];
 
-  // Decision telemetry: log only genuine optional draws (not a mandatory first draw or a
-  // forced Draw-4 continuation), where stopping was an equally legal choice.
-  if (player.forcedDraws === 0 && player.hand.length >= 1) logDrawDecision(player, true);
-
   // Check if deck is empty and needs reshuffle
   if (player.deck.length === 0) {
     if (player.discard.length === 0) {
@@ -2896,6 +2963,8 @@ async function playerDraw() {
     onPlayerDrawDone();
     return;
   }
+
+  trajLogDraw(player, card); // trajectory: record the actual drawn card (full sequence)
 
   const isFirst = player.hand.length === 0;
   player.hand.push(card);
@@ -2960,8 +3029,7 @@ async function playerStopDraw() {
   if (TUTORIAL.active && !TUTORIAL.isAllowed('stop')) { TUTORIAL.flashBlocked(); return; }
   const player = G.players[0];
 
-  // Decision telemetry: a stop is always a genuine choice (only reachable when not forced).
-  logDrawDecision(player, false);
+  trajLogStop(player); // trajectory: explicit stop event
 
   player.stoppedDrawing = true;
 
@@ -3498,6 +3566,7 @@ function getBestAffordableCost(ai) {
 async function activateSpecialCard(player, card) {
   if (TUTORIAL.active && !TUTORIAL.isAllowed('activate')) { TUTORIAL.flashBlocked(); return; }
   if (TUTORIAL.active) TUTORIAL.onActionDone('activate');
+  trajLogSpecial(player, card.special, card.id); // trajectory: record the activation
   switch (card.special) {
     case 'burn_to_use':
       await handleBurnToUse(player, card);
@@ -3759,6 +3828,7 @@ async function handleReplayDiscard(player, card) {
       player.discard.forEach((discardCard, i) => {
         const el = renderCardEl(discardCard, true, 'clickable');
         el.onclick = () => {
+          trajLogSpecial(player, 'replay_pick', discardCard.id); // trajectory: which discard was replayed (stat-affecting)
           // Apply the replayed card's effects
           applyCardEffects(player, discardCard, false);
           player.discard.splice(i, 1);
@@ -4069,7 +4139,7 @@ function onPyramidCardClick(row, col) {
 
 // Human buy: push to Firebase (MP, local human only) then apply locally
 function executeBuy(player, row, col) {
-  if (player === G.players[0]) logBuyDecision(player, 'buy', row, col); // log before state changes
+  trajLogBuy(player, 'buy', row, col); // trajectory: before state changes (gates seat/host internally)
   if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col);
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('buy');
   executeBuyLocal(player, row, col);
@@ -4129,7 +4199,7 @@ function executeBurn(player, row, col) {
   if (TUTORIAL.active && player === G.players[0] && !TUTORIAL.isAllowed('burn', { row, col })) {
     TUTORIAL.flashBlocked(); return;
   }
-  if (player === G.players[0]) logBuyDecision(player, 'burn', row, col); // log before state changes
+  trajLogBuy(player, 'burn', row, col); // trajectory: before state changes (gates seat/host internally)
   if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);
@@ -4412,6 +4482,8 @@ async function scoreRound() {
     player.discard.push(...player.hand);
     player.hand = [];
   }
+
+  trajLogCanary(); // trajectory: ground-truth herds + pile counts at round end (drift check)
 
   render();
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push(); // spectators see final scores for the round

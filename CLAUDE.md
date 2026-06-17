@@ -398,46 +398,73 @@ When implementing a difficulty picker, the intended mapping is:
 
 ---
 
-## Decision Telemetry (`decisionLog`)
+## Trajectory Capture (`traj`) — the human-play benchmark
 
-**Purpose:** capture *how* the local human plays vs what the hard AI (`outlaw`) would do in the
-**same state**, so we can learn what to tune in AI opponents. Outcome-only `gameHistory` can't
-answer this (no move data); the in-game log is an in-memory rolling 50-entry buffer never
-persisted. This is the move-level dataset.
+**Purpose:** capture human games as a **durable, replayable, architecture-agnostic benchmark** so
+ANY future AI (the 14-param bots, a neural net, an LLM agent) can be scored against real human play
+offline, without re-instrumenting the game. Outcome-only `gameHistory` has no moves; the in-game log
+is an unpersisted rolling buffer. This is the move-level substrate.
 
-**Design (in `src/play.js`, the `DLOG` module + `logDrawDecision` / `logBuyDecision`, ~line 709):**
-- At each **local-human** draw/buy decision, we also run the AI decision functions with the
-  player's personality temporarily set to `DLOG_BASELINE = 'outlaw'` (`withShadowAI` save/restore,
-  never mutates persisted state), and log both the human choice and the AI counterfactual + state
-  features. Only `G.players[0]` (the local human) is logged → naturally de-dupes across MP clients.
-- **Draw** (`logDrawDecision`, hooked at the top of `playerDraw` for genuine optional draws —
-  `forcedDraws===0 && hand.length>=1` — and in `playerStopDraw`): records `bandits, cows, dollars,
-  handSize, deckRemaining, lethalNext` (cards that bust on the next single draw), `bustProb`
-  (`calcBustProb` under outlaw), `humanDrew`, `aiWouldDraw` (`aiShouldDraw` under outlaw).
-- **Buy** (`logBuyDecision`, hooked in `executeBuy`/`executeBurn` for `player===G.players[0]`,
-  *before* state changes): records `humanAction` (buy|burn), `humanCardId`, `aiAction`, `aiCardId`
-  (outlaw's top pick via `scoreCardForAI` + `pyramidRevealBonus`), `humanPickRank` (1-based rank of
-  the human's card in outlaw's ordering), `numAffordable`, `numAvailable`. Optional fields are
-  omitted when null (Firebase drops them).
-- Logged in **both AI mode and MP** (players[0] is always human); keyed by the active game code
-  (`decisionGameCode()` → `mp_code` or `AI_SPEC.code`). Skips debug + tutorial games.
+**Core principle — store thin, reconstruct fat:** capture a compact trajectory; derive every feature,
+benchmark, and value label offline by replaying the deterministic engine (`sim/game-core.js`). The
+logger records the *situation and the human's choice*, never a bot's verdict — so the AI comparison is
+an offline, re-runnable, any-personality (or any-future-model) operation, not baked in at capture time.
 
-**Storage:** top-level `decisionLog/{code}` (push list), **deliberately NOT under `games/{code}`** —
-`spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the
-anti-pattern the `liveSummary` slim-node redesign fixed). Append-only, shape-validated rules;
-`.read:false` (pulled only via the Firebase CLI, owner creds bypass rules). ~250 bytes/record,
-~70 records/human/game → tens of KB/game; fits the free tier for thousands of games.
+**Design (in `src/play.js`, the `TRAJ` module + `trajLog*` helpers, ~line 709):**
+- **De-identified:** keyed by `slotIdx`, **no player names**. Header carries only `{isHuman, personality}`
+  per seat.
+- **Capture model (who writes what):** the **host** (`amTrajHost()` = MP host, or the single AI-mode
+  client) writes the header, act setups, AI-seat buys, and canaries (de-duped); each **human client**
+  writes its own seat's snapshots + decisions (`G.players[0]`). Remote humans log their own seat (the
+  host can't see their draw order — human shuffles use `Math.random`, so draw *outcomes* must be logged,
+  not reconstructed from seed).
+- **Record kinds** (`kind`): `hdr` (versions, `gameSeed`, seats), `act` (pyramid card IDs), `snap`
+  (a seat's `deck/hand/discard` IDs + `herd` at round start), `d` (draw: actual `drew` card id / or
+  `action:'stop'`), `s` (special activation + stat-affecting sub-choice, e.g. `replay_pick`), `b`
+  (buy/burn coordinate), `ck` (**canary**: ground-truth `herds`/`deckCounts`/`discardCounts` at round
+  end — the offline reconstructor asserts replay against these to catch engine/card-DB drift loudly).
+- Hooks: `trajLogHeader` (startGame), `trajLogActSetup` (setupAct), `trajLogRoundSnaps` (startRound),
+  `trajLogDraw` (after `drawFromDeck` in playerDraw), `trajLogStop` (playerStopDraw), `trajLogSpecial`
+  (activateSpecialCard + replay_discard pick), `trajLogBuy` (executeBuy/executeBurn — also catches AI
+  buys, host-gated), `trajLogCanary` (scoreRound). Skips debug + tutorial games.
+- **Phase 0 scope:** AI *draws* are NOT per-event logged (deterministic from seed; `snap`+`ck` suffice);
+  only human draws are. Look3-rearrange order is not captured (deck-order only, covered by outcome
+  logging). The canary flags any under-capture during offline replay.
+
+**Versioning — three independent axes (header):** `schemaV` (record format), `gameV` (game content+logic;
+bump on rules/card-stat changes — see table below), `cardDbHash` (auto FNV-1a hash of the card-stat table,
+backstop under `gameV`). **Golden rule:** stored data is immutable/append-only; all version handling lives
+in the offline reader (read-time normalization), never a write-time migration. The reconstructor refuses
+to replay when its engine's `gameV` ≠ the trajectory's, so the benchmark never silently rots.
+
+| `schemaV` | meaning |
+|---|---|
+| 1 | initial trajectory format (hdr/act/snap/d/s/b/ck) |
+
+| `gameV` | meaning |
+|---|---|
+| 1 | baseline at trajectory launch (June 2026) |
+
+**Storage:** top-level `traj/{code}` (push list), **deliberately NOT under `games/{code}`** —
+`spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the anti-pattern
+the `liveSummary` slim-node redesign fixed). Append-only, shape-validated rules; `.read:false` (CLI-pull
+only, owner creds bypass rules). ~15–25 KB/game; fits the free tier for thousands of games. In-game overhead
+is lower than the old v1 logger (no shadow-AI scoring at decision time).
 
 **Lifecycle:** treated like `gameHistory` — **permanent research data**, NOT purged by
-`admin/cleanup-games.sh` (which only clears transient game-state nodes). Delete test/analyzed logs
-by code (`firebase database:remove /decisionLog/CODE`). A future analysis/pull script does
-pull→analyze→prune. **Do not** add `decisionLog` removal to the routine game cleanup — losing
+`admin/cleanup-games.sh` (transient game-state nodes only). Delete test/analyzed trajectories by code
+(`firebase database:remove /traj/CODE`). **Do not** add `traj` removal to routine cleanup — losing
 un-analyzed human data is the costly mistake.
 
-**Analysis goal (not yet built):** draw-vs-buy decomposition — agreement rate + divergence
-direction on draw (does the human bank earlier/later than outlaw, and who scores more?), and the
-distribution of `humanPickRank` on buys (which valuations outlaw under/over-rates). Tells you which
-of the 14 personality params to move.
+**v1 legacy (`decisionLog`):** the prior shadow-AI logger (`decisionLog/{code}`, "human vs outlaw" per
+decision) is retired. Its 4 captured games remain as a frozen cohort, read by `admin/analyze-decisions.py`.
+Its `.read:false` rules stay in place; nothing writes it anymore.
+
+**Roadmap (Phase 1+, offline, not built):** reconstructor in `sim/` (replay + canary validation) → static
+decision-puzzle benchmark → Monte Carlo **value oracle** (EV-label decisions; measure *quality* not just
+human-similarity) → fit a new personality by swapping `sim/evolve.js`'s fitness to human-decision-agreement
+(optionally winner-weighted). **Do not draw AI-tuning conclusions until the corpus is large** (the binding
+constraint — the site produces few completed games).
 
 ---
 
@@ -704,7 +731,10 @@ firebase database:remove /gameHistory/PUSHKEY --project cards-for-cowboys
 # Delete the liveSummary entry
 firebase database:remove /liveSummary/GAMECODE --project cards-for-cowboys
 
-# Delete the decision-telemetry entry (keyed by game code — see Decision Telemetry section)
+# Delete the trajectory-capture entry (keyed by game code — see Trajectory Capture section)
+firebase database:remove /traj/GAMECODE --project cards-for-cowboys
+
+# Delete the retired v1 decision-telemetry entry (legacy cohort)
 firebase database:remove /decisionLog/GAMECODE --project cards-for-cowboys
 ```
 
@@ -721,7 +751,8 @@ The Firebase API key is **intentionally public** — Firebase web app keys are n
 - [ ] The key is hardcoded in TWO places: `src/firebase-config.js` line 9 and `src/play.js` line 13. If the key ever changes, update both.
 - [ ] `database.rules.json` must restrict write access appropriately. Review it when adding new Firebase paths.
   - `liveSummary` — **collection-level `.read:true` required** (same RTDB no-upward-cascade reason as below). This is the node `history.html`'s Live Now list reads via `onValue(ref(db,'liveSummary'))`. Each `liveSummary/$gameCode` is a slim summary (`mode, status, numPlayers, players[{name,isHuman}], phase, act, round, ts`) — **no hands/decks/pyramid**. Written by `MP.pushLiveSummary()` (host only, from `pushSpectatorState`) and `AI_SPEC.push()`. Status flips to `finished` (gameover / `AI_SPEC.finish` / onDisconnect) or `disbanded` (`MP.disband`); stale entries (no push >5 min) are hidden by the list's `ts` filter. Full game state is still loaded only when a visitor opens `spectate.html` (which reads the full `games/{code}` or `liveGames/{code}` node by code). Do NOT make Live Now read the full collections again — that ships ~KB–MB of card state to every visitor (the pre-June-2026 behavior).
-  - `decisionLog` — **`.read:false`** (research telemetry; pulled only via the Firebase CLI). Per `decisionLog/$gameCode/$entry`: append-only (`!data.exists()`), shape-validated over the union of draw+buy fields with `$other:false`. No client ever reads it. See the Decision Telemetry section.
+  - `traj` — **`.read:false`** (durable trajectory benchmark; CLI-pull only). Per `traj/$gameCode/$entry`: append-only (`!data.exists()`), shape-validated over the union of all record-kind fields (hdr/act/snap/d/s/b/ck) with `$other:false`. No client ever reads it. See the Trajectory Capture section.
+  - `decisionLog` — **`.read:false`** (retired v1 telemetry; frozen legacy cohort, nothing writes it now). Per `decisionLog/$gameCode/$entry`: append-only, shape-validated with `$other:false`. Read by `admin/analyze-decisions.py` via CLI.
   - `games` / `liveGames` — collection-level `.read:true` is also present (legacy: Live Now used to enumerate these directly). RTDB read rules do NOT cascade upward — per-`$gameCode` read alone makes a whole-collection read fail with Permission denied. Live Now no longer reads these (it reads `liveSummary`), but `spectate.html` still reads them per-code for full state. (This makes all games' full state publicly enumerable; spectating is a public feature and codes are listed anyway.)
   - `games/$gameCode` — fully open read/write (game code acts as access token — acceptable)
   - `gameHistory` — read open, write restricted to new push-only entries (`!data.exists()`); shape validated (required fields, type checks, length limits, no extra fields)
