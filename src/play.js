@@ -3721,13 +3721,21 @@ async function handleBurnFor2(player, card) {
   startPlayerDraw();
 }
 
-async function activateDollarCardInBuyPhase(player, card) {
-  const bonus = card.special === 'burn_for_2' ? 1 : card.dollars;
+async function activateCardInBuyPhase(player, card) {
   const idx = player.hand.indexOf(card);
   if (idx < 0) return;
   player.hand.splice(idx, 1);
-  player.roundDollars += bonus;
-  addLog(`You activated ${SUIT_NAME[card.cacti]} card: +$${bonus}.`, 'log-burn');
+  if (card.special === 'extra_buy') {
+    player.hasExtraBuy = true;
+    addLog(`You burned ${SUIT_NAME[card.cacti]} card: extra buy/burn!`, 'log-burn');
+    // NOTE: MP edge case — if a remote human activates this in buy phase, the host's
+    // opp.hasExtraBuy stays false (drawState isn't re-synced in buy phase) and the
+    // host will skip their extra turn. Rare: Act 2 only, requires holding through draw.
+  } else {
+    const bonus = card.special === 'burn_for_2' ? 1 : card.dollars;
+    player.roundDollars += bonus;
+    addLog(`You burned ${SUIT_NAME[card.cacti]} card: +$${bonus}.`, 'log-burn');
+  }
   trajLogSpecial(player, card.special, card.id, null, 'buy');
   render();
   humanBuyTurn(player);
@@ -4140,12 +4148,16 @@ function humanBuyTurn(player) {
 
   clearActions();
   const activatable = player.hand.filter(c =>
-    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+    (c.special === 'burn_to_use' && c.dollars > 0) ||
+    c.special === 'burn_for_2' ||
+    (c.special === 'extra_buy' && !player.hasExtraBuy)
   );
   if (activatable.length > 0) {
     setActions(activatable.map(c => {
-      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2' : `Burn for $${c.dollars}`;
-      return { text: label, onClick: () => activateDollarCardInBuyPhase(player, c), className: 'btn-burn' };
+      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2'
+                  : c.special === 'extra_buy'  ? 'Burn for Extra Buy/Burn'
+                  : `Burn for $${c.dollars}`;
+      return { text: label, onClick: () => activateCardInBuyPhase(player, c), className: 'btn-burn' };
     }));
   }
   render();
@@ -4285,6 +4297,16 @@ async function aiBuyTurn(ai) {
   setMessage(`${ai.name} is buying\u2026`);
   clearActions();
   await delay(1000);
+
+  // Always activate extra_buy if held (free extra action; no condition needed)
+  if (!ai.hasExtraBuy) {
+    const extraCard = ai.hand.find(c => c.special === 'extra_buy');
+    if (extraCard) {
+      ai.hand.splice(ai.hand.indexOf(extraCard), 1);
+      ai.hasExtraBuy = true;
+      addLog(`${ai.name} activated extra buy/burn!`, 'log-burn');
+    }
+  }
 
   // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
   for (const tCard of ai.hand.filter(c =>

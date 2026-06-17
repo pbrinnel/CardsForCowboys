@@ -160,6 +160,15 @@ function chooseBuy(player, genome, pyramid, act, allPlayers) {
   const avail = core.getAvailablePyramidCards(pyramid);
   if (avail.length === 0) return { action: 'pass' };
 
+  // Always activate extra_buy if held (free extra action; no condition needed)
+  if (!player.hasExtraBuy) {
+    const extraCard = player.hand.find(c => c.special === 'extra_buy');
+    if (extraCard) {
+      player.hand.splice(player.hand.indexOf(extraCard), 1);
+      player.hasExtraBuy = true;
+    }
+  }
+
   // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
   for (const tCard of player.hand.filter(c =>
     (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
