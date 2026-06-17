@@ -4100,7 +4100,7 @@ function advanceOrExtraBuy(player) {
   if (player === G.players[0] && player.hasExtraBuy && !player.extraBuyUsed) {
     if (!isPyramidEmpty(G.pyramid)) {
       player.extraBuyUsed = true;
-      addLog(`Extra buy/burn! Spend your remaining $${player.roundDollars}.`, 'log-buy');
+      addLog(`Extra buy/burn! Buy or burn one more card from the pyramid.`, 'log-buy');
       humanBuyTurn(player);
       return true;
     }
