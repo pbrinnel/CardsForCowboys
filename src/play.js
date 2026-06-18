@@ -2517,14 +2517,16 @@ async function startGame() {
         if (saved) {
           const players = saved.players.map(sp => {
             const p = createPlayer(sp.name, sp.isHuman, sp.slotIdx, sp.personality);
-            p.herd           = sp.herd           || 0;
-            p.roundDollars   = sp.roundDollars   || 0;
-            p.roundCows      = sp.roundCows      || 0;
-            p.roundBandits   = sp.roundBandits   || 0;
-            p.busted         = sp.busted         || false;
-            p.stoppedDrawing = sp.stoppedDrawing || false;
+            p.herd            = sp.herd            || 0;
+            p.roundDollars    = sp.roundDollars    || 0;
+            p.roundCows       = sp.roundCows       || 0;
+            p.roundBandits    = sp.roundBandits    || 0;
+            p.busted          = sp.busted          || false;
+            p.stoppedDrawing  = sp.stoppedDrawing  || false;
             p.hasBuyBurnFirst = sp.hasBuyBurnFirst || false;
-            p.hasExtraBuy    = sp.hasExtraBuy    || false;
+            p.hasExtraBuy     = sp.hasExtraBuy     || false;
+            p.extraBuyUsed    = sp.extraBuyUsed    || false;
+            p.forcedDraws     = sp.forcedDraws     || 0;
             p.hand    = (sp.hand    || []).map(id => getCardById(id)).filter(Boolean);
             p.deck    = (sp.deck    || []).map(id => getCardById(id)).filter(Boolean);
             p.discard = (sp.discard || []).map(id => getCardById(id)).filter(Boolean);
@@ -2545,7 +2547,34 @@ async function startGame() {
           players.forEach((p, i) => { if (!p.isHuman) initAiRng(i, G.gameSeed); });
           render();
           addLog(`Game resumed — Act ${G.currentAct}, Round ${G.roundNumber}`);
-          await startRound();
+
+          if (saved.phase === 'draw') {
+            G.phase = 'draw';
+            G.drawsDone = {};
+            for (let i = 0; i < G.numPlayers; i++) G.drawsDone[i] = saved.drawsDone?.[i] || false;
+            render();
+            // Re-run AI draws for any AI not yet done — they draw from their restored deck state.
+            // (Don't re-run done AIs: their saved hand/deck/stats are already authoritative.)
+            for (let i = 1; i < G.numPlayers; i++) {
+              if (!G.players[i].isHuman && !G.drawsDone[i]) aiDrawPhase(i);
+            }
+            const human = G.players[0];
+            if (human.busted || human.stoppedDrawing || G.drawsDone[0]) {
+              G.drawsDone[0] = true;
+              checkDrawPhaseComplete();
+            } else {
+              startPlayerDraw();
+            }
+          } else if (saved.phase === 'buy') {
+            G.phase = 'buy';
+            G.buyOrder = (saved.buyOrder || []);
+            G.currentBuyerIdx = saved.currentBuyerIdx || 0;
+            render();
+            processBuyTurn();
+          } else {
+            // 'start', 'score', or unknown — replay the round from the saved checkpoint
+            await startRound();
+          }
           return;
         }
       }
@@ -2618,10 +2647,14 @@ function saveLocalGame() {
       ts: Date.now(),
       act: G.currentAct,
       round: G.roundNumber,
+      phase: G.phase,
       gameSeed: G.gameSeed,
       quickStartMode: G.quickStartMode || false,
       hiddenHerdMode: G.hiddenHerdMode || false,
       seatOrder: G.seatOrder,
+      drawsDone: G.drawsDone || {},
+      buyOrder: G.buyOrder || [],
+      currentBuyerIdx: G.currentBuyerIdx || 0,
       pyramid: G.pyramid.map(row => row.map(s => ({
         id: s.card ? s.card.id : null, faceUp: s.faceUp, removed: s.removed,
       }))),
@@ -2633,6 +2666,8 @@ function saveLocalGame() {
         busted: p.busted, stoppedDrawing: p.stoppedDrawing,
         hasBuyBurnFirst: p.hasBuyBurnFirst || false,
         hasExtraBuy: p.hasExtraBuy || false,
+        extraBuyUsed: p.extraBuyUsed || false,
+        forcedDraws: p.forcedDraws || 0,
         hand:    p.hand.map(c => c.id),
         deck:    p.deck.map(c => c.id),
         discard: p.discard.map(c => c.id),
@@ -3154,6 +3189,7 @@ async function playerDraw() {
 
   render();
   mpSyncDraw();
+  saveLocalGame();
 
   // This draw satisfies one mandatory draw owed from a prior "Draw 4".
   if (player.forcedDraws > 0) player.forcedDraws--;
@@ -3203,6 +3239,7 @@ async function playerStopDraw() {
   trajLogStop(player); // trajectory: explicit stop event
 
   player.stoppedDrawing = true;
+  saveLocalGame();
 
   addLog('You stopped drawing.');
   await onPlayerDrawDone();
@@ -3771,6 +3808,7 @@ async function activateSpecialCard(player, card) {
       await handleCopyNextActivation(player, card);
       break;
   }
+  saveLocalGame();
 }
 
 // Activates the Copy Next card as a second independent copy of its linked donor.
@@ -3917,6 +3955,7 @@ function showBustAnimation() {
 async function handleBust(player) {
   player.busted = true;
   player.forcedDraws = 0;   // busting ends any outstanding Draw-4 obligation
+  saveLocalGame();
   if (player.isHuman) {
     clearActions();
     setMessage('BUSTED! Review your hand, then clear it when ready.');
@@ -4347,6 +4386,7 @@ function applyBuyOrder(order) {
 
 function processBuyTurn() {
   clearForceContinue();
+  saveLocalGame();
   if (G.currentBuyerIdx >= G.buyOrder.length) {
     endBuyPhase();
     return;
