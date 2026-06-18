@@ -2508,7 +2508,48 @@ async function startGame() {
       G.hiddenHerdMode = false;
       TUTORIAL.init(G);
     } else {
-      // Read player config from sessionStorage (set by game.html for 3P/4P)
+      // Restore a saved mid-game state (survives page reload / mobile tab eviction)
+      // unless gamesetup.html explicitly flagged this as a fresh new game.
+      const isNewGame = sessionStorage.getItem('cfc_new_game') === '1';
+      sessionStorage.removeItem('cfc_new_game');
+      if (!isNewGame) {
+        const saved = loadLocalGame();
+        if (saved) {
+          const players = saved.players.map(sp => {
+            const p = createPlayer(sp.name, sp.isHuman, sp.slotIdx, sp.personality);
+            p.herd           = sp.herd           || 0;
+            p.roundDollars   = sp.roundDollars   || 0;
+            p.roundCows      = sp.roundCows      || 0;
+            p.roundBandits   = sp.roundBandits   || 0;
+            p.busted         = sp.busted         || false;
+            p.stoppedDrawing = sp.stoppedDrawing || false;
+            p.hasBuyBurnFirst = sp.hasBuyBurnFirst || false;
+            p.hasExtraBuy    = sp.hasExtraBuy    || false;
+            p.hand    = (sp.hand    || []).map(id => getCardById(id)).filter(Boolean);
+            p.deck    = (sp.deck    || []).map(id => getCardById(id)).filter(Boolean);
+            p.discard = (sp.discard || []).map(id => getCardById(id)).filter(Boolean);
+            return p;
+          });
+          G = initState(players.length, players);
+          G.gameSeed       = saved.gameSeed || 0;
+          G.currentAct     = saved.act;
+          G.roundNumber    = saved.round;
+          G.quickStartMode = saved.quickStartMode || false;
+          G.hiddenHerdMode = saved.hiddenHerdMode || false;
+          G.seatOrder      = saved.seatOrder || seededSeatOrder(players.length, G.gameSeed);
+          G.pyramid = saved.pyramid.map(row => row.map(s => ({
+            card:    s.id ? getCardById(s.id) : null,
+            faceUp:  s.faceUp,
+            removed: s.removed,
+          })));
+          players.forEach((p, i) => { if (!p.isHuman) initAiRng(i, G.gameSeed); });
+          render();
+          addLog(`Game resumed — Act ${G.currentAct}, Round ${G.roundNumber}`);
+          await startRound();
+          return;
+        }
+      }
+      // Read player config from sessionStorage (set by gamesetup.html)
       const storedCount = parseInt(sessionStorage.getItem('player_count') || '2', 10);
       const storedDefs = JSON.parse(sessionStorage.getItem('player_defs') || 'null');
       if (storedDefs && storedDefs.length >= 2) {
@@ -2564,12 +2605,61 @@ async function startGame() {
   }
 }
 
+// --- SOLO GAME PERSISTENCE (localStorage, survives mobile tab eviction) ---
+// Saves the full game state at the start of each round so a page reload
+// (or tab eviction on mobile) resumes mid-game instead of restarting Act 1.
+// Only used for non-MP, non-tutorial games. Cleared on game-over and restart.
+
+function saveLocalGame() {
+  if (MP.active || TUTORIAL.active || !G || G.isDebug) return;
+  try {
+    localStorage.setItem('cfc_solo_game', JSON.stringify({
+      v: 1,
+      ts: Date.now(),
+      act: G.currentAct,
+      round: G.roundNumber,
+      gameSeed: G.gameSeed,
+      quickStartMode: G.quickStartMode || false,
+      hiddenHerdMode: G.hiddenHerdMode || false,
+      seatOrder: G.seatOrder,
+      pyramid: G.pyramid.map(row => row.map(s => ({
+        id: s.card ? s.card.id : null, faceUp: s.faceUp, removed: s.removed,
+      }))),
+      players: G.players.map(p => ({
+        name: p.name, isHuman: p.isHuman, slotIdx: p.slotIdx,
+        personality: p.personality || null,
+        herd: p.herd,
+        roundDollars: p.roundDollars, roundCows: p.roundCows, roundBandits: p.roundBandits,
+        busted: p.busted, stoppedDrawing: p.stoppedDrawing,
+        hasBuyBurnFirst: p.hasBuyBurnFirst || false,
+        hasExtraBuy: p.hasExtraBuy || false,
+        hand:    p.hand.map(c => c.id),
+        deck:    p.deck.map(c => c.id),
+        discard: p.discard.map(c => c.id),
+      })),
+    }));
+  } catch (e) { /* non-critical — localStorage may be full or blocked */ }
+}
+
+function loadLocalGame() {
+  try {
+    const s = JSON.parse(localStorage.getItem('cfc_solo_game') || 'null');
+    if (!s || s.v !== 1 || !s.pyramid || !s.players || !s.act || !s.round) return null;
+    return s;
+  } catch (e) { return null; }
+}
+
+function clearLocalGame() {
+  try { localStorage.removeItem('cfc_solo_game'); } catch (e) {}
+}
+
 function restartGame() {
   if (MP.active) {
     // In MP mode, can't restart — go back to lobby
     window.location.href = 'index.html';
     return;
   }
+  clearLocalGame();
   startGame();
 }
 
@@ -2765,6 +2855,7 @@ async function setupAct(act) {
 
 async function startRound() {
   clearForceContinue();
+  saveLocalGame(); // snapshot before hand reset — safe restore point for reload recovery
   for (const player of G.players) {
     resetPlayerRound(player);
   }
@@ -4993,6 +5084,7 @@ function gameOver() {
 // End-of-game bookkeeping (MP cleanup, history log, review link). DOM result display
 // lives in showShowdownResult(); this only handles persistence/cleanup.
 function finalizeGame(topPlayers) {
+  clearLocalGame(); // game over — don't restore this session on next load
   // Capture before AI_SPEC.finish() nulls _code
   const gameCode = MP.active ? (sessionStorage.getItem('mp_code') || null) : (AI_SPEC.code || null);
 

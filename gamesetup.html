@@ -599,6 +599,7 @@
             { name: myName, isHuman: true },
             { name: ai.name, isHuman: false, personality: ai.personality },
           ]));
+          sessionStorage.setItem('cfc_new_game', '1');
           window.location.href = 'playgame.html';
         } else {
           sessionStorage.setItem('player_count', '2');
@@ -632,6 +633,7 @@
         sessionStorage.setItem('mp_name', myName);
         startHostingFlow();
       } else {
+        sessionStorage.setItem('cfc_new_game', '1');
         window.location.href = 'playgame.html';
       }
     }
