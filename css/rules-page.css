@@ -196,6 +196,23 @@
   line-height: 1.4;
 }
 
+/* ── Starter deck card grid ── */
+.starter-deck-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.starter-deck-grid img {
+  width: 60px;
+  height: 84px;
+  border: 2px solid #1e1610;
+  box-shadow: 3px 3px 0 #1e1610;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
 /* ── Footer CTA ── */
 .rules-footer {
   text-align: center;
