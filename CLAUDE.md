@@ -657,6 +657,21 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 ---
 
+### 15. Host Mobile Reload Clobbered In-Progress Game (fetchSpectatorState null fallthrough)
+**Commit:** 482c566 (June 2026). Reported by PB after reloading on mobile during Act 3 of a 4-player game — everyone's herd reset to 0 and the pyramid reverted to Act 1.
+
+**Symptom:** Host reloads on mobile mid-game. The page shows Act 1 Round 1 and herds of 0. Other players see herds reset in spectatorState but their local game continues unaffected (they're past the actSetup listener). Host's client pushed a fresh spectatorState with act=1 herds=0, overwriting the real state.
+
+**Root cause:** `startGame`'s rejoin block called `fetchSpectatorState()` once and immediately. On mobile, Firebase's WebSocket may not be fully established in the first milliseconds after `init()`, causing `get()` to return null. With `state = null`, the code fell to the fallback check `if (params.has('rejoin'))` — but a mobile eviction reload uses `MP.recovered` (URL params), not `?rejoin`. So `!params.has('rejoin')` was true, and the code **silently fell through to the normal path → `setupAct(1)`**, clobbering the live game.
+
+**Fix in place (two parts):**
+1. `fetchSpectatorState()` is now retried up to 3 times (immediate → +600ms → +1200ms) before giving up, handling the transient connection window on mobile.
+2. The fallthrough guard is now `if (params.has('rejoin') || MP.recovered)` — `MP.recovered` being true means identity came from URL params or localStorage (definitively a mid-game reload, not a first-time start), so it's treated exactly like an explicit `?rejoin`.
+
+**Do not regress:** Never let the rejoin block fall through to the fresh-start path when `MP.recovered` is true. If `fetchSpectatorState` still returns null after retries AND `MP.recovered`, show "Could not restore game" and go home — do NOT run `setupAct(1)`. Only the marker-only re-entry (early refresh before any spectatorState was pushed) should fall through.
+
+---
+
 ### Peek-at-stats overlay must drop dimming/blur
 While the "👁 Peek at stats" mode is active on the rearrange modal, `#special-modal.peeking` sets `background: transparent; backdrop-filter: none` so the player can actually read the game state behind it. Only `#special-modal-content` is `visibility:hidden`; don't reintroduce the dark/blurred backdrop on the peeking state.
 
