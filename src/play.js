@@ -2426,7 +2426,11 @@ async function startGame() {
 
     if (isRejoin) {
       // --- Rejoin path: restore G from spectatorState ---
-      const state = await MP.fetchSpectatorState();
+      // Retry up to 3 times with backoff — on mobile the Firebase connection may
+      // not have fully established in the first milliseconds after init().
+      let state = await MP.fetchSpectatorState();
+      if (!state) { await delay(600);  state = await MP.fetchSpectatorState(); }
+      if (!state) { await delay(1200); state = await MP.fetchSpectatorState(); }
       if (state) {
         await reconstructG(state, cfg);
         if (MP.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
@@ -2446,8 +2450,9 @@ async function startGame() {
         return;
       }
       // No game state to restore.
-      if (params.has('rejoin')) {
-        // Explicit rejoin request but nothing exists — the game has ended.
+      if (params.has('rejoin') || MP.recovered) {
+        // Explicit rejoin OR eviction-recovery reload: never fall through to fresh-start
+        // (that would call setupAct(1) and clobber an in-progress game for everyone).
         setMessage('Could not restore game — the game may have ended.');
         setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
         return;
