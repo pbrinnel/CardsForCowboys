@@ -153,12 +153,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 0;
 }
 
 .pyramid-row {
   display: flex;
   gap: 3px;
+  position: relative;
+}
+
+.pyramid-row + .pyramid-row {
+  margin-top: -14px;
 }
 
 .pcard {
@@ -174,13 +179,13 @@
     rgba(255,255,255,0.06) 3px,
     rgba(255,255,255,0.06) 4px
   );
-  box-shadow: 1px 1px 0 rgba(0,0,0,0.35);
+  box-shadow: 0 3px 4px rgba(0,0,0,0.45);
 }
 
 .pcard.face-up {
   background: #e9e0c6;
   background-image: none;
-  box-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 3px 4px rgba(0,0,0,0.3);
 }
 
 .pyramid-demo-label {
