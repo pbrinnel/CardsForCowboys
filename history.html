@@ -350,6 +350,12 @@ const PAGE_SIZE = 5;
 let allRows    = [];
 let currentPage = 0;
 
+const MAX_NAME = 15;
+function truncName(name) {
+  if (!name) return '';
+  return name.length > MAX_NAME ? name.slice(0, MAX_NAME) + '…' : name;
+}
+
 btnPrev.addEventListener('click', () => { currentPage--; renderHistoryPage(); });
 btnNext.addEventListener('click', () => { currentPage++; renderHistoryPage(); });
 
@@ -384,7 +390,7 @@ function renderHistoryPage() {
       if (p.isWinner) classes.push('player-winner');
       if (!p.isHuman) classes.push('player-ai');
       if (classes.length) line.className = classes.join(' ');
-      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
+      line.textContent = `${truncName(p.name)}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
       tdPlayers.appendChild(line);
     });
     tr.appendChild(tdPlayers);
@@ -392,7 +398,7 @@ function renderHistoryPage() {
     const tdWinner = document.createElement('td');
     if (r.winner) {
       tdWinner.className = 'winner-name';
-      tdWinner.textContent = r.winner;
+      tdWinner.textContent = truncName(r.winner);
     } else {
       tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
     }
@@ -461,7 +467,7 @@ function renderLive() {
 
   live.forEach(g => {
     const players = g.players || [];
-    const playerStr = players.map(p => p.name + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
+    const playerStr = players.map(p => truncName(p.name) + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
     const phase = g.phase || '';
     const act   = g.act   || '';
     const round = g.round || '';
@@ -560,7 +566,7 @@ onValue(q, (snap) => {
       tr.appendChild(tdRank);
 
       const tdName = document.createElement('td');
-      tdName.textContent = entry.name;
+      tdName.textContent = truncName(entry.name);
       tr.appendChild(tdName);
 
       const tdHerd = document.createElement('td');
