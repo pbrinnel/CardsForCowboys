@@ -429,7 +429,9 @@ function renderHistoryPage() {
 const STALE_MS = 5 * 60 * 1000;
 
 function formatDate(ts) {
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit' })
+    + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 // ── Live games ──────────────────────────────────────────────
