@@ -160,6 +160,7 @@
       box-shadow: 4px 4px 0 #1e1610;
       font-size: 0.9rem;
     }
+    #history-table { table-layout: fixed; }
     thead {
       background: #1e1610;
       color: #e9e0c6;
@@ -324,6 +325,11 @@
   <div class="section-label">Completed Games</div>
   <div id="status">Loading…</div>
   <table id="history-table" style="display:none">
+    <colgroup>
+      <col style="width:17%">
+      <col style="width:70%">
+      <col style="width:13%">
+    </colgroup>
     <thead>
       <tr>
         <th>Date</th>
@@ -382,7 +388,7 @@ function renderHistoryPage() {
       const d = new Date(r.ts);
       const datePart = d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit' });
       const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-      tdDate.innerHTML = `${datePart}<br><span style="color:#b87838;font-size:0.8em">${timePart}</span>`;
+      tdDate.innerHTML = `${datePart}<br><span style="font-size:0.8em">${timePart}</span>`;
     } else {
       tdDate.textContent = '—';
     }
