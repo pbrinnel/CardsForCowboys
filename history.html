@@ -324,6 +324,13 @@
   <!-- Completed games -->
   <div class="section-label">Completed Games</div>
   <div id="status">Loading…</div>
+  <div class="pagination" id="history-pagination" style="display:none">
+    <div class="pagination-info" id="pagination-info"></div>
+    <div class="pagination-btns">
+      <button class="btn-page" id="btn-prev">← Prev</button>
+      <button class="btn-page" id="btn-next">Next →</button>
+    </div>
+  </div>
   <table id="history-table" style="display:none">
     <colgroup>
       <col style="width:17%">
@@ -339,13 +346,6 @@
     </thead>
     <tbody id="history-body"></tbody>
   </table>
-  <div class="pagination" id="history-pagination" style="display:none">
-    <div class="pagination-info" id="pagination-info"></div>
-    <div class="pagination-btns">
-      <button class="btn-page" id="btn-prev">← Prev</button>
-      <button class="btn-page" id="btn-next">Next →</button>
-    </div>
-  </div>
 </div>
 
 <script type="module">
