@@ -105,11 +105,14 @@
       gap: 1rem;
       flex-wrap: wrap;
     }
-    .live-card-info { flex: 1; }
+    .live-card-info { flex: 1; min-width: 0; }
     .live-card-players {
       font-size: 0.9rem;
       color: #1e1610;
       margin-bottom: 0.2rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .live-card-meta {
       font-size: 0.75rem;
@@ -151,6 +154,7 @@
     /* ── History + leaderboard tables ── */
     table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       background: #e9e0c6;
       border: 2.5px solid #1e1610;
@@ -179,9 +183,17 @@
     .winner-name {
       font-weight: bold;
       color: #1e1610;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .player-list {
       line-height: 1.6;
+    }
+    .player-list div {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .player-winner { font-weight: bold; }
     .player-ai { color: #b87838; font-style: italic; }
@@ -212,6 +224,7 @@
     }
     .leaderboard-table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       background: #e9e0c6;
       border: 2.5px solid #1e1610;
@@ -233,11 +246,12 @@
     }
     .leaderboard-table tr:last-child td { border-bottom: none; }
     .leaderboard-table tr:nth-child(even) td { background: rgba(30,22,16,0.04); }
-    .rank-cell { color: #b87838; font-size: 0.85rem; width: 2rem; }
+    .rank-cell { color: #b87838; font-size: 0.85rem; }
     .rank-gold   { color: #b87838; font-weight: bold; }
     .rank-silver { color: #707070; font-weight: bold; }
     .rank-bronze { color: #8c3010; font-weight: bold; }
     .herd-count  { font-weight: bold; color: #2a6e1a; }
+    .lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* ── Pagination ── */
     .pagination {
@@ -294,6 +308,12 @@
   <div id="leaderboard-section">
     <div class="section-label">Biggest Herds</div>
     <table class="leaderboard-table" id="leaderboard-table" style="display:none">
+      <colgroup>
+        <col style="width:8%">
+        <col style="width:42%">
+        <col style="width:22%">
+        <col style="width:28%">
+      </colgroup>
       <thead>
         <tr>
           <th>#</th>
@@ -310,6 +330,13 @@
   <div class="section-label">Completed Games</div>
   <div id="status">Loading…</div>
   <table id="history-table" style="display:none">
+    <colgroup>
+      <col style="width:13%">
+      <col style="width:10%">
+      <col style="width:43%">
+      <col style="width:21%">
+      <col style="width:13%">
+    </colgroup>
     <thead>
       <tr>
         <th>Date</th>
@@ -350,12 +377,6 @@ const PAGE_SIZE = 5;
 let allRows    = [];
 let currentPage = 0;
 
-const MAX_NAME = 15;
-function truncName(name) {
-  if (!name) return '';
-  return name.length > MAX_NAME ? name.slice(0, MAX_NAME) + '…' : name;
-}
-
 btnPrev.addEventListener('click', () => { currentPage--; renderHistoryPage(); });
 btnNext.addEventListener('click', () => { currentPage++; renderHistoryPage(); });
 
@@ -390,7 +411,7 @@ function renderHistoryPage() {
       if (p.isWinner) classes.push('player-winner');
       if (!p.isHuman) classes.push('player-ai');
       if (classes.length) line.className = classes.join(' ');
-      line.textContent = `${truncName(p.name)}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
+      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
       tdPlayers.appendChild(line);
     });
     tr.appendChild(tdPlayers);
@@ -398,7 +419,7 @@ function renderHistoryPage() {
     const tdWinner = document.createElement('td');
     if (r.winner) {
       tdWinner.className = 'winner-name';
-      tdWinner.textContent = truncName(r.winner);
+      tdWinner.textContent = r.winner;
     } else {
       tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
     }
@@ -467,7 +488,7 @@ function renderLive() {
 
   live.forEach(g => {
     const players = g.players || [];
-    const playerStr = players.map(p => truncName(p.name) + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
+    const playerStr = players.map(p => p.name + (!p.isHuman ? ' (AI)' : '')).join(' vs ');
     const phase = g.phase || '';
     const act   = g.act   || '';
     const round = g.round || '';
@@ -566,7 +587,8 @@ onValue(q, (snap) => {
       tr.appendChild(tdRank);
 
       const tdName = document.createElement('td');
-      tdName.textContent = truncName(entry.name);
+      tdName.className = 'lb-name';
+      tdName.textContent = entry.name;
       tr.appendChild(tdName);
 
       const tdHerd = document.createElement('td');
