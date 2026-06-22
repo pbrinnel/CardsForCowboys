@@ -154,7 +154,6 @@
     /* ── History + leaderboard tables ── */
     table {
       width: 100%;
-      table-layout: fixed;
       border-collapse: collapse;
       background: #e9e0c6;
       border: 2.5px solid #1e1610;
@@ -184,10 +183,13 @@
       line-height: 1.6;
     }
     .player-list div {
+      display: flex;
+      gap: 0.35em;
+      align-items: baseline;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
+    .player-score { flex-shrink: 0; white-space: nowrap; }
+    .player-name  { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .player-winner { font-weight: bold; }
     .player-ai { color: #b87838; font-style: italic; }
     .badge {
@@ -322,11 +324,6 @@
   <div class="section-label">Completed Games</div>
   <div id="status">Loading…</div>
   <table id="history-table" style="display:none">
-    <colgroup>
-      <col style="width:14%">
-      <col style="width:76%">
-      <col style="width:10%">
-    </colgroup>
     <thead>
       <tr>
         <th>Date</th>
@@ -392,7 +389,14 @@ function renderHistoryPage() {
       if (p.isWinner) classes.push('player-winner');
       if (!p.isHuman) classes.push('player-ai');
       if (classes.length) line.className = classes.join(' ');
-      line.textContent = `${p.herd}🐄 ${p.name}${!p.isHuman ? ' (AI)' : ''}`;
+      const score = document.createElement('span');
+      score.className = 'player-score';
+      score.textContent = `${p.herd}🐄`;
+      const name = document.createElement('span');
+      name.className = 'player-name';
+      name.textContent = `${p.name}${!p.isHuman ? ' (AI)' : ''}`;
+      line.appendChild(score);
+      line.appendChild(name);
       tdPlayers.appendChild(line);
     });
     tr.appendChild(tdPlayers);
