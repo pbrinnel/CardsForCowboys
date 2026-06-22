@@ -180,13 +180,6 @@
     }
     tr:last-child td { border-bottom: none; }
     tr:nth-child(even) td { background: rgba(30,22,16,0.04); }
-    .winner-name {
-      font-weight: bold;
-      color: #1e1610;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .player-list {
       line-height: 1.6;
     }
@@ -208,15 +201,14 @@
     .btn-review {
       display: inline-block;
       background: #1e1610;
-      color: #e9e0c6;
       border: 2px solid #1e1610;
-      padding: 0.25rem 0.6rem;
-      font-family: Georgia, serif;
-      font-size: 0.78rem;
+      box-shadow: 2px 2px 0 #1e1610;
+      padding: 0.2rem 0.35rem;
+      font-size: 0.9rem;
+      line-height: 1;
       text-decoration: none;
-      white-space: nowrap;
     }
-    .btn-review:hover { background: #3a2a1a; }
+    .btn-review:hover { transform: translate(1px,1px); box-shadow: 1px 1px 0 #1e1610; }
 
     /* ── Leaderboard ── */
     #leaderboard-section {
@@ -287,7 +279,6 @@
     @media (max-width: 600px) {
       th, td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
       h1 { font-size: 1.5rem; }
-      .btn-review { padding: 0.2rem 0.4rem; font-size: 0.73rem; }
     }
   </style>
 </head>
@@ -332,16 +323,14 @@
   <div id="status">Loading…</div>
   <table id="history-table" style="display:none">
     <colgroup>
-      <col style="width:13%">
-      <col style="width:46%">
-      <col style="width:24%">
-      <col style="width:17%">
+      <col style="width:14%">
+      <col style="width:76%">
+      <col style="width:10%">
     </colgroup>
     <thead>
       <tr>
         <th>Date</th>
-        <th>Players &amp; Scores</th>
-        <th>Winner</th>
+        <th>Scores</th>
         <th></th>
       </tr>
     </thead>
@@ -403,28 +392,21 @@ function renderHistoryPage() {
       if (p.isWinner) classes.push('player-winner');
       if (!p.isHuman) classes.push('player-ai');
       if (classes.length) line.className = classes.join(' ');
-      line.textContent = `${p.name}: ${p.herd} cow${p.herd !== 1 ? 's' : ''}${!p.isHuman ? ' (AI)' : ''}`;
+      line.textContent = `${p.herd}🐄 ${p.name}${!p.isHuman ? ' (AI)' : ''}`;
       tdPlayers.appendChild(line);
     });
     tr.appendChild(tdPlayers);
 
-    const tdWinner = document.createElement('td');
-    if (r.winner) {
-      tdWinner.className = 'winner-name';
-      tdWinner.textContent = r.winner;
-    } else {
-      tdWinner.innerHTML = '<span class="tie-label">Tie</span>';
-    }
-    tr.appendChild(tdWinner);
-
     const tdReview = document.createElement('td');
+    tdReview.style.textAlign = 'center';
     if (r.gameCode) {
       const link = document.createElement('a');
       link.className = 'btn-review';
       link.href = r.mode === 'ai'
         ? `spectate.html?code=${r.gameCode}&ai=1`
         : `spectate.html?code=${r.gameCode}`;
-      link.textContent = 'Review';
+      link.textContent = '🔍';
+      link.title = 'Review game';
       link.target = '_blank';
       tdReview.appendChild(link);
     }
