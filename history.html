@@ -378,7 +378,14 @@ function renderHistoryPage() {
     const tr = document.createElement('tr');
 
     const tdDate = document.createElement('td');
-    tdDate.textContent = r.ts ? formatDate(r.ts) : '—';
+    if (r.ts) {
+      const d = new Date(r.ts);
+      const datePart = d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit' });
+      const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      tdDate.innerHTML = `${datePart}<br><span style="color:#b87838;font-size:0.8em">${timePart}</span>`;
+    } else {
+      tdDate.textContent = '—';
+    }
     tr.appendChild(tdDate);
 
     const tdPlayers = document.createElement('td');
