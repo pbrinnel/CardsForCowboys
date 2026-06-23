@@ -147,6 +147,10 @@ renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` s
 (numPlayers>=5 only). `#opponents-zone.opp-grid` wraps 5-8 opponents. gamesetup: count buttons grouped
 2/3/4 + 5/6/7/8 via `.count-break`, slots 5-8 built by `renderDynamicSlots(n)`. `gameHistory.numPlayers`
 rule cap is 8 (deployed). Trajectory capture SKIPPED for 5-8P (`trajActive()` requires numPlayers<=4).
+**spectate.html** also mirrors the brick offset in its own `renderPyramid` (flat row of 7 where
+`rowIdx>=7 && (rowIdx-7)%2===0` gets `.spec-pyramid-row.brick-offset`, a half-card `translateX` keyed
+to `--spec-cw`); without it 5-8P flat rows render as a plain grid that doesn't match the game geometry.
+Spectate does NOT scale (no fitPyramid equiv) — the tall pyramid just scrolls.
 
 ### Deck Operations (lines ~1130–1190)
 ```
