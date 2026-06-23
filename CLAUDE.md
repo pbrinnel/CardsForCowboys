@@ -85,7 +85,6 @@ init()                      ~56   — dynamic Firebase ESM import, arms onDiscon
 startPresence()             ~81   — marks slot connected, watches opponent drops (30s grace, debounced message)
 watchOpponentDrawStates()   ~168  — live-syncs opp hand/deck/discard/stats from drawState/{slot}
 waitForAllHumanDrawsDone()  ~199  — resolves when all human slots push drawDone
-waitForPassCard()           ~229  — waits for discard_to_player card from opponent
 waitForDraftRoundPicks()    ~252  — waits for all draft picks in a round
 pushSpectatorState()        ~362  — host pushes full game snapshot to spectatorState; also calls pushLiveSummary()
 pushLiveSummary()           ~401  — host writes slim liveSummary/{code} for the Live Now list (no card state)
@@ -226,34 +225,39 @@ getBestAffordableCost(ai)   ~2933
 ```
 activateSpecialCard()       ~2948 — burn_to_use activation from hand
 handleBust(player)          ~2996
-handleBurnToUse()           ~3026  — "Burn to Use" (burn_to_use special)
-handleBurnFor2()            ~3043  — "Burn for $2" (burn_for_2 special)
-handleBurnBuyFirst()        ~3055  — "Burn for Priority" (burn_buy_first special)
+handleBurnToUse()           ~3026  — Explosive activation: "Use" (burn_to_use special)
+handleBurnBuyFirst()        ~3055  — "Use for Priority" (burn_buy_first special)
 handleLook3()               ~3074
-handleTrashLook3()          ~3143  — "Burn & Look" (look3_rearrange special)
-handleReplayDiscard()       ~3160  — "Burn & Replay" (replay_discard special)
-handleExtraBuy()            ~3230  — "Burn for Extra Buy/Burn" (extra_buy special)
-NOTE: handlePutOnTop() was permanently removed (May 2026). Card 22 reworked from
-      put_on_top (Cactus $5) → burn_for_2 (River $3, $1 on draw). If a future card
-      needs put_on_top logic, rebuild from git history (commit before this change).
+handleTrashLook3()          ~3143  — "Use & Look" (look3_rearrange special)
+handleReplayDiscard()       ~3160  — "Use & Replay" (replay_discard special)
+handleExtraBuy()            ~3230  — "Use for Extra Buy/Burn" (extra_buy special)
+NOTE: handlePutOnTop() (May 2026) and handleBurnFor2() (June 2026) were permanently removed.
+      `burn_for_2` is GONE — its three cards (5/16/22) were reworked into `burn_to_use` $3
+      Explosives. If a future card needs put_on_top / burn_for_2 logic, rebuild from git history.
 ```
 
-### Pass Card — `discard_to_player` (card_4 only) (lines ~4124–4188)
+### Swap Card — `swap_revealed` (card_4 only, 4P-only) (grep `swap_revealed` / `applySwapLocal`)
 ```
-aiPickPassTarget(fromIdx)   ~4128 — AI chooses the recipient (see note)
-resolvePassCards()          ~4146 — resolves all held discard_to_player cards at scoreRound
-resolveSinglePassCard()     ~4159 — human prompt / AI pick / remote-human Firebase wait
+gatherSwapCandidates(player) — grouped candidate list: Store (available pyramid) + each
+                               opponent's drawn hand + their discard top. {groups, total}.
+openSwapModal(player, card)  — human picker (grouped like My Deck; #special-modal); on pick →
+                               applySwapLocal + sets player._pendingSwap (carried on next buyAction).
+applySwapLocal(player, spec) — applies the swap on EVERY client identically. spec =
+                               {kind:'pyramid'|'hand'|'discard', victimSlot, row, col, takenId, card4Uid}.
 ```
-NOTE (card_4 is a BENEFIT, not a curse): card_4 is the only `discard_to_player` card —
-stats `{dollars:0, cows:0, bandits:-1}`, so when the recipient eventually draws it, it
-gives them −1 bandit (raises their bust ceiling) with zero downside. `cacti` is cosmetic
-(suit identity only; never scored/tiebroken). Therefore `aiPickPassTarget` hands it to the
-WEAKEST opponent (lowest `herd`) to minimize help to a rival — NOT the leader. Ties (several
-opponents at the lowest herd) break via a seeded LCG over their sorted Firebase slots so all
-MP clients pick the same recipient deterministically. This matches the "pass to weakest
-opponent" logic the AI was tuned against in `sim/simulate.js` (~line 210). **Do not regress
-to giving it to the leader** — that was the old (June 2026) behavior and it actively helped
-the front-runner. Card is opponents-only (passer cannot keep it) in both the human UI and AI.
+NOTE (card_4 is now a SWAP, reworked June 2026 from `discard_to_player`): On your **buy turn**,
+**in addition** to your normal buy/burn, you may use card_4 to take ANY face-up card — an
+available Store/pyramid card, an opponent's drawn hand card, or an opponent's discard top. It's a
+**true positional steal**: the taken card → your **discard** (it only scores in a FUTURE round —
+herds are locked at the start of the buy phase, confirmed by PB), and card_4 takes the **exact
+slot** the taken card vacated (back into that opponent's hand index / discard top, or that pyramid
+cell, staying face-up & buyable). Targets resolve by stable keys (pyramid row/col; pile by card
+**id**, not uid) so they survive per-client uid differences. **MP:** a human's swap rides inside
+their `buyAction` (optional `swap` field on `pushBuyAction`); `mpOpponentBuyTurn` applies
+`data.swap` BEFORE the buy/burn so all clients mutate in the same order. **AI:** `aiBuyTurn` only
+swaps for a **pyramid** card (never opponents' hands) so the choice is deterministic across clients
+without a broadcast (pyramid is shared; opponent-hand views may differ). Edge: a hard refresh in the
+tiny window between a human's swap and their buy/burn can lose an un-broadcast swap (accepted, niche).
 
 ### Buy Phase (lines ~3265–3590)
 ```
@@ -444,6 +448,7 @@ to replay when its engine's `gameV` ≠ the trajectory's, so the benchmark never
 | `gameV` | meaning |
 |---|---|
 | 1 | baseline at trajectory launch (June 2026) |
+| 2 | June 2026 card rework: cards 5/16/22 `burn_for_2`→`burn_to_use` $3 (cost 3); card_4 `discard_to_player`→`swap_revealed` ($0, cost 6); `burn_for_2` mechanic removed |
 
 **Storage:** top-level `traj/{code}` (push list), **deliberately NOT under `games/{code}`** —
 `spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the anti-pattern
@@ -809,3 +814,24 @@ Currently gitignored sensitive files: `get-emails.js`, `retrieve-emails.js`, `ex
 | Rattlesnake | red suit | 3 cacti |
 
 Starter deck IDs: 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
+
+### "Burn" vs "Explosive"/"Use" (terminology convention — June 2026)
+
+"Burn" used to mean two distinct things; it now means **only one**. Keep these strictly separate in all
+**player-facing** text (UI strings, logs, rules, tutorial) and comments:
+
+- **Burn** = remove a **Store/pyramid** card from the game without buying it (`executeBurn`, "Buy or Burn",
+  "click a card to burn", the granted "Extra Buy/Burn" action). This is the *only* sense "burn" may carry.
+- **Explosive** = a card you consume from **your own** hand for a one-shot effect (the dynamite badge; was
+  "Burn If Used" / "Burn to Use"). You **Use** an Explosive ("Use for $2", "Use for Priority", "Use:
+  Rearrange Top 3", "Use for Extra Buy/Burn"; logs read "You used your <suit> Explosive card: …"). Never
+  say "burn" for this.
+
+**Internal identifiers are intentionally NOT renamed** (protocol/trajectory/sim-coupled): the `special`
+keys (`burn_to_use`, `burn_buy_first`), handler names (`handleBurnToUse`, etc.), the trajectory `'burn'`
+buy-action value, and CSS classes (`log-burn`, `btn-burn`). Changing the stored `special` strings would
+break trajectory replay (`schemaV`) and MP sync — leave them. Only the surface language is "Explosive/Use".
+(`burn_for_2` is gone entirely — see card rework.)
+
+**Symbol asset:** the Explosive badge is `assets/symbols/One-Time Use-01.png` (dynamite icon; replaced the
+old text graphics `Burn If Used-01.png` + `or Burn for $2-01.png`, both deleted). `rules.html` references it.

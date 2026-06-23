@@ -273,27 +273,6 @@ const MP = (() => {
     }
   }
 
-  // Push this player's pass-card choice (fromSlot = mySlot, toSlot = Firebase slot index)
-  async function pushPassCard(cardId, toSlot) {
-    if (!initialized) return;
-    await fbSet(gameRef(`passCard/${mySlot}`), { cardId, toSlot, ts: Date.now() });
-  }
-
-  // One-shot listener for a specific player's pass-card choice
-  function waitForPassCard(fromSlot, callback) {
-    if (!initialized) return;
-    let fired = false;
-    let unsub = null;
-    unsub = fbOnValue(gameRef(`passCard/${fromSlot}`), (snap) => {
-      const val = snap.val();
-      if (val && !fired) {
-        fired = true;
-        if (unsub) unsub();
-        callback(val); // { cardId, toSlot }
-      }
-    });
-    unsubscribers.push(unsub);
-  }
 
   // Push this player's card pick for a given Quick Start draft round
   async function pushDraftPick(round, cardId) {
@@ -341,9 +320,6 @@ const MP = (() => {
       [`drawDone/${mySlot}`]:  null,
       [`drawState/${mySlot}`]: null,
     };
-    for (let i = 0; i < _numPlayers; i++) {
-      updates[`passCard/${i}`] = null;
-    }
     await fbUpdate(dbRef, updates);
   }
 
@@ -451,11 +427,13 @@ const MP = (() => {
 
   // Push local player's buy action (buy or burn at row/col).
   // Stamps round+act so recipients can reject stale values from previous rounds.
-  async function pushBuyAction(action, row, col) {
+  async function pushBuyAction(action, row, col, swap) {
     if (!initialized) return;
-    await fbSet(gameRef(`buyAction/${mySlot}`), {
+    const payload = {
       action, row, col, round: G.roundNumber, act: G.currentAct, ts: Date.now(),
-    });
+    };
+    if (swap) payload.swap = swap; // optional card_4 swap, applied by recipients before the buy/burn
+    await fbSet(gameRef(`buyAction/${mySlot}`), payload);
   }
 
   // Clear an opponent's buy action after we've consumed it.
@@ -654,8 +632,6 @@ const MP = (() => {
     waitForBuyAction,
     pushBuyOrder,
     waitForBuyOrder,
-    pushPassCard,
-    waitForPassCard,
     pushDraftPick,
     waitForDraftRoundPicks,
     pushSpectatorState,
@@ -724,7 +700,7 @@ const HISTORY = (() => {
 // {isHuman, personality} per seat. Research data — never read by clients.
 // ============================================================
 const TRAJ_SCHEMA_V = 1; // trajectory record format version
-const GAME_V        = 1; // bump on any rules / card-stat change (see CLAUDE.md version table)
+const GAME_V        = 2; // bump on any rules / card-stat change (see CLAUDE.md version table)
 
 // Stable content hash of the card-stat table — lets the offline reconstructor
 // refuse to replay a trajectory captured under a different card balance.
@@ -1157,18 +1133,18 @@ const STORE_CARDS = [
   { id: 'card_42', img: 'Card_42.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
   { id: 'card_43', img: 'Card_43.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
   // Cactus (Yellow) – 2 cacti  [2P: IDs 16-24]
-  { id: 'card_16', img: 'Card_16.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'burn_for_2' },
+  { id: 'card_16', img: 'Card_16.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_17', img: 'Card_17.jpg', act: 2, minPlayers: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
   { id: 'card_18', img: 'Card_18.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_19', img: 'Card_19.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
   { id: 'card_20', img: 'Card_20.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
   { id: 'card_21', img: 'Card_21.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'extra_buy' },
-  { id: 'card_22', img: 'Card_22.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_for_2' },
+  { id: 'card_22', img: 'Card_22.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_23', img: 'Card_23.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
   { id: 'card_24', img: 'Card_24.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
   // Cactus (Yellow) – 2 cacti  [4+P: IDs 4-7]
-  { id: 'card_4',  img: 'Card_4.jpg',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 0, cacti: 2, special: 'discard_to_player' },
-  { id: 'card_5',  img: 'Card_5.jpg',  act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'burn_for_2' },
+  { id: 'card_4',  img: 'Card_4.jpg',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'swap_revealed' },
+  { id: 'card_5',  img: 'Card_5.jpg',  act: 2, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_6',  img: 'Card_6.jpg',  act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_7',  img: 'Card_7.jpg',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
 
@@ -1531,7 +1507,7 @@ function applyCardEffects(player, card, isFirstCard) {
       // Activatable donor: Copy Next card in hand becomes a second burnable copy of this card.
       // The "bonus" is the extra activation, not doubled draw stats — so multiplier stays 1.
       player.copyNextDonor = card;
-      addLog(`Copy Next linked! You can also burn the Copy Next card as a second "${getSpecialLabel(card)}".`);
+      addLog(`Copy Next linked! You can also use the Copy Next card as a second "${getSpecialLabel(card)}".`);
     } else {
       // Regular card: double its draw-time stats.
       multiplier = 2;
@@ -1543,7 +1519,8 @@ function applyCardEffects(player, card, isFirstCard) {
   // burn_to_use: contributes nothing at draw time; effects apply only on activation.
   // NOTE: this is now AFTER the copyNextActive check so that Copy Next correctly links
   // to burn_to_use donors instead of skipping them (the old early-return was the bug).
-  if (card.special === 'burn_to_use') {
+  // swap_revealed (card_4): no draw effect either — it's used during the BUY phase.
+  if (card.special === 'burn_to_use' || card.special === 'swap_revealed') {
     return { dollars: 0, cows: 0, bandits: 0 };
   }
 
@@ -1585,12 +1562,10 @@ function applyCardEffects(player, card, isFirstCard) {
 
 const SUIT_NAME = { 1: 'River', 2: 'Cactus', 3: 'Rattlesnake' };
 const SPECIAL_LABEL = {
-  burn_to_use:        'Burn to Use',
-  discard_to_player:   'Discard to Player',
-  burn_buy_first:'Burn: Buy/Burn 1st',
+  burn_to_use:        'Explosive',
+  burn_buy_first:'Use: Buy/Burn 1st',
   '2cow_if_first':     '2 Cows if 1st',
-  burn_for_2:         'Burn $1 for $2',
-  look3_rearrange:     'Burn: Rearrange 3',
+  look3_rearrange:     'Use: Rearrange 3',
   copy_next:           'Copy Next',
 
   replay_discard:      'Replay Discard',
@@ -2995,7 +2970,7 @@ async function startRound() {
 
 // --- DRAW PHASE ---
 
-const ACTIVATABLE_SPECIALS = ['burn_for_2', 'burn_buy_first', 'look3_rearrange', 'replay_discard', 'burn_to_use', 'extra_buy'];
+const ACTIVATABLE_SPECIALS = ['burn_buy_first', 'look3_rearrange', 'replay_discard', 'burn_to_use', 'extra_buy'];
 
 function getActivatableCards(player) {
   return player.hand.filter(c => {
@@ -3012,18 +2987,17 @@ function getSpecialLabel(card, player) {
     return `Copy: ${getSpecialLabel(player.copyNextDonor)}`;
   }
   switch (card.special) {
-    case 'burn_for_2': return 'Burn $1 for $2';
-    case 'burn_buy_first': return 'Burn for Priority';
-    case 'look3_rearrange': return 'Burn & Rearrange Top 3';
-    case 'replay_discard': return 'Burn & Replay Discard';
+    case 'burn_buy_first': return 'Use for Priority';
+    case 'look3_rearrange': return 'Use: Rearrange Top 3';
+    case 'replay_discard': return 'Use: Replay Discard';
     case 'burn_to_use': {
       const parts = [];
       if (card.dollars > 0) parts.push(`$${card.dollars}`);
       if (card.bandits < 0) parts.push('−1 Bandit');
       if (card.cows > 0) parts.push(`+${card.cows} Cow`);
-      return `Burn: ${parts.join(', ')}`;
+      return `Use: ${parts.join(', ')}`;
     }
-    case 'extra_buy': return 'Burn for Extra Buy/Burn';
+    case 'extra_buy': return 'Use for Extra Buy/Burn';
     default: return 'Use';
   }
 }
@@ -3404,7 +3378,7 @@ async function aiDrawPhase(playerIdx) {
             ai.roundDollars += jailEffect.dollars;
             ai.roundBandits = Math.max(0, ai.roundBandits + jailEffect.bandits);
             ai.roundCows += jailEffect.cows;
-            addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
+            addLog(`${aiLabel} used a card: -1 bandit negated.`, 'log-burn');
             render();
             await delay(500);
           }
@@ -3440,22 +3414,11 @@ async function aiDrawPhase(playerIdx) {
       const effectCard = (tCard.special === 'copy_next') ? ai.copyNextDonor : tCard;
       if (tCard.special === 'copy_next') { ai.copyNextDonor = null; ai.copyNextCard = null; }
       ai.roundBandits = Math.max(0, ai.roundBandits + effectCard.bandits);
-      addLog(`${aiLabel} activated card: -1 bandit negated.`, 'log-burn');
+      addLog(`${aiLabel} used a card: -1 bandit negated.`, 'log-burn');
       render();
       await delay(500);
     }
 
-    // Handle burn_for_2
-    if (card.special === 'burn_for_2') {
-      const bestCost = getBestAffordableCost(ai);
-      if (ai.roundDollars + 1 >= bestCost && ai.roundDollars < bestCost) {
-        ai.roundDollars += 1;
-        const idx = ai.hand.indexOf(card);
-        if (idx >= 0) ai.hand.splice(idx, 1);
-        addLog(`${aiLabel} burned a card for $2.`);
-        render();
-      }
-    }
 
     // Handle look3_rearrange for AI
     if (card.special === 'look3_rearrange' && ai.deck.length >= 2) {
@@ -3471,7 +3434,7 @@ async function aiDrawPhase(playerIdx) {
       // Sort by full personality-weighted score: draw best cards first
       top3.sort((a, b) => scoreCardForAI(a, ai) - scoreCardForAI(b, ai));
       ai.deck.unshift(...top3);
-      addLog(`${aiLabel} burned to rearrange top cards.`, 'log-burn');
+      addLog(`${aiLabel} used a card to rearrange top cards.`, 'log-burn');
       render();
     }
 
@@ -3514,7 +3477,7 @@ async function aiDrawPhase(playerIdx) {
             ai.hand.splice(idx, 1);
             if (tCard.special === 'copy_next') { ai.copyNextDonor = null; ai.copyNextCard = null; }
             ai.roundDollars += effectCard.dollars;
-            addLog(`${aiLabel} activated card: $${effectCard.dollars}.`, 'log-burn');
+            addLog(`${aiLabel} used a card: $${effectCard.dollars}.`, 'log-burn');
             render();
             await delay(500);
           }
@@ -3789,9 +3752,6 @@ async function activateSpecialCard(player, card) {
     case 'burn_to_use':
       await handleBurnToUse(player, card);
       break;
-    case 'burn_for_2':
-      await handleBurnFor2(player, card);
-      break;
     case 'burn_buy_first':
       await handleBurnBuyFirst(player, card);
       break;
@@ -3813,7 +3773,7 @@ async function activateSpecialCard(player, card) {
 
 // Activates the Copy Next card as a second independent copy of its linked donor.
 // Called when the player burns the Copy Next card itself (not the donor).
-// Each of donor and Copy Next can be burned independently for the same effect.
+// Each of donor and Copy Next can be used independently for the same effect.
 async function handleCopyNextActivation(player, copyCard) {
   const donor = player.copyNextDonor;
   if (!donor) return;
@@ -3830,30 +3790,19 @@ async function handleCopyNextActivation(player, copyCard) {
       if (donor.dollars > 0) parts.push(`$${donor.dollars}`);
       if (donor.bandits < 0) parts.push('−1 bandit negated');
       if (donor.cows > 0) parts.push(`+${donor.cows} cow`);
-      addLog(`Copy Next activated: ${parts.join(', ')}.`, 'log-burn');
-      render(); mpSyncDraw(); startPlayerDraw();
-      break;
-    }
-    case 'burn_for_2': {
-      const idx = player.hand.indexOf(copyCard);
-      if (idx >= 0) player.hand.splice(idx, 1);
-      player.copyNextDonor = null; player.copyNextCard = null;
-      // Copy Next gave $0 on draw; donor gave $1. Full burn_for_2 value = $2, so add $2.
-      const bonus = donor.dollars + 1;
-      player.roundDollars += bonus;
-      addLog(`Copy Next activated as Burn for $${bonus}.`, 'log-burn');
+      addLog(`Copy Next used: ${parts.join(', ')}.`, 'log-burn');
       render(); mpSyncDraw(); startPlayerDraw();
       break;
     }
     case 'burn_buy_first': {
-      setMessage('Burn Copy Next card for Buy Priority?');
+      setMessage('Use Copy Next card for Buy Priority?');
       setActions([
-        { text: 'Burn for Priority', onClick: () => {
+        { text: 'Use for Priority', onClick: () => {
           const idx = player.hand.indexOf(copyCard);
           if (idx >= 0) player.hand.splice(idx, 1);
           player.copyNextDonor = null; player.copyNextCard = null;
           player.hasBuyBurnFirst = true;
-          addLog('Copy Next activated for buy priority!', 'log-burn');
+          addLog('Copy Next used for buy priority!', 'log-burn');
           render(); mpSyncDraw(); startPlayerDraw();
         }},
         { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
@@ -3861,13 +3810,13 @@ async function handleCopyNextActivation(player, copyCard) {
       break;
     }
     case 'look3_rearrange': {
-      setMessage('Burn Copy Next card to rearrange your top 3?');
+      setMessage('Use Copy Next card to rearrange your top 3?');
       setActions([
-        { text: 'Burn & Look', onClick: async () => {
+        { text: 'Use & Look', onClick: async () => {
           const idx = player.hand.indexOf(copyCard);
           if (idx >= 0) player.hand.splice(idx, 1);
           player.copyNextDonor = null; player.copyNextCard = null;
-          addLog('Copy Next activated: rearrange top 3.', 'log-burn');
+          addLog('Copy Next used: rearrange top 3.', 'log-burn');
           render();
           await handleLook3(player);
           startPlayerDraw();
@@ -3882,9 +3831,9 @@ async function handleCopyNextActivation(player, copyCard) {
         startPlayerDraw();
         return;
       }
-      setMessage('Burn Copy Next card to replay a card from your discard?');
+      setMessage('Use Copy Next card to replay a card from your discard?');
       setActions([
-        { text: 'Burn & Replay', onClick: () => {
+        { text: 'Use & Replay', onClick: () => {
           const idx = player.hand.indexOf(copyCard);
           if (idx >= 0) player.hand.splice(idx, 1);
           player.copyNextDonor = null; player.copyNextCard = null;
@@ -3914,14 +3863,14 @@ async function handleCopyNextActivation(player, copyCard) {
       break;
     }
     case 'extra_buy': {
-      setMessage('Burn Copy Next card for an extra Buy Phase turn?');
+      setMessage('Use Copy Next card for an extra Buy Phase turn?');
       setActions([
-        { text: 'Burn for Extra Buy/Burn', onClick: () => {
+        { text: 'Use for Extra Buy/Burn', onClick: () => {
           const idx = player.hand.indexOf(copyCard);
           if (idx >= 0) player.hand.splice(idx, 1);
           player.copyNextDonor = null; player.copyNextCard = null;
           player.hasExtraBuy = true;
-          addLog('Copy Next activated: extra buy/burn!', 'log-burn');
+          addLog('Copy Next used: extra buy/burn!', 'log-burn');
           render(); mpSyncDraw(); startPlayerDraw();
         }},
         { text: 'Keep Card', onClick: () => { startPlayerDraw(); }, className: 'btn-secondary' },
@@ -3986,11 +3935,9 @@ async function handleBust(player) {
     });
     if (!TUTORIAL.active) clearActions();
 
-    // Move all drawn cards to discard, but keep discard_to_player cards in hand
-    // so resolvePassCards() can prompt the player to choose a recipient.
-    const toPass = player.hand.filter(c => c.special === 'discard_to_player');
-    player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
-    player.hand = toPass;
+    // Move all drawn cards to discard.
+    player.discard.push(...player.hand);
+    player.hand = [];
     player.roundDollars = 0;
     player.roundCows = 0;
     render();
@@ -4016,19 +3963,7 @@ async function handleBurnToUse(player, card) {
   if (card.dollars > 0) parts.push(`$${card.dollars}`);
   if (card.bandits < 0) parts.push('-1 bandit negated');
   if (card.cows > 0) parts.push(`+${card.cows} cow`);
-  addLog(`You activated ${SUIT_NAME[card.cacti]} card: ${parts.join(', ')}.`, 'log-burn');
-  render();
-  mpSyncDraw();
-  startPlayerDraw();
-}
-
-async function handleBurnFor2(player, card) {
-  // Clicking "Burn for $2" is the decision — execute immediately.
-  // Card already gave $1 via applyCardEffects; add 1 more for $2 total.
-  player.roundDollars += 1;
-  const idx = player.hand.indexOf(card);
-  if (idx >= 0) player.hand.splice(idx, 1);
-  addLog('You burned a card for $2 total.', 'log-burn');
+  addLog(`You used your ${SUIT_NAME[card.cacti]} Explosive card: ${parts.join(', ')}.`, 'log-burn');
   render();
   mpSyncDraw();
   startPlayerDraw();
@@ -4040,14 +3975,14 @@ async function activateCardInBuyPhase(player, card) {
   player.hand.splice(idx, 1);
   if (card.special === 'extra_buy') {
     player.hasExtraBuy = true;
-    addLog(`You burned ${SUIT_NAME[card.cacti]} card: extra buy/burn!`, 'log-burn');
+    addLog(`You used your ${SUIT_NAME[card.cacti]} Explosive card: extra buy/burn!`, 'log-burn');
     // NOTE: MP edge case — if a remote human activates this in buy phase, the host's
     // opp.hasExtraBuy stays false (drawState isn't re-synced in buy phase) and the
     // host will skip their extra turn. Rare: Act 2 only, requires holding through draw.
   } else {
-    const bonus = card.special === 'burn_for_2' ? 1 : card.dollars;
+    const bonus = card.dollars;
     player.roundDollars += bonus;
-    addLog(`You burned ${SUIT_NAME[card.cacti]} card: +$${bonus}.`, 'log-burn');
+    addLog(`You used your ${SUIT_NAME[card.cacti]} Explosive card: +$${bonus}.`, 'log-burn');
   }
   trajLogSpecial(player, card.special, card.id, null, 'buy');
   render();
@@ -4055,14 +3990,14 @@ async function activateCardInBuyPhase(player, card) {
 }
 
 async function handleBurnBuyFirst(player, card) {
-  setMessage('Burn this card to go 1st in the Buy Phase?');
+  setMessage('Use this Explosive card to go 1st in the Buy Phase?');
   setActions([
-    { text: 'Burn for Priority', onClick: () => {
+    { text: 'Use for Priority', onClick: () => {
       player.hasBuyBurnFirst = true;
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
       player.roundCows -= card.cows;
-      addLog('You burned for first buy priority!', 'log-burn');
+      addLog('You used a card for first buy priority!', 'log-burn');
       render();
       mpSyncDraw();
       startPlayerDraw();
@@ -4152,12 +4087,12 @@ async function handleLook3(player) {
 }
 
 async function handleTrashLook3(player, card) {
-  setMessage('Burn this card to look at and rearrange your top 3 cards?');
+  setMessage('Use this Explosive card to look at and rearrange your top 3 cards?');
   setActions([
-    { text: 'Burn & Look', onClick: async () => {
+    { text: 'Use & Look', onClick: async () => {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
-      addLog('You burned to rearrange top 3.', 'log-burn');
+      addLog('You used a card to rearrange top 3.', 'log-burn');
       render();
       await handleLook3(player);
       startPlayerDraw();
@@ -4175,9 +4110,9 @@ async function handleReplayDiscard(player, card) {
     return;
   }
 
-  setMessage('Burn this card to replay any card from your discard pile?');
+  setMessage('Use this Explosive card to replay any card from your discard pile?');
   setActions([
-    { text: 'Burn & Replay', onClick: () => {
+    { text: 'Use & Replay', onClick: () => {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
 
@@ -4215,13 +4150,13 @@ async function handleReplayDiscard(player, card) {
 }
 
 async function handleExtraBuy(player, card) {
-  setMessage('Burn this card for an extra turn in the Buy Phase?');
+  setMessage('Use this Explosive card for an extra turn in the Buy Phase?');
   setActions([
-    { text: 'Burn for Extra Buy/Burn', onClick: () => {
+    { text: 'Use for Extra Buy/Burn', onClick: () => {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
       player.hasExtraBuy = true;
-      addLog('You burned for an extra buy/burn this round!', 'log-burn');
+      addLog('You used a card for an extra buy/burn this round!', 'log-burn');
       render();
       mpSyncDraw();
       startPlayerDraw();
@@ -4370,8 +4305,8 @@ function applyBuyOrder(order) {
   // Flush busted AI hands to discard now that buy phase is starting
   G.players.forEach(p => {
     if (p.busted && !p.isHuman && p.hand.length > 0) {
-      p.discard.push(...p.hand.filter(c => c.special !== 'discard_to_player'));
-      p.hand = p.hand.filter(c => c.special === 'discard_to_player');
+      p.discard.push(...p.hand);
+      p.hand = [];
       p.roundDollars = 0;
       p.roundCows = 0;
     }
@@ -4432,6 +4367,9 @@ function mpOpponentBuyTurn(opp) {
     // Clear the consumed action so the NEXT waitForBuyAction for this slot in the
     // same round doesn't immediately re-fire with this stale same-round value.
     MP.clearBuyAction(opp.slotIdx);
+    // A remote human may have used Card 4 this turn — apply the swap before their buy/burn
+    // so every client mutates the shared state in the same order.
+    if (data.swap) applySwapLocal(opp, data.swap);
     if (data.action === 'buy') {
       executeBuyLocal(opp, data.row, data.col);
     } else if (data.action === 'skip') {
@@ -4461,19 +4399,20 @@ function humanBuyTurn(player) {
   }
 
   clearActions();
-  const activatable = player.hand.filter(c =>
+  const actions = player.hand.filter(c =>
     (c.special === 'burn_to_use' && c.dollars > 0) ||
-    c.special === 'burn_for_2' ||
     (c.special === 'extra_buy' && !player.hasExtraBuy)
-  );
-  if (activatable.length > 0) {
-    setActions(activatable.map(c => {
-      const label = c.special === 'burn_for_2' ? 'Burn $1 for $2'
-                  : c.special === 'extra_buy'  ? 'Burn for Extra Buy/Burn'
-                  : `Burn: $${c.dollars}`;
-      return { text: label, onClick: () => activateCardInBuyPhase(player, c), className: 'btn-burn' };
-    }));
+  ).map(c => {
+    const label = c.special === 'extra_buy' ? 'Use for Extra Buy/Burn'
+                : `Use: $${c.dollars}`;
+    return { text: label, onClick: () => activateCardInBuyPhase(player, c), className: 'btn-burn' };
+  });
+  // Swap card (card_4): usable IN ADDITION to your normal buy/burn, if any face-up target exists.
+  const swapCard = player.hand.find(c => c.special === 'swap_revealed');
+  if (swapCard && gatherSwapCandidates(player).total > 0) {
+    actions.push({ text: 'Swap Card 4', onClick: () => openSwapModal(player, swapCard), className: 'btn-burn' });
   }
+  if (actions.length > 0) setActions(actions);
   render();
   if (TUTORIAL.active) TUTORIAL.onBuyPhaseStart();
 }
@@ -4517,7 +4456,8 @@ function onPyramidCardClick(row, col) {
 // Human buy: push to Firebase (MP, local human only) then apply locally
 function executeBuy(player, row, col) {
   trajLogBuy(player, 'buy', row, col); // trajectory: before state changes (gates seat/host internally)
-  if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col, player._pendingSwap);
+  player._pendingSwap = null;
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('buy');
   executeBuyLocal(player, row, col);
 }
@@ -4577,7 +4517,8 @@ function executeBurn(player, row, col) {
     TUTORIAL.flashBlocked(); return;
   }
   trajLogBuy(player, 'burn', row, col); // trajectory: before state changes (gates seat/host internally)
-  if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col, player._pendingSwap);
+  player._pendingSwap = null;
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);
 }
@@ -4595,6 +4536,114 @@ function executeBurnLocal(player, row, col) {
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
 
   advanceOrExtraBuy(player);
+}
+
+// --- SWAP CARD (card_4, special 'swap_revealed') ---
+// Used during your buy turn, IN ADDITION to your normal buy/burn. You trade Card 4 for any
+// face-up card on the table: an available Store card, an opponent's drawn hand card, or the
+// top of an opponent's discard. It's a true positional STEAL — the card you take goes into
+// your deck (it only scores in a FUTURE round, never the current one, since herds are locked
+// at the start of the buy phase); Card 4 takes the exact slot the taken card vacated (back
+// into that opponent's hand/discard, or into that Store pyramid cell).
+
+// Build the grouped candidate list for the swap picker. Returns { groups, total }.
+// One group for the Store (pyramid) and one per opponent (their hand + discard top).
+function gatherSwapCandidates(player) {
+  const groups = [];
+  let total = 0;
+  const pyr = getAvailablePyramidCards(G.pyramid).map(a => ({
+    kind: 'pyramid', row: a.row, col: a.col, card: a.slot.card,
+  }));
+  if (pyr.length) { groups.push({ label: 'Store', items: pyr }); total += pyr.length; }
+  G.players.forEach((opp) => {
+    if (opp === player) return;
+    const items = [];
+    opp.hand.forEach((c) => items.push({ kind: 'hand', victimSlot: opp.slotIdx, card: c }));
+    if (opp.discard.length) {
+      items.push({ kind: 'discard', victimSlot: opp.slotIdx, card: opp.discard[opp.discard.length - 1] });
+    }
+    if (items.length) { groups.push({ label: opp.name, items }); total += items.length; }
+  });
+  return { groups, total };
+}
+
+// Apply a swap to local game state. Runs identically on every client: the human activator
+// applies it locally and rebroadcasts the spec inside their buyAction (MP); AI swaps are
+// recomputed deterministically per client (no broadcast). spec = {kind, victimSlot, row, col,
+// takenId, card4Uid}. Targets are resolved by stable keys (pyramid row/col; pile by card id)
+// so they survive the per-client uid differences. Returns true if applied.
+function applySwapLocal(player, spec) {
+  // Resolve & validate the target BEFORE mutating, so a stale spec can't half-apply.
+  let taken = null, place = null, victimName = null;
+  if (spec.kind === 'pyramid') {
+    const slot = G.pyramid?.[spec.row]?.[spec.col];
+    if (!slot || slot.removed || !slot.card) return false;
+    taken = slot.card;
+    place = (c4) => { slot.card = c4; };  // Card 4 takes the cell (stays face-up, not removed)
+  } else {
+    const victim = G.players.find(p => p.slotIdx === spec.victimSlot);
+    if (!victim) return false;
+    victimName = victim.name;
+    const pile = spec.kind === 'hand' ? victim.hand : victim.discard;
+    let ti = spec.kind === 'discard' ? pile.length - 1 : -1;
+    if (ti < 0 || pile[ti]?.id !== spec.takenId) ti = pile.findIndex(c => c.id === spec.takenId);
+    if (ti < 0 || !pile[ti]) return false;
+    taken = pile[ti];
+    place = (c4) => { pile[ti] = c4; };
+  }
+  const c4idx = player.hand.findIndex(c => c.uid === spec.card4Uid);
+  if (c4idx < 0) return false;                 // activator no longer holds Card 4
+  const card4 = player.hand.splice(c4idx, 1)[0];
+  place(card4);                                // true swap: Card 4 fills the vacated slot
+  player.discard.push(taken);                  // taken card enters activator's deck (scores later)
+  revealUncovered(G.pyramid);
+  addLog(`${player.name} swapped Card 4 for ${cardLabel(taken)}${victimName ? ` (from ${victimName})` : ''}.`, 'log-buy');
+  render();
+  if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
+  return true;
+}
+
+// Human-initiated swap: open the grouped picker modal.
+function openSwapModal(player, swapCard) {
+  const { groups } = gatherSwapCandidates(player);
+  const modal = document.getElementById('special-modal');
+  const content = document.getElementById('special-modal-content');
+  content.innerHTML =
+    '<h2>Swap &mdash; take any face-up card</h2>' +
+    '<p class="swap-sub">Card 4 takes its place. The card you take goes into your deck (it scores in a later round, not now). You still buy or burn normally this turn.</p>';
+  for (const g of groups) {
+    const section = document.createElement('div');
+    section.className = 'swap-group';
+    const h = document.createElement('div');
+    h.className = 'swap-group-label';
+    h.textContent = g.label;
+    section.appendChild(h);
+    const cardsDiv = document.createElement('div');
+    cardsDiv.className = 'modal-cards';
+    for (const item of g.items) {
+      const el = renderCardEl(item.card, true, 'clickable');
+      el.onclick = () => {
+        modal.classList.add('hidden');
+        const spec = {
+          kind: item.kind, victimSlot: item.victimSlot ?? null,
+          row: item.row ?? null, col: item.col ?? null,
+          takenId: item.card.id, card4Uid: swapCard.uid,
+        };
+        trajLogSpecial(player, 'swap_revealed', swapCard.id, spec, 'buy');
+        if (applySwapLocal(player, spec)) player._pendingSwap = spec; // carried on next buyAction (MP)
+        humanBuyTurn(player);
+      };
+      cardsDiv.appendChild(el);
+    }
+    section.appendChild(cardsDiv);
+    content.appendChild(section);
+  }
+  const cancel = document.createElement('button');
+  cancel.className = 'btn btn-secondary';
+  cancel.textContent = 'Cancel';
+  cancel.onclick = () => { modal.classList.add('hidden'); humanBuyTurn(player); };
+  content.appendChild(cancel);
+  modal.classList.remove('hidden');
 }
 
 // --- AI BUY ---
@@ -4618,15 +4667,15 @@ async function aiBuyTurn(ai) {
     if (extraCard) {
       ai.hand.splice(ai.hand.indexOf(extraCard), 1);
       ai.hasExtraBuy = true;
-      addLog(`${ai.name} activated extra buy/burn!`, 'log-burn');
+      addLog(`${ai.name} used a card for extra buy/burn!`, 'log-burn');
     }
   }
 
   // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
   for (const tCard of ai.hand.filter(c =>
-    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+    c.special === 'burn_to_use' && c.dollars > 0
   )) {
-    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const bonus = tCard.dollars;
     const avail = getAvailablePyramidCards(G.pyramid);
     const unlocks = avail.some(a =>
       a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + bonus
@@ -4634,7 +4683,32 @@ async function aiBuyTurn(ai) {
     if (unlocks) {
       ai.hand.splice(ai.hand.indexOf(tCard), 1);
       ai.roundDollars += bonus;
-      addLog(`${ai.name} activated card: +$${bonus}.`, 'log-burn');
+      addLog(`${ai.name} used a card: +$${bonus}.`, 'log-burn');
+    }
+  }
+
+  // Swap card (card_4): AI grabs the single highest-value AVAILABLE STORE card for free.
+  // Restricted to the pyramid (never opponents' hands) so the choice is identical on every
+  // client — the pyramid is shared/synced, opponent-hand views may differ. Only swaps when
+  // the best Store card clearly beats whatever the AI could already afford this turn.
+  const aiSwapCard = ai.hand.find(c => c.special === 'swap_revealed');
+  if (aiSwapCard) {
+    const avail2 = getAvailablePyramidCards(G.pyramid);
+    let target = null, tScore = -Infinity;
+    for (const a of avail2) {
+      const s = scoreCardForAI(a.slot.card, ai);
+      if (s > tScore || (s === tScore && (!target || a.slot.card.cost > target.slot.card.cost))) {
+        tScore = s; target = a;
+      }
+    }
+    const bestAffordable = Math.max(0, ...avail2
+      .filter(a => a.slot.card.cost <= ai.roundDollars)
+      .map(a => scoreCardForAI(a.slot.card, ai)));
+    if (target && tScore >= 6 && tScore > bestAffordable) {
+      applySwapLocal(ai, {
+        kind: 'pyramid', victimSlot: null, row: target.row, col: target.col,
+        takenId: target.slot.card.id, card4Uid: aiSwapCard.uid,
+      });
     }
   }
 
@@ -4767,90 +4841,6 @@ function pyramidRevealBonus(row, col, revealBonus) {
   return bonus;
 }
 
-// --- PASS CARD (discard_to_player) ---
-
-// card_4 (-1 bandit, zero downside) is a BENEFIT to whoever draws it, so the AI
-// hands it to the WEAKEST opponent (smallest herd) to minimize help to a rival.
-// Ties (multiple opponents at the lowest herd) are broken by a seeded draw over the
-// tied players' Firebase slots, so every client deterministically picks the same
-// recipient. Matches the "pass to weakest opponent" logic in sim/simulate.js.
-function aiPickPassTarget(fromPlayerIdx) {
-  const opponents = G.players
-    .map((p, i) => ({ p, i }))
-    .filter(c => c.i !== fromPlayerIdx);
-  const minHerd = Math.min(...opponents.map(c => c.p.herd));
-  const tied = opponents.filter(c => c.p.herd === minHerd);
-  if (tied.length === 1) return tied[0].i;
-
-  // Deterministic tiebreak: seed an LCG from gameSeed + act/round + passer slot and
-  // pick over the SORTED tied slot indices, so all clients agree without messaging.
-  const tiedSlots = tied.map(c => G.playerOrder[c.i]).sort((a, b) => a - b);
-  let lcg = (((G.gameSeed || 1) ^ (G.act * 73856093) ^ (G.round * 19349663) ^ (fromPlayerIdx + 1)) >>> 0) || 1;
-  lcg = (Math.imul(1664525, lcg) + 1013904223) >>> 0;
-  const pickedSlot = tiedSlots[lcg % tiedSlots.length];
-  return tied.find(c => G.playerOrder[c.i] === pickedSlot).i;
-}
-
-// Resolve all discard_to_player cards across all players before hands are cleared.
-// Processes players in index order; each card is resolved separately.
-async function resolvePassCards() {
-  const findCardTemplate = id =>
-    STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
-
-  for (let pi = 0; pi < G.numPlayers; pi++) {
-    const player = G.players[pi];
-    const passCards = player.hand.filter(c => c.special === 'discard_to_player');
-    for (const card of passCards) {
-      await resolveSinglePassCard(pi, card, findCardTemplate);
-    }
-  }
-}
-
-async function resolveSinglePassCard(fromIdx, card, findCardTemplate) {
-  const fromPlayer = G.players[fromIdx];
-  const fromName = fromIdx === 0 ? 'You' : fromPlayer.name;
-  let toIdx;
-
-  if (fromIdx === 0) {
-    // Local human — prompt to choose a recipient
-    const opponents = G.players.map((p, i) => ({ p, i })).filter(c => c.i !== fromIdx);
-    setMessage('Pass card to an opponent — choose who receives it:');
-    clearActions();
-    render();
-    toIdx = await new Promise(resolve => {
-      setActions(opponents.map(({ p, i }) => ({
-        text: p.name,
-        onClick: () => resolve(i),
-      })));
-    });
-    clearActions();
-    if (MP.active) {
-      await MP.pushPassCard(card.id, G.playerOrder[toIdx]);
-    }
-
-  } else if (!fromPlayer.isHuman) {
-    // AI — deterministic, same on all clients
-    toIdx = aiPickPassTarget(fromIdx);
-    // Host logs on behalf of AI (others run same logic silently)
-
-  } else {
-    // Remote human in MP — wait for their Firebase push
-    const fromSlot = G.playerOrder[fromIdx];
-    setMessage(`Waiting for ${fromPlayer.name} to pass a card...`);
-    render();
-    const data = await new Promise(resolve => MP.waitForPassCard(fromSlot, resolve));
-    toIdx = MP.slotToPlayer[data.toSlot];
-  }
-
-  // Move card from fromPlayer's hand to toPlayer's discard
-  fromPlayer.hand = fromPlayer.hand.filter(c => c !== card);
-  G.players[toIdx].discard.push(card);
-
-  const toName = toIdx === 0 ? 'you' : G.players[toIdx].name;
-  addLog(`${fromName} passes a card to ${toName}.`, 'log-info');
-  render();
-}
-
 // --- END PHASES ---
 
 function endBuyPhase() {
@@ -4876,9 +4866,6 @@ async function scoreRound() {
       }
     }
   });
-
-  // Resolve any discard_to_player cards before hands are cleared
-  await resolvePassCards();
 
   // Move all remaining drawn cards to each player's own discard
   for (const player of G.players) {
@@ -5619,15 +5606,35 @@ function applyDebugScenario(name) {
     special_burn_to_use()        { makeSpecialScenario('card_77', 1); },
     special_2cow_if_first()      { makeSpecialScenario('card_15', 1); },
     special_burn_buy_first()     { makeSpecialScenario('card_14', 1); },
-    special_burn_for_2_card16()  { makeSpecialScenario('card_16', 2); },
+    special_burn_to_use_card16() { makeSpecialScenario('card_16', 2); },
     special_look3_rearrange()    { makeSpecialScenario('card_19', 2); },
     special_copy_next()          { makeSpecialScenario('card_20', 2); },
-    special_burn_for_2()         { makeSpecialScenario('card_22', 2); },
+    special_burn_to_use_card22() { makeSpecialScenario('card_22', 2); },
     special_extra_buy()          { makeSpecialScenario('card_21', 2); },
     special_replay_discard()     { makeSpecialScenario('card_23', 2); },
     special_dollar1_other()      { makeSpecialScenario('card_24', 2); },
-    special_discard_to_player()  { makeSpecialScenario('card_4',  2, AI3); },
+    special_swap_revealed()      { makeSpecialScenario('card_4',  2, AI3); },
     special_look3_immediate()    { makeSpecialScenario('card_31', 3); },
+
+    // Full Swap (card_4) test — 4P (card_4 is 4P-only), Act 2. You draw card_4 first (the
+    // human deck isn't shuffled at deal). Each opponent's discard is pre-seeded with a cow
+    // card so the discard-top swap source is testable immediately (opponents otherwise start
+    // round 1 with an empty discard); their hands fill from their own draws. So all three
+    // swap sources are exercisable: Store pyramid, opponent hand, opponent discard top.
+    // Draw card_4, Stop, then use "Swap Card 4" on your buy turn.
+    swap_card() {
+      const players = [createPlayer('You', true, 0), ...AI3.map((n, i) => createPlayer(n, false, i + 1))];
+      players[0].deck = debugDeck('card_4', 0); // card_4 on top, drawn immediately
+      for (let i = 1; i < players.length; i++) {
+        players[i].discard = [createCardInstance(getCardById('card_28'))]; // 3 cows → discard-top target
+      }
+      G = initState(4, players);
+      G.currentAct = 2;
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+    },
 
     // Act 3 store down to a single available card. Buy it to empty the pyramid and
     // trigger the showdown immediately — quick way to test the showdown sequence.
@@ -5683,15 +5690,15 @@ function applyDebugScenario(name) {
     },
 
     // Tests buy-phase activation with every dollar-producing card in hand at once.
-    // 4 activatable cards: card_77/78 (burn_to_use +$2 each) + card_16/22 (burn_for_2 +$1 each).
-    // After drawing all four you have $2 natural (the burn_for_2s give $1 on draw) and can
-    // activate up to +$6 more in buy phase. Act 2 pyramid has expensive cards worth unlocking.
+    // 4 activatable Explosive cards: card_77/78 (burn_to_use +$2 each) + card_16/22 (burn_to_use +$3 each).
+    // They give $0 on draw; you can activate up to +$10 in buy phase to unlock expensive
+    // cards. Act 2 pyramid has expensive cards worth unlocking.
     buy_phase_all_activatable() {
       const order = [
         'card_77',     // burn_to_use +$2 ($0 on draw)
         'card_78',     // burn_to_use +$2 ($0 on draw)
-        'card_16',     // burn_for_2: $1 on draw, +$1 on activate
-        'card_22',     // burn_for_2: $1 on draw, +$1 on activate
+        'card_16',     // burn_to_use +$3 ($0 on draw)
+        'card_22',     // burn_to_use +$3 ($0 on draw)
         'starter_91',
         'starter_92',
         'starter_93',
@@ -5759,11 +5766,10 @@ function applyDebugScenario(name) {
       ]);
     },
 
-    // Copy Next → burn_for_2 ($1 on draw / +$1 on burn): Copy Next card also becomes
-    // an activatable copy. Donor gives $1 at draw time + $1 on activation = $2 total.
-    // Copy Next gave $0 at draw, so its activation pays donor.dollars + 1 = $2, for a
-    // combined total of $4 from both copies (2× the card's $2 value).
-    copy_next_burn_for_2() {
+    // Copy Next → burn_to_use ($3 Explosive, $0 on draw): Copy Next card becomes a second
+    // independent Explosive copy. Each can be used for +$3 in the buy/draw phase, for a
+    // combined +$6 from both copies (2× the card's $3 value).
+    copy_next_burn_to_use() {
       makeCopyNextScenario('card_16', [
         'starter_91',
         'starter_92',
@@ -5774,8 +5780,8 @@ function applyDebugScenario(name) {
       ]);
     },
 
-    // Copy Next → burn_buy_first: Copy Next card becomes a second "Burn for Priority" you
-    // can activate independently. Burn either (or both) during draw phase to gain buy priority.
+    // Copy Next → burn_buy_first: Copy Next card becomes a second "Use for Priority" you
+    // can activate independently. Use either (or both) during draw phase to gain buy priority.
     copy_next_priority() {
       makeCopyNextScenario('card_14', [
         'starter_91',
@@ -5788,7 +5794,7 @@ function applyDebugScenario(name) {
     },
 
     // Copy Next → look3_rearrange: Copy Next becomes a second "Peek at Top 3" you can
-    // activate. Burn either during draw phase to view and re-order the top 3 deck cards.
+    // activate. Use either during draw phase to view and re-order the top 3 deck cards.
     copy_next_look3() {
       makeCopyNextScenario('card_19', [
         'starter_91',
@@ -5800,7 +5806,7 @@ function applyDebugScenario(name) {
       ]);
     },
 
-    // Copy Next → replay_discard: Copy Next becomes a second "Burn & Replay". Discard is
+    // Copy Next → replay_discard: Copy Next becomes a second "Use & Replay". Discard is
     // pre-seeded with a cow card and a dollar card so the replay modal has meaningful options.
     copy_next_replay() {
       makeCopyNextScenario('card_23', [
@@ -5817,7 +5823,7 @@ function applyDebugScenario(name) {
     },
 
     // Copy Next → extra_buy: Copy Next becomes a second "1 Extra Buy/Burn" activation.
-    // Both can be burned independently during draw phase for a bonus buy/burn each.
+    // Both can be used independently during draw phase for a bonus buy/burn each.
     copy_next_extra_buy() {
       makeCopyNextScenario('card_21', [
         'starter_91',

@@ -57,7 +57,7 @@ const BUY_PREFERENCES = {
     cowWeight: 5,
     dollarWeight: 0.5,
     banditWeight: -2,
-    specialBonuses: { burn_to_use: 3, copy_next: 2, draw4: 3, extra_buy: 3, discard_to_player: 1 },
+    specialBonuses: { burn_to_use: 3, copy_next: 2, draw4: 3, extra_buy: 3 },
     negativeCowPenalty: -4,
     act1DollarBonus: 0.5,
     act3CowBonus: 4,
@@ -67,7 +67,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { burn_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 3, discard_to_player: 1 },
+    specialBonuses: { burn_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 3 },
     negativeCowPenalty: -2,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -77,7 +77,7 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 3,
     banditWeight: -2,
-    specialBonuses: { burn_to_use: 2, copy_next: 4, draw4: 2, extra_buy: 4, discard_to_player: 2 },
+    specialBonuses: { burn_to_use: 2, copy_next: 4, draw4: 2, extra_buy: 4 },
     negativeCowPenalty: -1,
     act1DollarBonus: 2,
     act3CowBonus: 2,
@@ -87,7 +87,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -0.5,
-    specialBonuses: { burn_to_use: 1, copy_next: 2, draw4: 3, extra_buy: 3, discard_to_player: 0 },
+    specialBonuses: { burn_to_use: 1, copy_next: 2, draw4: 3, extra_buy: 3 },
     negativeCowPenalty: -1,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -97,7 +97,7 @@ const BUY_PREFERENCES = {
     cowWeight: 4,
     dollarWeight: 1,
     banditWeight: -4,
-    specialBonuses: { burn_to_use: 4, copy_next: 2, draw4: 1, extra_buy: 2, discard_to_player: 1 },
+    specialBonuses: { burn_to_use: 4, copy_next: 2, draw4: 1, extra_buy: 2 },
     negativeCowPenalty: -3,
     act1DollarBonus: 0.5,
     act3CowBonus: 3,
@@ -107,7 +107,7 @@ const BUY_PREFERENCES = {
     cowWeight: 2,
     dollarWeight: 1,
     banditWeight: -2,
-    specialBonuses: { burn_to_use: 5, copy_next: 5, draw4: 5, extra_buy: 4, look3_rearrange: 3, replay_discard: 4, look3_immediate: 3, discard_to_player: 2 },
+    specialBonuses: { burn_to_use: 5, copy_next: 5, draw4: 5, extra_buy: 4, look3_rearrange: 3, replay_discard: 4, look3_immediate: 3 },
     negativeCowPenalty: -2,
     act1DollarBonus: 0.5,
     act3CowBonus: 1,
@@ -117,7 +117,7 @@ const BUY_PREFERENCES = {
     cowWeight: 3,
     dollarWeight: 1.5,
     banditWeight: -2,
-    specialBonuses: { burn_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 2, discard_to_player: 1 },
+    specialBonuses: { burn_to_use: 2, copy_next: 3, draw4: 2, extra_buy: 2 },
     negativeCowPenalty: -2,
     act1DollarBonus: 1,
     act3CowBonus: 2,
@@ -129,7 +129,6 @@ const BUY_PREFERENCES = {
 const SPECIAL_DEFAULTS = {
   burnStrategy: 'worst',
   jailThreshold: 2,
-  burnFor2: 'smart',
   look3: 'always',
   replayDiscard: 'best',
   putOnTop: 'worst',
@@ -149,8 +148,6 @@ function buildStrategy(riskKey, buyKey) {
     ...SPECIAL_DEFAULTS,
     // Override jail threshold for cautious/timid
     jailThreshold: (riskKey === 'cautious' || riskKey === 'timid') ? 1 : 2,
-    // Override burnFor2 for dollar focused
-    burnFor2: buyKey === 'dollarFocused' ? 'always' : 'smart',
   };
 }
 
@@ -242,9 +239,9 @@ function chooseBuy(player, strategy, pyramid, currentAct) {
 
   // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
   for (const tCard of player.hand.filter(c =>
-    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+    c.special === 'burn_to_use' && c.dollars > 0
   )) {
-    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const bonus = tCard.dollars;
     const unlocks = available.some(a =>
       a.slot.card.cost > player.roundDollars && a.slot.card.cost <= player.roundDollars + bonus
     );
@@ -366,23 +363,7 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
       }
     }
 
-    // Handle burn_for_2
-    if (card.special === 'burn_for_2') {
-      let shouldTrash = false;
-      if (strategy.burnFor2 === 'always') {
-        shouldTrash = true;
-      } else if (strategy.burnFor2 === 'smart') {
-        const bestCost = getBestScoredCost(player, strategy, pyramid, currentAct || 1);
-        shouldTrash = (player.roundDollars + 1 >= bestCost && player.roundDollars < bestCost);
-      }
-      if (shouldTrash) {
-        player.roundDollars += 1;
-        const idx = player.hand.indexOf(card);
-        if (idx >= 0) player.hand.splice(idx, 1);
-      }
-    }
-
-    // Handle look3_rearrange (burn to rearrange top 3)
+    // Handle look3_rearrange (use to rearrange top 3)
     if (card.special === 'look3_rearrange' && strategy.look3 === 'always' && player.deck.length >= 2) {
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
@@ -476,10 +457,8 @@ function executeDrawPhase(player, strategy, pyramid, currentAct) {
 
 function handleBust(player) {
   player.busted = true;
-  // Keep discard_to_player cards in hand so they can still be resolved after the round.
-  // Mirrors play.js bust handling (non-pass cards go to discard, pass cards stay in hand).
-  player.discard.push(...player.hand.filter(c => c.special !== 'discard_to_player'));
-  player.hand = player.hand.filter(c => c.special === 'discard_to_player');
+  player.discard.push(...player.hand);
+  player.hand = [];
   player.roundDollars = 0;
   player.roundCows = 0;
 }

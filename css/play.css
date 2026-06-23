@@ -1309,6 +1309,32 @@ body.phase-draw #player-deck-preview {
   box-shadow: 0 0 0 3px #b87838;
 }
 
+/* Swap (Card 4) picker — grouped by source (Store / each opponent), like My Deck. */
+.swap-sub {
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin: 0 auto 0.5rem;
+  max-width: 32rem;
+}
+.swap-group {
+  margin: 0.5rem 0 0.75rem;
+}
+.swap-group-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  text-align: left;
+  padding: 0.15rem 0.4rem;
+  border-bottom: 2px solid rgba(184,120,56,0.5);
+  margin-bottom: 0.35rem;
+}
+.swap-group .modal-cards {
+  margin: 0.35rem 0 0;
+  justify-content: flex-start;
+}
+
 /* Peek button inside rearrange modal — centered text button.
    The cream modal needs dark-on-light contrast, not the btn-secondary
    light-on-dark scheme (which is invisible here). */

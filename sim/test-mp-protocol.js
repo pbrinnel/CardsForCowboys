@@ -392,55 +392,6 @@ section('5. Buy actions');
 }
 
 // ============================================================
-// 6. PASS CARD — round-trip / reset / cross-slot
-// ============================================================
-section('6. Pass card');
-
-{
-  // Slot 0 passes card; slot 1 receives via waitForPassCard(0, cb)
-  const { clients } = createGame('T21', 2, [0, 1]);
-  const [c0, c1] = clients;
-  let got = null;
-  c1.waitForPassCard(0, val => { got = val; });
-  c0.pushPassCard(42, 1);
-  assert('passCard cardId', got?.cardId, 42);
-  assert('passCard toSlot', got?.toSlot, 1);
-}
-
-{
-  // One-shot: second push after first doesn't re-fire
-  const { clients } = createGame('T22', 2, [0, 1]);
-  const [c0, c1] = clients;
-  let callCount = 0;
-  c1.waitForPassCard(0, () => callCount++);
-  c0.pushPassCard(10, 1);
-  c0.pushPassCard(11, 1); // second push
-  assert('passCard one-shot', callCount, 1);
-}
-
-{
-  // After resetRound, listener set up fresh sees null — doesn't fire
-  const { clients } = createGame('T23', 2, [0, 1]);
-  const [c0, c1] = clients;
-  c0.pushPassCard(99, 1);
-  c0.resetRound();
-  let staleReceived = false;
-  c1.waitForPassCard(0, () => { staleReceived = true; });
-  assert('passCard cleared by resetRound — listener does not fire', staleReceived, false);
-}
-
-{
-  // 4P: slot 2 passes, slot 3 waits for slot 2's card
-  const { clients } = createGame('T24', 4, [0, 1, 2, 3]);
-  const [c0, c1, c2, c3] = clients;
-  let got = null;
-  c3.waitForPassCard(2, val => { got = val; });
-  c2.pushPassCard(55, 3);
-  assert('4P passCard cardId', got?.cardId, 55);
-  assert('4P passCard toSlot', got?.toSlot, 3);
-}
-
-// ============================================================
 // 7. RESET ROUND — all per-round paths cleared
 // ============================================================
 section('7. resetRound clears all paths');
@@ -458,12 +409,10 @@ section('7. resetRound clears all paths');
   c2.pushDrawState({ hand: [3], dollars: 7 });
   c0.pushBuyOrder([2, 0, 1]);
   c1.pushBuyAction('buy', 0, 0);
-  c0.pushPassCard(10, 1);
 
   // Verify data is present
   assert('drawDone/0 set before reset', db.peek('games/T25/drawDone/0') !== null, true);
   assert('buyOrder set before reset', db.peek('games/T25/buyOrder') !== null, true);
-  assert('passCard/0 set before reset', db.peek('games/T25/passCard/0') !== null, true);
 
   c0.resetRound();
 
@@ -475,9 +424,6 @@ section('7. resetRound clears all paths');
   assert('drawState/2 null after reset', db.peek('games/T25/drawState/2'), null);
   assert('buyOrder null after reset', db.peek('games/T25/buyOrder'), null);
   assert('buyAction null after reset', db.peek('games/T25/buyAction'), null);
-  assert('passCard/0 null after reset', db.peek('games/T25/passCard/0'), null);
-  assert('passCard/1 null after reset', db.peek('games/T25/passCard/1'), null);
-  assert('passCard/2 null after reset', db.peek('games/T25/passCard/2'), null);
 }
 
 // ============================================================
@@ -618,23 +564,6 @@ section('9. Multi-client coordination');
   // c1 does NOT push (it lost)
 
   assert('c1 received buy order — no freeze', JSON.stringify(orderReceived), JSON.stringify([0, 1]));
-}
-
-{
-  // Scenario: passCard before resetRound (correct ordering)
-  const { clients } = createGame('T32', 2, [0, 1]);
-  const [c0, c1] = clients;
-  let c1Received = null;
-  // c0 has a discard_to_player card; c1 must wait for c0's choice
-  c1.waitForPassCard(0, val => { c1Received = val; });
-  c0.pushPassCard(66, 1); // card 66 goes to slot 1
-  assert('passCard received before reset', c1Received?.cardId, 66);
-  assert('passCard toSlot', c1Received?.toSlot, 1);
-  // THEN reset
-  c0.resetRound();
-  // passCard/0 should be null now
-  const { db } = createGame('T32check', 2, [0, 1]); // dummy just to check type
-  // (check via peek on the actual shared db)
 }
 
 {

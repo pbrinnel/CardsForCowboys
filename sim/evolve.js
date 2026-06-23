@@ -171,9 +171,9 @@ function chooseBuy(player, genome, pyramid, act, allPlayers) {
 
   // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
   for (const tCard of player.hand.filter(c =>
-    (c.special === 'burn_to_use' && c.dollars > 0) || c.special === 'burn_for_2'
+    c.special === 'burn_to_use' && c.dollars > 0
   )) {
-    const bonus = tCard.special === 'burn_for_2' ? 1 : tCard.dollars;
+    const bonus = tCard.dollars;
     const unlocks = avail.some(a =>
       (a.slot.card.cost || 0) > player.roundDollars &&
       (a.slot.card.cost || 0) <= player.roundDollars + bonus
@@ -329,15 +329,6 @@ function runDrawPhase(players, genomes, pyramid, act, rng) {
         }
       }
 
-      // burn_for_2: burn for +$1 if it bridges to best card
-      if (card.special === 'burn_for_2') {
-        const bestCost = getBestCost(player, genome, pyramid, act, players);
-        if (player.roundDollars < bestCost && player.roundDollars + 1 >= bestCost) {
-          player.roundDollars += 1;
-          const idx = player.hand.indexOf(card);
-          if (idx >= 0) player.hand.splice(idx, 1);
-        }
-      }
 
       // look3_rearrange: always burn, sort top 3 deck cards (least bandits first)
       if (card.special === 'look3_rearrange' && player.deck.length >= 2) {

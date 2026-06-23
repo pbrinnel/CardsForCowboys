@@ -137,25 +137,6 @@ function createMpClient({ db, gameCode, mySlot, numPlayers, slotDefs }) {
     });
   }
 
-  // ---- Pass card (end-of-round) ----
-
-  async function pushPassCard(cardId, toSlot) {
-    return fbSet(ref(`passCard/${mySlot}`), { cardId, toSlot, ts: Date.now() });
-  }
-
-  function waitForPassCard(fromSlot, callback) {
-    let fired = false;
-    let unsub = null;
-    unsub = fbOnValue(ref(`passCard/${fromSlot}`), (snap) => {
-      const val = snap.val();
-      if (val && !fired) {
-        fired = true;
-        if (unsub) unsub();
-        callback(val);
-      }
-    });
-  }
-
   // ---- Round reset ----
 
   async function resetRound() {
@@ -163,7 +144,6 @@ function createMpClient({ db, gameCode, mySlot, numPlayers, slotDefs }) {
     for (let i = 0; i < numPlayers; i++) {
       updates[`drawDone/${i}`]  = null;
       updates[`drawState/${i}`] = null;
-      updates[`passCard/${i}`]  = null;
     }
     return fbUpdate(rootRef, updates);
   }
@@ -185,8 +165,6 @@ function createMpClient({ db, gameCode, mySlot, numPlayers, slotDefs }) {
     waitForBuyOrder,
     pushBuyAction,
     waitForBuyAction,
-    pushPassCard,
-    waitForPassCard,
     resetRound,
     dump,
   };

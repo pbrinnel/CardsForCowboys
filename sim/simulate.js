@@ -207,30 +207,6 @@ function simulateGame(strategies, numPlayers, verbose) {
         }
       }
 
-      // --- RESOLVE discard_to_player: pass to weakest opponent (smallest herd) ---
-      // Process in player-index order; card effects already applied during draw.
-      for (let pi = 0; pi < numPlayers; pi++) {
-        const fromPlayer = players[pi];
-        const passCards = fromPlayer.hand.filter(c => c.special === 'discard_to_player');
-        for (const card of passCards) {
-          // Find weakest opponent (smallest herd, index tiebreak)
-          const target = players
-            .map((p, i) => ({ p, i }))
-            .filter(c => c.i !== pi)
-            .sort((a, b) => {
-              const diff = a.p.herd - b.p.herd;
-              return diff !== 0 ? diff : a.i - b.i;
-            })[0];
-
-              // Remove card from sender's hand (stats already applied; play.js does NOT reverse them)
-          const idx = fromPlayer.hand.indexOf(card);
-          if (idx >= 0) fromPlayer.hand.splice(idx, 1);
-
-          // Add to recipient's discard (they draw it next round)
-          target.p.discard.push(card);
-        }
-      }
-
       // --- BUY PHASE ---
       const buyOrder = computeBuyOrder(players);
 

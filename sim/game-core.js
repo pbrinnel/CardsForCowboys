@@ -82,18 +82,18 @@ const STORE_CARDS = [
   { id: 'card_42', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
   { id: 'card_43', act: 2, minPlayers: 4, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
   // Cactus (Yellow) – 2 cacti  [2P]
-  { id: 'card_16', act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'burn_for_2' },
+  { id: 'card_16', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_17', act: 2, minPlayers: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
   { id: 'card_18', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_19', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
   { id: 'card_20', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
   { id: 'card_21', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'extra_buy' },
-  { id: 'card_22', act: 2, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_for_2' },
+  { id: 'card_22', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_23', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
   { id: 'card_24', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
   // Cactus (Yellow) – 2 cacti  [4+P]
-  { id: 'card_4',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits: -1, cost: 0, cacti: 2, special: 'discard_to_player' },
-  { id: 'card_5',  act: 2, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'burn_for_2' },
+  { id: 'card_4',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'swap_revealed' },
+  { id: 'card_5',  act: 2, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_6',  act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 2, special: null },
   { id: 'card_7',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
 

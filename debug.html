@@ -116,11 +116,11 @@
     </button>
     <button class="scenario-btn" onclick="launch('special_burn_buy_first')">
       <span class="label">Burn → Buy Priority</span>
-      <span class="desc">Act 1 · card_14 · burn for first buy priority</span>
+      <span class="desc">Act 1 · card_14 · use for first buy priority</span>
     </button>
-    <button class="scenario-btn" onclick="launch('special_burn_for_2_card16')">
-      <span class="label">Burn for $2 (Cactus)</span>
-      <span class="desc">Act 2 · card_16 · $1 or burn for $2</span>
+    <button class="scenario-btn" onclick="launch('special_burn_to_use_card16')">
+      <span class="label">Explosive $3 (card_16)</span>
+      <span class="desc">Act 2 · card_16 · Rattlesnake · use for $3</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_look3_rearrange')">
       <span class="label">Look 3, Rearrange</span>
@@ -130,13 +130,13 @@
       <span class="label">Copy Next Card</span>
       <span class="desc">Act 2 · card_20 · next card has double effect</span>
     </button>
-    <button class="scenario-btn" onclick="launch('special_burn_for_2')">
-      <span class="label">Burn for $2</span>
-      <span class="desc">Act 2 · card_22 · River · $1 or burn for $2</span>
+    <button class="scenario-btn" onclick="launch('special_burn_to_use_card22')">
+      <span class="label">Explosive $3 (card_22)</span>
+      <span class="desc">Act 2 · card_22 · Rattlesnake · use for $3</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_extra_buy')">
       <span class="label">Extra Buy</span>
-      <span class="desc">Act 2 · card_21 · burn for extra turn in buy phase</span>
+      <span class="desc">Act 2 · card_21 · use for extra turn in buy phase</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_replay_discard')">
       <span class="label">Replay Discard</span>
@@ -146,9 +146,13 @@
       <span class="label">$1 to Others</span>
       <span class="desc">Act 2 · card_24 · gives $1 to each opponent</span>
     </button>
-    <button class="scenario-btn" onclick="launch('special_discard_to_player')">
-      <span class="label">Discard to Player</span>
-      <span class="desc">Act 2 · card_4 · 4P · passed to next player</span>
+    <button class="scenario-btn" onclick="launch('special_swap_revealed')">
+      <span class="label">Swap (Card 4)</span>
+      <span class="desc">Act 2 · card_4 · 4P · swap for any face-up card</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('swap_card')">
+      <span class="label">Swap (Card 4) — Full Test</span>
+      <span class="desc">Act 2 · 4P · card_4 + opponents seeded w/ cow cards in hand & discard (all 3 sources)</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_look3_immediate')">
       <span class="label">Look 3, Immediate</span>
@@ -178,9 +182,9 @@
       <span class="label">Copy Next → Burn-to-Use $2</span>
       <span class="desc">Act 2 · card_20→card_77 · both activatable for $2 each → up to $4</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_burn_for_2')">
-      <span class="label">Copy Next → Burn for $2</span>
-      <span class="desc">Act 2 · card_20→card_16 · Copy Next becomes 2nd activatable copy for $2</span>
+    <button class="scenario-btn" onclick="launch('copy_next_burn_to_use')">
+      <span class="label">Copy Next → Explosive $3</span>
+      <span class="desc">Act 2 · card_20→card_16 · Copy Next becomes 2nd Explosive copy for $3 each → up to $6</span>
     </button>
     <button class="scenario-btn" onclick="launch('copy_next_priority')">
       <span class="label">Copy Next → Buy Priority</span>
