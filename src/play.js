@@ -4595,7 +4595,11 @@ function applySwapLocal(player, spec) {
   if (c4idx < 0) return false;                 // activator no longer holds Card 4
   const card4 = player.hand.splice(c4idx, 1)[0];
   place(card4);                                // true swap: Card 4 fills the vacated slot
-  player.discard.push(taken);                  // taken card enters activator's deck (scores later)
+  // True positional swap: the taken card takes Card 4's exact spot in your hand (visible in
+  // your play area, in draw order). It does NOT re-score this round — herds are locked at the
+  // start of the buy phase and the card never runs through applyCardEffects — so at round end
+  // it moves to your discard with the rest of your hand and scores when re-drawn next round.
+  player.hand.splice(c4idx, 0, taken);
   revealUncovered(G.pyramid);
   addLog(`${player.name} used a Swap card to take ${cardLabel(taken)}${victimName ? ` from ${victimName}` : ''}.`, 'log-buy');
   render();
@@ -4608,9 +4612,10 @@ function openSwapModal(player, swapCard) {
   const { groups } = gatherSwapCandidates(player);
   const modal = document.getElementById('special-modal');
   const content = document.getElementById('special-modal-content');
+  document.getElementById('btn-peek-restore').onclick = () => modal.classList.remove('peeking');
   content.innerHTML =
     '<h2>Swap &mdash; take any face-up card</h2>' +
-    '<p class="swap-sub">Your Swap card takes its place. The card you take goes into your deck (it scores in a later round, not now). You still buy or burn normally this turn.</p>';
+    '<p class="swap-sub">Your Swap card takes its place. The card you take goes into your hand where the Swap card was &mdash; it scores in a later round when you draw it, not now. You still buy or burn normally this turn.</p>';
   for (const g of groups) {
     const section = document.createElement('div');
     section.className = 'swap-group';
@@ -4623,6 +4628,7 @@ function openSwapModal(player, swapCard) {
     for (const item of g.items) {
       const el = renderCardEl(item.card, true, 'clickable');
       el.onclick = () => {
+        modal.classList.remove('peeking');
         modal.classList.add('hidden');
         const spec = {
           kind: item.kind, victimSlot: item.victimSlot ?? null,
@@ -4641,8 +4647,15 @@ function openSwapModal(player, swapCard) {
   const cancel = document.createElement('button');
   cancel.className = 'btn btn-secondary';
   cancel.textContent = 'Cancel';
-  cancel.onclick = () => { modal.classList.add('hidden'); humanBuyTurn(player); };
+  cancel.onclick = () => { modal.classList.remove('peeking'); modal.classList.add('hidden'); humanBuyTurn(player); };
   content.appendChild(cancel);
+  // Peek at Table — drops the modal's dimming/blur so you can read the board before deciding
+  // (mirrors the rearrange-top-3 modal). #btn-peek-restore (bottom bar) brings it back.
+  const peekBtn = document.createElement('button');
+  peekBtn.className = 'btn btn-secondary modal-peek-btn';
+  peekBtn.textContent = 'Peek at Table';
+  peekBtn.onclick = () => modal.classList.add('peeking');
+  content.appendChild(peekBtn);
   modal.classList.remove('hidden');
 }
 
