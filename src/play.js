@@ -4410,7 +4410,7 @@ function humanBuyTurn(player) {
   // Swap card (card_4): usable IN ADDITION to your normal buy/burn, if any face-up target exists.
   const swapCard = player.hand.find(c => c.special === 'swap_revealed');
   if (swapCard && gatherSwapCandidates(player).total > 0) {
-    actions.push({ text: 'Swap Card 4', onClick: () => openSwapModal(player, swapCard), className: 'btn-burn' });
+    actions.push({ text: 'Swap', onClick: () => openSwapModal(player, swapCard), className: 'btn-burn' });
   }
   if (actions.length > 0) setActions(actions);
   render();
@@ -4597,7 +4597,7 @@ function applySwapLocal(player, spec) {
   place(card4);                                // true swap: Card 4 fills the vacated slot
   player.discard.push(taken);                  // taken card enters activator's deck (scores later)
   revealUncovered(G.pyramid);
-  addLog(`${player.name} swapped Card 4 for ${cardLabel(taken)}${victimName ? ` (from ${victimName})` : ''}.`, 'log-buy');
+  addLog(`${player.name} used a Swap card to take ${cardLabel(taken)}${victimName ? ` from ${victimName}` : ''}.`, 'log-buy');
   render();
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
   return true;
@@ -4610,7 +4610,7 @@ function openSwapModal(player, swapCard) {
   const content = document.getElementById('special-modal-content');
   content.innerHTML =
     '<h2>Swap &mdash; take any face-up card</h2>' +
-    '<p class="swap-sub">Card 4 takes its place. The card you take goes into your deck (it scores in a later round, not now). You still buy or burn normally this turn.</p>';
+    '<p class="swap-sub">Your Swap card takes its place. The card you take goes into your deck (it scores in a later round, not now). You still buy or burn normally this turn.</p>';
   for (const g of groups) {
     const section = document.createElement('div');
     section.className = 'swap-group';
