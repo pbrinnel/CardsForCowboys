@@ -2484,8 +2484,11 @@ async function startGame() {
       TUTORIAL.init(G);
     } else {
       // Restore a saved mid-game state (survives page reload / mobile tab eviction)
-      // unless gamesetup.html explicitly flagged this as a fresh new game.
-      const isNewGame = sessionStorage.getItem('cfc_new_game') === '1';
+      // unless gamesetup.html explicitly flagged this as a fresh new game, OR a debug
+      // scenario is pending (debug launches are always a fresh game — never resume the
+      // last saved solo game, or the debug injection below would be skipped entirely).
+      const isNewGame = sessionStorage.getItem('cfc_new_game') === '1' ||
+                        !!sessionStorage.getItem('debug_scenario');
       sessionStorage.removeItem('cfc_new_game');
       if (!isNewGame) {
         const saved = loadLocalGame();
