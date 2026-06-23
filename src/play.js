@@ -4598,7 +4598,8 @@ function applySwapLocal(player, spec) {
   // True positional swap: the taken card takes Card 4's exact spot in your hand (visible in
   // your play area, in draw order). It does NOT re-score this round — herds are locked at the
   // start of the buy phase and the card never runs through applyCardEffects — so at round end
-  // it moves to your discard with the rest of your hand and scores when re-drawn next round.
+  // it moves to your discard with the rest of your hand (like a bought card) and scores in a
+  // future round whenever you next draw it — once your discard reshuffles back into your deck.
   player.hand.splice(c4idx, 0, taken);
   revealUncovered(G.pyramid);
   addLog(`${player.name} used a Swap card to take ${cardLabel(taken)}${victimName ? ` from ${victimName}` : ''}.`, 'log-buy');
