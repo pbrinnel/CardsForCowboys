@@ -119,11 +119,19 @@ function computeBuyOrder(players) {
   // In SP mode, playerOrder[i] = i (identity)
   const playerOrder = players.map((_, i) => i);
 
-  const priorityIdxs = nonBustedIdxs
+  // 5-8P doubled-deck rule: only ONE buy-first holder per round is honored (the first
+  // to activate = lowest index, since draws process in index order). Extra holders are
+  // demoted to normal order. Inert at ≤4P (a single card_14 → at most one holder).
+  const buyFirstIdxs = nonBustedIdxs
     .filter(i => players[i].hasBuyBurnFirst)
     .sort((a, b) => a - b);
+  const priorityIdxs = buyFirstIdxs.slice(0, 1);
+  const demotedIdxs = buyFirstIdxs.slice(1);
 
-  const normalIdxs = nonBustedIdxs.filter(i => !players[i].hasBuyBurnFirst);
+  const normalIdxs = nonBustedIdxs
+    .filter(i => !players[i].hasBuyBurnFirst)
+    .concat(demotedIdxs)
+    .sort((a, b) => a - b);
 
   let normalSorted;
   if (normalIdxs.length <= 1) {

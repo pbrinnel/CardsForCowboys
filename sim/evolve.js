@@ -436,9 +436,13 @@ function runBuyPhase(players, genomes, pyramid, act) {
   const playerOrder = players.map((_, i) => i);
   const nonBusted = playerOrder.filter(i => !players[i].busted);
 
-  // hasBuyBurnFirst players go first
-  const priority = nonBusted.filter(i => players[i].hasBuyBurnFirst).sort((a, b) => a - b);
-  const normal = nonBusted.filter(i => !players[i].hasBuyBurnFirst);
+  // hasBuyBurnFirst players go first. 5-8P doubled-deck rule: only ONE holder per round
+  // is honored (lowest index = first to activate); extras demote to normal order. Inert
+  // at ≤4P (a single card_14 → at most one holder).
+  const buyFirst = nonBusted.filter(i => players[i].hasBuyBurnFirst).sort((a, b) => a - b);
+  const priority = buyFirst.slice(0, 1);
+  const demoted = new Set(buyFirst.slice(1));
+  const normal = nonBusted.filter(i => !players[i].hasBuyBurnFirst || demoted.has(i));
 
   let normalSorted;
   if (normal.length <= 1) {

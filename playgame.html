@@ -95,6 +95,7 @@
       /* Pyramid cards: full size on tall windows.
          No continuous scaling — discrete breakpoints below keep
          transitions instant so nothing jumps during resize. */
+      #pyramid-zone { --pyr-cw: 95px; } /* feeds .brick-offset half-card nudge (5-8P) */
       #pyramid-zone .pyramid-row .card,
       #pyramid-zone .pyramid-row .card-slot {
         width: 95px;
@@ -156,6 +157,7 @@
         height: 109px !important;
         transition: none !important;
       }
+      #pyramid-zone { --pyr-cw: 78px; }
       #pyramid-zone .pyramid-row:nth-child(n+2),
       body.phase-draw #pyramid-zone .pyramid-row:nth-child(n+2) {
         margin-top: -61px !important; /* 56% of 109px */
@@ -176,6 +178,7 @@
       body.phase-draw #pyramid-zone .pyramid-row:nth-child(n+2) {
         margin-top: -50px !important; /* 56% of 90px */
       }
+      #pyramid-zone { --pyr-cw: 64px; }
       #pyramid-zone .card-cost { font-size: 0.65rem !important; }
     }
   </style>

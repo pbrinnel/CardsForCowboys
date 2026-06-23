@@ -752,6 +752,15 @@ body.phase-draw #player-deck-preview {
   margin-bottom: 0.5rem;
 }
 
+/* 5-8P: 4-7 opponents wrap into a grid (≤4 per row) rather than one crushed flex row. */
+#opponents-zone.opp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 768px) {
+  #opponents-zone.opp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .opp-zone {
   flex: 1;
   min-width: 0;
@@ -1571,7 +1580,9 @@ body.phase-draw #player-deck-preview {
   background: transparent;
 }
 
-/* Bottom rows appear in front of top rows */
+/* Bottom rows appear in front of top rows. (5-8P games have up to 11 rows and set
+   z-index inline in renderPyramid; these nth-child rules cover the 2-4P fallback and
+   are harmless duplicates of the inline values.) */
 .pyramid-row:nth-child(1) { z-index: 1; }
 .pyramid-row:nth-child(2) { z-index: 2; margin-top: -55px; }
 .pyramid-row:nth-child(3) { z-index: 3; margin-top: -55px; }
@@ -1579,6 +1590,13 @@ body.phase-draw #player-deck-preview {
 .pyramid-row:nth-child(5) { z-index: 5; margin-top: -55px; }
 .pyramid-row:nth-child(6) { z-index: 6; margin-top: -55px; }
 .pyramid-row:nth-child(7) { z-index: 7; margin-top: -55px; }
+
+/* 5-8P brick layout: every other flat row of 7 is nudged a half-card so two cards
+   still cover one (matches pyramidColCenter()). --pyr-cw tracks the responsive card
+   width (set alongside the card-size breakpoints); 0.35rem is the .pyramid-row gap. */
+.pyramid-row.brick-offset {
+  transform: translateX(calc((var(--pyr-cw, 70px) + 0.35rem) / 2));
+}
 
 /* ─── Selected card preview (buy phase) ─── */
 #card-preview {

@@ -75,7 +75,7 @@ const MP = (() => {
   let dbRef = null;
   let db    = null;
   let fbMod = null;
-  let fbSet, fbUpdate, fbOnValue, fbOnDisconnect, fbRemove, fbGet, fbRef;
+  let fbSet, fbUpdate, fbOnValue, fbOnDisconnect, fbRemove, fbGet, fbRef, fbTransaction;
 
   let unsubscribers     = [];
   let initialized       = false;
@@ -105,6 +105,7 @@ const MP = (() => {
     fbOnDisconnect = (r)       => fbMod.onDisconnect(r);
     fbRemove    = (r)          => fbMod.remove(r);
     fbGet       = (r)          => fbMod.get(r);
+    fbTransaction = (r, fn)    => fbMod.runTransaction(r, fn);
 
     dbRef = gameRef();
     initialized = true;
@@ -610,6 +611,25 @@ const MP = (() => {
     unsubscribers.push(unsub);
   }
 
+  // 5-8P only: only ONE player may take first-buy priority per round (two copies of
+  // card_14 exist under the doubled second deck). Atomically claim it via a per-round
+  // transaction (same first-writer-wins pattern as lobby slot claims). Returns true if
+  // THIS slot holds the claim (won it now, or already held it). Fail-open on error so a
+  // transient Firebase hiccup never eats the player's card.
+  async function claimBuyFirst(act, round) {
+    if (!initialized) return true;
+    try {
+      const ref = gameRef(`buyFirstClaim/${act}_${round}`);
+      const res = await fbTransaction(ref, (cur) => {
+        if (cur === null) return mySlot; // unclaimed → take it
+        return;                          // already claimed → abort (no write)
+      });
+      return res.committed || res.snapshot.val() === mySlot;
+    } catch (e) {
+      return true; // fail-open
+    }
+  }
+
   return {
     active: true,
     code, mySlot, isHost, myName, recovered,
@@ -642,6 +662,7 @@ const MP = (() => {
     cleanup,
     disband,
     watchForDisband,
+    claimBuyFirst,
   };
 })();
 
@@ -767,8 +788,11 @@ function amTrajHost() {
 }
 
 // Whether trajectory capture should run at all for this game.
+// Skipped for 5-8P: the trajectory schema + offline reconstructor are ≤4P-scoped, and
+// the ≤4P benchmark corpus shouldn't be diluted with big-game data. Revisit if/when the
+// reconstructor learns the 5-8P pyramid geometry (see docs/FIVE_TO_EIGHT_PLAYER_PLAN.md).
 function trajActive() {
-  return !G.isDebug && !TUTORIAL.active && !!trajGameCode();
+  return !G.isDebug && !TUTORIAL.active && G.numPlayers <= 4 && !!trajGameCode();
 }
 
 // Compact card-instance serialization for snapshots (id only — stats come from the card DB).
@@ -1198,7 +1222,13 @@ function getCardById(id) {
 }
 
 function getActPool(act) {
-  return STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
+  const pool = STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
+  // 5-8P play with a second deck: the per-act pool tops out at 28 distinct cards
+  // (there is no minPlayers>4 tier), but the pyramid needs up to 56 (8P), so draw
+  // from two copies of the full act pool. buildPyramid wraps each in createCardInstance,
+  // so the duplicates get distinct uids; only card.id repeats.
+  if (G.numPlayers >= 5) return pool.concat(pool);
+  return pool;
 }
 
 // --- UTILITY ---
@@ -1353,10 +1383,33 @@ function initState(numPlayers, players) {
 
 // --- PYRAMID ---
 
+// Number of cards in pyramid row `row`. The triangle caps at width 7; for 5-8P,
+// rows past the triangle are flat rows of 7 (see PYRAMID_TRIANGLE_ROWS).
+const PYRAMID_MAX_WIDTH = 7;        // widest triangle row (== the 4P base)
+const PYRAMID_TRIANGLE_ROWS = 7;    // rows 0..6 form the triangle cap (1..7 cards)
+function pyramidRowWidth(row) {
+  return Math.min(row + 1, PYRAMID_MAX_WIDTH);
+}
+
+// Horizontal center of card (row,col) in card-width units (origin = pyramid center).
+// Triangle rows are centered. Flat rows (5-8P) use a BRICK offset: alternate flat
+// rows shift a half-card so two cards still cover one (matches the printed layout).
+// Pure + deterministic → no per-row state needs to be stored or synced over MP.
+function pyramidColCenter(row, col) {
+  const w = pyramidRowWidth(row);
+  let col0 = -(w - 1) / 2; // centered
+  if (w === PYRAMID_MAX_WIDTH && row >= PYRAMID_TRIANGLE_ROWS) {
+    const flatIndex = row - PYRAMID_TRIANGLE_ROWS;
+    col0 += (flatIndex % 2 === 0) ? 0.5 : 0; // brick: every other flat row nudged half a card
+  }
+  return col0 + col;
+}
+
 // Build pyramid from act pool; if cardIds provided (MP), use that fixed order
 function buildPyramid(act, cardIds) {
-  const numRows = G.numPlayers + 3; // 2P→5, 3P→6, 4P→7
-  const needed = (numRows * (numRows + 1)) / 2;
+  const numRows = G.numPlayers + 3; // 2P→5, 3P→6, 4P→7, 5P→8 ... 8P→11
+  let needed = 0;
+  for (let r = 0; r < numRows; r++) needed += pyramidRowWidth(r);
 
   let selected;
   if (cardIds) {
@@ -1374,7 +1427,8 @@ function buildPyramid(act, cardIds) {
   let idx = 0;
   for (let row = 0; row < numRows; row++) {
     const rowArr = [];
-    for (let col = 0; col <= row; col++) {
+    const w = pyramidRowWidth(row);
+    for (let col = 0; col < w; col++) {
       if (idx < selected.length) {
         const card = createCardInstance(selected[idx]);
         const faceUp = (row === numRows - 1);
@@ -1387,14 +1441,21 @@ function buildPyramid(act, cardIds) {
   return pyramid;
 }
 
+// A card is covered if any non-removed card in the row below horizontally overlaps
+// it (centers within ~half a card). Geometry-based so it works for the centered
+// triangle AND the brick-offset flat rows; reduces to the old nextRow[col]/[col+1]
+// check for the pure-triangle 2-4P layouts.
 function isCardCovered(pyramid, row, col) {
   if (row >= pyramid.length - 1) return false;
+  const myX = pyramidColCenter(row, col);
   const nextRow = pyramid[row + 1];
-  const leftBelow = nextRow[col];
-  const rightBelow = nextRow[col + 1];
-  const leftPresent = leftBelow && !leftBelow.removed;
-  const rightPresent = rightBelow && !rightBelow.removed;
-  return leftPresent || rightPresent;
+  for (let c = 0; c < nextRow.length; c++) {
+    const s = nextRow[c];
+    if (s && !s.removed && Math.abs(pyramidColCenter(row + 1, c) - myX) < 0.9) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function revealUncovered(pyramid) {
@@ -1776,6 +1837,8 @@ function render() {
   // Players
   renderPlayerZone(G.players[0], 'player');
   const oz = document.getElementById('opponents-zone');
+  // 5-8P: wrap the 4-7 opponents into a grid instead of one crushed flex row.
+  oz.classList.toggle('opp-grid', G.numPlayers >= 5);
   for (let i = 1; i < G.numPlayers; i++) {
     ensureOpponentZone(i, oz);
     renderPlayerZone(G.players[i], 'opp-' + i);
@@ -1963,6 +2026,15 @@ function renderPyramid() {
   for (let row = 0; row < G.pyramid.length; row++) {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'pyramid-row';
+    // Lower rows paint in front of upper rows. Set inline so it generalizes past the
+    // CSS nth-child(1..7) cap to the 8-11 rows of 5-8P games (identical to the old
+    // values for 2-4P). Flat brick rows (5-8P) get a half-card horizontal nudge so
+    // the solitaire "2 cover 1" overlap reads correctly — see pyramidColCenter().
+    rowDiv.style.zIndex = String(row + 1);
+    const rowW = G.pyramid[row].length;
+    if (rowW === PYRAMID_MAX_WIDTH && row >= PYRAMID_TRIANGLE_ROWS && ((row - PYRAMID_TRIANGLE_ROWS) % 2 === 0)) {
+      rowDiv.classList.add('brick-offset');
+    }
     for (let col = 0; col < G.pyramid[row].length; col++) {
       const slot = G.pyramid[row][col];
       if (!slot || !slot.card) continue; // defensive: skip corrupted slots
@@ -2004,6 +2076,42 @@ function renderPyramid() {
     }
     pyramidEl.appendChild(rowDiv);
   }
+  fitPyramid();
+}
+
+// 5-8P pyramids are up to 11 rows and (via the brick offset) 7.5 cards wide, which
+// can overflow the fixed-size #pyramid-zone (overflow:hidden → clipped cards). Measure
+// the rendered cards and apply a single transform that recenters the pyramid in its
+// zone and scales it down to fit both width and height. No-op for 2-4P (those fit the
+// zone natively, so we leave their layout untouched).
+function fitPyramid() {
+  const pyr = document.getElementById('pyramid');
+  const zone = document.getElementById('pyramid-zone');
+  if (!pyr || !zone) return;
+  pyr.style.transform = 'none';
+  pyr.style.transformOrigin = '';
+  if (!G || G.numPlayers < 5) return; // 2-4P: native layout, no fitting needed
+  const els = [...pyr.querySelectorAll('.card, .card-slot')];
+  if (!els.length) return;
+  let minL = 1e9, maxR = -1e9, minT = 1e9, maxB = -1e9;
+  for (const e of els) {
+    const r = e.getBoundingClientRect();
+    if (!r.width) continue;
+    minL = Math.min(minL, r.left); maxR = Math.max(maxR, r.right);
+    minT = Math.min(minT, r.top);  maxB = Math.max(maxB, r.bottom);
+  }
+  const zr = zone.getBoundingClientRect();
+  const pad = 14;
+  const natW = maxR - minL, natH = maxB - minT;
+  const scale = Math.min(1, (zr.width - pad * 2) / natW, (zr.height - pad * 2) / natH);
+  const contentCenter = (minL + maxR) / 2;
+  const pyrBox = pyr.getBoundingClientRect();
+  // Pivot scaling about the content's center-x and top edge, then slide that center to
+  // the zone's center-x. translateX is applied in parent space (origin is the scale
+  // pivot, so the center maps to itself under scale → dx lands it on the zone center).
+  pyr.style.transformOrigin = `${contentCenter - pyrBox.left}px ${minT - pyrBox.top}px`;
+  const dx = (zr.left + zr.width / 2) - contentCenter;
+  pyr.style.transform = `translateX(${dx}px) scale(${scale})`;
 }
 
 function renderLog() {
@@ -3800,7 +3908,14 @@ async function handleCopyNextActivation(player, copyCard) {
     case 'burn_buy_first': {
       setMessage('Use Copy Next card for Buy Priority?');
       setActions([
-        { text: 'Use for Priority', onClick: () => {
+        { text: 'Use for Priority', onClick: async () => {
+          const won = await claimBuyFirstPriority();
+          if (!won) {
+            addLog('First-buy priority was already taken this round — card kept.', 'log-burn');
+            setMessage('Another player already claimed first buy this round.');
+            startPlayerDraw();
+            return;
+          }
           const idx = player.hand.indexOf(copyCard);
           if (idx >= 0) player.hand.splice(idx, 1);
           player.copyNextDonor = null; player.copyNextCard = null;
@@ -3992,10 +4107,27 @@ async function activateCardInBuyPhase(player, card) {
   humanBuyTurn(player);
 }
 
+// Returns true if this player may take first-buy priority this round. In MP 5-8P the
+// claim is atomic — only ONE player per round wins it (two card_14 copies exist under
+// the doubled deck). In ≤4P / solo there's a single card_14, so it's always granted.
+async function claimBuyFirstPriority() {
+  if (MP.active && G.numPlayers >= 5) return await MP.claimBuyFirst(G.act, G.round);
+  return true;
+}
+
 async function handleBurnBuyFirst(player, card) {
   setMessage('Use this Explosive card to go 1st in the Buy Phase?');
   setActions([
-    { text: 'Use for Priority', onClick: () => {
+    { text: 'Use for Priority', onClick: async () => {
+      const won = await claimBuyFirstPriority();
+      if (!won) {
+        // Another player already claimed first buy this round — block (card stays in
+        // hand, discards normally at round end) rather than wasting it.
+        addLog('First-buy priority was already taken this round — card kept.', 'log-burn');
+        setMessage('Another player already claimed first buy this round.');
+        startPlayerDraw();
+        return;
+      }
       player.hasBuyBurnFirst = true;
       const idx = player.hand.indexOf(card);
       if (idx >= 0) player.hand.splice(idx, 1);
@@ -5354,7 +5486,7 @@ function initHoverDelegation() {
   let fanResizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(fanResizeTimer);
-    fanResizeTimer = setTimeout(relayoutOpponentFans, 120);
+    fanResizeTimer = setTimeout(() => { relayoutOpponentFans(); fitPyramid(); }, 120);
   });
 }
 
