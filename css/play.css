@@ -761,6 +761,20 @@ body.phase-draw #player-deck-preview {
   #opponents-zone.opp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* 5-8P: opponent zones are narrow grid cells (~90px). Beside the 60px deck
+   preview, the side-by-side fan collapsed to a ~2px sliver, so layoutOpponentFan
+   fell back to a fixed 240px width and the whole hand overflowed the cell and was
+   clipped away by overflow:hidden. Stack the deck preview ABOVE the fan so the fan
+   claims the full cell width. The fan caps at 3 rows (~231px), so the tallest
+   stacked content (discard line + deck preview + fan) needs a bigger collapse
+   ceiling than the 2-4P default of 300px. */
+.opp-grid .opp-zone .hand-row { flex-direction: column; }
+.opp-grid .opp-zone .hand-row .hand { width: 100%; flex: 0 0 auto; }
+/* :not(.collapsed) so this taller ceiling never out-specifies the
+   `.collapsible.collapsed { max-height: 0 }` collapse rule (it would otherwise win
+   on specificity and the 5-8P opponent hands could no longer be collapsed). */
+.opp-grid .opp-zone .collapsible:not(.collapsed) { max-height: 410px; }
+
 .opp-zone {
   flex: 1;
   min-width: 0;

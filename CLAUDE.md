@@ -144,7 +144,12 @@ is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
 `MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
 (`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
 renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so 11 rows never clip
-(numPlayers>=5 only). `#opponents-zone.opp-grid` wraps 5-8 opponents. gamesetup: count buttons grouped
+(numPlayers>=5 only). `#opponents-zone.opp-grid` wraps 5-8 opponents into a ≤4-col grid (2-col on
+mobile). In those narrow cells the opp `.hand-row` STACKS (`flex-direction:column`, deck-preview on
+top, fan full-width below) so the drawn-card fan gets the whole ~90px cell instead of a ~2px sliver
+beside the 60px deck-preview — without the stack the fan fell back to a fixed 240px width and
+`overflow:hidden` clipped the entire hand away (the "8-player hands cut off" bug, June 2026; fix in
+`layoutOpponentFan` width fallback + `.opp-grid` CSS). gamesetup: count buttons grouped
 2/3/4 + 5/6/7/8 via `.count-break`, slots 5-8 built by `renderDynamicSlots(n)`. `gameHistory.numPlayers`
 rule cap is 8 (deployed). Trajectory capture SKIPPED for 5-8P (`trajActive()` requires numPlayers<=4).
 **spectate.html** also mirrors the brick offset in its own `renderPyramid` (flat row of 7 where
@@ -175,7 +180,7 @@ updateTurnOrderBar()        ~1339
 updateZoneStates()          ~1374 — greys out zones, manages pointer-events
 render()                    ~1403 — full DOM refresh; does NOT clear opp zones
 renderPlayerZone(player)    ~1482 — opponents fan their hand via layoutOpponentFan (local player hand untouched)
-layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed). Card size must match `.opp-zone .hand .card` in play.css (52×73).
+layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed); on a 0 read (pre-layout) borrows parent width and clamps W to ≥ cardW — NEVER a fixed 240px fallback (that overflowed the narrow 5-8P grid cells and overflow:hidden clipped the whole hand away). Card size must match `.opp-zone .hand .card` in play.css (52×73). 5-8P note: `.opp-grid .opp-zone .hand-row` stacks (deck-preview ON TOP of the fan) so the fan claims the full ~90px cell width instead of a ~2px sliver beside the 60px deck-preview; `.collapsible:not(.collapsed)` max-height bumped to 410px for the taller stacked layout (the `:not` keeps the `.collapsed{max-height:0}` collapse working).
 relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
 renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child(1..7)) + tags `.brick-offset` flat rows; calls fitPyramid() at the end

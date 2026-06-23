@@ -5514,7 +5514,16 @@ function layoutOpponentFan(handEl) {
   // Card size here must match `.opp-zone .hand .card` in play.css.
   const cardW = 52, cardH = 73, gap = 6, rowGap = 6;
   let W = handEl.clientWidth;
-  if (!W || W < cardW) W = 240; // fallback before first layout settles
+  if (!W) {
+    // Not laid out yet (clientWidth reads 0 before first layout settles) — borrow
+    // the container's width; relayoutOpponentFans re-runs once layout settles.
+    // NOT a fixed 240px: in the 5-8P grid the cell is ~90px, so 240 laid the fan
+    // out wider than the cell and overflow:hidden clipped the whole hand away.
+    W = (handEl.parentElement && handEl.parentElement.clientWidth) || 240;
+  }
+  // Never compute against less than one card — keeps the overlap math valid. A
+  // cell narrower than a single card clips by ~(cardW − cell) at most, by design.
+  W = Math.max(W, cardW);
 
   const perRowNoOverlap = Math.max(1, Math.floor((W + gap) / (cardW + gap)));
   // Prefer adding rows (up to 3) over overlapping — "spread evenly across rows".
