@@ -56,12 +56,24 @@ buy-first claim, UI, gamesetup, rules, traj guard (steps 3-7). Pick up at step 3
   (no horizontal page scroll; opp-grid → 2 cols). Self-corrects on every render (game actions) and on
   native window resize.
 
-### FEATURE COMPLETE
+### FEATURE COMPLETE — shipped to `main`, rules deployed
 All 7 steps done and verified live (6P + 8P AI games launch and render correctly, no errors).
-Remaining is optional polish only: mobile/short-viewport tuning for 11-row pyramids, opp-grid
-row-height evenness, and (if ever) rules.html 5-8P demo graphics. MP (human 5-8P) wasn't end-to-end
-tested with real Firebase/2 browsers — the protocol loops are all N-aware and the buy-first claim is
-in, but a live multi-client 5-8P session is worth one manual pass before heavy promotion.
+Pushed to `main` (commits from `6979f60`). **Firebase rules DEPLOYED** (`firebase deploy --only
+database`) so 5-8P `gameHistory` writes pass the `numPlayers<=8` cap.
+
+Post-ship loose-thread scan (all clear):
+- No stale "2-4 players" copy anywhere on the site (rules.html meta → 2-8; index/about have none).
+- `src/host.js` + `src/lobby.js` MP waiting rooms are fully N-aware (loop `numPlayers`, no ≤4 caps).
+- `gameHistory.totalRounds<=15` cap is safe for 8P: `roundNumber` resets per act (setupAct), and an
+  act takes ~pyramidCards/numPlayers ≈ 7-8 rounds regardless of count (bigger pyramid ÷ more players
+  cancels) — well under 15.
+- Mobile gamesetup count buttons regrouped to 2/3/4 + 5/6/7/8 (`.count-break`) — fixed overflow.
+- Docs synced: CLAUDE.md (function index + new "5-8 Player Support" section + STORE_CARDS=84 fix),
+  memory `project-5-8-player-plan` marked SHIPPED.
+
+Remaining (optional / non-blocking): a live human MP 5-8P session across real browsers/Firebase
+(code is N-aware + buy-first claim wired, but worth one manual pass); minor polish — opponent stat
+panels look cramped at mobile-8P; opp-grid row-height evenness; rules.html 5-8P demo graphics.
 
 ## Summary of the feature
 Add 5-8 player support. Rules are identical to 2-4P; the changes are the store pyramid

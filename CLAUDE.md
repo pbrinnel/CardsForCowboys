@@ -100,9 +100,9 @@ watchForDisband()           ~532  — watches for status='disbanded' (or null fo
 ### Card Database (lines ~752–900)
 ```
 STARTERS array              ~754  — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
-STORE_CARDS array           ~769  — 55 cards, minPlayers field controls 2P/3P/4P inclusion
+STORE_CARDS array           ~769  — 84 cards total (per-act 4P pool = 28 distinct; the "55" is just the 2P total). minPlayers field controls 2P/3P/4P inclusion (no 5+ tier).
 getCardById(id)             ~891
-getActPool(act)             ~897
+getActPool(act)             ~897  — act+minPlayers filter; for numPlayers>=5 returns the act pool DOUBLED (second deck — see 5-8P note below)
 ```
 
 ### Utilities (lines ~901–975)
@@ -126,12 +126,27 @@ initState(numPlayers)       ~1025 — creates G: pyramid, players[], round/act c
 
 ### Pyramid (lines ~1048–1132)
 ```
-buildPyramid(act, cardIds)  ~1051 — builds 5-row pyramid from card ID array
-isCardCovered(pyr, r, c)    ~1084
-revealUncovered(pyramid)    ~1094 — face-up any card no longer covered
-getAvailablePyramidCards()  ~1108
-isPyramidEmpty(pyramid)     ~1121
+pyramidRowWidth(row)        — cards per row: min(row+1, 7). Triangle caps at width 7; 5-8P rows past the triangle are flat 7s.
+pyramidColCenter(row, col)  — pure x-center (card units) of a cell. Triangle centered; 5-8P flat rows use BRICK offset (alternate rows +0.5 card). Used by covering + render.
+buildPyramid(act, cardIds)  — numRows = numPlayers+3 (2P→5 … 8P→11); triangle cap + flat rows of 7 (see 5-8P note).
+isCardCovered(pyr, r, c)    — GEOMETRY/overlap-based (any non-removed cell below within ~½ card). Reduces to old nextRow[col]/[col+1] for the 2-4P triangle.
+revealUncovered(pyramid)    — face-up any card no longer covered
+getAvailablePyramidCards()
+isPyramidEmpty(pyramid)
 ```
+
+### 5-8 Player Support (SHIPPED June 2026 — full log: `docs/FIVE_TO_EIGHT_PLAYER_PLAN.md`)
+Rules identical to 2-4P; only setup/pyramid scale. Pyramid = 7-row triangle cap + one flat row of 7
+per player past 4 (5P=35 … 8P=56 cards), brick offset. `getActPool` doubles the act pool for
+numPlayers>=5 (second deck; card.id can repeat, uid stays unique). Buy-first (`burn_buy_first`/card_14)
+is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
+`games/{code}/buyFirstClaim/{act}_{round}`, fail-open) via gate `claimBuyFirstPriority()` (only when
+`MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
+(`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
+renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so 11 rows never clip
+(numPlayers>=5 only). `#opponents-zone.opp-grid` wraps 5-8 opponents. gamesetup: count buttons grouped
+2/3/4 + 5/6/7/8 via `.count-break`, slots 5-8 built by `renderDynamicSlots(n)`. `gameHistory.numPlayers`
+rule cap is 8 (deployed). Trajectory capture SKIPPED for 5-8P (`trajActive()` requires numPlayers<=4).
 
 ### Deck Operations (lines ~1130–1190)
 ```
@@ -159,7 +174,8 @@ renderPlayerZone(player)    ~1482 — opponents fan their hand via layoutOpponen
 layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed). Card size must match `.opp-zone .hand .card` in play.css (52×73).
 relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
-renderPyramid()             ~1585
+renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child(1..7)) + tags `.brick-offset` flat rows; calls fitPyramid() at the end
+fitPyramid()                       — 5-8P only: recenters + scales the pyramid to fit #pyramid-zone (width+height) so 11 rows never clip. No-op for 2-4P. Also runs on window resize.
 renderLog()                 ~1638
 setMessage(text)            ~1649
 setActions(buttons)         ~1653
