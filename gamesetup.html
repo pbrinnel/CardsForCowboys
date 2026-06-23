@@ -64,6 +64,9 @@
       justify-content: center;
       margin-bottom: 2rem;
     }
+    /* Forced wrap point after "4": the setup form is a narrow fixed-width card, so the
+       7 buttons always wrap — group them 2/3/4 (base game) then 5/6/7/8 (second deck). */
+    .count-break { flex-basis: 100%; height: 0; }
     .count-wrap {
       display: flex;
       flex-direction: column;
@@ -342,6 +345,7 @@
       <div class="count-wrap">
         <button class="count-btn" id="count-4" onclick="selectCount(4)">4</button>
       </div>
+      <div class="count-break"></div>
       <div class="count-wrap">
         <button class="count-btn" id="count-5" onclick="selectCount(5)">5</button>
       </div>
