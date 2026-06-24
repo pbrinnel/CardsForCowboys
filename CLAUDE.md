@@ -55,6 +55,7 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | File | Purpose |
 |------|---------|
 | `sim/TUNING.md` | **Read first.** How to validate/search/apply AI changes (the workflow). |
+| `sim/AI_SEARCH_BAKEOFF_PLAN.md` | **Next-phase plan (not built).** Lookahead/Monte-Carlo search AI as a drop-in competitor vs the param pros — with a pre-registered "is it worth the complexity?" bar. Handoff spec for a fresh session. |
 | `sim/personalities.js` | **The 6 bots (data) — single source of truth, synced to play.js.** Consumed by every sim tool. |
 | `sim/personality-engine.js` | Shared AI decision layer + deterministic one-game `runGame` (mirrors play.js's live AI logic). Used by evolve/simulate/experiments. 2–4P only. |
 | `sim/evolve.js` | Genetic algorithm — SEARCHES param space for better genomes. Seeds gen-0 from `personalities.js`. `--coevolve` mode scores vs fixed Hard anchors + a Hall of Fame (strong-opponent fitness) instead of the whole field. |
