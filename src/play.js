@@ -4505,9 +4505,7 @@ function mpOpponentBuyTurn(opp) {
     // A remote human may have used Card 4 this turn — apply the swap before their buy/burn
     // so every client mutates the shared state in the same order.
     if (data.swap) applySwapLocal(opp, data.swap);
-    if (data.action === 'buy') {
-      executeBuyLocal(opp, data.row, data.col);
-    } else if (data.action === 'skip') {
+    if (data.action === 'skip') {
       // Forced skip (host recovery) — advance past this player's turn unconditionally
       // (don't honor extra-buy, which would re-enter the wait).
       addLog(`${opp.name}'s turn was skipped.`, 'log-score');
@@ -4515,7 +4513,21 @@ function mpOpponentBuyTurn(opp) {
       if (isPyramidEmpty(G.pyramid)) endBuyPhase();
       else processBuyTurn();
     } else {
-      executeBurnLocal(opp, data.row, data.col);
+      // Apply the opponent's buy/burn. If the target cell is already gone on THIS
+      // client (pyramid divergence or a stale re-fire), executeBuy/BurnLocal no-op
+      // and return false WITHOUT advancing the turn — so we must advance here, or the
+      // buy-turn chain dies and the round softlocks until manual Force Continue
+      // (bug #16: busted-host buy-phase freeze, game M9RBXA 6/20). Advancing keeps every
+      // client moving; the host's authoritative spectatorState reconciles pyramid state.
+      const applied = data.action === 'buy'
+        ? executeBuyLocal(opp, data.row, data.col)
+        : executeBurnLocal(opp, data.row, data.col);
+      if (!applied) {
+        mpLog('mpOpponentBuyTurn: target cell already gone — advancing turn', { opp: opp.name, data });
+        G.currentBuyerIdx++;
+        if (isPyramidEmpty(G.pyramid)) endBuyPhase();
+        else processBuyTurn();
+      }
     }
   });
 }
@@ -4597,9 +4609,13 @@ function executeBuy(player, row, col) {
   executeBuyLocal(player, row, col);
 }
 
+// Returns true if the buy was applied, false if the target cell was already gone
+// (a no-op). Callers that drive the MP turn chain (mpOpponentBuyTurn) MUST advance
+// the turn themselves on a false result — see the note there. Local human / AI
+// callers ignore the return value (unchanged behavior).
 function executeBuyLocal(player, row, col) {
   const slot = G.pyramid[row][col];
-  if (!slot || slot.removed) return;
+  if (!slot || slot.removed) return false;
   clearActions();
   const card = slot.card;
 
@@ -4612,7 +4628,8 @@ function executeBuyLocal(player, row, col) {
   render();
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
 
-  if (advanceOrExtraBuy(player)) return;
+  advanceOrExtraBuy(player);
+  return true;
 }
 
 // After a buy/burn action: grant extra buy if eligible, otherwise advance to next buyer.
@@ -4658,9 +4675,11 @@ function executeBurn(player, row, col) {
   executeBurnLocal(player, row, col);
 }
 
+// Returns true if the burn was applied, false if the target cell was already gone
+// (a no-op) — see executeBuyLocal's note. mpOpponentBuyTurn advances on a false result.
 function executeBurnLocal(player, row, col) {
   const slot = G.pyramid[row][col];
-  if (!slot || slot.removed) return;
+  if (!slot || slot.removed) return false;
   clearActions();
   slot.removed = true;
   G.selectedPyramidCard = null;
@@ -4671,6 +4690,7 @@ function executeBurnLocal(player, row, col) {
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push();
 
   advanceOrExtraBuy(player);
+  return true;
 }
 
 // --- SWAP CARD (card_4, special 'swap_revealed') ---

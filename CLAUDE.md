@@ -291,13 +291,14 @@ showChooseFirstUI()         ~3348 — host picks who goes first (after tied draw
 startBuyPhase(startIdx)     ~3364
 applyBuyOrder(order)        ~3390
 processBuyTurn()            ~3399 — dispatcher: human / AI / mpOpponent
-mpOpponentBuyTurn(opp)      ~3433 — waits on Firebase buyAction/{slotIdx}
+mpOpponentBuyTurn(opp)      ~3433 — waits on Firebase buyAction/{slotIdx}; if executeBuy/BurnLocal returns false (cell already gone on this client) it advances the turn itself so the chain never stalls (bug #16)
 humanBuyTurn(player)        ~3451
 onPyramidCardClick(r, c)    ~3469
 executeBuy(player, r, c)    ~3506
-executeBuyLocal(player, r, c) ~3512
+executeBuyLocal(player, r, c) ~3512 — returns true if applied, false if the target cell was already removed/missing (no-op). MP callers must advance on false; human/AI ignore it. See bug #16.
 advanceOrExtraBuy(player)   ~3532
 executeBurn(player, r, c)   ~3562
+executeBurnLocal(player, r, c)    — returns true if applied, false on a no-op (cell already gone), same contract as executeBuyLocal. See bug #16.
 ```
 
 ### AI Buy Phase (lines ~3586–3730)
@@ -699,6 +700,17 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 2. The fallthrough guard is now `if (params.has('rejoin') || MP.recovered)` — `MP.recovered` being true means identity came from URL params or localStorage (definitively a mid-game reload, not a first-time start), so it's treated exactly like an explicit `?rejoin`.
 
 **Do not regress:** Never let the rejoin block fall through to the fresh-start path when `MP.recovered` is true. If `fetchSpectatorState` still returns null after retries AND `MP.recovered`, show "Could not restore game" and go home — do NOT run `setupAct(1)`. Only the marker-only re-entry (early refresh before any spectatorState was pushed) should fall through.
+
+---
+
+### 16. Remote Buy/Burn on an Already-Gone Cell Stalls the Buy Turn (busted-host buy-phase freeze)
+**Commit:** (June 2026). 6/20 bug report, game **M9RBXA**: *"Desync on final turn. Player 1 busted and player 2 was stuck waiting for them to draw."* Host (slot 0) busted in Act 3 R9, then **froze ~6 min inside the buy phase** while the guest legitimately completed R9 and lapped into R10; only the manual host "Force continue" valve broke it. Traced via the `traj/M9RBXA` trajectory: host's last R9 draw at `…981476`, then zero host activity until the R9 canary at `…345523` (force-continue). This is a **residual desync that survives the bug #10 fix** (`8f33e63`, 6/07, which was already deployed) — #10 stopped the *guest* from marking a busted opponent done early, but did not cover the busted player's OWN client stalling in the buy phase.
+
+**Root cause:** `executeBuyLocal` / `executeBurnLocal` guard with `if (!slot || slot.removed) return;` and used to return **without** calling `advanceOrExtraBuy`. `mpOpponentBuyTurn` applied the remote opponent's action through these with no fallback. If the targeted pyramid cell is already `removed` on the **receiving** client (pyramid divergence, or a stale same-round re-fire), the call no-ops, the turn never advances, `G.currentBuyerIdx` is stuck, and the round softlocks. The listener already consumed + cleared the `buyAction`, so nothing re-fires — recovery needs the 30s host-only "Force continue" button (undiscoverable; took the player 6 min). The earlier "shops not synced" complaint (game XZDCUX) is the same pyramid-divergence family feeding this.
+
+**Fix in place:** `executeBuyLocal`/`executeBurnLocal` now **return a boolean** (true = applied, false = cell already gone). `mpOpponentBuyTurn` checks the result and, on `false`, advances the turn itself (`currentBuyerIdx++` → `endBuyPhase`/`processBuyTurn`, mirroring the `skip` branch). Local-human (`executeBuy`/`executeBurn`) and AI callers ignore the return value, so their behavior is unchanged; AI/humans only ever target available cells anyway.
+
+**Do not regress:** Any code path that drives the MP buy-turn chain MUST advance the turn even when the buy/burn no-ops on the receiving client. Never let `mpOpponentBuyTurn` apply a remote action without guaranteeing forward progress — a silent no-op there is a guaranteed round-long softlock. (Open follow-up, not yet done: the manual-only Force Continue is too slow; consider auto-firing it after a longer timeout, or having the host re-assert authoritative pyramid state, so a missed/no-op signal self-heals in seconds.)
 
 ---
 
