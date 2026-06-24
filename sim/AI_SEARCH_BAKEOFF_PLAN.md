@@ -19,8 +19,23 @@ parameter-AI world you're competing against.
   (2P+4P), `draw-cap-experiment.js` outputs **byte-identical** to pre-refactor; sync/evolve/ceiling
   smoke green. New files: `sim/gen-golden.js`, `sim/fixtures/golden-runGame.json`,
   `sim/test-resume-reproduction.js`.
-- **B1 → next:** buy-phase-only flat MC search (`sim/search-ai.js` `searchChooseBuy`), perfect
-  model, `N=64`, `horizon=endOfAct`, value=herd-margin. First signal: beat enforcer head-to-head?
+- **B1 ✅ (first signal — POSITIVE, perfect model):** `sim/search-ai.js` flat-MC `searchChooseBuy`
+  (candidates = affordable buys + top-K denial burns, `branchCap=12`; per candidate N=64 rollouts,
+  each a `cloneState` + fresh seeded LCG + `continueGame` to `horizon=endOfAct`; value = herd-margin
+  with the §7 horizon heuristic; argmax + deterministic scoreCard tiebreak). Draw phase stays
+  heuristic (`drawGenome=enforcer`). Wired in via the §8 seam (`policy.decideBuy` hook — no
+  engine→search import). **Signal (`sim/search-b1-signal.js`, 2P, both seat orders, perfect model,
+  default=enforcer):** beats enforcer **62.9%** (95% CI ±3.3pp, n=800 — excludes 50%); beats the
+  rest of the Hard field 68–73% (drifter 68.0, deputy 69.0, prospector 69.3, rancher 73.3). I.e.
+  buy-phase lookahead adds ~13pp over plain enforcer when the opponent model is exact. **Cost:** ~313
+  rollouts/decision, ~18 ms/game. Determinism verified (same game twice ≡). Genome path still
+  byte-identical (B0 gate + simulate diffs green). New files: `sim/search-ai.js`,
+  `sim/search-b1-signal.js`.
+  **Caveat:** this is the PERFECT-model upper bound (§6) — the search knows the opponent is enforcer.
+  The shippable question is the REALISTIC (default) model, measured at scale in B2–B4.
+- **B2 → next:** add the default (realistic) opponent model + sweeps (`N ∈ {16,64,256}`,
+  `horizon ∈ {endOfRound,endOfAct,endOfGame}`); record win% AND rollouts/decision AND wall-time.
+  The perfect↔default gap is the headline scientific result.
 
 ---
 
@@ -201,9 +216,10 @@ budget at Route C (learned policy) or content/feature work.
 - **B0 — Resumable simulator + clone (enabling refactor).** ✅ **DONE & green.** `cloneState`,
   `continueGame`, `runGame` wraps it. Reproduction gate (`test-resume-reproduction.js`) passes
   bit-for-bit; all consumer tools byte-identical. *No AI yet.* See Progress log above.
-- **B1 — Buy-phase-only search, perfect model.** `sim/search-ai.js` `searchChooseBuy`; draw stays
-  heuristic. `N=64`, `horizon=endOfAct`, value=herd-margin, opponents = true genomes. First signal:
-  does it beat enforcer head-to-head at all?
+- **B1 — Buy-phase-only search, perfect model.** ✅ **DONE — positive signal.** `sim/search-ai.js`
+  `searchChooseBuy`; draw stays heuristic. `N=64`, `horizon=endOfAct`, value=herd-margin, opponents =
+  true genomes. **Beats enforcer 62.9% (CI excludes 50%); beats whole Hard field 68–73%.** See
+  Progress log. Caveat: perfect-model upper bound — realistic model is B2.
 - **B2 — Ablation + sweeps + cost.** Add default-model rollouts. Sweep `N ∈ {16,64,256}`,
   `horizon ∈ {endOfRound, endOfAct, endOfGame}`. Record win% AND rollouts/decision AND wall-time.
 - **B3 — Add draw-phase search** (`searchShouldDraw`). Re-measure; draw decisions are higher-volume
@@ -224,7 +240,8 @@ budget at Route C (learned policy) or content/feature work.
 | `sim/gen-golden.js` | ✅ NEW (B0). Regenerates the frozen golden snapshot (run on the reference engine). |
 | `sim/fixtures/golden-runGame.json` | ✅ NEW (B0). Frozen runGame output (1350 games) — the regression baseline. |
 | `sim/test-resume-reproduction.js` | ✅ NEW (B0). Gate: golden bit-for-bit + resume/clone/mid-buy equivalence. |
-| `sim/search-ai.js` | TODO B1. `searchChooseBuy` / `searchShouldDraw`, rollout driver, value fn, seeded rollout RNG. |
+| `sim/search-ai.js` | ✅ B1 done: flat-MC `searchChooseBuy` + `makeSearchPolicy` (perfect/default oppModel, value fn, seeded rollout RNG). **TODO B3:** add `searchShouldDraw`. |
+| `sim/search-b1-signal.js` | ✅ NEW (B1). First-signal harness: search vs each pro head-to-head (2P), win% + cost. |
 | `sim/search-bakeoff.js` | TODO B4. Head-to-head harness (mirrors `simulate.js`) + cost metrics. |
 | `sim/evolve.js` | TODO B4. Allow a `__search` participant in `--coevolve` (compete in the same GA arena). |
 | `sim/AI_SEARCH_RESULTS.md` | TODO B5. The verdict. |

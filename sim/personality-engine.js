@@ -257,7 +257,10 @@ function createPlayerSeeded(name, rng) {
 function runDrawPhase(players, genomes, pyramid, act, rng) {
   for (let i = 0; i < players.length; i++) {
     const player = players[i];
-    const genome = genomes[i];
+    // B1: a __search seat draws with its drawGenome (draw-phase search is B3). A plain
+    // genome has no __search key, so this resolves to the genome itself → byte-identical.
+    const policy = genomes[i];
+    const genome = (policy && policy.__search) ? policy.drawGenome : policy;
     core.resetPlayerRound(player);
 
     if (player.deck.length === 0 && player.discard.length === 0) {
@@ -453,15 +456,29 @@ function computeBuyOrder(players) {
   return [...priority, ...normalSorted];
 }
 
+// Buy-decision dispatch (§8 seam). A __search policy carries a `decideBuy` hook (defined in
+// search-ai.js — no import here, so no cycle) and needs the full resumable `state` to clone;
+// continueGame passes it via `ctx`. A plain genome (no __search) → existing chooseBuy, so the
+// genome path is byte-identical. ctx is null for the legacy runBuyPhase path.
+function decideBuy(player, policy, pyramid, act, players, ctx) {
+  if (policy && policy.__search && ctx) {
+    return policy.decideBuy(ctx.state, ctx.pIdx, ctx.policies);
+  }
+  return chooseBuy(player, policy, pyramid, act, players);
+}
+
 // One buyer's full turn: primary buy/burn + the granted extra-buy turn (if held). No rng.
-function processBuyer(player, genome, pyramid, act, players) {
-  const decision = chooseBuy(player, genome, pyramid, act, players);
+function processBuyer(player, policy, pyramid, act, players, ctx) {
+  const decision = decideBuy(player, policy, pyramid, act, players, ctx);
   applyBuyDecision(player, decision, pyramid);
 
-  // Extra buy turn
+  // Extra buy turn. A __search seat resolves its bonus buy with its defaultGenome (rollouts
+  // model the bonus buy that way, so real play matches the rollout assumption). Plain genome →
+  // unchanged.
   if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
     player.extraBuyUsed = true;
-    const extraDecision = chooseBuy(player, genome, pyramid, act, players);
+    const extraGenome = (policy && policy.__search) ? policy.defaultGenome : policy;
+    const extraDecision = chooseBuy(player, extraGenome, pyramid, act, players);
     applyBuyDecision(player, extraDecision, pyramid);
   }
 }
@@ -591,7 +608,11 @@ function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
         while (state.buyCursor < state.buyOrder.length) {
           if (core.isPyramidEmpty(state.pyramid)) break;
           const pIdx = state.buyOrder[state.buyCursor];
-          processBuyer(state.players[pIdx], policies[pIdx], state.pyramid, state.act, state.players);
+          const policy = policies[pIdx];
+          // Only a __search seat needs the live state (to clone for rollouts); plain genomes
+          // get ctx=null and take the byte-identical chooseBuy path.
+          const ctx = (policy && policy.__search) ? { state, pIdx, policies } : null;
+          processBuyer(state.players[pIdx], policy, state.pyramid, state.act, state.players, ctx);
           state.buyCursor++;
         }
         state.phase = 'score';
