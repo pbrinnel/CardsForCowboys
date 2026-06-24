@@ -53,7 +53,8 @@ When starting a new task, **check this file before reading raw source code.** Us
 |------|---------|
 | `sim/simulate.js` | AI vs AI simulation runner |
 | `sim/simulate-showdown.js` | Legacy showdown-only simulation |
-| `sim/evolve.js` | Genetic algorithm for AI parameter tuning |
+| `sim/evolve.js` | Genetic algorithm for AI parameter tuning. Exports `runGame`/`SEED_GENOMES` (CLI-guarded by `require.main`) for experiment harnesses. |
+| `sim/draw-cap-experiment.js` | A/B harness: sweeps `maxDraw` per personality (focal vs shipped cast), reports win%+bust% in 2P/4P. `node sim/draw-cap-experiment.js [seeds2P] [games4P]`. |
 | `sim/ai-player.js` | AI player logic for simulation |
 | `sim/game-core.js` | Core game logic extracted for sim use |
 | `sim/tiebreaker.js` | Buy-order tiebreaker (shared by game + sim) |
@@ -265,7 +266,7 @@ sim/ai-player.js and sim/evolve.js).
 ### AI Draw Phase (lines ~2667–2950)
 ```
 aiDrawPhase(playerIdx)      ~2669 — full AI draw loop (all clients run this)
-aiShouldDraw(ai)            ~2882 — decision logic (reads AI_PERSONALITIES cfg)
+aiShouldDraw(ai)            ~2882 — decision logic (reads AI_PERSONALITIES cfg); hard cap `hand.length >= cfg.maxDraw ?? 7` (see maxDraw note)
 calcBustProb(player,n,cfg)  ~2930 — blends exact lethal-card count with flat prior via deckMemory/lethalBias
 getBestAffordableCost(ai)   ~2933
 ```
@@ -423,14 +424,30 @@ Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a 
 | Hard | `wild_bill` | High-variance aggressor; wins big or busts; swingy |
 | Hard | `outlaw` | Most complete threat: aggressive draw + cow buying + denial |
 
-### Personality parameters (14 total)
+### Personality parameters (15 total)
 
-All parameters live in `AI_PERSONALITIES` (~line 2813 in `src/play.js`, mirrored in `sim/simulate.js`).
-**Both files must be kept in sync.**
+All parameters live in `AI_PERSONALITIES` (~line 2813 in `src/play.js`). The personality-genome
+model is mirrored in **`sim/evolve.js`** (`SEED_GENOMES` + its `shouldDraw`/`scoreCard`), NOT
+`sim/simulate.js` (which runs the separate legacy `ai-player.js` `RISK_PROFILES`). Keep `play.js`
+↔ `evolve.js` in sync for any draw/buy-logic change.
 
-Draw-phase: `bustThreshold2`, `bustThreshold1`, `dollarBuffer`, `positionWeight`, `affordMult`, `deckMemory`, `lethalBias`
+Draw-phase: `bustThreshold2`, `bustThreshold1`, `dollarBuffer`, `positionWeight`, `affordMult`, `deckMemory`, `lethalBias`, `maxDraw`
 
 Buy-phase: `cowWeight`, `dollarWeight`, `banditPenalty`, `act1DollarBonus`, `act3CowBonus`, `revealBonus`, `denialBurn`
+
+**`maxDraw`** (June 2026) — hard hand-size cap in `aiShouldDraw` (`hand.length >= (cfg.maxDraw ?? 7)`);
+absent ⇒ 7. It plays **two opposite roles** depending on the personality, so it is NOT a global
+constant:
+- For **disciplined** bots whose bandit thresholds already govern stopping (rancher, deputy — both
+  now **10**), the old hardcoded 7 was dead weight clipping the winning human line (overdraw dollars →
+  more cows + earlier buy priority, since buy order is `roundDollars`-first). Raising to 10 is
+  sim-validated **+2–4pp win (2P) / up to +8pp (4P) at ~flat bust rate**.
+- For **aggressive** bots (wild_bill `dollarBuffer:999`, outlaw — both stay **7**) the cap is a
+  load-bearing bust governor; lifting it makes them bust >50% of rounds and collapse. Do NOT raise
+  theirs. sheriff/banker left at 7 by design (Easy / designed-to-lose tiers — not buffed on purpose).
+- Tooling: **`sim/draw-cap-experiment.js`** (focal-vs-cast sweep over `maxDraw`, reports win%+bust%
+  per personality; uses `evolve.js`'s `runGame`, now exported behind `require.main` guard with per-
+  player `busts`/`drawRounds` diagnostics). Re-run it before retuning any draw cap.
 
 ### Evolutionary optimization
 

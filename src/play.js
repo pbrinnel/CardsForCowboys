@@ -3656,6 +3656,7 @@ const AI_PERSONALITIES = {
     bustThreshold2: 0.22,  // was 0.15 — bolder with 2 bandits
     bustThreshold1: 0.42,  // was 0.30 — less timid at 1 bandit
     dollarBuffer:   3,     // was 2 — draws more to reach better cards
+    maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      9,     // was 6 — closes the gap to evolved optimum
     dollarWeight:   0.5,
     banditPenalty:  1.5,   // was 2 — willing to buy risky high-cow cards
@@ -3704,6 +3705,7 @@ const AI_PERSONALITIES = {
     bustThreshold2: 0.10,  // conservative draw — holds back
     bustThreshold1: 0.28,  // was 0.20 — slight loosening
     dollarBuffer:   1,     // was 0 — doesn't just stop at bare minimum
+    maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      6,     // was 2 — critical fix; denial work was wasted on bad buys
     dollarWeight:   1.5,   // was 2 — rebalanced
     banditPenalty:  2.5,   // was 3 — mild loosening
@@ -3785,7 +3787,13 @@ const AI_PERSONALITIES = {
 function aiShouldDraw(ai) {
   const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
 
-  if (ai.hand.length >= 7) return false;
+  // Hard hand-size cap. Per-personality (cfg.maxDraw); absent = 7. For disciplined
+  // personalities whose bandit thresholds already govern stopping, a higher cap lets
+  // them overdraw dollars (more cows + earlier buy priority) at no extra bust cost —
+  // sim-validated +2-4pp (2P) / up to +8pp (4P) for rancher & deputy. For aggressive
+  // bots (wild_bill dollarBuffer 999, outlaw) the cap is a load-bearing bust governor —
+  // do NOT raise theirs. See sim/draw-cap-experiment.js.
+  if (ai.hand.length >= (cfg.maxDraw ?? 7)) return false;
   if (ai.hand.length < 2) return true;
 
   // Position modifier: scale bust thresholds up when trailing (draw more aggressively),

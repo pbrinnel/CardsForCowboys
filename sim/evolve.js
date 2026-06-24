@@ -123,7 +123,8 @@ function getBestCost(player, genome, pyramid, act, allPlayers) {
 }
 
 function shouldDraw(player, genome, pyramid, act, allPlayers) {
-  if (player.hand.length >= 7) return false;
+  // Hard hand-size cap. Tunable per-genome (draw-cap experiment); absent = legacy 7.
+  if (player.hand.length >= (genome.maxDraw ?? 7)) return false;
   if (player.hand.length < 2)  return true;
 
   let posMult = 1.0;
@@ -495,6 +496,10 @@ function runGame(genomes, numPlayers, seed) {
 
   const players = genomes.map((g, i) => createPlayerSeeded(`P${i}`, rng));
 
+  // Per-player diagnostics for the draw-cap experiment.
+  const busts     = new Array(players.length).fill(0); // rounds ending in a bust
+  const drawRounds = new Array(players.length).fill(0); // rounds the player actually drew
+
   for (let act = 1; act <= 3; act++) {
     // Between acts: merge and reshuffle all cards (seeded)
     for (const player of players) {
@@ -508,6 +513,14 @@ function runGame(genomes, numPlayers, seed) {
 
     for (let round = 1; round <= 5; round++) {
       runDrawPhase(players, genomes, pyramid, act, rng);
+
+      // Diagnostics: tally busts before the buy phase / round reset. A player with cards
+      // in hand drew this round (hand is pushed to discard during scoring, below).
+      for (let i = 0; i < players.length; i++) {
+        if (players[i].hand.length > 0) drawRounds[i]++;
+        if (players[i].busted) busts[i]++;
+      }
+
       runBuyPhase(players, genomes, pyramid, act);
 
       // Score round
@@ -535,7 +548,7 @@ function runGame(genomes, numPlayers, seed) {
   // Winner = highest herd; ties go to lower player index
   const winner = herds.indexOf(maxHerd);
 
-  return { herds, winner };
+  return { herds, winner, busts, drawRounds };
 }
 
 // ── FITNESS EVALUATION ───────────────────────────────────────────────────────
@@ -931,4 +944,10 @@ function main() {
   console.log(`\nResults written to ${outFile}`);
 }
 
-main();
+// Export the game engine + personality genomes for experiment harnesses (e.g.
+// draw-cap-experiment.js). Only run the GA when invoked directly as a CLI.
+module.exports = { runGame, SEED_GENOMES, PARAM_KEYS, PARAM_RANGES };
+
+if (require.main === module) {
+  main();
+}
