@@ -31,19 +31,20 @@
 
     @media (min-width: 1200px) {
 
-      /* Switch to CSS Grid — tiles are locked to explicit columns so the action
-         zone can never orphan itself on its own row at intermediate widths.
-         Column order: action (fixed 240px) | pyramid (varies by player count) | opponents (fills rest)
-         Pyramid column: 560px (2P, 5-card base), 660px (3P, 6-card), 760px (4P, 7-card).
-         Minimum widths: 240 + 560 + 160 + 2 gaps ≈ 968px — safely below the 1200px breakpoint. */
+      /* Switch to CSS Grid. Opponents are a fixed-width SCROLLING RAIL on the
+         right that spans the content rows; your stuff (action | pyramid | player)
+         fills the left/main columns. Because the rail is height-bounded + sticky,
+         opponents can never push your draw area below the fold (the 5-8P "tiles
+         keep expanding, you keep scrolling" problem). Column layout:
+            action (240px) | pyramid (fills) | opp rail (300px) */
       #game {
         display: grid;
-        grid-template-columns: 240px max-content minmax(160px, 1fr);
+        grid-template-columns: 240px minmax(0, 1fr) 300px;
         grid-template-areas:
           "turnbar  turnbar  turnbar"
           "header   header   header"
           "action   pyramid  opp"
-          "player   player   player"
+          "player   player   opp"
           "log      log      log";
         width: 100%;
         max-width: 1800px;
@@ -58,11 +59,35 @@
       /* Grid area assignments */
       #turn-order-bar { grid-area: turnbar; margin: 0; }
       #game-header    { grid-area: header;  margin: 0; padding-left: 0.75rem; padding-right: 0.75rem; }
-      #opponents-zone { grid-area: opp;     margin-top: 0.5rem; margin-bottom: 0; }
       #pyramid-zone   { grid-area: pyramid; margin-top: 0.5rem; margin-bottom: 0; }
       #action-zone    { grid-area: action;  margin-top: 0.5rem; margin-bottom: 0; align-self: end; }
       #player-zone    { grid-area: player;  margin-top: 0.5rem; margin-bottom: 0; }
       #log-zone       { grid-area: log;     margin-top: 0.5rem; margin-bottom: 0; }
+
+      /* ── Opponent rail ──────────────────────────────────────────────────
+         Single vertical column, sticky + internally scrolling so it stays in
+         view and never grows the page. Overrides the .opp-grid (4-col) display
+         and the narrow-cell hand stacking — rail tiles are full width (~290px),
+         so the deck-preview + fan sit side-by-side again and read clearly. */
+      #opponents-zone,
+      #opponents-zone.opp-grid {
+        grid-area: opp;
+        margin-top: 0.5rem; margin-bottom: 0;
+        align-self: start;
+        position: sticky; top: 0.5rem;
+        max-height: calc(100vh - 1rem);
+        overflow-y: auto;
+        display: flex; flex-direction: column; gap: 0.5rem;
+      }
+      /* Tiles take their natural content height and the RAIL scrolls. Without this
+         the base `.opp-zone { flex:1 }` (meant for the old side-by-side flex ROW)
+         makes every tile share the rail height equally in this flex COLUMN, so
+         tall hands get squashed + clipped by .opp-zone overflow:hidden instead of
+         the rail scrolling. */
+      #opponents-zone .opp-zone { flex: 0 0 auto; }
+      #opponents-zone .opp-zone .hand-row { flex-direction: row; }
+      #opponents-zone .opp-zone .hand-row .hand { width: auto; flex: 1 1 0; }
+      #opponents-zone .opp-zone .collapsible:not(.collapsed) { max-height: 420px; }
 
       /* ② Action zone: stack buttons centered.
             play.js sets margin-left:auto on Stop Drawing to push it right in

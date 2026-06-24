@@ -1561,13 +1561,17 @@ body.phase-draw #player-deck-preview {
   font-weight: bold;
 }
 
-/* ─── Zone ordering (flex order within #game column) ─── */
+/* ─── Zone ordering (flex order within #game column, narrow <1200px) ───
+   Opponents sit AFTER the player area (they "drop below" your stuff on narrow
+   screens) so a tall stack of opponent tiles can't push your hand/draw controls
+   down the page. On desktop the grid template overrides this — opponents become
+   the right-hand rail. */
 #game-header     { order: 1; }
-#opponents-zone  { order: 2; }
 #pyramid-zone    { order: 3; }
 #action-zone     { order: 4; }
 #player-zone     { order: 5; }
-#log-zone        { order: 6; }
+#opponents-zone  { order: 6; }
+#log-zone        { order: 7; }
 
 /* ─── Pyramid: always-on vertical overlap ─── */
 #pyramid {

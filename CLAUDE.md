@@ -144,12 +144,22 @@ is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
 `MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
 (`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
 renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so 11 rows never clip
-(numPlayers>=5 only). `#opponents-zone.opp-grid` wraps 5-8 opponents into a ≤4-col grid (2-col on
-mobile). In those narrow cells the opp `.hand-row` STACKS (`flex-direction:column`, deck-preview on
-top, fan full-width below) so the drawn-card fan gets the whole ~90px cell instead of a ~2px sliver
-beside the 60px deck-preview — without the stack the fan fell back to a fixed 240px width and
-`overflow:hidden` clipped the entire hand away (the "8-player hands cut off" bug, June 2026; fix in
-`layoutOpponentFan` width fallback + `.opp-grid` CSS). gamesetup: count buttons grouped
+(numPlayers>=5 only). **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
+desktop (`@media min-width:1200px`, grid in playgame.html) opponents are a fixed-width **scrolling
+rail** on the right — `#opponents-zone` spans grid rows "action/pyramid" + "player" (`grid-area:opp`),
+`position:sticky; max-height:calc(100vh-1rem); overflow-y:auto; flex-direction:column`. This decouples
+your draw/hand area from opponent count: a tall/growing stack of opponent tiles scrolls inside the
+rail instead of pushing your `#player-zone` below the fold (the "tiles keep expanding, you keep
+scrolling" problem; pre-rail the opp block hit ~931px and shoved the player zone to y≈1028 on a 900px
+screen). The desktop block also overrides `.opp-grid` back to a flex column and the opp `.hand-row`
+back to side-by-side (rail tiles are ~290px, so deck-preview + fan read fine — no stacking needed
+there). On **narrow (<1200px)** the grid collapses to the single-column flex and opponents "drop
+below" your area via `order` (`#opponents-zone {order:6}`, after `#player-zone {order:5}`), so your
+draw controls + hand come first and opponents stack at the bottom. The narrow `.opp-grid` 2-col grid
+(5-8P) + `.hand-row` STACK (`flex-direction:column`, deck-preview on top, fan full-width) is still
+used <1200px — without the stack the fan fell back to a fixed 240px width and `overflow:hidden`
+clipped the entire hand away (the "8-player hands cut off" bug, June 2026; fix in `layoutOpponentFan`
+width fallback + `.opp-grid` CSS). gamesetup: count buttons grouped
 2/3/4 + 5/6/7/8 via `.count-break`, slots 5-8 built by `renderDynamicSlots(n)`. `gameHistory.numPlayers`
 rule cap is 8 (deployed). Trajectory capture SKIPPED for 5-8P (`trajActive()` requires numPlayers<=4).
 **spectate.html** also mirrors the brick offset in its own `renderPyramid` (flat row of 7 where
