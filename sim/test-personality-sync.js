@@ -10,7 +10,8 @@ const path = require('path');
 const { byName } = require('./personalities');
 
 const PLAY = path.join(__dirname, '..', 'src', 'play.js');
-const CANON = ['sheriff', 'wild_bill', 'rancher', 'banker', 'outlaw', 'deputy'];
+const CANON = ['sheriff', 'wild_bill', 'rancher', 'banker', 'outlaw', 'deputy',
+  'greenhorn', 'prospector', 'drifter', 'enforcer'];
 // Numeric params that must match exactly (shared names between play.js + personalities.js).
 const NUMERIC = ['bustThreshold2', 'bustThreshold1', 'dollarBuffer', 'cowWeight', 'dollarWeight',
   'banditPenalty', 'positionWeight', 'deckMemory', 'lethalBias', 'affordMult',

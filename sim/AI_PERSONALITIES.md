@@ -20,6 +20,24 @@ sync test bridges them.)
 
 ---
 
+## Measured difficulty tiers (June 2026)
+
+Tiers are assigned by **measured win-rate** (`node sim/simulate.js`), not archetype. The
+`gamesetup.html` picker uses exactly these bands. Re-run the sim and re-tier if params change.
+
+| Tier | Personalities | 2P / 4P win% vs field |
+|---|---|---|
+| **Hard** | deputy, enforcer, drifter, rancher, prospector | 63–70% / 32–42% |
+| **Medium** | outlaw, wild_bill (+ banker on the boundary) | 41–45% / 15–17% |
+| **Easy** | banker, sheriff, greenhorn | 6–38% / 0–10% |
+
+The dividing line is **bust discipline**, not aggression: the Medium "Hard-sounding" aggressors
+(outlaw, wild_bill) bust ~44% of rounds and net to mid-tier; the Hard bots win by *not* busting.
+(The per-personality "Difficulty" notes below describe each bot's *archetype* and may read a tier
+off from this table — this table is authoritative.)
+
+---
+
 ## Parameter Reference
 
 ### Draw-phase parameters
@@ -142,7 +160,7 @@ totals. Beats Sheriff occasionally; loses to everyone else consistently.
 
 ---
 
-### Deputy — *Medium*
+### Deputy — *Hard (measured strongest)*
 
 > Tactical denial burner. Controls the pyramid shape through denial burns and reveal
 > planning. Conservative draw but not passive — his buy decisions are informed and
@@ -175,7 +193,7 @@ head-to-head due to lower cowWeight and conservative draw.
 
 ---
 
-### Rancher — *Medium–Hard*
+### Rancher — *Hard*
 
 > Cow-optimizing grinder. Closest to the evolutionary optimum. Methodical but bolder
 > than Sheriff — draws until he can reach the best cow card, with a buffer to spare.
@@ -204,7 +222,7 @@ Outlaw (position pressure + denial).
 
 ---
 
-### Wild Bill — *Hard (high variance)*
+### Wild Bill — *Medium (high variance)*
 
 > Pure aggressor. No dollar target — draws until bust or dry. When he survives, he
 > now buys the best cow cards in the pyramid. High bust rate means he loses roughly
@@ -233,7 +251,7 @@ consistent over multiple rounds.
 
 ---
 
-### Outlaw — *Hard (new top-end threat)*
+### Outlaw — *Medium (swingy; busts too often to reach top-tier)*
 
 > Ruthless position-aware aggressor with denial. Draws as boldly as Wild Bill when
 > trailing, locks in when ahead. Burns the leader's best card when he can't buy.

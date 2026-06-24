@@ -423,16 +423,26 @@ Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a 
 
 **Full reference:** [`sim/AI_PERSONALITIES.md`](sim/AI_PERSONALITIES.md)
 
-### Quick difficulty tiers
+### Difficulty tiers (MEASURED — `node sim/simulate.js`, June 2026)
 
-| Tier | Personality | Character |
-|---|---|---|
-| Easy | `banker` | Dollar-first; intentionally suboptimal — designed-to-lose archetype |
-| Easy | `sheriff` | Conservative draw, methodical buys, high pyramid awareness |
-| Medium | `deputy` | Denial burner; controls pyramid shape; conservative draw |
-| Medium–Hard | `rancher` | Cow-optimizing grinder; closest to evolved optimum |
-| Hard | `wild_bill` | High-variance aggressor; wins big or busts; swingy |
-| Hard | `outlaw` | Most complete threat: aggressive draw + cow buying + denial |
+10 personalities, tiered by measured win-rate vs the field (2P overall % / 4P focal %). The
+`gamesetup.html` difficulty picker (`DIFFICULTY_TIERS`) maps Easy/Medium/Hard onto these bands;
+`banker` straddles the easy/medium boundary. **Re-rank with `node sim/simulate.js` before changing
+tiers — don't tier by vibe (the old labels were inverted: deputy/rancher were mislabeled Medium and
+outlaw/wild_bill mislabeled Hard).**
+
+| Tier | Personality | 2P / 4P win% | Character |
+|---|---|---|---|
+| **Hard** | `deputy` | 70 / 42 | Strongest overall — disciplined draw (low bust) + denial + competent cow buying |
+| **Hard** | `enforcer` | 68 / 36 | Near-optimal cow buyer, calibrated aggression, precise fear |
+| **Hard** | `drifter` | 67 / 36 | Solid cow grinder, no tricks |
+| **Hard** | `rancher` | 65 / 38 | Cow-optimizing grinder; the benchmark |
+| **Hard** | `prospector` | 63 / 32 | Weakest of the strong cluster (hard's floor) |
+| **Medium** | `outlaw` | 45 / 17 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
+| **Medium** | `wild_bill` | 41 / 15 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
+| **Easy** | `banker` | 38 / 10 | Dollar-first, intentionally suboptimal (designed-to-lose). Boundary easy/medium |
+| **Easy** | `sheriff` | 38 / 10 | Conservative, methodical, low cowWeight |
+| **Easy** | `greenhorn` | 6 / 0 | Deliberately terrible — terrified of bandits, hoards dollars. The floor |
 
 ### Personality parameters (15 total)
 
@@ -469,13 +479,19 @@ Key findings locked into the personalities:
 - `positionWeight` ≈ 0 (position-adjusted draw aggression doesn't help)
 - Banker's low `cowWeight` and high `act1DollarBonus` are **intentional deviations** — do not "fix" them
 
-### Future: AI difficulty selection
+### AI difficulty selection (IMPLEMENTED)
 
-When implementing a difficulty picker, the intended mapping is:
-- Easy: sheriff or banker (player choice)
-- Normal: rancher (benchmark)
-- Hard: outlaw (most consistently dangerous)
-- Wild card: wild_bill (fun, swingy)
+`gamesetup.html` `DIFFICULTY_TIERS` (~line 540) maps the per-seat Easy/Medium/Hard picker onto the
+measured bands above; `pickAiForSlot(difficulty, usedPersonalities)` picks a personality (avoiding
+repeats, falling back to reuse when a tier is exhausted) + a themed name from `AI_NAME_POOLS`.
+Current mapping (data-driven, June 2026):
+- **easy:** `greenhorn`, `sheriff`, `banker`
+- **medium:** `banker`, `wild_bill`, `outlaw`
+- **hard:** `prospector`, `rancher`, `drifter`, `enforcer`, `deputy`
+
+The earlier "intended" mapping (rancher=Normal, outlaw=Hard) was **wrong** — the sim shows outlaw/
+wild_bill are mid-tier and deputy/rancher/enforcer/drifter are the strongest. Re-run `node
+sim/simulate.js` and re-tier from the win-rate bands if personality params change.
 
 ---
 

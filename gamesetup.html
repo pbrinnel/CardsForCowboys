@@ -536,11 +536,15 @@
       outlaw:     ['Sixgun Sara', 'Alamo Aly', 'Casey the Convict'],
     };
 
-    // Difficulty tiers — overlapping at boundaries (4 = easy/medium, 7 = medium/hard)
+    // Difficulty tiers — assigned by MEASURED win rate (node sim/simulate.js, June 2026).
+    // Three clear power bands: Hard = the disciplined cow-grinders (63–70% vs the field in 2P),
+    // Medium = the high-variance aggressors (~41–45%; they bust ~44% of rounds), Easy = the weak
+    // dollar-hoarders (≤38%) down to greenhorn (~6%). banker spans the easy/medium boundary; the
+    // medium→hard gap is a real cliff (45%→63%), so no overlap there. See sim/AI_PERSONALITIES.md.
     const DIFFICULTY_TIERS = {
-      easy:   ['greenhorn', 'sheriff', 'banker', 'prospector'],
-      medium: ['prospector', 'deputy', 'drifter', 'rancher'],
-      hard:   ['rancher', 'wild_bill', 'enforcer', 'outlaw'],
+      easy:   ['greenhorn', 'sheriff', 'banker'],
+      medium: ['banker', 'wild_bill', 'outlaw'],
+      hard:   ['prospector', 'rancher', 'drifter', 'enforcer', 'deputy'],
     };
 
     // Pick one AI for a slot, avoiding personalities already used in this game.
