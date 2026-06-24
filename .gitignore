@@ -15,3 +15,6 @@ tutorial-plan.md
 
 # Local Firebase data backups (large, contain game state)
 admin/firebase-backups/
+
+# transient coevolution run log
+sim/results/coevolve_run.log

@@ -5,10 +5,17 @@ Entries should include: what's wrong, what optimal looks like, where to fix, and
 
 ---
 
-## 1. Buy-Phase Dollar Card Activation Is Too Narrow
+## 1. Buy-Phase Dollar Card Activation Is Too Narrow  ✅ RESOLVED (June 2026)
 
-**Filed:** June 2026  
+**Filed:** June 2026 · **Fixed:** June 2026 (Phase 1 of the AI ceiling-raise effort)  
 **Affected files:** `src/play.js` (`aiBuyTurn`), `sim/personality-engine.js` (`chooseBuy`)
+
+**Resolution:** Both engines now activate a `$`-burn card when it raises the *highest-scored*
+affordable card (via a shared `bestScoredAffordable(budget)` helper that mirrors the real buy
+pick, reveal bonus included), not only when it unlocks a card that was completely unaffordable.
+Validated: `test-personality-sync.js` green; `simulate.js` 2P/4P tiers unchanged (the gap case is
+rare, so aggregate win% is flat — it's a strict local improvement, not a global swing). Original
+write-up kept below for reference.
 
 ### What's wrong
 

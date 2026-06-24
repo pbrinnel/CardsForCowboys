@@ -27,9 +27,13 @@ Tiers are assigned by **measured win-rate** (`node sim/simulate.js`), not archet
 
 | Tier | Personalities | 2P / 4P win% vs field |
 |---|---|---|
-| **Hard** | deputy, enforcer, drifter, rancher, prospector | 63–70% / 32–42% |
-| **Medium** | outlaw, wild_bill (+ banker on the boundary) | 41–45% / 15–17% |
+| **Hard** | drifter, enforcer, deputy, prospector, rancher | 64–70% / 34–41% |
+| **Medium** | outlaw, wild_bill (+ banker on the boundary) | 40–43% / 14–16% |
 | **Easy** | banker, sheriff, greenhorn | 6–38% / 0–10% |
+
+> **June 2026 Hard-tier upgrade:** prospector/drifter/enforcer raised `maxDraw` 7→10 (rancher/deputy
+> already there), lifting the whole Hard cluster ~3–4pp (2P) / ~6–7pp (4P). Competitive coevolution
+> (`evolve.js --coevolve`) confirmed the genomes are otherwise optimal — it converged to `enforcer`.
 
 The dividing line is **bust discipline**, not aggression: the Medium "Hard-sounding" aggressors
 (outlaw, wild_bill) bust ~44% of rounds and net to mid-tier; the Hard bots win by *not* busting.

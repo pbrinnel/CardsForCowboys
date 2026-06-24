@@ -3738,6 +3738,7 @@ const AI_PERSONALITIES = {
     bustThreshold2: 0.12,
     bustThreshold1: 0.25,
     dollarBuffer:   1.5,
+    maxDraw:        10,    // was 7 — disciplined thresholds; sweep shows +3.3pp 2P/+6.8pp 4P at flat bust
     cowWeight:      4.5,   // some cow sense but not sharp
     dollarWeight:   1.5,
     banditPenalty:  2.5,
@@ -3754,6 +3755,7 @@ const AI_PERSONALITIES = {
     bustThreshold2: 0.18,
     bustThreshold1: 0.35,
     dollarBuffer:   2.5,
+    maxDraw:        10,    // was 7 — disciplined thresholds; sweep shows +3.8pp 2P/+7.4pp 4P at +1.2pp bust
     cowWeight:      7.0,   // solid cow buying, no special tricks
     dollarWeight:   0.8,
     banditPenalty:  2.0,
@@ -3770,6 +3772,7 @@ const AI_PERSONALITIES = {
     bustThreshold2: 0.30,
     bustThreshold1: 0.60,  // draws hard, calibrated not reckless
     dollarBuffer:   3.0,
+    maxDraw:        10,    // was 7 — coevolution + sweep: +3.7pp 2P/+5.8pp 4P at +1.5pp bust
     cowWeight:      9.5,   // near-optimal cow buying
     dollarWeight:   1.5,
     banditPenalty:  1.2,
@@ -4843,6 +4846,20 @@ async function aiBuyTurn(ai) {
   clearActions();
   await delay(1000);
 
+  const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
+
+  // Highest buy-score reachable at a given dollar budget (mirrors the real buy pick at 4906,
+  // incl. reveal bonus). Used to decide whether activating a $-card is worth it.
+  const bestScoredAffordable = (avail, budget) => {
+    let best = -Infinity;
+    for (const a of avail) {
+      if ((a.slot.card.cost || 0) > budget) continue;
+      const s = scoreCardForAI(a.slot.card, ai) + pyramidRevealBonus(a.row, a.col, cfg.revealBonus);
+      if (s > best) best = s;
+    }
+    return best;
+  };
+
   // Always activate extra_buy if held (free extra action; no condition needed)
   if (!ai.hasExtraBuy) {
     const extraCard = ai.hand.find(c => c.special === 'extra_buy');
@@ -4853,16 +4870,16 @@ async function aiBuyTurn(ai) {
     }
   }
 
-  // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
+  // Activate dollar-producing hand cards if doing so lets the AI buy a HIGHER-SCORED card —
+  // not only one it couldn't otherwise afford at all (see AI_FUTURE_IMPROVEMENTS #1).
   for (const tCard of ai.hand.filter(c =>
     c.special === 'burn_to_use' && c.dollars > 0
   )) {
     const bonus = tCard.dollars;
     const avail = getAvailablePyramidCards(G.pyramid);
-    const unlocks = avail.some(a =>
-      a.slot.card.cost > ai.roundDollars && a.slot.card.cost <= ai.roundDollars + bonus
-    );
-    if (unlocks) {
+    const improves = bestScoredAffordable(avail, ai.roundDollars + bonus)
+                   > bestScoredAffordable(avail, ai.roundDollars);
+    if (improves) {
       ai.hand.splice(ai.hand.indexOf(tCard), 1);
       ai.roundDollars += bonus;
       addLog(`${ai.name} used a card: +$${bonus}.`, 'log-burn');
@@ -4894,7 +4911,6 @@ async function aiBuyTurn(ai) {
     }
   }
 
-  const cfg = AI_PERSONALITIES[ai.personality] || AI_PERSONALITIES.rancher;
   const available = getAvailablePyramidCards(G.pyramid);
   const affordable = available.filter(a => a.slot.card.cost <= ai.roundDollars);
 

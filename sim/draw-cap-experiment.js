@@ -15,8 +15,9 @@
 // the same decision logic the live game runs. This is an EXAMPLE of a focused single-knob
 // experiment; copy it as a template when tuning one parameter in isolation.
 //
-// NOTE: the shipped result of this experiment (rancher & deputy → maxDraw 10) is already baked
-// into personalities.js, so the "cap7" column no longer equals the live config for those two.
+// NOTE: the shipped result of this experiment (ALL 5 Hard bots → maxDraw 10 — rancher & deputy
+// first, then prospector/drifter/enforcer in the June 2026 Hard-tier upgrade) is already baked
+// into personalities.js, so the "cap7" column no longer equals the live config for those five.
 // Re-run it to re-examine the cap, e.g. after a card or threshold change.
 //
 // Usage: node draw-cap-experiment.js [seedsPer2P] [seeds4P]

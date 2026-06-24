@@ -144,16 +144,24 @@ function chooseBuy(player, genome, pyramid, act, allPlayers) {
     }
   }
 
-  // Activate dollar-producing hand cards if they unlock a currently unaffordable buy
+  // Activate dollar-producing hand cards if doing so lets us buy a HIGHER-SCORED card —
+  // not only one we couldn't otherwise afford at all (see AI_FUTURE_IMPROVEMENTS #1).
+  // Mirrors aiBuyTurn's bestScoredAffordable in play.js (incl. reveal bonus).
+  const bestScoredAffordable = (budget) => {
+    let best = -Infinity;
+    for (const a of avail) {
+      if ((a.slot.card.cost || 0) > budget) continue;
+      const s = scoreCard(a.slot.card, genome, act, allPlayers, player)
+              + pyramidRevealBonus(pyramid, a.row, a.col, genome);
+      if (s > best) best = s;
+    }
+    return best;
+  };
   for (const tCard of player.hand.filter(c =>
     c.special === 'burn_to_use' && c.dollars > 0
   )) {
     const bonus = tCard.dollars;
-    const unlocks = avail.some(a =>
-      (a.slot.card.cost || 0) > player.roundDollars &&
-      (a.slot.card.cost || 0) <= player.roundDollars + bonus
-    );
-    if (unlocks) {
+    if (bestScoredAffordable(player.roundDollars + bonus) > bestScoredAffordable(player.roundDollars)) {
       player.hand.splice(player.hand.indexOf(tCard), 1);
       player.roundDollars += bonus;
     }

@@ -29,7 +29,12 @@ const PARAM_KEYS = Object.keys(PARAM_RANGES);
 // ── SEED GENOMES (generation 0) ──────────────────────────────────────────────
 // The canonical personalities (synced to play.js) seed generation 0. The GA mutates
 // clones (PARAM_KEYS only — maxDraw is a fixed governor, not evolved).
-const { GENOMES: SEED_GENOMES } = require('./personalities');
+const { GENOMES: SEED_GENOMES, byName } = require('./personalities');
+
+// maxDraw is a fixed governor (not evolved — see TUNING.md). Coevolution candidates use a
+// constant cap; the probe (ceiling-probe.js) found 10 optimal for the disciplined strong cluster
+// this mode targets. To sweep maxDraw, use draw-cap-experiment.js (the dedicated tool).
+const COEVOLVE_MAXDRAW = 10;
 
 // ── SHARED ENGINE ────────────────────────────────────────────────────────────
 // AI decision layer + one-game runner now live in personality-engine.js (shared with
@@ -84,6 +89,123 @@ function evaluateFitness(population, kSeeds) {
     wins: winCounts[i],
     games: gamesPlayed[i],
   }));
+}
+
+// ── COMPETITIVE COEVOLUTION (Phase 2 ceiling-raise) ──────────────────────────
+// Fitness = win-rate vs a FIXED opponent pool (Hard anchors + a Hall of Fame of past champions),
+// NOT vs the diluted evolving population. The field-GA above drives denial/positionWeight to ~0
+// because they don't help against weak random fill; against strong opponents they earn their keep
+// (proven by sim/ceiling-probe.js). The Hall of Fame stops the GA forgetting how to beat strong
+// play (intransitive cycling). All candidates share a fixed maxDraw (COEVOLVE_MAXDRAW).
+
+function evaluateVsOpponents(population, opponents, kSeeds) {
+  const rng4p = makeLCG(population.length * 6151 + opponents.length * 97 + kSeeds);
+  return population.map((cand, ci) => {
+    let wins = 0, games = 0;
+    // 2P vs each opponent, both seat orders
+    for (let oi = 0; oi < opponents.length; oi++) {
+      for (let s = 0; s < kSeeds; s++) {
+        const seed = 60000 + s * 137 + oi * 7919 + ci * 31;
+        if (runGame([cand, opponents[oi]], 2, seed).winner === 0) wins++;
+        games++;
+        if (runGame([opponents[oi], cand], 2, seed + 5).winner === 1) wins++;
+        games++;
+      }
+    }
+    // 4P: candidate + 3 sampled opponents
+    for (let s = 0; s < kSeeds; s++) {
+      const opps = [0, 1, 2].map(() => opponents[Math.floor(rng4p() * opponents.length)]);
+      const seed = 90000 + s * 211 + ci * 53;
+      if (runGame([cand, ...opps], 4, seed).winner === 0) wins++;
+      games++;
+    }
+    return { genome: cand, fitness: games > 0 ? wins / games : 0, wins, games };
+  });
+}
+
+// High-seed holdout of ONE genome vs a fixed opponent set (the overfitting guard — the probe's
+// in-GA 63%→55% collapse showed low-seed fitness is optimistic).
+function runHoldoutVs(genome, opponents, seeds) {
+  let w2 = 0, t2 = 0, w4 = 0, t4 = 0;
+  for (let oi = 0; oi < opponents.length; oi++) {
+    for (let s = 0; s < seeds; s++) {
+      const seed = 1234567 + s * 13 + oi * 100003;
+      if (runGame([genome, opponents[oi]], 2, seed).winner === 0) w2++;
+      t2++;
+      if (runGame([opponents[oi], genome], 2, seed + 5).winner === 1) w2++;
+      t2++;
+    }
+  }
+  const rng = makeLCG(424242);
+  for (let s = 0; s < seeds; s++) {
+    const opps = [0, 1, 2].map(() => opponents[Math.floor(rng() * opponents.length)]);
+    if (runGame([genome, ...opps], 4, 7654321 + s * 17).winner === 0) w4++;
+    t4++;
+  }
+  return { winRate2P: t2 ? w2 / t2 : 0, winRate4P: t4 ? w4 / t4 : 0, seeds };
+}
+
+function resolveAnchors(spec) {
+  return spec.split(',').map(n => n.trim()).filter(Boolean).map(n => {
+    if (!byName[n]) { console.error(`Unknown anchor personality: ${n}`); process.exit(1); }
+    const g = {};
+    for (const k of PARAM_KEYS) g[k] = byName[n][k];
+    g.maxDraw = byName[n].maxDraw ?? 7;
+    g.name = n;
+    return g;
+  });
+}
+
+function runCoevolveTrial(cfg, trialIdx) {
+  const anchors = resolveAnchors(cfg.anchors);
+
+  // Gen0: seed from the anchors (start strong) + random fill. All candidates share a fixed maxDraw.
+  let population = [
+    ...anchors.map(a => ({ ...a })),
+    ...Array.from({ length: Math.max(0, cfg.popSize - anchors.length) }, randomGenome),
+  ].slice(0, cfg.popSize);
+  population.forEach(g => { g.maxDraw = COEVOLVE_MAXDRAW; });
+
+  const hof = [];               // Hall of Fame champions (opponent pool grows over time)
+  const generationsLog = [];
+  const fitnessHistory = [];
+  let bestGenome = null, bestFit = -1;
+
+  for (let gen = 1; gen <= cfg.maxGenerations; gen++) {
+    const opponents = [...anchors, ...hof];
+    const ranked = evaluateVsOpponents(population, opponents, cfg.kSeeds)
+      .sort((a, b) => b.fitness - a.fitness);
+
+    process.stdout.write(`Trial ${trialIdx + 1} | `);
+    printGenSummary(gen, ranked, cfg.quiet);
+    fitnessHistory.push(ranked.map(r => ({ fitness: r.fitness })));
+
+    if (ranked[0].fitness > bestFit) { bestFit = ranked[0].fitness; bestGenome = { ...ranked[0].genome }; }
+    generationsLog.push({
+      gen, bestFitness: ranked[0].fitness,
+      meanFitness: ranked.reduce((s, r) => s + r.fitness, 0) / ranked.length,
+      bestGenome: { ...ranked[0].genome },
+    });
+
+    // Hall of Fame: enroll this gen's champion, cap to hofSize (drop oldest).
+    hof.push({ ...ranked[0].genome });
+    if (hof.length > cfg.hofSize) hof.shift();
+
+    if (checkConverged(fitnessHistory)) { console.log(`Converged at generation ${gen}.`); break; }
+
+    if (gen < cfg.maxGenerations) {
+      population = buildNextGeneration(ranked, cfg.eliteFrac, cfg.mutationRate, cfg.mutationStrength);
+      population.forEach(g => { g.maxDraw = COEVOLVE_MAXDRAW; }); // re-stamp (crossover/mutate drop it)
+    }
+  }
+
+  console.log('Running holdout validation (high seed)...');
+  const holdout = runHoldoutVs(bestGenome, anchors, cfg.holdoutSeeds);
+  const vsField = runHoldoutVs(bestGenome, SEED_GENOMES, cfg.holdoutSeeds);
+  console.log(`Holdout vs anchors: 2P=${(holdout.winRate2P * 100).toFixed(1)}%  4P=${(holdout.winRate4P * 100).toFixed(1)}%` +
+              `  |  vs full field: 2P=${(vsField.winRate2P * 100).toFixed(1)}%  4P=${(vsField.winRate4P * 100).toFixed(1)}%`);
+
+  return { generationsLog, bestGenome, holdout, vsField, anchors };
 }
 
 // ── EVOLUTIONARY ALGORITHM ───────────────────────────────────────────────────
@@ -256,6 +378,9 @@ function parseArgs(argv) {
     outDir:           path.join(__dirname, 'results'),
     resume:           null,
     quiet:            false,
+    coevolve:         false,
+    anchors:          'deputy,enforcer,drifter,rancher,prospector',
+    hofSize:          8,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -271,6 +396,9 @@ function parseArgs(argv) {
       case '--out':      cfg.outDir           = args[++i]; break;
       case '--resume':   cfg.resume           = args[++i]; break;
       case '--quiet':    cfg.quiet            = true; break;
+      case '--coevolve': cfg.coevolve         = true; break;
+      case '--anchors':  cfg.anchors          = args[++i]; break;
+      case '--hof':      cfg.hofSize          = parseInt(args[++i]); break;
       case '--help':
         console.log(`
 node sim/evolve.js [options]
@@ -286,6 +414,11 @@ node sim/evolve.js [options]
   --out       <dir>  Output directory                   (default: sim/results/)
   --resume    <file> Resume from a previous JSON checkpoint
   --quiet            Suppress per-generation genome detail
+
+ Competitive coevolution (Phase 2 — breed bots that beat STRONG play, not the whole field):
+  --coevolve         Fitness = win-rate vs fixed anchors + Hall of Fame (not the evolving pop)
+  --anchors   <list> Comma-separated anchor personalities  (default: the 5 Hard bots)
+  --hof       <n>    Hall-of-Fame size (past champions kept as opponents)  (default: 8)
 `);
         process.exit(0);
     }
@@ -371,9 +504,13 @@ function main() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const trialResults = [];
 
+  if (cfg.coevolve) {
+    console.log(`Competitive coevolution — anchors: [${cfg.anchors}]  hof=${cfg.hofSize}  maxDraw(fixed)=${COEVOLVE_MAXDRAW}\n`);
+  }
+
   for (let t = 0; t < cfg.trials; t++) {
     if (cfg.trials > 1) console.log(`\n${'─'.repeat(43)}\nTrial ${t + 1} / ${cfg.trials}\n`);
-    const result = runTrial(cfg, t);
+    const result = cfg.coevolve ? runCoevolveTrial(cfg, t) : runTrial(cfg, t);
     trialResults.push(result);
   }
 
@@ -388,11 +525,16 @@ function main() {
   const numGens = best.generationsLog.length;
 
   printFinalSummary(best.bestGenome, best.holdout, numGens);
+  if (cfg.coevolve) {
+    console.log(`    ${'maxDraw'.padEnd(16)} ${best.bestGenome.maxDraw ?? COEVOLVE_MAXDRAW}  (fixed)`);
+    console.log(`  vs full field (tier context): 2P=${(best.vsField.winRate2P * 100).toFixed(1)}%  4P=${(best.vsField.winRate4P * 100).toFixed(1)}%`);
+  }
 
   if (cfg.trials > 1) {
     console.log('\nAll trial holdouts:');
     trialResults.forEach((r, i) =>
-      console.log(`  Trial ${i + 1}: 2P=${(r.holdout.winRate2P * 100).toFixed(1)}%  4P=${(r.holdout.winRate4P * 100).toFixed(1)}%`)
+      console.log(`  Trial ${i + 1}: anchors 2P=${(r.holdout.winRate2P * 100).toFixed(1)}% 4P=${(r.holdout.winRate4P * 100).toFixed(1)}%` +
+        (cfg.coevolve ? `  | field 2P=${(r.vsField.winRate2P * 100).toFixed(1)}% 4P=${(r.vsField.winRate4P * 100).toFixed(1)}%` : ''))
     );
     console.log('\nGenome convergence check (top params across trials):');
     for (const key of PARAM_KEYS) {

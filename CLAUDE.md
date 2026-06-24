@@ -57,7 +57,8 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | `sim/TUNING.md` | **Read first.** How to validate/search/apply AI changes (the workflow). |
 | `sim/personalities.js` | **The 6 bots (data) — single source of truth, synced to play.js.** Consumed by every sim tool. |
 | `sim/personality-engine.js` | Shared AI decision layer + deterministic one-game `runGame` (mirrors play.js's live AI logic). Used by evolve/simulate/experiments. 2–4P only. |
-| `sim/evolve.js` | Genetic algorithm — SEARCHES param space for better genomes. Seeds gen-0 from `personalities.js`. |
+| `sim/evolve.js` | Genetic algorithm — SEARCHES param space for better genomes. Seeds gen-0 from `personalities.js`. `--coevolve` mode scores vs fixed Hard anchors + a Hall of Fame (strong-opponent fitness) instead of the whole field. |
+| `sim/ceiling-probe.js` | Phase-0 diagnostic: can a fresh GA candidate beat ONLY the Hard bots? Measures whether the current param space has headroom left. |
 | `sim/simulate.js` | VALIDATES current bots: pairwise win matrix + per-card balance table (win% when owned). Replaces the retired RISK_PROFILES sim. |
 | `sim/draw-cap-experiment.js` | Focused single-knob A/B (sweeps `maxDraw` per bot). Copy as a template for one-parameter experiments. |
 | `sim/test-personality-sync.js` | Guard: fails if `personalities.js` drifts from play.js `AI_PERSONALITIES`. Run after any personality edit. |
@@ -431,17 +432,22 @@ Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a 
 tiers — don't tier by vibe (the old labels were inverted: deputy/rancher were mislabeled Medium and
 outlaw/wild_bill mislabeled Hard).**
 
+Win% below is **vs the whole field** and therefore relative — the June 2026 Hard-tier upgrade
+(prospector/drifter/enforcer `maxDraw` 7→10) raised the upgraded bots' *absolute* strength, which
+also makes deputy/rancher's vs-field % dip even though their genomes are unchanged (the field got
+tougher). Absolute gains are in `draw-cap-experiment.js`.
+
 | Tier | Personality | 2P / 4P win% | Character |
 |---|---|---|---|
-| **Hard** | `deputy` | 70 / 42 | Strongest overall — disciplined draw (low bust) + denial + competent cow buying |
-| **Hard** | `enforcer` | 68 / 36 | Near-optimal cow buyer, calibrated aggression, precise fear |
-| **Hard** | `drifter` | 67 / 36 | Solid cow grinder, no tricks |
-| **Hard** | `rancher` | 65 / 38 | Cow-optimizing grinder; the benchmark |
-| **Hard** | `prospector` | 63 / 32 | Weakest of the strong cluster (hard's floor) |
-| **Medium** | `outlaw` | 45 / 17 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
-| **Medium** | `wild_bill` | 41 / 15 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
-| **Easy** | `banker` | 38 / 10 | Dollar-first, intentionally suboptimal (designed-to-lose). Boundary easy/medium |
-| **Easy** | `sheriff` | 38 / 10 | Conservative, methodical, low cowWeight |
+| **Hard** | `drifter` | 70 / 41 | Solid cow grinder, no tricks; `maxDraw 10` (upgraded) |
+| **Hard** | `enforcer` | 70 / 41 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target |
+| **Hard** | `deputy` | 68 / 38 | Disciplined draw (low bust) + denial + competent cow buying |
+| **Hard** | `prospector` | 65 / 35 | Hard's floor; `maxDraw 10` (upgraded) |
+| **Hard** | `rancher` | 64 / 34 | Cow-optimizing grinder; the benchmark |
+| **Medium** | `outlaw` | 43 / 16 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
+| **Medium** | `wild_bill` | 40 / 14 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
+| **Easy** | `banker` | 38 / 9 | Dollar-first, intentionally suboptimal (designed-to-lose). Boundary easy/medium |
+| **Easy** | `sheriff` | 37 / 10 | Conservative, methodical, low cowWeight |
 | **Easy** | `greenhorn` | 6 / 0 | Deliberately terrible — terrified of bandits, hoards dollars. The floor |
 
 ### Personality parameters (15 total)
@@ -459,10 +465,11 @@ Buy-phase: `cowWeight`, `dollarWeight`, `banditPenalty`, `act1DollarBonus`, `act
 **`maxDraw`** (June 2026) — hard hand-size cap in `aiShouldDraw` (`hand.length >= (cfg.maxDraw ?? 7)`);
 absent ⇒ 7. It plays **two opposite roles** depending on the personality, so it is NOT a global
 constant:
-- For **disciplined** bots whose bandit thresholds already govern stopping (rancher, deputy — both
-  now **10**), the old hardcoded 7 was dead weight clipping the winning human line (overdraw dollars →
-  more cows + earlier buy priority, since buy order is `roundDollars`-first). Raising to 10 is
-  sim-validated **+2–4pp win (2P) / up to +8pp (4P) at ~flat bust rate**.
+- For **disciplined** bots whose bandit thresholds already govern stopping (**all 5 Hard bots now
+  10** — rancher/deputy first, then prospector/drifter/enforcer in the June 2026 Hard-tier upgrade),
+  the old hardcoded 7 was dead weight clipping the winning human line (overdraw dollars → more cows +
+  earlier buy priority, since buy order is `roundDollars`-first). Raising to 10 is sim-validated
+  **+3–4pp win (2P) / +6–7pp (4P) at ≤+2pp bust rate**.
 - For **aggressive** bots (wild_bill `dollarBuffer:999`, outlaw — both stay **7**) the cap is a
   load-bearing bust governor; lifting it makes them bust >50% of rounds and collapse. Do NOT raise
   theirs. sheriff/banker left at 7 by design (Easy / designed-to-lose tiers — not buffed on purpose).

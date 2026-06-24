@@ -86,7 +86,16 @@ node sim/simulate.js --list                # personality names
 ```bash
 node sim/evolve.js --help
 node sim/evolve.js --pop 60 --gens 80 --seeds 60 --trials 3
+# Competitive coevolution — breed bots that beat STRONG play, not the diluted whole field:
+node sim/evolve.js --coevolve --pop 36 --gens 40 --seeds 40 --holdout 300 --trials 3
 ```
+
+**`--coevolve`** scores each candidate vs a FIXED opponent pool (the 5 Hard anchors + a growing
+Hall of Fame of past champions) instead of vs the evolving population. This is the fitness that
+matters for a competitive bot — the default field fitness rewards farming the weak random fill,
+which drives `denialWeight`/`positionWeight` to ~0. `maxDraw` is held fixed (`COEVOLVE_MAXDRAW`).
+Verdict so far (June 2026): the existing Hard genomes are already optimal — coevolution couldn't
+beat them. Use it to re-test after a **logic/feature** change widens the space.
 
 A genetic algorithm seeds generation 0 from the 6 personalities, then mutates/selects toward higher
 win-rate. Writes `results/evolve_<timestamp>.json` (git-ignored) and prints the best genome per trial
@@ -142,9 +151,18 @@ sim and real humans diverge most.
 
 - `cowWeight` 9–10 is optimal; evolved AIs converge there.
 - `revealBonus` ≈ 0 and `act1DollarBonus` = 0 for top performers (dollars are currency, not score).
-- `maxDraw`: **rancher/deputy = 10** (their bandit thresholds already govern risk, so a higher cap
-  lets them overdraw dollars → more cows + earlier buy priority at ~no extra bust). **wild_bill /
-  outlaw stay 7** — the cap is a load-bearing bust governor for them; raising it makes them bust
-  >50% and collapse. sheriff/banker stay 7 by design (Easy tier). See `draw-cap-experiment.js`.
+- `maxDraw`: **all 5 Hard bots = 10** (rancher/deputy since the first pass; prospector/drifter/
+  enforcer added June 2026 — `draw-cap-experiment.js` shows +3–4pp 2P / +6–7pp 4P at ≤+2pp bust).
+  Their bandit thresholds already govern risk, so a higher cap lets them overdraw dollars → more
+  cows + earlier buy priority at ~no extra bust. **wild_bill / outlaw stay 7** — the cap is a
+  load-bearing bust governor for them; raising it makes them bust >50% and collapse. sheriff/banker
+  stay 7 by design (Easy tier — they'd improve at cap 10, but we don't buff the easy tier). See
+  `draw-cap-experiment.js`.
+- **Competitive coevolution (`evolve.js --coevolve`, June 2026)** could NOT out-design the existing
+  Hard genomes even with strong-opponent fitness + a Hall of Fame: 3/3 trials converged exactly to
+  the `enforcer` genome (only `maxDraw` 7→10). Takeaway: the 14-param space is **tapped out** — the
+  next real gain is logic/features, not more parameter search. Also robust: `denialWeight → 0` for
+  focal win-rate across all high-seed trials (denial is a board-interaction tool, not a self-win
+  booster — don't add it chasing win%).
 - banker is **intentionally** weak (Easy / designed-to-lose). Low `cowWeight`, high `act1DollarBonus`
   are features, not bugs.
