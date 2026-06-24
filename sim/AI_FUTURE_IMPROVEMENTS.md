@@ -8,7 +8,7 @@ Entries should include: what's wrong, what optimal looks like, where to fix, and
 ## 1. Buy-Phase Dollar Card Activation Is Too Narrow
 
 **Filed:** June 2026  
-**Affected files:** `src/play.js` (`aiBuyTurn`), `sim/ai-player.js` (`chooseBuy`), `sim/evolve.js` (`chooseBuy`)
+**Affected files:** `src/play.js` (`aiBuyTurn`), `sim/personality-engine.js` (`chooseBuy`)
 
 ### What's wrong
 

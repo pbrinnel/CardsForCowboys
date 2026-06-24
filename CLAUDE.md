@@ -49,19 +49,29 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `css/theme.css` | Theme variables / font imports |
 
 ### `sim/` — Simulation & AI tooling
+**Start at [`sim/TUNING.md`](sim/TUNING.md)** — the authoritative goal/steps/outputs guide for
+tuning & validating the AI. The AI-tuning files share ONE deterministic engine + ONE genome source.
+
 | File | Purpose |
 |------|---------|
-| `sim/simulate.js` | AI vs AI simulation runner |
-| `sim/simulate-showdown.js` | Legacy showdown-only simulation |
-| `sim/evolve.js` | Genetic algorithm for AI parameter tuning. Exports `runGame`/`SEED_GENOMES` (CLI-guarded by `require.main`) for experiment harnesses. |
-| `sim/draw-cap-experiment.js` | A/B harness: sweeps `maxDraw` per personality (focal vs shipped cast), reports win%+bust% in 2P/4P. `node sim/draw-cap-experiment.js [seeds2P] [games4P]`. |
-| `sim/ai-player.js` | AI player logic for simulation |
-| `sim/game-core.js` | Core game logic extracted for sim use |
-| `sim/tiebreaker.js` | Buy-order tiebreaker (shared by game + sim) |
-| `sim/stats.js` | Statistics collector |
-| `sim/mock-firebase.js` | Firebase mock for MP protocol tests |
-| `sim/mp-client.js` | MP client mirror for sim |
-| `sim/results/` | Simulation output files |
+| `sim/TUNING.md` | **Read first.** How to validate/search/apply AI changes (the workflow). |
+| `sim/personalities.js` | **The 6 bots (data) — single source of truth, synced to play.js.** Consumed by every sim tool. |
+| `sim/personality-engine.js` | Shared AI decision layer + deterministic one-game `runGame` (mirrors play.js's live AI logic). Used by evolve/simulate/experiments. 2–4P only. |
+| `sim/evolve.js` | Genetic algorithm — SEARCHES param space for better genomes. Seeds gen-0 from `personalities.js`. |
+| `sim/simulate.js` | VALIDATES current bots: pairwise win matrix + per-card balance table (win% when owned). Replaces the retired RISK_PROFILES sim. |
+| `sim/draw-cap-experiment.js` | Focused single-knob A/B (sweeps `maxDraw` per bot). Copy as a template for one-parameter experiments. |
+| `sim/test-personality-sync.js` | Guard: fails if `personalities.js` drifts from play.js `AI_PERSONALITIES`. Run after any personality edit. |
+| `sim/AI_PERSONALITIES.md` | Parameter glossary (per-param effects, tiers). |
+| `sim/game-core.js` | Card DB, pyramid, card effects (lower level; synced from play.js). |
+| `sim/tiebreaker.js` | Buy-order tiebreaker (shared by game + sim). |
+| `sim/mock-firebase.js`, `sim/mp-client.js`, `sim/test-mp-protocol.js` | MP-protocol tests (separate from AI tuning). |
+| `sim/test-tiebreaker.js` | Tiebreaker unit tests. |
+| `sim/results/` | Sim output. `evolve_*.json` / `cardbalance_*.csv` git-ignored; `sim-tierlist.json` tracked. |
+
+Retired June 2026: `ai-player.js` + `stats.js` (the legacy RISK_PROFILES model — `simulate.js` now
+runs the real personalities via the shared engine) and `EVOLVE_PLAN.md` (build spec; evolve.js is
+long since built — in git history if needed). `admin/gen-sim-tierlist.js` was migrated to the shared
+engine too.
 
 ### Other directories
 | Path | Purpose |
@@ -261,7 +271,7 @@ card does NOT consume a forced draw. forcedDraws is cleared in handleBust + rese
 and zeroed when both piles are empty. It is local-human-only state (NOT synced to Firebase) —
 a hard-refresh mid-Draw-4 resets it (accepted edge). AI parity: the aiDrawPhase draw4 loop
 proactively activates a held jail card at 2+ bandits before each forced draw (mirrored in
-sim/ai-player.js and sim/evolve.js).
+sim/personality-engine.js).
 
 ### AI Draw Phase (lines ~2667–2950)
 ```
@@ -426,10 +436,11 @@ Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a 
 
 ### Personality parameters (15 total)
 
-All parameters live in `AI_PERSONALITIES` (~line 2813 in `src/play.js`). The personality-genome
-model is mirrored in **`sim/evolve.js`** (`SEED_GENOMES` + its `shouldDraw`/`scoreCard`), NOT
-`sim/simulate.js` (which runs the separate legacy `ai-player.js` `RISK_PROFILES`). Keep `play.js`
-↔ `evolve.js` in sync for any draw/buy-logic change.
+All parameters live in `AI_PERSONALITIES` (~line 2813 in `src/play.js`). The sim-side genome copy
+is **`sim/personalities.js`** (single source of truth for evolve/simulate/experiments), and the AI
+decision logic is mirrored in **`sim/personality-engine.js`** (`shouldDraw`/`scoreCard`/`runGame`).
+`node sim/test-personality-sync.js` fails if play.js ↔ personalities.js drift. Keep `play.js` ↔
+`personality-engine.js` in sync for any draw/buy **logic** change. See [`sim/TUNING.md`](sim/TUNING.md).
 
 Draw-phase: `bustThreshold2`, `bustThreshold1`, `dollarBuffer`, `positionWeight`, `affordMult`, `deckMemory`, `lethalBias`, `maxDraw`
 
@@ -445,9 +456,8 @@ constant:
 - For **aggressive** bots (wild_bill `dollarBuffer:999`, outlaw — both stay **7**) the cap is a
   load-bearing bust governor; lifting it makes them bust >50% of rounds and collapse. Do NOT raise
   theirs. sheriff/banker left at 7 by design (Easy / designed-to-lose tiers — not buffed on purpose).
-- Tooling: **`sim/draw-cap-experiment.js`** (focal-vs-cast sweep over `maxDraw`, reports win%+bust%
-  per personality; uses `evolve.js`'s `runGame`, now exported behind `require.main` guard with per-
-  player `busts`/`drawRounds` diagnostics). Re-run it before retuning any draw cap.
+- Tooling: **`sim/draw-cap-experiment.js`** (focal-vs-field sweep over `maxDraw`, reports win%+bust%
+  per personality; uses `personality-engine.js`'s `runGame`). Re-run it before retuning any draw cap.
 
 ### Evolutionary optimization
 
@@ -699,7 +709,7 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 **Root cause:** `playerDraw()`'s draw4 handler was a `for` loop that drew, applied effects, and bust-checked each of the 4 cards with no return to the draw UI between them. The activate buttons only render in `startPlayerDraw()` (between draws), which the loop bypassed. The AI had the identical gap (its draw4 loop bust-checked before reaching its jail-activation block).
 
-**Fix in place:** Draw 4 now sets `player.forcedDraws += 4` and routes each extra draw through the normal `playerDraw`/`startPlayerDraw` flow, so the activate buttons (incl. jail) appear between draws. `startPlayerDraw` hides "Stop" while `forcedDraws > 0` (draws stay mandatory — preserves the card's risk/balance); activating a card does NOT decrement `forcedDraws`. Empty deck mid-Draw-4 auto-reshuffles and continues (only ends when both piles are empty). AI parity: the draw4 loops in `play.js`, `sim/ai-player.js`, and `sim/evolve.js` proactively activate a held jail card at 2+ bandits before each forced draw.
+**Fix in place:** Draw 4 now sets `player.forcedDraws += 4` and routes each extra draw through the normal `playerDraw`/`startPlayerDraw` flow, so the activate buttons (incl. jail) appear between draws. `startPlayerDraw` hides "Stop" while `forcedDraws > 0` (draws stay mandatory — preserves the card's risk/balance); activating a card does NOT decrement `forcedDraws`. Empty deck mid-Draw-4 auto-reshuffles and continues (only ends when both piles are empty). AI parity: the draw4 loops in `play.js` and `sim/personality-engine.js` proactively activate a held jail card at 2+ bandits before each forced draw.
 
 **Do not regress:** Never re-introduce an auto-loop that draws multiple cards without returning to `startPlayerDraw` between them — that's the only place burn-to-use cards can be activated, and skipping it re-breaks the activate-before-bust rule. Keep "Stop" hidden while `forcedDraws > 0`, and keep `forcedDraws` cleared in `handleBust`/`resetPlayerRound`. Errata in rules.html documents the caveat for players.
 
@@ -725,7 +735,7 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 **Fix in place:** `handleLook3` reshuffles `discard → deck` (via `shuffleForPlayer`, then `mpSyncDraw`) when `deck.length < 3 && discard.length > 0` before taking the top 3. Both human look-3 paths (`look3_immediate` and `look3_rearrange`) route through `handleLook3`, so both are covered.
 
-**AI parity:** the same reshuffle was mirrored into both AI handlers in `aiDrawPhase` (`look3_rearrange` and `look3_immediate`, ~lines 3021/3033) using `shuffleForPlayer(ai.discard, ai.slotIdx, false)` — the seeded path in MP, so every client's AI deck stays identical (same mechanism as `drawFromDeck`'s reshuffle; no desync). Mirrored in the sim too: `sim/ai-player.js` (uses `core.shuffle`, matching its `core.drawFromDeck`) and `sim/evolve.js` (uses `seededShuffle(discard, rng)`, matching `drawFromDeckSeeded`). The AI burn-decision gate (`deck.length >= 2`) was intentionally left unchanged — only the in-branch reshuffle mechanic was added, so AI burn frequency / personality balance is untouched.
+**AI parity:** the same reshuffle was mirrored into both AI handlers in `aiDrawPhase` (`look3_rearrange` and `look3_immediate`, ~lines 3021/3033) using `shuffleForPlayer(ai.discard, ai.slotIdx, false)` — the seeded path in MP, so every client's AI deck stays identical (same mechanism as `drawFromDeck`'s reshuffle; no desync). Mirrored in the sim too: `sim/personality-engine.js` (uses `seededShuffle(discard, rng)`, matching `drawFromDeckSeeded`). The AI burn-decision gate (`deck.length >= 2`) was intentionally left unchanged — only the in-branch reshuffle mechanic was added, so AI burn frequency / personality balance is untouched.
 
 ---
 

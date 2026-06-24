@@ -1,18 +1,22 @@
 # AI Personalities Reference
 
-Last updated: May 2026, after evolutionary parameter optimization.
+Parameter glossary for the 6 personalities. For the **tuning/simulation workflow** (how to
+validate, search, and apply changes) see [`TUNING.md`](TUNING.md).
 
 ---
 
 ## Overview
 
-All AI personalities share the same decision engine (`aiShouldDraw`, `aiShouldDraw`,
-`scoreCardForAI`, `aiBuyTurn` in `play.js`) but differ entirely through their parameter
-objects in `AI_PERSONALITIES`. There is no bespoke code per personality — changing a
-personality is purely a data change.
+All AI personalities share the same decision engine (`aiShouldDraw`, `scoreCardForAI`,
+`aiBuyTurn` in `play.js`) but differ entirely through their parameter objects in
+`AI_PERSONALITIES`. There is no bespoke code per personality — changing a personality is purely
+a data change.
 
-Both `play.js` and `simulate.js` maintain a mirrored copy of `AI_PERSONALITIES`.
-**When editing personality values, update both files.**
+The genomes live in **two** places that must stay in sync: `src/play.js` `AI_PERSONALITIES`
+(what ships) and `sim/personalities.js` (what the sim runs — also seeds `evolve.js` and drives
+`simulate.js`). **`node sim/test-personality-sync.js` fails if they drift** — run it after any
+edit. (The sim genome uses `denialWeight` numeric where play.js uses `denialBurn` boolean; the
+sync test bridges them.)
 
 ---
 
@@ -29,6 +33,7 @@ Both `play.js` and `simulate.js` maintain a mirrored copy of `AI_PERSONALITIES`.
 | `affordMult` | float 1.0–2.5 | Multiplier applied to bust thresholds when the AI **cannot afford any available card**. Higher = draws harder when broke. |
 | `deckMemory` | float 0–1 | `1` = uses exact lethal-card count from deck. `0` = uses a flat 20% prior. Blended between the two. |
 | `lethalBias` | float 0.2–2.5 | Multiplier on the perceived bust probability after `deckMemory` blending. `>1` = more fearful; `<1` = discounts danger. |
+| `maxDraw` | int (default 7) | Hard hand-size cap — stop drawing at this many cards regardless of bust odds. For disciplined bots it just clips profitable dollar accumulation (rancher/deputy = **10**); for aggressive bots (wild_bill/outlaw) it's a load-bearing bust governor (= **7**). Absent in play.js ⇒ 7. Not evolved. See [`draw-cap-experiment.js`](draw-cap-experiment.js). |
 
 **Bust probability formula:**
 ```
@@ -281,7 +286,7 @@ For a "Normal" game, Rancher is the benchmark.
 
 ## Evolutionary Optimization Notes
 
-Personalities were calibrated using `sim/evolve.js` (see `sim/EVOLVE_PLAN.md`),
+Personalities were calibrated using `sim/evolve.js` (see [`TUNING.md`](TUNING.md)),
 which runs a genetic algorithm over the 14-parameter genome space. Key findings
 from 3 independent trials (100 generations, 100 seeds each):
 

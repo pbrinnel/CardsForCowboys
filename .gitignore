@@ -2,6 +2,8 @@
 **/.DS_Store
 sim/results/*.csv
 sim/results/*.txt
+sim/results/evolve_*.json
+sim/results/cardbalance_*.csv
 node_modules/
 .claude/worktrees/
 get-emails.js

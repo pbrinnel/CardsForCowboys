@@ -1,408 +1,207 @@
 #!/usr/bin/env node
 // ============================================================
-// Cards For Cowboys - AI vs AI Simulation Runner
+// Cards For Cowboys — Personality Simulation & Card-Balance Runner
 // ============================================================
+//
+// Runs the REAL shipped personalities (sim/personalities.js) head-to-head through the
+// shared deterministic engine (sim/personality-engine.js — the same decision logic as the
+// live game's aiShouldDraw/scoreCardForAI/aiBuyTurn). Two jobs:
+//
+//   1. Win matrix — pairwise win-rates between personalities (are the difficulty tiers real?).
+//   2. Card balance — per store-card buy-rate + win-rate-when-owned (which cards are over/under
+//      powered?). evolve.js can't answer this; it only tunes AI params.
+//
+// Unlike evolve.js (which SEARCHES for better params), simulate.js VALIDATES the current bots
+// and the card set. Deterministic: same seed → same game, so runs are reproducible.
+// 2–4 players only (the engine doesn't model 5–8P flat-row pyramids).
 //
 // Usage:
-//   node sim/simulate.js                              # 1000 games, 2P default vs default
-//   node sim/simulate.js --games 5000                 # 5000 games
-//   node sim/simulate.js --players 3                  # 3-player game
-//   node sim/simulate.js --p1 reckless_cowFocused --p2 timid_balanced
-//   node sim/simulate.js --p1 bold_dollarFocused --p2 moderate_balanced --p3 timid_banditAverse
-//   node sim/simulate.js --tournament                 # all strategy combos (2P only)
-//   node sim/simulate.js --random                     # random strategies
-//   node sim/simulate.js --list                       # show available strategies
-//
+//   node sim/simulate.js                         # default: 2P win matrix + card table, 3000 games/pair
+//   node sim/simulate.js --games 5000            # more games per pairing
+//   node sim/simulate.js --players 4             # 4P round-robin (focal vs 3 rotating)
+//   node sim/simulate.js --matchup rancher,outlaw   # one matchup, detailed
+//   node sim/simulate.js --cards-only            # skip the matrix, just the card table
+//   node sim/simulate.js --csv                   # also write the card table to results/
+//   node sim/simulate.js --list                  # list personality names
 // ============================================================
 
+const engine = require('./personality-engine');
+const { GENOMES, byName } = require('./personalities');
 const core = require('./game-core');
-const ai = require('./ai-player');
-const { StatsCollector } = require('./stats');
-const { determineBuyWinner } = require('./tiebreaker');
+const fs = require('fs');
+const path = require('path');
 
-// --- CLI ARGS ---
+const NAMES = GENOMES.map(g => g.name);
+const STORE_BY_ID = Object.fromEntries(core.STORE_CARDS.map(c => [c.id, c]));
 
+// --- CLI ---
 function parseArgs() {
-  const args = process.argv.slice(2);
-  const opts = {
-    games: 1000,
-    players: 2,
-    p1: 'default',
-    p2: 'default',
-    p3: 'default',
-    p4: 'default',
-    tournament: false,
-    random: false,
-    list: false,
-    verbose: false,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--games': case '-n':
-        opts.games = parseInt(args[++i]) || 1000;
-        break;
-      case '--players':
-        opts.players = Math.min(4, Math.max(2, parseInt(args[++i]) || 2));
-        break;
-      case '--p1':
-        opts.p1 = args[++i] || 'default';
-        break;
-      case '--p2':
-        opts.p2 = args[++i] || 'default';
-        break;
-      case '--p3':
-        opts.p3 = args[++i] || 'default';
-        break;
-      case '--p4':
-        opts.p4 = args[++i] || 'default';
-        break;
-      case '--tournament': case '-t':
-        opts.tournament = true;
-        break;
-      case '--random': case '-r':
-        opts.random = true;
-        break;
-      case '--list': case '-l':
-        opts.list = true;
-        break;
-      case '--verbose': case '-v':
-        opts.verbose = true;
-        break;
-      case '--help': case '-h':
-        printHelp();
-        process.exit(0);
-    }
+  const a = process.argv.slice(2);
+  const o = { games: 3000, players: 2, matchup: null, cardsOnly: false, csv: false, list: false };
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === '--games')   o.games = parseInt(a[++i], 10);
+    else if (a[i] === '--players') o.players = parseInt(a[++i], 10);
+    else if (a[i] === '--matchup') o.matchup = a[++i].split(',').map(s => s.trim());
+    else if (a[i] === '--cards-only') o.cardsOnly = true;
+    else if (a[i] === '--csv')  o.csv = true;
+    else if (a[i] === '--list') o.list = true;
   }
-  return opts;
+  return o;
 }
 
-function printHelp() {
-  console.log(`
-Cards For Cowboys - AI Simulation
-
-Usage:
-  node sim/simulate.js [options]
-
-Options:
-  --games N, -n N     Number of games to simulate (default: 1000)
-  --players N         Number of players (2-4, default: 2)
-  --p1 STRATEGY       P1 strategy name (default: default)
-  --p2 STRATEGY       P2 strategy name (default: default)
-  --p3 STRATEGY       P3 strategy name for 3P/4P (default: default)
-  --p4 STRATEGY       P4 strategy name for 4P (default: default)
-  --tournament, -t    Run all strategy combos against each other (2P only)
-  --random, -r        Random strategy pair/set each game
-  --list, -l          List available strategies
-  --verbose, -v       Print per-game results
-  --help, -h          Show this help
-
-Strategies: ${Object.keys(ai.STRATEGIES).join(', ')}
-`);
+// Accumulate per store-card ownership/win stats from one game's collections.
+function tallyCards(stat, collections, winnerIdx) {
+  collections.forEach((ids, pIdx) => {
+    const owned = new Set(ids.filter(id => id.startsWith('card_')));
+    for (const id of ids) if (id.startsWith('card_')) {
+      stat.copies[id] = (stat.copies[id] || 0) + 1;            // total copies bought
+    }
+    for (const id of owned) {
+      stat.owners[id] = (stat.owners[id] || 0) + 1;            // (player,game) slots owning >=1
+      if (pIdx === winnerIdx) stat.wins[id] = (stat.wins[id] || 0) + 1;
+    }
+  });
 }
 
-function resolveStrategy(key) {
-  if (key === 'default') key = 'moderate_balanced';
-  const s = ai.STRATEGIES[key];
-  if (!s) { console.error(`Unknown strategy: ${key}`); process.exit(1); }
-  return s;
+// Run `games` seeds of one lineup; return win counts + bust/herd + card stats.
+function runSeries(lineup, players, games, cardStat) {
+  const genomes = lineup.map(n => byName[n]);
+  const wins = new Array(lineup.length).fill(0);
+  const busts = new Array(lineup.length).fill(0);
+  const drawRounds = new Array(lineup.length).fill(0);
+  const herdSum = new Array(lineup.length).fill(0);
+  for (let s = 0; s < games; s++) {
+    const r = engine.runGame(genomes, players, s + 1, { detail: !!cardStat });
+    wins[r.winner]++;
+    for (let i = 0; i < lineup.length; i++) {
+      busts[i] += r.busts[i]; drawRounds[i] += r.drawRounds[i]; herdSum[i] += r.herds[i];
+    }
+    if (cardStat) tallyCards(cardStat, r.collections, r.winner);
+  }
+  return { wins, busts, drawRounds, herdSum, games };
 }
 
-// --- BUY ORDER ---
+function pct(x) { return (x * 100).toFixed(1); }
 
-// Returns player indices in buy order (non-busted only).
-// hasBuyBurnFirst players go first (sorted by player index = slot index in SP).
-// Remaining non-busted players ordered by determineBuyWinner tiebreaker.
-function computeBuyOrder(players) {
-  const nonBustedIdxs = players.map((_, i) => i).filter(i => !players[i].busted);
-
-  // In SP mode, playerOrder[i] = i (identity)
-  const playerOrder = players.map((_, i) => i);
-
-  // 5-8P doubled-deck rule: only ONE buy-first holder per round is honored (the first
-  // to activate = lowest index, since draws process in index order). Extra holders are
-  // demoted to normal order. Inert at ≤4P (a single card_14 → at most one holder).
-  const buyFirstIdxs = nonBustedIdxs
-    .filter(i => players[i].hasBuyBurnFirst)
-    .sort((a, b) => a - b);
-  const priorityIdxs = buyFirstIdxs.slice(0, 1);
-  const demotedIdxs = buyFirstIdxs.slice(1);
-
-  const normalIdxs = nonBustedIdxs
-    .filter(i => !players[i].hasBuyBurnFirst)
-    .concat(demotedIdxs)
-    .sort((a, b) => a - b);
-
-  let normalSorted;
-  if (normalIdxs.length <= 1) {
-    normalSorted = normalIdxs;
-  } else {
-    const subPlayers = normalIdxs.map(i => players[i]);
-    const subOrder = normalIdxs.map(i => playerOrder[i]);
-    const { winnerIdx } = determineBuyWinner(subPlayers, subOrder);
-    const winnerGlobalIdx = normalIdxs[winnerIdx];
-    const rest = normalIdxs
-      .filter(i => i !== winnerGlobalIdx)
-      .sort((a, b) => a - b);
-    normalSorted = [winnerGlobalIdx, ...rest];
+// --- 2P pairwise win matrix (each pair played in both seat orders) ---
+function winMatrix(games, cardStat) {
+  console.log(`\n=== 2P win matrix — ${games} games/pair, both seat orders (row beats column %) ===`);
+  const overall = Object.fromEntries(NAMES.map(n => [n, { w: 0, g: 0 }]));
+  const cell = {};
+  for (let i = 0; i < NAMES.length; i++) {
+    for (let j = i + 1; j < NAMES.length; j++) {
+      const A = NAMES[i], B = NAMES[j];
+      let aWins = 0, tot = 0;
+      const r1 = runSeries([A, B], 2, games, cardStat); aWins += r1.wins[0]; tot += games;
+      const r2 = runSeries([B, A], 2, games, cardStat); aWins += r2.wins[1]; tot += games;
+      cell[`${A}|${B}`] = aWins / tot;
+      cell[`${B}|${A}`] = 1 - aWins / tot;
+      overall[A].w += aWins;          overall[A].g += tot;
+      overall[B].w += tot - aWins;    overall[B].g += tot;
+    }
   }
-
-  return [...priorityIdxs, ...normalSorted];
+  console.log('vs'.padEnd(11) + NAMES.map(n => n.slice(0, 6).padStart(7)).join(''));
+  for (const A of NAMES) {
+    const row = NAMES.map(B => A === B ? '     —' : pct(cell[`${A}|${B}`]).padStart(7)).join('');
+    console.log(A.padEnd(11) + row);
+  }
+  console.log('\nOverall win% (vs the whole field):');
+  NAMES.map(n => ({ n, wr: overall[n].w / overall[n].g }))
+    .sort((a, b) => b.wr - a.wr)
+    .forEach(x => console.log(`  ${x.n.padEnd(11)} ${pct(x.wr).padStart(5)}%`));
 }
 
-// --- SINGLE GAME SIMULATION ---
-
-function simulateGame(strategies, numPlayers, verbose) {
-  core.resetUidCounter();
-
-  const players = [];
-  for (let i = 0; i < numPlayers; i++) {
-    players.push(core.createPlayer(`P${i + 1}`, strategies[i].name));
-  }
-
-  const result = {
-    herds: new Array(numPlayers).fill(0),
-    busts: new Array(numPlayers).fill(0),
-    roundsPlayed: new Array(numPlayers).fill(0),
-    purchases: Array.from({ length: numPlayers }, () => []),
-    actCows: Array.from({ length: numPlayers }, () => [0, 0, 0]),
-    strategies: strategies.map(s => s.name),
-    pyramidCards: [],
-    totalRounds: 0,
-    numPlayers,
-  };
-
-  for (let act = 1; act <= 3; act++) {
-    // Between acts: merge and reshuffle all cards
-    for (const player of players) {
-      const allCards = [...player.deck, ...player.discard, ...player.hand];
-      player.deck = core.shuffle(allCards);
-      player.discard = [];
-      player.hand = [];
+// --- 4P round-robin: each personality as focal + 3 rotating opponents ---
+function field4P(games, cardStat) {
+  console.log(`\n=== 4P win% — ${games} games each, focal + 3 rotating opponents (baseline 25%) ===`);
+  const rows = [];
+  for (const focal of NAMES) {
+    let wins = 0, busts = 0, draws = 0;
+    for (let s = 0; s < games; s++) {
+      const opps = [0, 1, 2].map(k => NAMES[(s * 3 + k + 1) % NAMES.length]);
+      const seat = s % 4;
+      const lineup = opps.slice(); lineup.splice(seat, 0, focal);
+      const r = engine.runGame(lineup.map(n => byName[n]), 4, s + 1, { detail: !!cardStat });
+      if (r.winner === seat) wins++;
+      busts += r.busts[seat]; draws += r.drawRounds[seat];
+      if (cardStat) tallyCards(cardStat, r.collections, r.winner);
     }
-
-    const pyramid = core.buildPyramid(act, numPlayers);
-
-    for (const row of pyramid) {
-      for (const slot of row) {
-        result.pyramidCards.push(slot.card.id);
-      }
-    }
-
-    let roundNum = 0;
-    const actStartHerd = players.map(p => p.herd);
-
-    while (!core.isPyramidEmpty(pyramid)) {
-      roundNum++;
-      result.totalRounds++;
-
-      // --- DRAW PHASE ---
-      for (let i = 0; i < numPlayers; i++) {
-        const drawResult = ai.executeDrawPhase(players[i], strategies[i], pyramid, act);
-        if (drawResult.busted) result.busts[i]++;
-        result.roundsPlayed[i]++;
-      }
-
-      // --- dollar1_other: all opponents of holder lose $1 ---
-      for (let i = 0; i < numPlayers; i++) {
-        const hasIt = players[i].hand.some(c => c.special === 'dollar1_other');
-        if (hasIt && !players[i].busted) {
-          for (let j = 0; j < numPlayers; j++) {
-            if (j !== i) {
-              players[j].roundDollars = Math.max(0, players[j].roundDollars - 1);
-            }
-          }
-        }
-      }
-
-      // --- BUY PHASE ---
-      const buyOrder = computeBuyOrder(players);
-
-      for (const playerIdx of buyOrder) {
-        if (core.isPyramidEmpty(pyramid)) break;
-        const player = players[playerIdx];
-
-        const decision = ai.chooseBuy(player, strategies[playerIdx], pyramid, act);
-        if (decision.action === 'buy') {
-          const slot = pyramid[decision.row][decision.col];
-          const card = slot.card;
-          player.discard.push(card);
-          slot.removed = true;
-          core.revealUncovered(pyramid);
-          result.purchases[playerIdx].push(card.id);
-        } else if (decision.action === 'burn') {
-          pyramid[decision.row][decision.col].removed = true;
-          core.revealUncovered(pyramid);
-        }
-
-        // Extra buy turn (from extra_buy card activation)
-        if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
-          player.extraBuyUsed = true;
-          const extraDecision = ai.chooseBuy(player, strategies[playerIdx], pyramid, act);
-          if (extraDecision.action === 'buy') {
-            const slot = pyramid[extraDecision.row][extraDecision.col];
-            player.discard.push(slot.card);
-            slot.removed = true;
-            core.revealUncovered(pyramid);
-            result.purchases[playerIdx].push(slot.card.id);
-          } else if (extraDecision.action === 'burn') {
-            pyramid[extraDecision.row][extraDecision.col].removed = true;
-            core.revealUncovered(pyramid);
-          }
-        }
-      }
-
-      // --- SCORE: add roundCows to herd ---
-      for (const player of players) {
-        if (!player.busted && player.roundCows !== 0) {
-          player.herd = Math.max(0, player.herd + player.roundCows);
-        }
-        player.discard.push(...player.hand);
-        player.hand = [];
-      }
-
-      if (verbose) {
-        const herds = players.map((p, i) => `P${i + 1}=${p.herd}`).join(' ');
-        console.log(`  Act ${act} R${roundNum}: ${herds}`);
-      }
-    }
-
-    for (let i = 0; i < numPlayers; i++) {
-      result.actCows[i][act - 1] = players[i].herd - actStartHerd[i];
-    }
+    rows.push({ focal, wr: wins / games, bust: busts / draws });
   }
-
-  // --- SHOWDOWN: score all cards remaining in each player's collection ---
-  // Mirrors play.js startShowdown(): totalCows + floor(totalDollars / 2) added to herd.
-  for (let i = 0; i < numPlayers; i++) {
-    const player = players[i];
-    const allCards = [...player.deck, ...player.discard, ...player.hand];
-    const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
-    const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
-    const bonusCows    = Math.floor(totalDollars / 2);
-    player.herd = Math.max(0, player.herd + totalCows + bonusCows);
-  }
-
-  for (let i = 0; i < numPlayers; i++) {
-    result.herds[i] = players[i].herd;
-  }
-  return result;
+  rows.sort((a, b) => b.wr - a.wr)
+    .forEach(x => console.log(`  ${x.focal.padEnd(11)} win ${pct(x.wr).padStart(5)}%   bust ${pct(x.bust).padStart(5)}%`));
 }
 
-// --- MAIN ---
-
-function runMatchup(stratKeys, numPlayers, numGames, verbose) {
-  const strategies = stratKeys.map(resolveStrategy);
-  const stats = new StatsCollector(strategies.map(s => s.name));
-
-  const startTime = Date.now();
-  for (let i = 0; i < numGames; i++) {
-    if (!verbose && i > 0 && i % 200 === 0) {
-      process.stdout.write(`\r  Running... ${i}/${numGames}`);
-    }
-    const result = simulateGame(strategies, numPlayers, verbose);
-    stats.recordGame(result);
-  }
-  const elapsed = Date.now() - startTime;
-
-  if (!verbose) process.stdout.write(`\r`);
-  console.log(`  Completed ${numGames} games in ${(elapsed / 1000).toFixed(2)}s (${(numGames / elapsed * 1000).toFixed(0)} games/sec)`);
-
-  return stats;
+// --- single detailed matchup ---
+function matchup(lineup, players, games, cardStat) {
+  for (const n of lineup) if (!byName[n]) { console.error(`unknown personality: ${n}`); process.exit(1); }
+  console.log(`\n=== ${lineup.join(' vs ')} — ${players}P, ${games} games ===`);
+  const r = runSeries(lineup, players, games, cardStat);
+  lineup.forEach((n, i) => console.log(
+    `  ${n.padEnd(11)} win ${pct(r.wins[i] / games).padStart(5)}%   ` +
+    `bust ${pct(r.busts[i] / r.drawRounds[i]).padStart(5)}%   avgHerd ${(r.herdSum[i] / games).toFixed(1)}`));
 }
 
+// --- card-balance table ---
+function cardTable(stat, csv) {
+  const rows = Object.keys(stat.owners).map(id => {
+    const c = STORE_BY_ID[id] || {};
+    return {
+      id, act: c.act ?? '?', cost: c.cost ?? '?',
+      cows: c.cows ?? 0, dollars: c.dollars ?? 0, bandits: c.bandits ?? 0,
+      special: c.special || '',
+      copies: stat.copies[id] || 0,
+      owners: stat.owners[id],
+      winRate: (stat.wins[id] || 0) / stat.owners[id],
+    };
+  }).sort((a, b) => b.winRate - a.winRate);
+
+  console.log(`\n=== Card balance — win% when owned (sorted; ${rows.length} store cards seen) ===`);
+  console.log('card'.padEnd(9) + 'act'.padStart(4) + 'cost'.padStart(5) +
+    'cow'.padStart(4) + '$'.padStart(3) + 'bndt'.padStart(5) + 'copies'.padStart(8) + ' win%   special');
+  for (const r of rows) {
+    console.log(
+      r.id.padEnd(9) + String(r.act).padStart(4) + String(r.cost).padStart(5) +
+      String(r.cows).padStart(4) + String(r.dollars).padStart(3) + String(r.bandits).padStart(5) +
+      String(r.copies).padStart(8) + pct(r.winRate).padStart(6) + '   ' + r.special);
+  }
+  console.log('\nReads: win% = of all (player,game) slots that owned ≥1 copy, the share that won.');
+  console.log('High win% + high copies = strong & popular. High win% + low copies = sleeper.');
+  console.log('~baseline = 1/numPlayers; far below it on a popular card is a balance flag.');
+
+  if (csv) {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const file = path.join(__dirname, 'results', `cardbalance_${ts}.csv`);
+    const lines = ['id,act,cost,cows,dollars,bandits,special,copies,owners,winRate'];
+    for (const r of rows) lines.push(
+      [r.id, r.act, r.cost, r.cows, r.dollars, r.bandits, r.special, r.copies, r.owners, r.winRate.toFixed(4)].join(','));
+    fs.writeFileSync(file, lines.join('\n'));
+    console.log(`\nCSV: ${file}`);
+  }
+}
+
+// --- main ---
 function main() {
-  const opts = parseArgs();
+  const o = parseArgs();
+  if (o.list) { console.log('Personalities:', NAMES.join(', ')); return; }
+  if (o.players < 2 || o.players > 4) { console.error('players must be 2–4'); process.exit(1); }
 
-  if (opts.list) {
-    console.log(`\nAvailable strategies (${Object.keys(ai.STRATEGIES).length} total):\n`);
-    console.log('Risk profiles:', Object.keys(ai.RISK_PROFILES).join(', '));
-    console.log('Buy preferences:', Object.keys(ai.BUY_PREFERENCES).join(', '));
-    console.log('\nAll combos (risk_buyPref):');
-    const keys = Object.keys(ai.STRATEGIES);
-    for (let i = 0; i < keys.length; i += 5) {
-      console.log('  ' + keys.slice(i, i + 5).join(', '));
-    }
-    console.log('');
-    return;
-  }
+  const cardStat = { copies: {}, owners: {}, wins: {} };
+  console.log('Cards For Cowboys — personality simulation (engine: personality-engine.js, real shipped bots)');
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-
-  if (opts.tournament) {
-    console.log(`\nTournament mode (2P): ${opts.games} games per matchup\n`);
-    const keys = Object.keys(ai.STRATEGIES);
-    const allResults = [];
-
-    for (let i = 0; i < keys.length; i++) {
-      for (let j = i; j < keys.length; j++) {
-        const s1 = ai.STRATEGIES[keys[i]];
-        const s2 = ai.STRATEGIES[keys[j]];
-        console.log(`\n${s1.name} vs ${s2.name}:`);
-        const stats = runMatchup([keys[i], keys[j]], 2, opts.games, opts.verbose);
-        const summary = stats.getSummary();
-        allResults.push(summary);
-        stats.printSummary();
-      }
-    }
-
-    // Tournament leaderboard (2P)
-    const wins = {};
-    for (const key of keys) wins[key] = 0;
-
-    for (const r of allResults) {
-      for (const key of keys) {
-        const name = ai.STRATEGIES[key].name;
-        const p0wr = r.playerWinRates[0];
-        const p1wr = r.playerWinRates[1];
-        if (r.strategyNames[0] === name && p0wr > p1wr) wins[key]++;
-        if (r.strategyNames[1] === name && p1wr > p0wr) wins[key]++;
-      }
-    }
-
-    console.log('\n' + '='.repeat(60));
-    console.log('TOURNAMENT LEADERBOARD');
-    console.log('='.repeat(60));
-    const sorted = Object.entries(wins).sort((a, b) => b[1] - a[1]);
-    for (const [key, w] of sorted) {
-      console.log(`  ${ai.STRATEGIES[key].name.padEnd(20)} ${w} matchup wins`);
-    }
-    console.log('');
-
-  } else if (opts.random) {
-    const numPlayers = opts.players;
-    console.log(`\nRandom mode: ${opts.games} games (${numPlayers}P, random strategies each game)\n`);
-    const keys = Object.keys(ai.STRATEGIES);
-    const stats = new StatsCollector(Array(numPlayers).fill('Random'));
-
-    const startTime = Date.now();
-    for (let i = 0; i < opts.games; i++) {
-      if (!opts.verbose && i > 0 && i % 200 === 0) {
-        process.stdout.write(`\r  Running... ${i}/${opts.games}`);
-      }
-      const stratKeys = Array.from({ length: numPlayers }, () => keys[Math.floor(Math.random() * keys.length)]);
-      const strategies = stratKeys.map(k => ai.STRATEGIES[k]);
-      const result = simulateGame(strategies, numPlayers, opts.verbose);
-      stats.recordGame(result);
-    }
-    const elapsed = Date.now() - startTime;
-    if (!opts.verbose) process.stdout.write(`\r`);
-    console.log(`  Completed ${opts.games} games in ${(elapsed / 1000).toFixed(2)}s (${(opts.games / elapsed * 1000).toFixed(0)} games/sec)`);
-
-    stats.printSummary();
-    stats.writeCSV(`random_${numPlayers}p_${timestamp}.csv`);
-    stats.writeSummary(`random_${numPlayers}p_${timestamp}.txt`);
-
+  if (o.matchup) {
+    matchup(o.matchup, o.players, o.games, cardStat);
+  } else if (!o.cardsOnly) {
+    if (o.players === 2) winMatrix(o.games, cardStat);
+    else field4P(o.games, cardStat);
   } else {
-    const numPlayers = opts.players;
-    const stratKeys = [opts.p1, opts.p2, opts.p3, opts.p4].slice(0, numPlayers);
-    const stratNames = stratKeys.map(k => k === 'default' ? 'moderate_balanced' : k).join('_vs_');
-    console.log(`\nSimulating ${opts.games} games (${numPlayers}P): ${stratNames}\n`);
-    const stats = runMatchup(stratKeys, numPlayers, opts.games, opts.verbose);
-    stats.printSummary();
-    stats.writeCSV(`${stratNames}_${numPlayers}p_${timestamp}.csv`);
-    stats.writeSummary(`${stratNames}_${numPlayers}p_${timestamp}.txt`);
+    // cards-only: still need games to populate stats — run a quiet round-robin
+    for (let i = 0; i < NAMES.length; i++)
+      for (let j = i + 1; j < NAMES.length; j++)
+        runSeries([NAMES[i], NAMES[j]], o.players, o.games, cardStat);
   }
+
+  cardTable(cardStat, o.csv);
 }
 
 main();
