@@ -5780,6 +5780,18 @@ function applyDebugScenario(name) {
     return NO_BANDIT_POOL.map(id => getCardById(id)).filter(Boolean);
   }
 
+  // 20 bandit-free, money-free (cows only) cards. Paired with an expensive Act 3
+  // store, an AI holding these never reaches its dollar target (dollarBuffer), so it
+  // keeps drawing to the hard 7-card hand cap in aiShouldDraw instead of banking early.
+  const NO_MONEY_POOL = [
+    'card_79', 'card_80', 'card_48', 'card_49', 'card_28', 'card_29',
+    'card_87', 'card_88', 'card_56', 'card_58', 'card_59', 'card_32',
+    'card_28', 'card_29', 'card_56', 'card_58', 'card_87', 'card_88', 'card_32', 'card_48',
+  ];
+  function noMoneyDeck() {
+    return NO_MONEY_POOL.map(id => getCardById(id)).filter(Boolean);
+  }
+
   const SCENARIOS = {
     near_showdown() {
       const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
@@ -5795,19 +5807,24 @@ function applyDebugScenario(name) {
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
 
-    // Maximum-on-screen stress test: 8 players (you + 7 AI), Act 2 (full 56-card
-    // pyramid), and every seat holds a 20-card bandit-free deck so nobody can bust —
-    // each player draws their whole deck into hand. Exercises the 8P opponent rail,
-    // pyramid fit/scaling, and big hand fans all at once. Just keep drawing.
+    // Maximum-on-screen stress test: 8 players (you + 7 AI), Act 3 (full 56-card
+    // pyramid drawn from the most EXPENSIVE store pool, cost 5-11). Nobody can bust
+    // (bandit-free decks). The human holds a varied 20-card deck and draws it all
+    // manually. The AI seats hold money-free (cows only) decks: against the costly
+    // store their dollar target is unreachable, so they draw to the hard 7-card hand
+    // cap (aiShouldDraw) instead of banking at ~5. Exercises the 8P opponent rail,
+    // pyramid fit/scaling, and big hand fans all at once. (AI can't exceed 7 cards —
+    // that cap is core AI logic, so ~20 is human-only.)
     stress_8p() {
       const players = [createPlayer('You', true, 0),
                        ...AI7.map((n, i) => createPlayer(n, false, i + 1))];
-      for (const p of players) p.deck = noBanditDeck();
+      players[0].deck = noBanditDeck();
+      for (let i = 1; i < players.length; i++) players[i].deck = noMoneyDeck();
       G = initState(8, players);
-      G.currentAct = 2;
+      G.currentAct = 3;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid(3);
       for (let i = 1; i <= 7; i++) initAiRng(i, DEBUG_SEED);
     },
 
