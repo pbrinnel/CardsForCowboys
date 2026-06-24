@@ -144,7 +144,17 @@ is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
 `MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
 (`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
 renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so 11 rows never clip
-(numPlayers>=5 only). **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
+(numPlayers>=5 only). **Short-viewport draw-phase fit (June 2026):** `fitPyramid` only downscales when
+its zone is height-bounded; the grid row auto-sizes to the pyramid, so without a cap `scale` computes
+to 1 and an 11-row pyramid (~640px) shoves the draw-phase hand below the fold on ≤900px-tall laptops
+(buy phase fits — its hand is smaller). Fix: `render()` toggles a `body.count-5plus` class
+(numPlayers>=5), and playgame.html caps `body.count-5plus.phase-draw #pyramid-zone { max-height:40vh }`
+inside `@media (min-width:1200px) and (max-height:900px)` (vh auto-scales: 360px@900 / 300px@750 /
+272px@680). The cap (with the zone's `overflow:hidden`) gives `fitPyramid` a bounded box so it actually
+scales the pyramid down and frees ~280px for the hand. Scoped to **draw phase + 5-8P only**: buy phase
+(needs the big clickable pyramid) and 2-4P (where `fitPyramid` is a no-op — a cap would just clip) are
+untouched. Count-agnostic for 5+: same cap, shorter pyramids (5P=8 rows … 8P=11) all exceed it and fit
+identically. **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
 desktop (`@media min-width:1200px`, grid in playgame.html) opponents are a fixed-width **scrolling
 rail** on the right — `#opponents-zone` spans grid rows "action/pyramid" + "player" (`grid-area:opp`),
 `position:sticky; max-height:calc(100vh-1rem); overflow-y:auto; flex-direction:column`. This decouples
@@ -198,7 +208,7 @@ layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: sp
 relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
 renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child(1..7)) + tags `.brick-offset` flat rows; calls fitPyramid() at the end
-fitPyramid()                       — 5-8P only: recenters + scales the pyramid to fit #pyramid-zone (width+height) so 11 rows never clip. No-op for 2-4P. Also runs on window resize.
+fitPyramid()                       — 5-8P only: recenters + scales the pyramid to fit #pyramid-zone (width+height) so 11 rows never clip. No-op for 2-4P. Also runs on window resize. NOTE: only downscales when the zone is height-bounded — on ≤900px-tall screens the `body.count-5plus.phase-draw #pyramid-zone {max-height:40vh}` cap (playgame.html) supplies that bound so the draw-phase hand stays on-screen (see 5-8P section).
 renderLog()                 ~1638
 setMessage(text)            ~1649
 setActions(buttons)         ~1653

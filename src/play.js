@@ -1826,6 +1826,11 @@ function render() {
   if (G.phase === 'draw') document.body.classList.add('phase-draw');
   else if (G.phase === 'buy' || G.phase === 'score') document.body.classList.add('phase-buy');
 
+  // Player-count class: lets CSS scope the short-viewport pyramid-zone height cap to
+  // 5-8P only (where the 11-row pyramid is tall enough to push the hand below the
+  // fold). fitPyramid is already a no-op at <5P, so the cap must not apply there.
+  document.body.classList.toggle('count-5plus', G.numPlayers >= 5);
+
   // Header
   document.getElementById('act-display').textContent = 'Act ' + G.currentAct;
   document.getElementById('round-display').textContent = 'Round ' + G.roundNumber;
