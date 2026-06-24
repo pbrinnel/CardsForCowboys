@@ -33,9 +33,30 @@ parameter-AI world you're competing against.
   `sim/search-b1-signal.js`.
   **Caveat:** this is the PERFECT-model upper bound (§6) — the search knows the opponent is enforcer.
   The shippable question is the REALISTIC (default) model, measured at scale in B2–B4.
-- **B2 → next:** add the default (realistic) opponent model + sweeps (`N ∈ {16,64,256}`,
-  `horizon ∈ {endOfRound,endOfAct,endOfGame}`); record win% AND rollouts/decision AND wall-time.
-  The perfect↔default gap is the headline scientific result.
+- **B2 ✅ (ablation + sweeps + cost):** harness `sim/search-bakeoff.js` (reusable head-to-head /
+  vs-field, 2P+4P, both models, cost metrics — also the B4 core).
+  - **Sweep (vs enforcer 2P, model-moot, 120 seeds, win% / cost):** `endOfRound` is **worthless**
+    (~52% at every N — the horizon heuristic can't see a buy's payoff that early). `endOfAct`:
+    N16 54.2 / N64 66.7 / N256 63.7 (plateaus ~N64). `endOfGame`: N16 55.0 / N64 67.9 / **N256 72.9**
+    — the only horizon with no value-bias, keeps scaling with N. Cost: N64 endOfAct 18ms/game,
+    N64 endOfGame 72ms, N256 endOfGame 294ms. **Takeaway: use `endOfGame`.**
+  - **Ablation — search vs FIELD, perfect vs default opponent model (§6), default=enforcer:**
+    | config | Δ2P (default) | 2P gap | Δ4P (default) | 4P gap |
+    |---|---|---|---|---|
+    | N64 endOfAct | +6.2pp (77.8 vs 70.6, n=3000) | 3.8pp | **+3.7pp** (46.7 vs 43.0, n=300) | 10.3pp |
+    | **N64 endOfGame** | **+5.9pp** (77.0 vs 71.1, n=2000) | 4.6pp | **+10.4pp** (53.2 vs 42.8, n=250) | 6.0pp |
+  - **Headline finding:** the `endOfAct` horizon-value heuristic (§7) was badly *undervaluing* 4P
+    play; switching to `endOfGame` lifts Δ4P from +3.7pp → **+10.4pp** while holding 2P. Under the
+    **realistic (default) model**, N64 `endOfGame` clears the proposed +5pp bar at **both** 2P (+5.9)
+    and 4P (+10.4) — point estimates; CIs at this seed count are ±~3pp (2P) / ±~9pp (4P), so B4
+    scale is needed to firm up "≥5pp". The perfect↔default gaps are modest (4.6 / 6.0pp) → the
+    search does **not** lean heavily on knowing opponents (good for generalization / shippability).
+  - **Cost / latency:** N64 endOfGame ≈ 6ms/decision (2P) / 14ms/decision (4P) — within the ~50ms
+    MP budget. N256 endOfGame ≈ 24/56ms (4P over budget). **Recommended bake-off config: N=64,
+    horizon=endOfGame.**
+- **B3 → next:** add draw-phase search (`searchShouldDraw`) — high-volume decisions, watch cost.
+  Does it add anything beyond buy-only (which already clears the bar)? Then B4 (scale, **bar
+  confirmation required first**).
 
 ---
 
@@ -220,8 +241,9 @@ budget at Route C (learned policy) or content/feature work.
   `searchChooseBuy`; draw stays heuristic. `N=64`, `horizon=endOfAct`, value=herd-margin, opponents =
   true genomes. **Beats enforcer 62.9% (CI excludes 50%); beats whole Hard field 68–73%.** See
   Progress log. Caveat: perfect-model upper bound — realistic model is B2.
-- **B2 — Ablation + sweeps + cost.** Add default-model rollouts. Sweep `N ∈ {16,64,256}`,
-  `horizon ∈ {endOfRound, endOfAct, endOfGame}`. Record win% AND rollouts/decision AND wall-time.
+- **B2 — Ablation + sweeps + cost.** ✅ **DONE.** Default-model rollouts + N×horizon sweep + cost.
+  **Result:** use `endOfGame`; N64 `endOfGame` clears the proposed +5pp bar at both 2P (+5.9) and
+  4P (+10.4) under the realistic model (point est.); perfect↔default gaps small. See Progress log.
 - **B3 — Add draw-phase search** (`searchShouldDraw`). Re-measure; draw decisions are higher-volume
   so watch the cost explode here.
 - **B4 — Bake-off at scale in the real arena.** Drop the best config into `search-bakeoff.js` and
@@ -242,7 +264,7 @@ budget at Route C (learned policy) or content/feature work.
 | `sim/test-resume-reproduction.js` | ✅ NEW (B0). Gate: golden bit-for-bit + resume/clone/mid-buy equivalence. |
 | `sim/search-ai.js` | ✅ B1 done: flat-MC `searchChooseBuy` + `makeSearchPolicy` (perfect/default oppModel, value fn, seeded rollout RNG). **TODO B3:** add `searchShouldDraw`. |
 | `sim/search-b1-signal.js` | ✅ NEW (B1). First-signal harness: search vs each pro head-to-head (2P), win% + cost. |
-| `sim/search-bakeoff.js` | TODO B4. Head-to-head harness (mirrors `simulate.js`) + cost metrics. |
+| `sim/search-bakeoff.js` | ✅ NEW (B2). Reusable head-to-head / vs-field harness (2P+4P, perfect/default model, `--mode sweep`/`ablate`) + cost metrics. Also the B4 core. |
 | `sim/evolve.js` | TODO B4. Allow a `__search` participant in `--coevolve` (compete in the same GA arena). |
 | `sim/AI_SEARCH_RESULTS.md` | TODO B5. The verdict. |
 
