@@ -5766,6 +5766,19 @@ function applyDebugScenario(name) {
   }
 
   const AI3 = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
+  const AI7 = ['Buffalo Bill', 'Jesse James', 'Wild Mary', 'Doc Holliday',
+               'Annie Oakley', 'Black Bart', 'Calamity Jane'];
+
+  // 20 bandit-free cards (mixed suits/values) → a deck nobody can bust on, so every
+  // seat can draw its whole deck into hand. Used by the 8-player stress scenario.
+  const NO_BANDIT_POOL = [
+    'starter_91', 'starter_92', 'starter_93', 'starter_94', 'starter_61', 'starter_33',
+    'card_79', 'card_80', 'card_48', 'card_49', 'card_28', 'card_29',
+    'card_87', 'card_88', 'card_55', 'card_90', 'card_52', 'card_53', 'card_26', 'card_27',
+  ];
+  function noBanditDeck() {
+    return NO_BANDIT_POOL.map(id => getCardById(id)).filter(Boolean);
+  }
 
   const SCENARIOS = {
     near_showdown() {
@@ -5780,6 +5793,22 @@ function applyDebugScenario(name) {
       G.pyramid = buildPyramid(3);
       nearEndPyramid(G.pyramid);
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+    },
+
+    // Maximum-on-screen stress test: 8 players (you + 7 AI), Act 2 (full 56-card
+    // pyramid), and every seat holds a 20-card bandit-free deck so nobody can bust —
+    // each player draws their whole deck into hand. Exercises the 8P opponent rail,
+    // pyramid fit/scaling, and big hand fans all at once. Just keep drawing.
+    stress_8p() {
+      const players = [createPlayer('You', true, 0),
+                       ...AI7.map((n, i) => createPlayer(n, false, i + 1))];
+      for (const p of players) p.deck = noBanditDeck();
+      G = initState(8, players);
+      G.currentAct = 2;
+      G.roundNumber = 1;
+      G.gameSeed = DEBUG_SEED;
+      G.pyramid = buildPyramid(2);
+      for (let i = 1; i <= 7; i++) initAiRng(i, DEBUG_SEED);
     },
 
     special_burn_to_use()        { makeSpecialScenario('card_77', 1); },
