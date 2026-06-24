@@ -5588,6 +5588,7 @@ function showCardHoverPreview(cardEl, card) {
   let top = rect.top;
   if (left + previewW > window.innerWidth) left = rect.left - previewW - 10;
   if (top + previewH > window.innerHeight) top = window.innerHeight - previewH - 8;
+  if (top < 8) top = 8;   // never clip the preview off the top of the viewport
   preview.style.left = left + 'px';
   preview.style.top = top + 'px';
   preview.classList.remove('hidden');

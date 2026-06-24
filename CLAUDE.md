@@ -155,7 +155,11 @@ screen). The desktop block also overrides `.opp-grid` back to a flex column and 
 back to side-by-side (rail tiles are ~290px, so deck-preview + fan read fine — no stacking needed
 there). On **narrow (<1200px)** the grid collapses to the single-column flex and opponents "drop
 below" your area via `order` (`#opponents-zone {order:6}`, after `#player-zone {order:5}`), so your
-draw controls + hand come first and opponents stack at the bottom. The narrow `.opp-grid` 2-col grid
+draw controls + hand come first and opponents stack at the bottom. **Opp card hover:** `.opp-zone
+.hand .card:hover` only bumps z-index + shadow — NO `translateY`/`scale` lift (the rail tiles'
+`overflow:hidden` would clip a lifted card's top); the big readable zoom is the floating
+`#card-hover-preview`, which `showCardHoverPreview` now also top-clamps (`top<8 → 8`) so it can't run
+off the top of the viewport. The narrow `.opp-grid` 2-col grid
 (5-8P) + `.hand-row` STACK (`flex-direction:column`, deck-preview on top, fan full-width) is still
 used <1200px — without the stack the fan fell back to a fixed 240px width and `overflow:hidden`
 clipped the entire hand away (the "8-player hands cut off" bug, June 2026; fix in `layoutOpponentFan`

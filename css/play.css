@@ -851,14 +851,14 @@ body.phase-draw #player-deck-preview {
 .opp-zone .hand .card {
   width: 52px;
   height: 73px;
-  /* slightly faster than the base card transition so the hover lift feels snappy */
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
-/* Lift the hovered card clear of its neighbours so it's fully readable in a
-   tight fan (the floating hover-preview also pops a large copy alongside). */
+/* Bring the hovered card fully in front of its fan neighbours so its small copy
+   reads, and shadow it for feedback. NO lift/scale transform: the tile's
+   overflow:hidden (needed to contain the fan) would clip a card pushed up/out,
+   cutting off its top. The floating #card-hover-preview is the actual zoom. */
 .opp-zone .hand .card:hover {
-  transform: translateY(-8px) scale(1.06);
   z-index: 600 !important;
   box-shadow: 0 6px 16px rgba(0,0,0,0.45);
 }
