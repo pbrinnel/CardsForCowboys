@@ -55,9 +55,11 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | File | Purpose |
 |------|---------|
 | `sim/TUNING.md` | **Read first.** How to validate/search/apply AI changes (the workflow). |
-| `sim/AI_SEARCH_BAKEOFF_PLAN.md` | **Next-phase plan (not built).** Lookahead/Monte-Carlo search AI as a drop-in competitor vs the param pros — with a pre-registered "is it worth the complexity?" bar. Handoff spec for a fresh session. |
+| `sim/AI_SEARCH_BAKEOFF_PLAN.md` | **Next-phase plan (IN PROGRESS — B0 done).** Lookahead/Monte-Carlo search AI as a drop-in competitor vs the param pros — with a pre-registered "is it worth the complexity?" bar. Has a Progress log; B1–B5 still to build. |
 | `sim/personalities.js` | **The 6 bots (data) — single source of truth, synced to play.js.** Consumed by every sim tool. |
-| `sim/personality-engine.js` | Shared AI decision layer + deterministic one-game `runGame` (mirrors play.js's live AI logic). Used by evolve/simulate/experiments. 2–4P only. |
+| `sim/personality-engine.js` | Shared AI decision layer + deterministic `runGame` (mirrors play.js's live AI logic). 2–4P only. **Also the resumable core (B0):** `createInitialState`/`continueGame(state,policies,horizon)`/`cloneState`/`gameResult`; `runGame` is now a thin wrapper. Genome path is byte-identical to pre-refactor. |
+| `sim/test-resume-reproduction.js` | B0 gate: `continueGame`/`cloneState` reproduce `runGame` bit-for-bit (golden + resume/clone/mid-buy checks). |
+| `sim/gen-golden.js` | Regenerates `sim/fixtures/golden-runGame.json` (the frozen runGame baseline). Only re-run if card stats / engine semantics legitimately change. |
 | `sim/evolve.js` | Genetic algorithm — SEARCHES param space for better genomes. Seeds gen-0 from `personalities.js`. `--coevolve` mode scores vs fixed Hard anchors + a Hall of Fame (strong-opponent fitness) instead of the whole field. |
 | `sim/ceiling-probe.js` | Phase-0 diagnostic: can a fresh GA candidate beat ONLY the Hard bots? Measures whether the current param space has headroom left. |
 | `sim/simulate.js` | VALIDATES current bots: pairwise win matrix + per-card balance table (win% when owned). Replaces the retired RISK_PROFILES sim. |

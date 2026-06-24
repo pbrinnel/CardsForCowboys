@@ -17,7 +17,12 @@ const { determineBuyWinner } = require('./tiebreaker');
 
 function makeLCG(seed) {
   let s = ((seed >>> 0) || 1);
-  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
+  const fn = () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
+  // State accessors for the resumable simulator (cloneState). Pure additions — the call
+  // behaviour of fn() is byte-identical to the original closure.
+  fn.getState = () => s;
+  fn.setState = (v) => { s = (v >>> 0); };
+  return fn;
 }
 
 function seededShuffle(arr, rng) {
@@ -419,7 +424,9 @@ function handleBust(player) {
 
 // ── BUY PHASE ────────────────────────────────────────────────────────────────
 
-function runBuyPhase(players, genomes, pyramid, act) {
+// Buy order for a round: hasBuyBurnFirst holder(s) first, then a tiebreaker-sorted field.
+// Pure (no rng, no mutation) — used by both runBuyPhase and the resumable continueGame.
+function computeBuyOrder(players) {
   const playerOrder = players.map((_, i) => i);
   const nonBusted = playerOrder.filter(i => !players[i].busted);
 
@@ -443,22 +450,29 @@ function runBuyPhase(players, genomes, pyramid, act) {
     normalSorted = [winnerGlobalIdx, ...rest];
   }
 
-  const buyOrder = [...priority, ...normalSorted];
+  return [...priority, ...normalSorted];
+}
 
-  for (const playerIdx of buyOrder) {
+// One buyer's full turn: primary buy/burn + the granted extra-buy turn (if held). No rng.
+function processBuyer(player, genome, pyramid, act, players) {
+  const decision = chooseBuy(player, genome, pyramid, act, players);
+  applyBuyDecision(player, decision, pyramid);
+
+  // Extra buy turn
+  if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
+    player.extraBuyUsed = true;
+    const extraDecision = chooseBuy(player, genome, pyramid, act, players);
+    applyBuyDecision(player, extraDecision, pyramid);
+  }
+}
+
+function runBuyPhase(players, genomes, pyramid, act) {
+  const buyOrder = computeBuyOrder(players);
+  let cursor = 0;
+  while (cursor < buyOrder.length) {
     if (core.isPyramidEmpty(pyramid)) break;
-    const player = players[playerIdx];
-    const genome = genomes[playerIdx];
-
-    const decision = chooseBuy(player, genome, pyramid, act, players);
-    applyBuyDecision(player, decision, pyramid);
-
-    // Extra buy turn
-    if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
-      player.extraBuyUsed = true;
-      const extraDecision = chooseBuy(player, genome, pyramid, act, players);
-      applyBuyDecision(player, extraDecision, pyramid);
-    }
+    processBuyer(players[buyOrder[cursor]], genomes[buyOrder[cursor]], pyramid, act, players);
+    cursor++;
   }
 }
 
@@ -474,53 +488,20 @@ function applyBuyDecision(player, decision, pyramid) {
   }
 }
 
-// ── GAME RUNNER ──────────────────────────────────────────────────────────────
+// ── ROUND / SHOWDOWN SCORING (extracted for the resumable core) ────────────────
 
-function runGame(genomes, numPlayers, seed, opts = {}) {
-  core.resetUidCounter();
-  const rng = makeLCG(seed);
-
-  const players = genomes.map((g, i) => createPlayerSeeded(`P${i}`, rng));
-
-  // Per-player diagnostics for the draw-cap experiment.
-  const busts     = new Array(players.length).fill(0); // rounds ending in a bust
-  const drawRounds = new Array(players.length).fill(0); // rounds the player actually drew
-
-  for (let act = 1; act <= 3; act++) {
-    // Between acts: merge and reshuffle all cards (seeded)
-    for (const player of players) {
-      const allCards = [...player.deck, ...player.discard, ...player.hand];
-      player.deck = seededShuffle(allCards, rng);
-      player.discard = [];
-      player.hand = [];
+function scoreRound(players) {
+  for (const player of players) {
+    if (!player.busted && player.roundCows !== 0) {
+      player.herd = Math.max(0, player.herd + player.roundCows);
     }
-
-    const pyramid = buildPyramidSeeded(act, numPlayers, rng);
-
-    for (let round = 1; round <= 5; round++) {
-      runDrawPhase(players, genomes, pyramid, act, rng);
-
-      // Diagnostics: tally busts before the buy phase / round reset. A player with cards
-      // in hand drew this round (hand is pushed to discard during scoring, below).
-      for (let i = 0; i < players.length; i++) {
-        if (players[i].hand.length > 0) drawRounds[i]++;
-        if (players[i].busted) busts[i]++;
-      }
-
-      runBuyPhase(players, genomes, pyramid, act);
-
-      // Score round
-      for (const player of players) {
-        if (!player.busted && player.roundCows !== 0) {
-          player.herd = Math.max(0, player.herd + player.roundCows);
-        }
-        player.discard.push(...player.hand);
-        player.hand = [];
-      }
-    }
+    player.discard.push(...player.hand);
+    player.hand = [];
   }
+}
 
-  // Showdown: count all cards in each player's collection
+// Showdown: count all cards in each player's collection + the floor(dollars/2) bonus cows.
+function applyShowdown(players) {
   for (const player of players) {
     const allCards = [...player.deck, ...player.discard, ...player.hand];
     const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
@@ -528,13 +509,189 @@ function runGame(genomes, numPlayers, seed, opts = {}) {
     const bonusCows    = Math.floor(totalDollars / 2);
     player.herd = Math.max(0, player.herd + totalCows + bonusCows);
   }
+}
 
+// ── RESUMABLE SIMULATOR CORE ───────────────────────────────────────────────────
+//
+// The game is a phase state machine that can be paused, cloned, and resumed under
+// arbitrary per-seat policies (see AI_SEARCH_BAKEOFF_PLAN.md §4a). runGame is now a thin
+// wrapper: createInitialState → continueGame(…, 'endOfGame') → gameResult.
+//
+// State shape:
+//   { numPlayers, genomes, players[], act, round, phase, pyramid, buyOrder, buyCursor,
+//     busts[], drawRounds[], seed, rng }
+// phase ∈ 'nextAct' | 'draw' | 'buy' | 'score' | 'showdown' | 'done'.
+//
+// The RNG lives IN the state (not a separate param) so cloneState captures it atomically.
+// Rollouts MUST replace the clone's rng with their own deterministically-seeded LCG (RNG
+// hygiene, §4b) — cloneState gives the clone an INDEPENDENT LCG so it can never perturb the
+// live game's RNG.
+
+function createInitialState(genomes, numPlayers, seed) {
+  core.resetUidCounter();
+  const rng = makeLCG(seed);
+  const players = genomes.map((g, i) => createPlayerSeeded(`P${i}`, rng));
+  return {
+    numPlayers,
+    genomes,                                       // default policies, one per seat
+    players,
+    act: 0,
+    round: 0,
+    phase: 'nextAct',
+    pyramid: null,
+    buyOrder: null,
+    buyCursor: 0,
+    busts:      new Array(players.length).fill(0), // rounds ending in a bust
+    drawRounds: new Array(players.length).fill(0), // rounds the player actually drew
+    seed,
+    rng,
+  };
+}
+
+// Advance `state` in place from its current phase to `horizon`.
+//   horizon 'endOfRound' — stop after the current round's scoring completes.
+//   horizon 'endOfAct'   — stop after the current act's 5th round completes.
+//   horizon 'endOfGame'  — run all 3 acts + showdown (state.phase ends 'done').
+// `policies` (one per seat) drive draw/buy decisions; defaults to the state's own genomes.
+// Returns the (mutated) state.
+function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
+  const rng = state.rng;
+  while (state.phase !== 'done') {
+    switch (state.phase) {
+      case 'nextAct': {
+        if (state.act === 3) { state.phase = 'showdown'; break; }
+        state.act++;
+        // Between acts: merge and reshuffle all cards (seeded). Runs for act 1 too —
+        // it reshuffles the starter deck once more (matches the original act loop).
+        for (const player of state.players) {
+          const allCards = [...player.deck, ...player.discard, ...player.hand];
+          player.deck = seededShuffle(allCards, rng);
+          player.discard = [];
+          player.hand = [];
+        }
+        state.pyramid = buildPyramidSeeded(state.act, state.numPlayers, rng);
+        state.round = 1;
+        state.phase = 'draw';
+        break;
+      }
+      case 'draw': {
+        runDrawPhase(state.players, policies, state.pyramid, state.act, rng);
+        // Diagnostics: tally before the buy phase. A player with cards in hand drew this round.
+        for (let i = 0; i < state.players.length; i++) {
+          if (state.players[i].hand.length > 0) state.drawRounds[i]++;
+          if (state.players[i].busted) state.busts[i]++;
+        }
+        state.buyOrder = computeBuyOrder(state.players);
+        state.buyCursor = 0;
+        state.phase = 'buy';
+        break;
+      }
+      case 'buy': {
+        // Resumable: a cloned state may enter mid-phase with buyCursor > 0.
+        while (state.buyCursor < state.buyOrder.length) {
+          if (core.isPyramidEmpty(state.pyramid)) break;
+          const pIdx = state.buyOrder[state.buyCursor];
+          processBuyer(state.players[pIdx], policies[pIdx], state.pyramid, state.act, state.players);
+          state.buyCursor++;
+        }
+        state.phase = 'score';
+        break;
+      }
+      case 'score': {
+        scoreRound(state.players);
+        const finishedAct = (state.round === 5);
+        if (finishedAct) { state.phase = 'nextAct'; }
+        else { state.round++; state.phase = 'draw'; }
+        if (horizon === 'endOfRound') return state;
+        if (horizon === 'endOfAct' && finishedAct) return state;
+        break;
+      }
+      case 'showdown': {
+        applyShowdown(state.players);
+        state.phase = 'done';
+        break;
+      }
+    }
+  }
+  return state;
+}
+
+// ── CLONE ──────────────────────────────────────────────────────────────────────
+
+function cloneCard(c) {
+  return {
+    uid: c.uid, id: c.id, dollars: c.dollars, cows: c.cows, bandits: c.bandits,
+    cacti: c.cacti, cost: c.cost, special: c.special, act: c.act, minPlayers: c.minPlayers,
+  };
+}
+
+function clonePlayer(p) {
+  // Clone every card by value, keyed by uid, so the copyNext references can be re-pointed
+  // at the CLONE's card instances (not the originals). This is the classic clone trap:
+  // copyNextCard/copyNextDonor alias cards living in hand/discard.
+  const byUid = new Map();
+  const cloneArr = (arr) => arr.map(c => { const cc = cloneCard(c); byUid.set(c.uid, cc); return cc; });
+  const deck    = cloneArr(p.deck);
+  const discard = cloneArr(p.discard);
+  const hand    = cloneArr(p.hand);
+  const remap = (ref) => ref ? (byUid.get(ref.uid) || cloneCard(ref)) : null;
+  return {
+    name: p.name,
+    personality: p.personality,
+    deck, discard, hand,
+    herd: p.herd,
+    roundDollars: p.roundDollars,
+    roundCows: p.roundCows,
+    roundBandits: p.roundBandits,
+    busted: p.busted,
+    stoppedDrawing: p.stoppedDrawing,
+    copyNextActive: p.copyNextActive,
+    copyNextCard: remap(p.copyNextCard),
+    copyNextDonor: remap(p.copyNextDonor),
+    hasBuyBurnFirst: p.hasBuyBurnFirst,
+    hasExtraBuy: p.hasExtraBuy,
+    extraBuyUsed: p.extraBuyUsed,
+  };
+}
+
+function clonePyramid(pyramid) {
+  return pyramid.map(row => row.map(slot => ({
+    card: cloneCard(slot.card), faceUp: slot.faceUp, removed: slot.removed,
+  })));
+}
+
+// Deep copy of the resumable state. genomes are read-only data → shared by reference.
+// The clone gets an INDEPENDENT LCG positioned at the same internal state (so resuming the
+// clone reproduces the original's continuation exactly, and the original is never perturbed).
+function cloneState(state) {
+  const rng = makeLCG(0);
+  rng.setState(state.rng.getState());
+  return {
+    numPlayers: state.numPlayers,
+    genomes: state.genomes,
+    players: state.players.map(clonePlayer),
+    act: state.act,
+    round: state.round,
+    phase: state.phase,
+    pyramid: state.pyramid ? clonePyramid(state.pyramid) : null,
+    buyOrder: state.buyOrder ? [...state.buyOrder] : null,
+    buyCursor: state.buyCursor,
+    busts: [...state.busts],
+    drawRounds: [...state.drawRounds],
+    seed: state.seed,
+    rng,
+  };
+}
+
+// ── GAME RESULT + RUNNER ─────────────────────────────────────────────────────────
+
+function gameResult(state, opts = {}) {
+  const players = state.players;
   const herds = players.map(p => p.herd);
   const maxHerd = Math.max(...herds);
-  // Winner = highest herd; ties go to lower player index
+  // Winner = highest herd; ties go to lower player index.
   const winner = herds.indexOf(maxHerd);
-
-  const result = { herds, winner, busts, drawRounds };
+  const result = { herds, winner, busts: state.busts, drawRounds: state.drawRounds };
   // opts.detail: per-player final card-id collections, for card-balance analysis
   // (simulate.js). Off by default so the GA hot path stays lean.
   if (opts.detail) {
@@ -544,8 +701,17 @@ function runGame(genomes, numPlayers, seed, opts = {}) {
   return result;
 }
 
+function runGame(genomes, numPlayers, seed, opts = {}) {
+  const state = createInitialState(genomes, numPlayers, seed);
+  continueGame(state, genomes, 'endOfGame');
+  return gameResult(state, opts);
+}
+
 module.exports = {
   makeLCG, seededShuffle, calcBustProb, scoreCard, pyramidRevealBonus, getBestCost,
   shouldDraw, chooseBuy, drawFromDeckSeeded, buildPyramidSeeded, createPlayerSeeded,
-  runDrawPhase, handleBust, runBuyPhase, applyBuyDecision, runGame,
+  runDrawPhase, handleBust, computeBuyOrder, processBuyer, runBuyPhase, applyBuyDecision,
+  scoreRound, applyShowdown, runGame,
+  // Resumable simulator core (B0) — shared with the search AI + trajectory value oracle.
+  createInitialState, continueGame, cloneState, clonePlayer, clonePyramid, gameResult,
 };

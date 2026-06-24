@@ -1,8 +1,26 @@
 # AI Search Bake-Off — Next-Phase Plan (Route B: lookahead / Monte-Carlo)
 
-**Status:** PLAN ONLY. Nothing here is built. This is a self-contained handoff for a fresh
-Claude session. Read [`TUNING.md`](TUNING.md) and [`AI_PERSONALITIES.md`](AI_PERSONALITIES.md)
-first for the existing parameter-AI world you're competing against.
+**Status:** IN PROGRESS. **B0 is DONE and green** (the resumable simulator + reproduction gate);
+B1–B5 not yet built. This is a self-contained handoff for a fresh Claude session. Read
+[`TUNING.md`](TUNING.md) and [`AI_PERSONALITIES.md`](AI_PERSONALITIES.md) first for the existing
+parameter-AI world you're competing against.
+
+### Progress log
+- **B0 ✅ (done):** `personality-engine.js` refactored to a resumable phase state machine —
+  `createInitialState` → `continueGame(state, policies, horizon)` → `gameResult`, with `runGame`
+  now a thin wrapper. `cloneState` deep-copies players/pyramid (re-pointing the `copyNextCard`/
+  `copyNextDonor` aliases at the clone's own card instances) and gives the clone an **independent
+  LCG** positioned at the same internal state (so a fork can never perturb the live RNG — §4b).
+  The RNG lives *in* the state (cloneState captures it atomically) rather than being a separate
+  param; horizon ∈ `endOfRound | endOfAct | endOfGame`; the buy phase is resumable via
+  `buyCursor` (the search's clone point). **Gate:** `node sim/test-resume-reproduction.js` — golden
+  bit-for-bit (1350 games) + round/act-granular resume ≡ runGame + clone independence (3000 forks,
+  originals unperturbed) + mid-buy resumption + copy-next remap unit. Regression: `simulate.js`
+  (2P+4P), `draw-cap-experiment.js` outputs **byte-identical** to pre-refactor; sync/evolve/ceiling
+  smoke green. New files: `sim/gen-golden.js`, `sim/fixtures/golden-runGame.json`,
+  `sim/test-resume-reproduction.js`.
+- **B1 → next:** buy-phase-only flat MC search (`sim/search-ai.js` `searchChooseBuy`), perfect
+  model, `N=64`, `horizon=endOfAct`, value=herd-margin. First signal: beat enforcer head-to-head?
 
 ---
 
@@ -180,8 +198,9 @@ budget at Route C (learned policy) or content/feature work.
 
 ## 10. Phased plan for the next session
 
-- **B0 — Resumable simulator + clone (enabling refactor).** `cloneState`, `continueGame`, refactor
-  `runGame` to wrap it. Reproduction regression test (bit-for-bit vs current `runGame`). *No AI yet.*
+- **B0 — Resumable simulator + clone (enabling refactor).** ✅ **DONE & green.** `cloneState`,
+  `continueGame`, `runGame` wraps it. Reproduction gate (`test-resume-reproduction.js`) passes
+  bit-for-bit; all consumer tools byte-identical. *No AI yet.* See Progress log above.
 - **B1 — Buy-phase-only search, perfect model.** `sim/search-ai.js` `searchChooseBuy`; draw stays
   heuristic. `N=64`, `horizon=endOfAct`, value=herd-margin, opponents = true genomes. First signal:
   does it beat enforcer head-to-head at all?
@@ -201,12 +220,14 @@ budget at Route C (learned policy) or content/feature work.
 
 | File | Action |
 |---|---|
-| `sim/personality-engine.js` | Refactor to resumable core (`cloneState`, `continueGame`); add `__search` dispatch in draw/buy phases. **Genome path must stay byte-identical.** |
-| `sim/search-ai.js` | NEW. `searchChooseBuy` / `searchShouldDraw`, rollout driver, value fn, seeded rollout RNG. |
-| `sim/search-bakeoff.js` | NEW. Head-to-head harness (mirrors `simulate.js`) + cost metrics. |
-| `sim/evolve.js` | Allow a `__search` participant in `--coevolve` (compete in the same GA arena). |
-| `sim/test-resume-reproduction.js` | NEW. B0 gate: `continueGame` ≡ `runGame` over many seeds. |
-| `sim/AI_SEARCH_RESULTS.md` | NEW (B5). The verdict. |
+| `sim/personality-engine.js` | ✅ B0 done: refactored to resumable core (`createInitialState`/`continueGame`/`cloneState`/`gameResult`). **TODO B1:** add `__search` dispatch in draw/buy phases. Genome path stayed byte-identical. |
+| `sim/gen-golden.js` | ✅ NEW (B0). Regenerates the frozen golden snapshot (run on the reference engine). |
+| `sim/fixtures/golden-runGame.json` | ✅ NEW (B0). Frozen runGame output (1350 games) — the regression baseline. |
+| `sim/test-resume-reproduction.js` | ✅ NEW (B0). Gate: golden bit-for-bit + resume/clone/mid-buy equivalence. |
+| `sim/search-ai.js` | TODO B1. `searchChooseBuy` / `searchShouldDraw`, rollout driver, value fn, seeded rollout RNG. |
+| `sim/search-bakeoff.js` | TODO B4. Head-to-head harness (mirrors `simulate.js`) + cost metrics. |
+| `sim/evolve.js` | TODO B4. Allow a `__search` participant in `--coevolve` (compete in the same GA arena). |
+| `sim/AI_SEARCH_RESULTS.md` | TODO B5. The verdict. |
 
 Leave the live game (`src/play.js`) **untouched** until/unless B5 says ship — and then only after
 solving §4c. This whole effort is sim-side until the verdict is in.

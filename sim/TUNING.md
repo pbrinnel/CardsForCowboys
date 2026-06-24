@@ -25,8 +25,12 @@ thousands of times headlessly and reports aggregates.
 ```
 personalities.js        ← THE 6 BOTS (data). Single source of truth, synced to play.js.
 personality-engine.js   ← AI decisions + one-game runner. Same logic as the live game.
+                          Also the RESUMABLE CORE: createInitialState/continueGame/cloneState/
+                          gameResult (runGame is now a thin wrapper). Used by the search-AI
+                          bake-off (AI_SEARCH_BAKEOFF_PLAN.md) + the trajectory value oracle.
 game-core.js            ← card DB, pyramid build, card effects (lower level).
 tiebreaker.js           ← buy-order tiebreak (shared with the live game).
+test-resume-reproduction.js ← B0 gate: continueGame/cloneState reproduce runGame bit-for-bit.
 
 evolve.js               ← genetic algorithm: SEARCHES param space for better genomes.
 simulate.js             ← VALIDATES current bots: win matrix + per-card balance table.
