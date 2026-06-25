@@ -23,12 +23,14 @@ This closes the question the prior session opened: the 14-parameter genome was e
 (coevolution converged to `enforcer` and couldn't out-design the Hard bots), so the only way left to
 play *better* was a capability the genome can't express — actual lookahead. **It works.**
 
-**Recommendation: ship-worthy.** The verdict is positive — Route B is real, not a perfect-info
-artifact. Recommend adopting the N64 `endOfGame` search as a new top-difficulty AI **in solo /
-all-AI-opponent games** (where it's deterministic and shippable as-is). Live **human-MP** ship is
-gated on a shared-info rollout (§4c, below) — a separate effort that touches `src/play.js`. Do **not**
-treat this doc as authorization to modify the live game; shipping is its own phase with its own
-MP-determinism gate.
+**Recommendation: ship-worthy, and viable for human-v-human-v-AI.** The verdict is positive — Route B
+is real, not a perfect-info artifact. The config that passed (N64 `endOfGame`, **default** opponent
+model) is exactly the one usable against humans, and the information its rollouts need is **already
+shared** across clients by `drawState` (ordered hand/deck/discard). The decision is uid/representation
+-invariant (proven), so all clients compute the same move — the MP-determinism prerequisite holds.
+What's left is **engineering, not algorithm**: port the resumable engine into `play.js`, add a live
+`drawState`-timing gate, and verify with two-tab MP testing (§4c below). This doc is **not**
+authorization to modify the live game — shipping is its own phase with its own MP-determinism gate.
 
 ---
 
@@ -132,25 +134,40 @@ inside a ~50 ms live-play budget. N=256 buys a few more pp but pushes 4P past th
 
 ## Shippability (§4c) — important caveats
 
-The offline bake-off answers "is search worth it?" cleanly. **Shipping it into the live game has a
+The offline bake-off answers "is search worth it?" cleanly. **Shipping into the live game has a
 determinism constraint** the bake-off doesn't exercise: every client runs every AI locally with no
 broadcast, so an AI seat's decision must be identical on all clients (or MP desyncs — the same reason
-the `card_4` swap AI is pyramid-only).
+the `card_4` swap AI is pyramid-only). The good news (after checking the live sync) is that the
+**information the rollout needs is already shared**, so the strength result carries to human MP:
 
-- **Solo / all-AI-opponent games:** every client reconstructs all AI decks deterministically
-  (seeded LCG keyed by `gameSeed`+slot), and the search's rollout seeds are already derived from
-  shared state → the search is **deterministic and shippable as-is** here. This is the "play vs AI"
-  path most players use.
-- **MP with human opponents:** a human's *future* draws use `Math.random` and are not shared, so an
-  `endOfGame` rollout that simulates future human draws would diverge across clients. To ship into
-  human MP, the rollout must simulate opponents from **shared/derivable info only** (known card sets
-  = starters + observed buys, reshuffled with a *shared* seed), not the true hidden deck order. That
-  is additional engineering, not done here. (Exact requirements depend on what `drawState` syncs —
-  verify before building.)
-- The **default opponent model is already the shippable one** (no peeking at opponents' genomes), and
-  its small perfect↔default gap means we lose little by using it.
+- **What's shared across clients at an AI's buy turn:** the pyramid (via `actSetup`), public herds,
+  every AI seat's state (seed-reconstructable), and — critically — **every human's full
+  `hand`/`deck`/`discard` as ordered card-id arrays** (`src/play.js` `pushDrawState`). So every client
+  builds an *identical* clone. Future draws *inside* a rollout use the **shared-seeded** rollout LCG
+  (not a human's real `Math.random`), so they're identical across clients too. The search never
+  consumes a human's true future draws — only a shared fiction.
+- **Representation-invariance proven:** the buy decision is identical under hard `uid` relabeling
+  (`sim/test-search-mp-determinism.js`, 168 decisions) — it depends only on ids/order/stats + shared
+  seeds, exactly what `drawState` makes identical. This is the MP-determinism prerequisite, and it holds.
+- **Use the DEFAULT opponent model** vs humans (you can't know a human's "genome") — which is exactly
+  the model that passed B4 (+7.2 / +8.0pp). So the human-MP-relevant number is *already measured*.
+- **Remaining gates (engineering, not algorithmic):**
+  1. **Live timing** — guarantee each human's *final* pre-buy `drawState` has propagated identically
+     to all clients before each runs the AI buy turn (gate it like the existing `drawDone` barrier).
+     Verifiable only in a two-tab live test (the ship-phase MP-determinism gate).
+  2. **Porting** — the search runs on the sim's resumable engine (`personality-engine.js`); the live
+     game has its own parallel AI in `play.js`. Shipping means getting the resumable clone/rollout
+     machinery into the browser — ideally by unifying `play.js` + sim onto one engine (today they're
+     hand-synced). Non-trivial.
+  3. **Clairvoyance (optional)** — rollouts use opponents' synced *deck order*, so the AI "knows"
+     their near-future draws (shared info, not cheating, and washed out by reshuffles — but it could
+     feel strong). A shared-seed reshuffle of opponents' decks removes it; measure the strength cost
+     if desired.
 
-**Net:** ship-ready for solo/all-AI difficulty; live human-MP needs the shared-info rollout first.
+**Net:** the algorithm is **MP-safe for human-v-human-v-AI** (default model, shared info,
+uid-invariant). Actually shipping it is a follow-on engineering project — port the resumable engine
+into `play.js` + add the live drawState-timing gate + two-tab determinism testing — **not done here**
+(this effort is sim-side per the plan; the live game is untouched).
 
 ---
 
@@ -161,19 +178,22 @@ realistic (default) opponent model, CIs excluding 0.** Route B is validated — 
 real skill the exhausted 14-parameter genome cannot, and the edge is not a perfect-information
 artifact (the perfect↔default gap is only ~5pp, and the *default* model is what passed).
 
-**Recommendation — ship-worthy, in stages:**
-1. **Now (no live-game changes in this effort):** adopt **N64 `endOfGame`** as the canonical search
-   config. It clears the bar at affordable latency (~6 ms/decision 2P, ~14 ms 4P).
-2. **Solo / all-AI-opponent games:** shippable as a new hardest-difficulty AI essentially as-is —
-   deterministic across clients because all AI decks are seed-reconstructable and the rollout seeds
-   are already shared. This is the high-value, low-risk first ship.
-3. **Live human-MP:** gated on the **shared-info rollout** (§4c) — simulate opponents from
-   shared/derivable info (known card sets + shared-seed reshuffles) instead of true hidden deck order,
-   so all clients compute the identical decision. Additional engineering; verify what `drawState`
-   syncs first.
+**Recommendation — ship-worthy, including for human-v-human-v-AI:**
+1. **Config:** adopt **N64 `endOfGame`, default opponent model**. Clears the bar at affordable
+   latency (~6 ms/decision 2P, ~14 ms 4P), and is the MP-correct model (no peeking at human "genomes").
+2. **MP-safety is established at the algorithm level:** the rollout uses only info `drawState` already
+   shares (ordered hand/deck/discard) + shared-seeded RNG, and the decision is uid/representation
+   -invariant (proven). All clients compute the same move. Solo / all-AI games are the simplest case;
+   human-v-human-v-AI is viable under the same model.
+3. **The actual ship is a follow-on engineering project** (touches `src/play.js`, NOT done here):
+   - Port the resumable engine + search into the browser (ideally unify `play.js` + the sim onto one
+     engine, instead of the current hand-synced parallel implementations).
+   - Add a live `drawState`-timing gate: don't run the AI buy turn until each human's final pre-buy
+     `drawState` has propagated identically to all clients (mirror the existing `drawDone` barrier).
+   - Verify with two-tab live MP testing (the §4c MP-determinism gate).
+   - Optional: decide on the clairvoyance question (use synced deck order vs shared-seed reshuffle).
 
-Shipping is a **separate phase** with its own MP-determinism gate (plan §4c) and is the only part
-that touches `src/play.js`. This bake-off is sim-side and complete.
+This bake-off is sim-side and complete; shipping is a separate phase with its own MP-determinism gate.
 
 **If instead the goal is to leave the live AI alone:** the search still pays off as an **offline
 oracle** — a stronger-than-pro reference for scoring human trajectories
