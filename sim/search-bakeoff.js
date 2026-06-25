@@ -143,6 +143,41 @@ function runAblate(o) {
   console.log(`the default model at scale (B4) — this is a B2 directional read on a moderate seed set.`);
 }
 
+// ── B4 scale verdict ────────────────────────────────────────────────────────────
+// 95% CI half-width for the DIFFERENCE of two win-rates (normal approx, treated independent —
+// conservative since search & pro share seeds, so the paired difference has lower variance).
+const diffCI = (p1, n1, p2, n2) => 1.96 * Math.sqrt(p1 * (1 - p1) / n1 + p2 * (1 - p2) / n2);
+
+function runVerdict(o) {
+  const BAR = 5.0;  // frozen with the user: Δ point-est ≥ +5pp at BOTH 2P & 4P, default model, CI excl 0
+  console.log(`\n=== B4 SCALE VERDICT — realistic (default) opponent model ===`);
+  console.log(`config: N=${o.N}, horizon=${o.horizon}, branchCap=${o.branchCap}, default=${o.def}`);
+  console.log(`FROZEN BAR: Δ point-estimate ≥ +${BAR}pp at BOTH 2P and 4P (default model), 95% CI excluding 0.`);
+  console.log(`(Robustness — positive across N/horizon — established by the B2 sweep + endOfAct/endOfGame ablation.)\n`);
+  const spec = searchSpec(o.N, o.horizon, 'default', o.branchCap, o.def);
+
+  console.log(`2P vs field — ${o.seeds} seeds × field × 2 orders:`);
+  const s2 = report('search [default]', vsField2P(spec, o.seeds));
+  const e2 = report('enforcer (pro)', vsField2P({ kind: 'genome', name: 'enforcer' }, o.seeds));
+  const d2 = report('drifter (pro)', vsField2P({ kind: 'genome', name: 'drifter' }, o.seeds));
+  const best2 = e2.wr >= d2.wr ? e2 : d2; const best2n = e2.wr >= d2.wr ? 'enforcer' : 'drifter';
+  const dlt2 = (s2.wr - best2.wr) * 100, dci2 = diffCI(s2.wr, s2.games, best2.wr, best2.games) * 100;
+  const pass2 = dlt2 >= BAR && (dlt2 - dci2) > 0;
+  console.log(`  Δ2P = ${dlt2.toFixed(1)}pp ±${dci2.toFixed(1)} (vs best pro ${best2n}) → ${pass2 ? 'PASS' : 'FAIL'} [≥${BAR}: ${dlt2 >= BAR}, CI>0: ${(dlt2 - dci2) > 0}]\n`);
+
+  console.log(`4P focal vs 3 rotating — ${o.seeds4} seeds (baseline 25%):`);
+  const s4 = report('search [default]', field4P(spec, o.seeds4));
+  const e4 = report('enforcer (pro)', field4P({ kind: 'genome', name: 'enforcer' }, o.seeds4));
+  const d4 = report('drifter (pro)', field4P({ kind: 'genome', name: 'drifter' }, o.seeds4));
+  const best4 = e4.wr >= d4.wr ? e4 : d4; const best4n = e4.wr >= d4.wr ? 'enforcer' : 'drifter';
+  const dlt4 = (s4.wr - best4.wr) * 100, dci4 = diffCI(s4.wr, s4.games, best4.wr, best4.games) * 100;
+  const pass4 = dlt4 >= BAR && (dlt4 - dci4) > 0;
+  console.log(`  Δ4P = ${dlt4.toFixed(1)}pp ±${dci4.toFixed(1)} (vs best pro ${best4n}) → ${pass4 ? 'PASS' : 'FAIL'} [≥${BAR}: ${dlt4 >= BAR}, CI>0: ${(dlt4 - dci4) > 0}]\n`);
+
+  console.log(`VERDICT (frozen bar, default model): 2P ${pass2 ? 'PASS' : 'FAIL'} · 4P ${pass4 ? 'PASS' : 'FAIL'} → ` +
+    `${pass2 && pass4 ? '✅ CLEARS THE BAR' : '❌ DOES NOT CLEAR'}`);
+}
+
 // ── generic head-to-head / field (also the B4 core) ─────────────────────────────
 function runGeneric(o) {
   const spec = searchSpec(o.N, o.horizon, o.oppModel, o.branchCap, o.def);
@@ -185,6 +220,7 @@ function main() {
   console.log('Cards For Cowboys — search-AI bake-off (engine: personality-engine.js resumable core)');
   if (o.mode === 'sweep') runSweep(o);
   else if (o.mode === 'ablate') runAblate(o);
+  else if (o.mode === 'verdict') runVerdict(o);
   else runGeneric(o);
 }
 

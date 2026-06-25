@@ -55,7 +55,8 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | File | Purpose |
 |------|---------|
 | `sim/TUNING.md` | **Read first.** How to validate/search/apply AI changes (the workflow). |
-| `sim/AI_SEARCH_BAKEOFF_PLAN.md` | **Next-phase plan (IN PROGRESS — B0 done).** Lookahead/Monte-Carlo search AI as a drop-in competitor vs the param pros — with a pre-registered "is it worth the complexity?" bar. Has a Progress log; B1–B5 still to build. |
+| `sim/AI_SEARCH_BAKEOFF_PLAN.md` | **Search-AI bake-off plan + full Progress log (COMPLETE — positive verdict).** Lookahead/Monte-Carlo search vs the param pros. B0–B5 done (B3 skipped); cleared the pre-registered bar. |
+| `sim/AI_SEARCH_RESULTS.md` | **The verdict (B5).** Flat-MC buy-phase search beats the pros: Δ2P +7.2pp / Δ4P +8.0pp vs best pro under the realistic model (CIs exclude 0). Ship-worthy (solo/all-AI as-is; live human-MP needs a shared-info rollout). Method, ablation, cost, shippability. |
 | `sim/personalities.js` | **The 6 bots (data) — single source of truth, synced to play.js.** Consumed by every sim tool. |
 | `sim/personality-engine.js` | Shared AI decision layer + deterministic `runGame` (mirrors play.js's live AI logic). 2–4P only. **Also the resumable core (B0):** `createInitialState`/`continueGame(state,policies,horizon)`/`cloneState`/`gameResult`; `runGame` is now a thin wrapper. Genome path is byte-identical to pre-refactor. |
 | `sim/test-resume-reproduction.js` | B0 gate: `continueGame`/`cloneState` reproduce `runGame` bit-for-bit (golden + resume/clone/mid-buy checks). |

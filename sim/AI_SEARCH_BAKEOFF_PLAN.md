@@ -1,9 +1,11 @@
 # AI Search Bake-Off — Next-Phase Plan (Route B: lookahead / Monte-Carlo)
 
-**Status:** IN PROGRESS. **B0 is DONE and green** (the resumable simulator + reproduction gate);
-B1–B5 not yet built. This is a self-contained handoff for a fresh Claude session. Read
-[`TUNING.md`](TUNING.md) and [`AI_PERSONALITIES.md`](AI_PERSONALITIES.md) first for the existing
-parameter-AI world you're competing against.
+**Status:** ✅ **COMPLETE — POSITIVE VERDICT.** B0–B2 + B4 + B5 done (B3 skipped by decision). The
+flat-MC buy-phase search **clears the pre-registered bar** (Δ2P +7.2pp / Δ4P +8.0pp vs the best pro
+under the realistic model, CIs excluding 0). Full write-up + ship recommendation in
+[`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md). The Progress log below is the phase-by-phase record.
+Read [`TUNING.md`](TUNING.md) and [`AI_PERSONALITIES.md`](AI_PERSONALITIES.md) for the parameter-AI
+world the search competes against.
 
 ### Progress log
 - **B0 ✅ (done):** `personality-engine.js` refactored to a resumable phase state machine —
@@ -54,9 +56,19 @@ parameter-AI world you're competing against.
   - **Cost / latency:** N64 endOfGame ≈ 6ms/decision (2P) / 14ms/decision (4P) — within the ~50ms
     MP budget. N256 endOfGame ≈ 24/56ms (4P over budget). **Recommended bake-off config: N=64,
     horizon=endOfGame.**
-- **B3 → next:** add draw-phase search (`searchShouldDraw`) — high-volume decisions, watch cost.
-  Does it add anything beyond buy-only (which already clears the bar)? Then B4 (scale, **bar
-  confirmation required first**).
+- **B3 — SKIPPED (by decision):** buy-only search already clears the bar, so draw-phase search (the
+  highest-cost decision class) was skipped for the headline verdict. Available as a future enhancement.
+- **B4 ✅ (scale verdict — CLEARS THE BAR):** bar frozen with the user = Δ point-est ≥+5pp at BOTH 2P
+  and 4P under the **default** model, 95% CI excluding 0. Run: `search-bakeoff.js --mode verdict --N
+  64 --horizon endOfGame --seeds 300 --seeds4 2000`.
+  - **2P (n=6000):** search 77.3% vs best pro enforcer 70.1% → **Δ2P = +7.2pp ±1.6** (CI [5.6, 8.8]) → PASS.
+  - **4P (n=2000):** search 51.4% vs best pro drifter 43.4% → **Δ4P = +8.0pp ±3.1** (CI [4.9, 11.1]) → PASS.
+  - Robustness from the B2 sweep (positive across N and endOfAct/endOfGame). **VERDICT: ✅ clears the
+    bar under the realistic model at both player counts.**
+- **B5 ✅ (verdict doc):** [`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md) — full evidence + ship
+  recommendation. **Route B is validated.** Recommend N64 `endOfGame`; shippable to solo/all-AI games
+  as-is; live human-MP gated on a shared-info rollout (§4c). Shipping is a separate phase touching
+  `src/play.js` — NOT done here.
 
 ---
 
@@ -246,11 +258,10 @@ budget at Route C (learned policy) or content/feature work.
   4P (+10.4) under the realistic model (point est.); perfect↔default gaps small. See Progress log.
 - **B3 — Add draw-phase search** (`searchShouldDraw`). Re-measure; draw decisions are higher-volume
   so watch the cost explode here.
-- **B4 — Bake-off at scale in the real arena.** Drop the best config into `search-bakeoff.js` and
-  `evolve.js --coevolve` as a competitor vs the full pro field, 2P + 4P, large seed set. Compute
-  `Δ2P`/`Δ4P` vs the frozen bar.
-- **B5 — Verdict.** Write `sim/AI_SEARCH_RESULTS.md`: numbers, ablation, cost, ship/shelve call,
-  and (if shelving) what it would take to revisit.
+- **B4 — Bake-off at scale in the real arena.** ✅ **DONE — CLEARS THE BAR.** N64 `endOfGame` vs the
+  full field, default model: Δ2P +7.2pp / Δ4P +8.0pp (both CIs exclude 0). See Progress log.
+- **B5 — Verdict.** ✅ **DONE.** [`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md): numbers, ablation,
+  cost, shippability, **ship-worthy** recommendation. Route B validated.
 
 ---
 
@@ -266,7 +277,7 @@ budget at Route C (learned policy) or content/feature work.
 | `sim/search-b1-signal.js` | ✅ NEW (B1). First-signal harness: search vs each pro head-to-head (2P), win% + cost. |
 | `sim/search-bakeoff.js` | ✅ NEW (B2). Reusable head-to-head / vs-field harness (2P+4P, perfect/default model, `--mode sweep`/`ablate`) + cost metrics. Also the B4 core. |
 | `sim/evolve.js` | TODO B4. Allow a `__search` participant in `--coevolve` (compete in the same GA arena). |
-| `sim/AI_SEARCH_RESULTS.md` | TODO B5. The verdict. |
+| `sim/AI_SEARCH_RESULTS.md` | ✅ NEW (B5). The verdict: evidence + cost + shippability + ship-worthy recommendation. |
 
 Leave the live game (`src/play.js`) **untouched** until/unless B5 says ship — and then only after
 solving §4c. This whole effort is sim-side until the verdict is in.
