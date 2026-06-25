@@ -99,6 +99,19 @@ function candidateTieScore(d, pyramid, def, state) {
   return s + (d.action === 'buy' ? 1e-4 : 0);
 }
 
+// FAIR-INFO determinization (imperfect-information Monte-Carlo). A human can't see any face-down
+// deck's ORDER — their own or opponents'. So before rolling a future, reshuffle every player's
+// deck with the shared rollout LCG: the card SET is preserved (public/derivable — starters +
+// observed buys, minus the visible hand/discard), only the hidden ORDER is randomized. Hands and
+// discards (face-up/public per the live game) are left intact. This is the ONLY thing that made the
+// search use info a human lacks; with it on, the search is both fair AND MP-deterministic (it no
+// longer depends on any synced hidden deck order — only on shared sets + the shared seed).
+function determinizeHiddenDecks(clone) {
+  for (const p of clone.players) {
+    if (p.deck.length > 1) p.deck = engine.seededShuffle(p.deck, clone.rng);
+  }
+}
+
 // Apply the focal's WHOLE buy turn to a clone: candidate primary + defaultGenome bonus buy,
 // then advance past the focal so continueGame resumes with the next buyer. Mirrors the live
 // processBuyer for a __search seat (extra-buy via defaultGenome), incl. chooseBuy's
@@ -161,6 +174,7 @@ function searchChooseBuy(state, focalIdx, policy, livePolicies) {
     for (let r = 0; r < N; r++) {
       const clone = engine.cloneState(state);
       clone.rng = engine.makeLCG(rolloutSeed(state.seed, state.act, state.round, focalIdx, ci, r));
+      if (policy.fairInfo) determinizeHiddenDecks(clone);  // sample hidden draw order (fair + MP-safe)
       applyFocalTurn(clone, focalIdx, d, def);
       engine.continueGame(clone, rolloutPolicies, horizon);
       sum += herdMarginValue(clone, focalIdx);
@@ -185,6 +199,10 @@ function makeSearchPolicy(opts = {}) {
     horizon: opts.horizon ?? 'endOfAct',     // 'endOfRound' | 'endOfAct' | 'endOfGame'
     branchCap: opts.branchCap ?? 12,
     oppModel: opts.oppModel ?? 'perfect',    // 'perfect' | 'default'
+    // fairInfo (default ON): determinize hidden deck order each rollout (imperfect-info MC). The
+    // AI uses only info a human has (public sets/herds/visible hands), never face-down deck order.
+    // Set false ONLY for the ablation that reproduces the perfect-information (cheating) baseline.
+    fairInfo: opts.fairInfo ?? true,
     defaultGenome: def,
     drawGenome: opts.drawGenome || def,      // draw phase stays heuristic in B1
     _stats: { decisions: 0, rollouts: 0 },

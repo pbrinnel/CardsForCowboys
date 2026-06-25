@@ -94,8 +94,8 @@ function report(label, r) {
 }
 
 // ── experiments ────────────────────────────────────────────────────────────────
-function searchSpec(N, horizon, oppModel, branchCap, def) {
-  return { kind: 'search', opts: { N, horizon, oppModel, branchCap, defaultGenome: byName[def], drawGenome: byName[def] } };
+function searchSpec(N, horizon, oppModel, branchCap, def, fairInfo) {
+  return { kind: 'search', opts: { N, horizon, oppModel, branchCap, fairInfo, defaultGenome: byName[def], drawGenome: byName[def] } };
 }
 
 function runSweep(o) {
@@ -153,8 +153,9 @@ function runVerdict(o) {
   console.log(`\n=== B4 SCALE VERDICT — realistic (default) opponent model ===`);
   console.log(`config: N=${o.N}, horizon=${o.horizon}, branchCap=${o.branchCap}, default=${o.def}`);
   console.log(`FROZEN BAR: Δ point-estimate ≥ +${BAR}pp at BOTH 2P and 4P (default model), 95% CI excluding 0.`);
-  console.log(`(Robustness — positive across N/horizon — established by the B2 sweep + endOfAct/endOfGame ablation.)\n`);
-  const spec = searchSpec(o.N, o.horizon, 'default', o.branchCap, o.def);
+  console.log(`(Robustness — positive across N/horizon — established by the B2 sweep + endOfAct/endOfGame ablation.)`);
+  console.log(`opponent info: ${o.fairInfo ? 'FAIR (human-equivalent: public sets/herds/hands; hidden deck order sampled)' : 'PERFECT (cheating — uses true hidden deck order; ablation only)'}\n`);
+  const spec = searchSpec(o.N, o.horizon, 'default', o.branchCap, o.def, o.fairInfo);
 
   console.log(`2P vs field — ${o.seeds} seeds × field × 2 orders:`);
   const s2 = report('search [default]', vsField2P(spec, o.seeds));
@@ -180,7 +181,7 @@ function runVerdict(o) {
 
 // ── generic head-to-head / field (also the B4 core) ─────────────────────────────
 function runGeneric(o) {
-  const spec = searchSpec(o.N, o.horizon, o.oppModel, o.branchCap, o.def);
+  const spec = searchSpec(o.N, o.horizon, o.oppModel, o.branchCap, o.def, o.fairInfo);
   console.log(`\n=== ${specName(spec)} — default=${o.def} ===`);
   if (o.field) {
     if (o.players === 4) report(`vs field 4P`, field4P(spec, o.seeds));
@@ -195,7 +196,7 @@ function parseArgs() {
   const o = {
     mode: null, vs: 'enforcer', field: false, players: 2, players4: false,
     N: 64, horizon: 'endOfAct', branchCap: 12, oppModel: 'perfect', def: 'enforcer',
-    seeds: 100, seeds4: 80,
+    fairInfo: true, seeds: 100, seeds4: 80,
   };
   for (let i = 0; i < a.length; i++) {
     const k = a[i];
@@ -208,6 +209,8 @@ function parseArgs() {
     else if (k === '--horizon') o.horizon = a[++i];
     else if (k === '--branch') o.branchCap = parseInt(a[++i], 10);
     else if (k === '--opp-model') o.oppModel = a[++i];
+    else if (k === '--cheat') o.fairInfo = false;   // perfect-info ablation (uses hidden deck order)
+    else if (k === '--fair') o.fairInfo = true;
     else if (k === '--default') o.def = a[++i];
     else if (k === '--seeds') o.seeds = parseInt(a[++i], 10);
     else if (k === '--seeds4') o.seeds4 = parseInt(a[++i], 10);
