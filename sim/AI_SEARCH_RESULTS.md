@@ -1,11 +1,16 @@
 # AI Search Bake-Off — Results & Verdict (Route B: lookahead / Monte-Carlo)
 
-**Status:** COMPLETE. B0–B2 + B4 done; B3 (draw-phase search) skipped (buy-only already clears the
-bar). The verdict was re-measured under a **fair, human-equivalent information** model (the AI may not
-see hidden deck order) after the project owner ruled the AI may only use info a human has — this is the
-binding result. This is the deliverable from [`AI_SEARCH_BAKEOFF_PLAN.md`](AI_SEARCH_BAKEOFF_PLAN.md):
-*evidence + a verdict*. Read that plan for design rationale; [`TUNING.md`](TUNING.md) for the
-parameter-AI world the search competes against.
+**Status: COMPLETE → SHELVED (not shipping). June 2026.** The bake-off ran to a clean, *positive*
+verdict under a fair, human-equivalent information model — the search beats the pros — but the project
+owner has decided the improvement **is not worth the engineering cost** of shipping it as an online AI
+personality (see "Decision & status" below). All work is sim-side and committed; the live game was
+never touched. This doc is the conclusive record + the resume guide. Source plan:
+[`AI_SEARCH_BAKEOFF_PLAN.md`](AI_SEARCH_BAKEOFF_PLAN.md); the param-AI world it competed against:
+[`TUNING.md`](TUNING.md).
+
+> **Picking this back up?** Jump to ["If you pick this back up later"](#if-you-pick-this-back-up-later)
+> at the bottom — it has the reusable-assets inventory, the two forward paths (ship online / simulate
+> something smarter), and the exact commands.
 
 ---
 
@@ -36,13 +41,34 @@ unfair info drops N=64 to +4.3pp (2P, **misses** the bar) / +5.7pp (4P, clears).
 back: at N=256 the fair search clears comfortably at both counts (under imperfect info, more samples
 ⇒ better expected-value estimates ⇒ better play).
 
-**Recommendation: ship-worthy for human-v-human-v-AI.** The passing config (**N=256, `endOfGame`,
-default opponent model, fair-info determinization**) uses only human-equivalent info and is
-MP-deterministic by construction (the decision is uid/representation-invariant — proven — and depends
-only on public sets/herds/visible hands + a shared seed, never on synced hidden deck order). What's
-left is **engineering, not algorithm**: port the resumable engine into `play.js`, add a live
-`drawState`-timing gate, and verify with two-tab MP testing (§4c below). This doc is **not**
-authorization to modify the live game — shipping is its own phase with its own MP-determinism gate.
+**The search is ship-*capable* but, by decision, not ship-*bound*.** The passing config (**N=256,
+`endOfGame`, default opponent model, fair-info determinization**) uses only human-equivalent info and
+is MP-deterministic by construction. Shipping it would require porting the resumable engine into
+`play.js` + a live `drawState`-timing gate + two-tab MP testing — see the decision below.
+
+---
+
+## Decision & status (June 2026) — SHELVED, not shipping
+
+**Decision (project owner): do NOT ship the search as an online AI personality.** "The juice isn't
+worth the squeeze." The reasoning, plainly:
+
+- **The win is real but moderate.** ~+8pp (2P) / ~+12pp (4P) over the best existing Hard bot. That
+  makes it the clear strongest AI — by more than the entire current Hard-tier spread (~6pp) — but it's
+  **about a third of one tier gap** (Hard→Medium is ~25pp). Evolutionary, not a difficulty leap.
+- **It's bot-vs-bot skill, not a proven human-difficulty gain.** All numbers are AI-vs-AI on the
+  deterministic engine. We have no human-vs-search data, so "+10pp vs the best bot" does **not** mean
+  players will find it ~10% harder. Whether a smarter *buy* policy is even perceptible to a human
+  (whose games are also swung by draw-phase luck) is unknown.
+- **The cost is a non-trivial engineering project.** Porting the resumable clone/rollout engine into
+  the browser (ideally unifying `play.js` + the sim, today hand-synced parallel implementations) + a
+  live MP-determinism gate + per-turn compute (~24 ms/dec 2P, ~64 ms 4P). Real risk, real effort, for
+  a moderate, unproven-on-humans gain.
+
+**Status:** SHELVED, not abandoned. Everything is committed and reusable; the genome hot path is
+byte-identical; the live game is untouched. A clean negative *ship* decision on a clean positive
+*technical* result. If the calculus changes (e.g. human data shows buy-skill matters, or a cheaper
+path appears), see ["If you pick this back up later"](#if-you-pick-this-back-up-later).
 
 ---
 
@@ -169,85 +195,106 @@ clears 4P (~14 ms/dec) and only 2P needs the larger N.
 
 ## Shippability (§4c) — important caveats
 
-The offline bake-off answers "is search worth it?" cleanly. **Shipping into the live game has a
-determinism constraint** the bake-off doesn't exercise: every client runs every AI locally with no
-broadcast, so an AI seat's decision must be identical on all clients (or MP desyncs — the same reason
-the `card_4` swap AI is pyramid-only). The good news (after checking the live sync) is that the
-**information the rollout needs is already shared**, so the strength result carries to human MP:
+Every client runs every AI locally with no broadcast, so an AI seat's decision must be identical on all
+clients (or MP desyncs — the same reason the `card_4` swap AI is pyramid-only). The **fair-info**
+search satisfies this *by construction*:
 
-- **What's shared across clients at an AI's buy turn:** the pyramid (via `actSetup`), public herds,
-  every AI seat's state (seed-reconstructable), and — critically — **every human's full
-  `hand`/`deck`/`discard` as ordered card-id arrays** (`src/play.js` `pushDrawState`). So every client
-  builds an *identical* clone. Future draws *inside* a rollout use the **shared-seeded** rollout LCG
-  (not a human's real `Math.random`), so they're identical across clients too. The search never
-  consumes a human's true future draws — only a shared fiction.
+- **It uses only shared/derivable info:** the pyramid (`actSetup`), public herds, opponents' face-up
+  hands, and publicly-derivable card *sets*. The fair determinization reshuffles every deck per rollout
+  with a **shared seed**, so the AI never depends on any seat's hidden deck *order* — not even the
+  synced one. (This also resolved the clairvoyance question: the AI does not exploit anyone's near-future
+  draws.) Opponent strategy is assumed = `enforcer` (the **default** model — you can't know a human's
+  "genome"), which is the model that produced the +7.9/+11.6pp result.
 - **Representation-invariance proven:** the buy decision is identical under hard `uid` relabeling
-  (`sim/test-search-mp-determinism.js`, 168 decisions) — it depends only on ids/order/stats + shared
-  seeds, exactly what `drawState` makes identical. This is the MP-determinism prerequisite, and it holds.
-- **Use the DEFAULT opponent model** vs humans (you can't know a human's "genome") — which is exactly
-  the model that passed B4 (+7.2 / +8.0pp). So the human-MP-relevant number is *already measured*.
-- **Remaining gates (engineering, not algorithmic):**
-  1. **Live timing** — guarantee each human's *final* pre-buy `drawState` has propagated identically
-     to all clients before each runs the AI buy turn (gate it like the existing `drawDone` barrier).
-     Verifiable only in a two-tab live test (the ship-phase MP-determinism gate).
-  2. **Porting** — the search runs on the sim's resumable engine (`personality-engine.js`); the live
-     game has its own parallel AI in `play.js`. Shipping means getting the resumable clone/rollout
-     machinery into the browser — ideally by unifying `play.js` + sim onto one engine (today they're
-     hand-synced). Non-trivial.
-  3. **Clairvoyance (optional)** — rollouts use opponents' synced *deck order*, so the AI "knows"
-     their near-future draws (shared info, not cheating, and washed out by reshuffles — but it could
-     feel strong). A shared-seed reshuffle of opponents' decks removes it; measure the strength cost
-     if desired.
+  (`sim/test-search-mp-determinism.js`, 168 decisions) — it depends only on ids/sets/stats + the shared
+  seed. The MP-determinism prerequisite holds.
+- **The two remaining ship gates are engineering, not algorithm:**
+  1. **Porting** — the search runs on the sim's resumable engine (`personality-engine.js`); the live
+     game has its own parallel AI in `play.js`. Shipping means getting the clone/rollout machinery into
+     the browser — ideally by unifying `play.js` + the sim onto one engine (today hand-synced). This is
+     the bulk of the cost.
+  2. **Live timing** — guarantee each human's *final* pre-buy `drawState` (their card sets) has
+     propagated identically to all clients before each runs the AI buy turn (gate it like the existing
+     `drawDone` barrier). Confirmable only in a two-tab live test.
 
-**Net:** the algorithm is **MP-safe for human-v-human-v-AI** (default model, shared info,
-uid-invariant). Actually shipping it is a follow-on engineering project — port the resumable engine
-into `play.js` + add the live drawState-timing gate + two-tab determinism testing — **not done here**
-(this effort is sim-side per the plan; the live game is untouched).
+**Net:** the algorithm is **MP-safe and fair for human-v-human-v-AI**. Shipping it is a follow-on
+engineering project (port + timing gate + two-tab test) — **the live game was not touched here.**
 
 ---
 
-## Verdict & recommendation
+## Verdict
 
-**Under fair, human-equivalent information, the search clears the pre-registered bar at N=256: PASS at
-2P (+7.9pp) and PASS at 4P (+11.6pp), default opponent model.** Route B is validated *honestly* —
-lookahead expresses real skill the exhausted 14-parameter genome cannot, and the edge holds even after
-the AI is restricted to what a human can see (no hidden deck order). The cost of playing fair is ~3pp
-and ~4× the rollouts; the search pays it and still wins.
+**Technical verdict: PASS.** Under fair, human-equivalent information the search clears the
+pre-registered bar at N=256 — +7.9pp (2P) / +11.6pp (4P) vs the best pro, default opponent model. The
+exhausted 14-param genome can't express lookahead; the search can, and the edge survives the fairness
+constraint. **Product verdict: SHELVED** — the gain is moderate, unproven on humans, and the ship cost
+(a real `play.js` port) is too high to justify now (see "Decision & status" above).
 
-**Recommendation — ship-worthy for human-v-human-v-AI, as a follow-on engineering project:**
-1. **Config:** **N=256, `endOfGame`, default opponent model, fair-info determinization.** Uses only
-   human-equivalent info; MP-deterministic by construction. (N=64 is cheaper and still clears *4P*, but
-   misses 2P — use N=256 to clear both.)
-2. **MP-safety is established at the algorithm level:** the fair rollout depends only on public
-   sets/herds/visible hands + a shared seed (never on hidden deck order), and the decision is
-   uid/representation-invariant (proven). All clients compute the same move.
-3. **The actual ship touches `src/play.js` (NOT done here):**
-   - Port the resumable engine + search into the browser — ideally unify `play.js` + the sim onto one
-     engine (today they're hand-synced parallel implementations). This is the main cost.
-   - Add a live `drawState`-timing gate: don't run the AI buy turn until each human's final pre-buy
-     `drawState` has propagated identically to all clients (mirror the existing `drawDone` barrier).
-   - Verify with two-tab live MP testing (the §4c MP-determinism gate).
-4. **Caveat for the decision-maker:** the margin is real but **moderate** (~+8pp 2P / ~+12pp 4P over
-   the best existing Hard bot) and requires a non-trivial port + a heavier per-turn compute. Whether
-   that's worth it vs. shipping another *param* Hard bot (free, already fair, already in `play.js`) is
-   a product call — the evidence says the search is genuinely stronger, not that it's mandatory.
-
-This bake-off is sim-side and complete; shipping is a separate phase with its own MP-determinism gate.
-
-**If instead the goal is to leave the live AI alone:** the search still pays off as an **offline
-oracle** — a stronger-than-pro reference for scoring human trajectories
-([`docs/TRAJECTORY_PHASE1_PLAN.md`](../docs/TRAJECTORY_PHASE1_PLAN.md)) and for re-checking card
-balance, reusing the exact B0 resumable core.
+A clean result either way: we now *know* search beats the pros fairly, and we now *know* it isn't worth
+shipping for a moderate bot-vs-bot gain. Both are bankable conclusions, not loose ends.
 
 ---
 
-## What it would take to revisit / go further
-- **Draw-phase search (B3):** add `searchShouldDraw`. Higher volume (many draws/round) → watch cost;
-  measure whether it adds anything beyond buy-only.
-- **Light MCTS (UCB over candidates)** instead of flat MC if a tighter rollout budget is needed.
-- **Higher N / N=256 `endOfGame`** for a few more pp where latency allows (offline tuning/oracle use).
-- **Shared-info rollout** for live human-MP (the ship blocker above).
-- **Learned policy (Route C):** distill the search's decisions into a fast policy — the natural next
-  step if search proves valuable but too slow for some targets.
-- The resumable core (B0) is **shared infrastructure** with the trajectory Monte-Carlo value oracle
-  ([`docs/TRAJECTORY_PHASE1_PLAN.md`](../docs/TRAJECTORY_PHASE1_PLAN.md)) — both efforts reuse it.
+## If you pick this back up later
+
+Everything below is committed on `main` and runs offline in Node (no Firebase/browser). The genome hot
+path is byte-identical to pre-project; the live game is untouched.
+
+### Reusable assets (what you get for free)
+| Asset | File | What it is |
+|---|---|---|
+| Resumable engine core | `sim/personality-engine.js` | `createInitialState` → `continueGame(state,policies,horizon)` → `gameResult`; `cloneState`. Clone/resume any mid-game state. Also feeds the trajectory value oracle. |
+| Reproduction gate | `sim/test-resume-reproduction.js` + `sim/fixtures/golden-runGame.json` | Proves the core reproduces `runGame` bit-for-bit. Re-run after any engine change. |
+| The search AI | `sim/search-ai.js` | `makeSearchPolicy` / `searchChooseBuy`, fair-info determinization, seeded rollouts. A drop-in `__search` participant. |
+| Bake-off harness | `sim/search-bakeoff.js` | `--mode sweep`/`ablate`/`verdict`/generic; 2P+4P; perfect/default model; `--cheat`/`--fair`; win% + cost. **Reusable for ANY future AI candidate vs the pros.** |
+| MP-safety test | `sim/test-search-mp-determinism.js` | The buy decision is uid/representation-invariant (the MP-determinism prerequisite). |
+
+Key commands:
+```bash
+node sim/test-resume-reproduction.js                  # engine integrity gate (must stay green)
+node sim/search-b1-signal.js                          # quick head-to-head signal vs each pro
+node sim/search-bakeoff.js --mode verdict --horizon endOfGame   # the fair scale verdict (N flag: --N 256)
+node sim/search-bakeoff.js --mode sweep               # N × horizon strength/cost shape
+```
+
+### Path A — if you DO decide to ship it online (the deferred engineering)
+The algorithm is fair + MP-deterministic; what remains is integration:
+1. **Unify the engines.** Today `src/play.js` has its own AI and `sim/personality-engine.js` is a
+   hand-synced parallel copy. Port (or share) the resumable core + `search-ai.js` into the browser so
+   the live AI *is* the simulated AI. This is the bulk of the work and also kills the chronic
+   play.js↔sim drift risk.
+2. **Add the live `drawState`-timing gate.** Don't run a search AI's buy turn until every human's final
+   pre-buy `drawState` (card sets) has landed identically on all clients — mirror the existing
+   `drawDone` barrier. This is the one thing only a two-tab live test can confirm.
+3. **Wire it into the difficulty picker** (`gamesetup.html` `DIFFICULTY_TIERS` / `pickAiForSlot`) as a
+   new top tier; config = **N=256, `endOfGame`, default model, fairInfo on**.
+4. **Test:** two-tab live MP (the §4c determinism gate) + a fresh `simulate.js` re-tier.
+
+### Path B — if you want to SIMULATE something smarter first (cheaper, sim-only)
+The harness makes new AI candidates cheap to bake off. In rough order of expected value:
+1. **Learned policy (Route C) — the most promising.** Use this search as a *teacher*: generate
+   (state → best buy) examples offline, distill into a fast policy (small net or a richer scoring
+   function). A learned policy evaluates in microseconds → **removes the latency + per-turn-compute
+   objection entirely**, and could ship as a `play.js` function without the rollout machinery. This is
+   the natural way to make "search-strength, param-cost" AI.
+2. **Draw-phase search (B3, never built).** Add `searchShouldDraw` (when to stop drawing). Higher-volume
+   decisions → watch cost; measure whether it adds anything beyond buy-only. Buy-only left this on the
+   table.
+3. **Light MCTS (UCB over candidates)** instead of flat MC — spends the rollout budget where it matters;
+   could reach N=256 strength at lower N.
+4. **Better value function** at shorter horizons (a learned or hand-tuned end-of-act evaluator) so you
+   don't need full `endOfGame` rollouts — big latency win if it holds.
+5. **Smarter fair opponent modeling** — still public-info only (see
+   [[feedback-ai-human-info-only]]): e.g. infer an opponent's *archetype* from their observed buys
+   instead of always assuming `enforcer`.
+
+### Don't bother re-doing
+- Re-litigating the 14-param genome (coevolution proved it's tapped out — `TUNING.md`).
+- The perfect-information ("cheating") numbers — they're an upper bound, not shippable.
+- `endOfRound` horizons (dead) and N<64 for the fair model (under-resourced).
+
+### Adjacent payoff even if the AI never ships
+The resumable core (B0) is shared infrastructure with the trajectory Monte-Carlo **value oracle**
+([`docs/TRAJECTORY_PHASE1_PLAN.md`](../docs/TRAJECTORY_PHASE1_PLAN.md)) — EV-labeling human decisions to
+measure *quality*. The search itself is a ready-made stronger-than-pro reference for that, and for
+re-checking card balance.

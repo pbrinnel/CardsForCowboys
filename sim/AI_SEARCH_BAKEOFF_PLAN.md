@@ -1,11 +1,13 @@
 # AI Search Bake-Off — Next-Phase Plan (Route B: lookahead / Monte-Carlo)
 
-**Status:** ✅ **COMPLETE — POSITIVE VERDICT.** B0–B2 + B4 + B5 done (B3 skipped by decision). The
-flat-MC buy-phase search **clears the pre-registered bar** (Δ2P +7.2pp / Δ4P +8.0pp vs the best pro
-under the realistic model, CIs excluding 0). Full write-up + ship recommendation in
-[`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md). The Progress log below is the phase-by-phase record.
-Read [`TUNING.md`](TUNING.md) and [`AI_PERSONALITIES.md`](AI_PERSONALITIES.md) for the parameter-AI
-world the search competes against.
+**Status:** ✅ **COMPLETE → SHELVED (not shipping).** Technical verdict POSITIVE: under a **fair,
+human-equivalent** information model the flat-MC buy-phase search clears the bar at N=256 (Δ2P +7.9pp /
+Δ4P +11.6pp vs the best pro, default model). Product verdict: **the owner decided it's not worth the
+`play.js` port** for a moderate, human-unproven, bot-vs-bot gain. **→ The conclusive record + resume
+guide is [`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md) (read its "If you pick this back up later"
+section first).** This file is the phase-by-phase build log. The earlier "+7.2/+8.0pp" figures used
+hidden info and are an upper-bound ablation only. Read [`TUNING.md`](TUNING.md) /
+[`AI_PERSONALITIES.md`](AI_PERSONALITIES.md) for the parameter-AI world it competed against.
 
 ### Progress log
 - **B0 ✅ (done):** `personality-engine.js` refactored to a resumable phase state machine —
