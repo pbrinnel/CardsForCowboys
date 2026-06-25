@@ -1844,10 +1844,24 @@ function render() {
   const oz = document.getElementById('opponents-zone');
   // 5-8P: wrap the 4-7 opponents into a grid instead of one crushed flex row.
   oz.classList.toggle('opp-grid', G.numPlayers >= 5);
-  for (let i = 1; i < G.numPlayers; i++) {
+  // Render opponents in SEAT order so the right-hand rail matches the top turn-order
+  // bar (both derive from G.seatOrder). The raw G.players index order is slot-claim
+  // order, not seat order, so iterating 1..n directly mismatched the bar. We also set
+  // an explicit CSS `order` per zone so the visual order is correct even for zones
+  // created earlier (ensureOpponentZone keeps existing DOM to preserve collapse state).
+  const slotToPlayerIdx = MP.active ? (s => MP.slotToPlayer[s]) : (s => s);
+  const oppSeatOrder = (G.seatOrder || [])
+    .map(slotToPlayerIdx)
+    .filter(i => i !== undefined && i !== 0);
+  const oppOrder = oppSeatOrder.length === G.numPlayers - 1
+    ? oppSeatOrder
+    : Array.from({ length: G.numPlayers - 1 }, (_, k) => k + 1); // fallback: index order
+  oppOrder.forEach((i, seatPos) => {
     ensureOpponentZone(i, oz);
     renderPlayerZone(G.players[i], 'opp-' + i);
-  }
+    const zoneEl = document.getElementById('opp-zone-' + i);
+    if (zoneEl) zoneEl.style.order = String(seatPos);
+  });
   applyOppHands();
 
   // Pyramid
