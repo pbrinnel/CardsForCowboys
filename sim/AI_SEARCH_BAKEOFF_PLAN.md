@@ -65,10 +65,23 @@ world the search competes against.
   - **4P (n=2000):** search 51.4% vs best pro drifter 43.4% → **Δ4P = +8.0pp ±3.1** (CI [4.9, 11.1]) → PASS.
   - Robustness from the B2 sweep (positive across N and endOfAct/endOfGame). **VERDICT: ✅ clears the
     bar under the realistic model at both player counts.**
+- **FAIR-INFO RE-MEASUREMENT (binding result):** the project owner required that an AI use only
+  information a human has — no peeking at hidden deck order (own or opponents'). The search's rollouts
+  were determinized (reshuffle every deck per rollout, keep the public set, randomize hidden order —
+  `search-ai.js` `determinizeHiddenDecks`, default on; the imperfect-information MC formulation, also
+  MP-deterministic). Fairness costs ~3pp and ~4× the rollouts:
+  | model | N | Δ2P | Δ4P | bar |
+  |---|---|---|---|---|
+  | cheating (true deck order — UPPER BOUND, not shippable) | 64 | +7.2pp | +8.0pp | (invalid: hidden info) |
+  | **fair** | 64 | +4.3pp ❌ | +5.7pp ✅ | misses (2P short) |
+  | **fair** | 256 | **+7.9pp ✅** | **+11.6pp ✅** | **CLEARS** |
+  Proof it's MP-safe: `test-search-mp-determinism.js` — the buy decision is uid/representation
+  -invariant (168 decisions), so it uses only shared/derivable info.
 - **B5 ✅ (verdict doc):** [`AI_SEARCH_RESULTS.md`](AI_SEARCH_RESULTS.md) — full evidence + ship
-  recommendation. **Route B is validated.** Recommend N64 `endOfGame`; shippable to solo/all-AI games
-  as-is; live human-MP gated on a shared-info rollout (§4c). Shipping is a separate phase touching
-  `src/play.js` — NOT done here.
+  recommendation. **Route B validated under fair info at N=256.** Recommend N256 `endOfGame` default
+  model, fair determinization; MP-deterministic by construction. Shipping = port the resumable engine
+  into `play.js` + live drawState-timing gate + two-tab MP test (separate phase, NOT done here). The
+  margin (~+8/+12pp over the best Hard bot) is real but moderate vs. the port cost — a product call.
 
 ---
 

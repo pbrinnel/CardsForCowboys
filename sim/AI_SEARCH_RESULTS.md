@@ -1,34 +1,46 @@
 # AI Search Bake-Off — Results & Verdict (Route B: lookahead / Monte-Carlo)
 
-**Status:** B0–B2 + B4 complete; B3 (draw-phase search) deliberately skipped (buy-only already
-clears the bar). This is the deliverable from [`AI_SEARCH_BAKEOFF_PLAN.md`](AI_SEARCH_BAKEOFF_PLAN.md):
-*evidence + a verdict*. Read that plan for the design rationale; read [`TUNING.md`](TUNING.md) for the
+**Status:** COMPLETE. B0–B2 + B4 done; B3 (draw-phase search) skipped (buy-only already clears the
+bar). The verdict was re-measured under a **fair, human-equivalent information** model (the AI may not
+see hidden deck order) after the project owner ruled the AI may only use info a human has — this is the
+binding result. This is the deliverable from [`AI_SEARCH_BAKEOFF_PLAN.md`](AI_SEARCH_BAKEOFF_PLAN.md):
+*evidence + a verdict*. Read that plan for design rationale; [`TUNING.md`](TUNING.md) for the
 parameter-AI world the search competes against.
 
 ---
 
 ## TL;DR verdict
 
-**A flat Monte-Carlo buy-phase search BEATS the parameter "pro" bots by a clear margin — and the
-edge survives the realistic opponent model.** Under the shippable (default) model, with N=64 rollouts
-to an `endOfGame` horizon, the search **clears the pre-registered bar** (Δ ≥ +5pp vs the best pro at
-**both** 2P and 4P, default model, 95% CI excluding 0):
+**A flat Monte-Carlo buy-phase search BEATS the parameter "pro" bots by a clear margin — using only
+the information a human player has, and at a rollout budget that clears the pre-registered bar.**
 
-| | search (default model) | best pro | **Δ vs best pro** | frozen bar (≥+5pp, CI>0) |
+The decisive constraint (set by the project owner): *an AI may not use information a human wouldn't
+have* — no peeking at any face-down deck's order, its own or opponents'. The search must therefore
+**determinize hidden state** (sample each deck's order per rollout from its known public *set*), which
+is also the correct imperfect-information Monte-Carlo formulation. Under that **fair** model, with the
+**default** opponent model (you can't know a human's strategy), `endOfGame` horizon, **N=256** rollouts:
+
+| | search (fair, N=256) | best pro | **Δ vs best pro** | frozen bar (≥+5pp, CI>0) |
 |---|---|---|---|---|
-| **2P** | 77.3% (±1.1, n=6000) | 70.1% (enforcer) | **+7.2pp ±1.6** → CI [5.6, 8.8] | ✅ PASS |
-| **4P** | 51.4% (±2.2, n=2000) | 43.4% (drifter) | **+8.0pp ±3.1** → CI [4.9, 11.1] | ✅ PASS |
+| **2P** | 78.0% (±1.7, n=2400) | 70.1% (enforcer) | **+7.9pp** | ✅ PASS |
+| **4P** | 55.0% (±4.0, n=600) | 43.4% (drifter) | **+11.6pp** | ✅ PASS |
 
 This closes the question the prior session opened: the 14-parameter genome was exhausted
 (coevolution converged to `enforcer` and couldn't out-design the Hard bots), so the only way left to
-play *better* was a capability the genome can't express — actual lookahead. **It works.**
+play *better* was a capability the genome can't express — actual lookahead. **It works, fairly.**
 
-**Recommendation: ship-worthy, and viable for human-v-human-v-AI.** The verdict is positive — Route B
-is real, not a perfect-info artifact. The config that passed (N64 `endOfGame`, **default** opponent
-model) is exactly the one usable against humans, and the information its rollouts need is **already
-shared** across clients by `drawState` (ordered hand/deck/discard). The decision is uid/representation
--invariant (proven), so all clients compute the same move — the MP-determinism prerequisite holds.
-What's left is **engineering, not algorithm**: port the resumable engine into `play.js`, add a live
+**The fairness constraint costs ~3pp and ~4× the rollouts.** The hidden-information ("cheating")
+version — which used opponents' true deck order — scored +7.2 / +8.0pp at only N=64 (see the
+perfect-information ablation below); that was an upper bound, not a shippable result. Removing the
+unfair info drops N=64 to +4.3pp (2P, **misses** the bar) / +5.7pp (4P, clears). More rollouts buy it
+back: at N=256 the fair search clears comfortably at both counts (under imperfect info, more samples
+⇒ better expected-value estimates ⇒ better play).
+
+**Recommendation: ship-worthy for human-v-human-v-AI.** The passing config (**N=256, `endOfGame`,
+default opponent model, fair-info determinization**) uses only human-equivalent info and is
+MP-deterministic by construction (the decision is uid/representation-invariant — proven — and depends
+only on public sets/herds/visible hands + a shared seed, never on synced hidden deck order). What's
+left is **engineering, not algorithm**: port the resumable engine into `play.js`, add a live
 `drawState`-timing gate, and verify with two-tab MP testing (§4c below). This doc is **not**
 authorization to modify the live game — shipping is its own phase with its own MP-determinism gate.
 
@@ -41,10 +53,11 @@ At the focal seat's **buy turn**, for each candidate primary action:
 1. **Candidates** = every affordable buy + the top-K denial burns (ranked by value-to-the-leader),
    capped at `branchCap=12`. Crucially the search may *burn even when it could buy* — a denial play
    the genome never makes.
-2. **Rollouts**: clone the live game state ([`cloneState`](personality-engine.js)), apply the focal's
-   whole turn (candidate + a default-genome bonus buy), give the clone its **own** deterministically
-   seeded LCG, and play forward under default policies to a **horizon** (`endOfGame`). N=64 rollouts
-   per candidate.
+2. **Rollouts**: clone the live game state ([`cloneState`](personality-engine.js)), give the clone its
+   **own** deterministically seeded LCG, **determinize hidden state** (reshuffle every deck — own and
+   opponents' — keeping the public set, randomizing the unseen order), apply the focal's whole turn
+   (candidate + a default-genome bonus buy), and play forward under default policies to a **horizon**
+   (`endOfGame`). N=256 rollouts per candidate (the fair model needs ~4× the N of the cheating model).
 3. **Value** each rollout by **herd margin** (focal herd − best opponent herd); at `endOfGame` this is
    the true showdown result (card cows + `floor($/2)` bonus folded in). Average over N.
 4. **argmax** candidate; deterministic `scoreCard` tiebreak → fully reproducible.
@@ -103,18 +116,37 @@ Buy-only search already clears the proposed bar under the realistic model, so dr
 highest-volume, highest-cost decision class) was skipped for the headline verdict. It remains an
 available enhancement — see "What it would take to revisit."
 
-### B4 — scale verdict (default model, N=64 endOfGame)
-`node sim/search-bakeoff.js --mode verdict --N 64 --horizon endOfGame --seeds 300 --seeds4 2000`
+### Fair-information constraint (the decisive turn)
+A human can't see any face-down deck's ORDER — their own or opponents'. The first scale verdict used
+the true deck order in rollouts (perfect information). To respect the constraint, each rollout now
+**determinizes hidden state**: every player's deck is reshuffled with the shared rollout LCG, keeping
+the public *set* (starters + observed buys, minus the visible hand/discard) and randomizing only the
+hidden *order* (`search-ai.js` `determinizeHiddenDecks`, default on). This is both fair and the
+textbook imperfect-information Monte-Carlo treatment, and it removes any dependence on synced hidden
+state (so it's MP-deterministic too). What the AI still uses is exactly what a human can: the pyramid,
+all herds, opponents' face-up drawn hands, and the publicly-derivable card sets.
 
-| | search [default] | enforcer | drifter | **Δ vs best pro** | bar |
-|---|---|---|---|---|---|
-| **2P** (n=6000) | **77.3%** ±1.1 | 70.1% ±1.2 | 69.1% ±1.2 | **+7.2pp ±1.6** (vs enforcer) | ✅ PASS |
-| **4P** (n=2000) | **51.4%** ±2.2 | 41.9% ±2.2 | 43.4% ±2.2 | **+8.0pp ±3.1** (vs drifter) | ✅ PASS |
+### B4 — scale verdict, FAIR information (default model, `endOfGame`)
+`node sim/search-bakeoff.js --mode verdict --horizon endOfGame --opp-model default` (fair = default).
 
-Both Δ point estimates exceed +5pp **and** their 95% CIs exclude 0 (the 2P CI lower bound, +5.6,
-even exceeds +5). **Robustness** is established by B2: the edge is positive across N (16/64/256) and
-across the `endOfAct`/`endOfGame` horizons — not a single lucky config. Note the 4P scale number
-(+8.0pp, n=2000) is tighter than the B2 moderate-seed read (+10.4pp, n=250) but comfortably clears.
+| N | 2P Δ vs best pro | 4P Δ vs best pro | bar (≥+5pp, CI>0) |
+|---|---|---|---|
+| **64** | +4.3pp (74.4% vs 70.1, n=8000) | +5.7pp (49.1% vs 43.4, n=2000) | 2P ❌ · 4P ✅ → misses |
+| **256** | **+7.9pp** (78.0% vs 70.1, n=2400) | **+11.6pp** (55.0% vs 43.4, n=600) | 2P ✅ · 4P ✅ → **CLEARS** |
+
+At N=64 the fair search is reliably *better* than the best pro at both counts (both Δ CIs exclude 0)
+but the 2P margin (+4.3pp) is under the +5pp bar. Raising rollouts to **N=256 clears both** — the 2P
+shortfall was under-resourced sampling, not a ceiling. **Verdict: the search clears the pre-registered
+bar under fair, human-equivalent information, at N=256.**
+
+### Perfect-information ablation (UPPER BOUND — not shippable)
+`--cheat` reproduces the original full-information rollout (uses opponents' true deck order). N=64:
+Δ2P **+7.2pp** (77.3% vs 70.1, n=6000) / Δ4P **+8.0pp** (51.4% vs 43.4, n=2000). The gap to the fair
+N=64 numbers (≈ +3pp at each count) is the value of the hidden information — which the fairness
+constraint forbids. Kept only to quantify the cost of playing fair.
+
+**Robustness** (B2 sweep): positive across N (16/64/256) and across `endOfAct`/`endOfGame` — not a
+single lucky config; `endOfRound` is the only dead horizon.
 
 ---
 
@@ -122,13 +154,16 @@ across the `endOfAct`/`endOfGame` horizons — not a single lucky config. Note t
 
 | config | rollouts/decision | ms/game | ≈ ms/decision |
 |---|---|---|---|
-| N64 `endOfAct` (2P) | ~310 | 18 | ~1.5 |
 | N64 `endOfGame` (2P) | ~311 | 72 | ~6 |
 | N64 `endOfGame` (4P) | ~410 | 213 | ~14 |
-| N256 `endOfGame` (4P) | ~1640 | ~850 | ~56 |
+| **N256 `endOfGame` (2P)** | ~1246 | 288 | **~24** |
+| **N256 `endOfGame` (4P)** | ~1641 | 961 | **~64** |
 
-At the recommended **N64 `endOfGame`**, a decision costs ~6 ms (2P) / ~14 ms (4P) — comfortably
-inside a ~50 ms live-play budget. N=256 buys a few more pp but pushes 4P past the budget.
+The bar-clearing fair config is **N256 `endOfGame`**: ~24 ms/decision (2P), ~64 ms/decision (4P). The
+4P figure nudges past the ~50 ms budget I proposed for a *latency-sensitive* client, but this is a
+**turn-based** game — even ~1 s for a whole AI buy phase is imperceptible, so N=256 is fine in
+practice (and latency is a non-issue for solo play). If a strict budget is ever needed, N=64 still
+clears 4P (~14 ms/dec) and only 2P needs the larger N.
 
 ---
 
@@ -173,25 +208,29 @@ into `play.js` + add the live drawState-timing gate + two-tab determinism testin
 
 ## Verdict & recommendation
 
-**The search clears the pre-registered bar: PASS at 2P (+7.2pp) and PASS at 4P (+8.0pp), under the
-realistic (default) opponent model, CIs excluding 0.** Route B is validated — lookahead expresses
-real skill the exhausted 14-parameter genome cannot, and the edge is not a perfect-information
-artifact (the perfect↔default gap is only ~5pp, and the *default* model is what passed).
+**Under fair, human-equivalent information, the search clears the pre-registered bar at N=256: PASS at
+2P (+7.9pp) and PASS at 4P (+11.6pp), default opponent model.** Route B is validated *honestly* —
+lookahead expresses real skill the exhausted 14-parameter genome cannot, and the edge holds even after
+the AI is restricted to what a human can see (no hidden deck order). The cost of playing fair is ~3pp
+and ~4× the rollouts; the search pays it and still wins.
 
-**Recommendation — ship-worthy, including for human-v-human-v-AI:**
-1. **Config:** adopt **N64 `endOfGame`, default opponent model**. Clears the bar at affordable
-   latency (~6 ms/decision 2P, ~14 ms 4P), and is the MP-correct model (no peeking at human "genomes").
-2. **MP-safety is established at the algorithm level:** the rollout uses only info `drawState` already
-   shares (ordered hand/deck/discard) + shared-seeded RNG, and the decision is uid/representation
-   -invariant (proven). All clients compute the same move. Solo / all-AI games are the simplest case;
-   human-v-human-v-AI is viable under the same model.
-3. **The actual ship is a follow-on engineering project** (touches `src/play.js`, NOT done here):
-   - Port the resumable engine + search into the browser (ideally unify `play.js` + the sim onto one
-     engine, instead of the current hand-synced parallel implementations).
+**Recommendation — ship-worthy for human-v-human-v-AI, as a follow-on engineering project:**
+1. **Config:** **N=256, `endOfGame`, default opponent model, fair-info determinization.** Uses only
+   human-equivalent info; MP-deterministic by construction. (N=64 is cheaper and still clears *4P*, but
+   misses 2P — use N=256 to clear both.)
+2. **MP-safety is established at the algorithm level:** the fair rollout depends only on public
+   sets/herds/visible hands + a shared seed (never on hidden deck order), and the decision is
+   uid/representation-invariant (proven). All clients compute the same move.
+3. **The actual ship touches `src/play.js` (NOT done here):**
+   - Port the resumable engine + search into the browser — ideally unify `play.js` + the sim onto one
+     engine (today they're hand-synced parallel implementations). This is the main cost.
    - Add a live `drawState`-timing gate: don't run the AI buy turn until each human's final pre-buy
      `drawState` has propagated identically to all clients (mirror the existing `drawDone` barrier).
    - Verify with two-tab live MP testing (the §4c MP-determinism gate).
-   - Optional: decide on the clairvoyance question (use synced deck order vs shared-seed reshuffle).
+4. **Caveat for the decision-maker:** the margin is real but **moderate** (~+8pp 2P / ~+12pp 4P over
+   the best existing Hard bot) and requires a non-trivial port + a heavier per-turn compute. Whether
+   that's worth it vs. shipping another *param* Hard bot (free, already fair, already in `play.js`) is
+   a product call — the evidence says the search is genuinely stronger, not that it's mandatory.
 
 This bake-off is sim-side and complete; shipping is a separate phase with its own MP-determinism gate.
 
