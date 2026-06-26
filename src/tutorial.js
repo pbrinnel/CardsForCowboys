@@ -5,20 +5,16 @@
 const TUTORIAL = (() => {
 
   // ─── Pyramid layout ──────────────────────────────────────────────────────────
-  // 15 cards for Act 1, 2-player pyramid (5 rows).
-  // buildPyramid() fills row 0 (top, 1 card) → row 4 (bottom, 5 cards, face-up).
+  // 14 cards for Act 1, 2-player store (2 rows of 7, brick-staggered).
+  // buildPyramid() fills row 0 (top, hidden) → row 1 (bottom, face-up). IDs are
+  // listed top row first, then bottom row.
   //
-  //   Row 4 (face-up): card_10, card_11, card_77, card_74, card_76
-  //   Row 3 (hidden):  card_12, card_13, card_15, card_75
-  //   Row 2 (hidden):  card_79, card_46, card_47
-  //   Row 1 (hidden):  card_80, card_48
-  //   Row 0 (hidden):  card_49
+  //   Row 0 (hidden):  card_13, card_15, card_75, card_46, card_47, card_48, card_80
+  //   Row 1 (face-up): card_10, card_11, card_77, card_74, card_76, card_79, card_12
+  //                            └ card_11 (1 cow, $2) is the buy target, at row 1 col 1.
   const PYRAMID_IDS = [
-    'card_49',
-    'card_80', 'card_48',
-    'card_79', 'card_46', 'card_47',
-    'card_12', 'card_13', 'card_15', 'card_75',
-    'card_10', 'card_11', 'card_77', 'card_74', 'card_76',
+    'card_13', 'card_15', 'card_75', 'card_46', 'card_47', 'card_48', 'card_80',
+    'card_10', 'card_11', 'card_77', 'card_74', 'card_76', 'card_79', 'card_12',
   ];
 
   // ─── Draw queues (0-indexed, one array per tutorial round) ───────────────────
@@ -199,8 +195,8 @@ const TUTORIAL = (() => {
     {
       id: 'r3_buy',
       message: 'Buy the highlighted Cow card.',
-      required: { type: 'buy', row: 4, col: 1 }, // card_11 (1 cow, cost $2)
-      pyramidHint: { row: 4, col: 1 },
+      required: { type: 'buy', row: 1, col: 1 }, // card_11 (1 cow, cost $2)
+      pyramidHint: { row: 1, col: 1 },
     },
 
   ];

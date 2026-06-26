@@ -1007,6 +1007,7 @@ body.phase-draw #player-deck-preview {
   margin-bottom: 0.5rem;
   text-align: center;
   overflow: hidden;
+  --pyr-cw: 70px; /* base pyramid card width; feeds .brick-offset (overridden per breakpoint) */
 }
 
 #pyramid-zone .zone-label {
@@ -1598,20 +1599,13 @@ body.phase-draw #player-deck-preview {
   background: transparent;
 }
 
-/* Bottom rows appear in front of top rows. (5-8P games have up to 11 rows and set
-   z-index inline in renderPyramid; these nth-child rules cover the 2-4P fallback and
-   are harmless duplicates of the inline values.) */
-.pyramid-row:nth-child(1) { z-index: 1; }
-.pyramid-row:nth-child(2) { z-index: 2; margin-top: -55px; }
-.pyramid-row:nth-child(3) { z-index: 3; margin-top: -55px; }
-.pyramid-row:nth-child(4) { z-index: 4; margin-top: -55px; }
-.pyramid-row:nth-child(5) { z-index: 5; margin-top: -55px; }
-.pyramid-row:nth-child(6) { z-index: 6; margin-top: -55px; }
-.pyramid-row:nth-child(7) { z-index: 7; margin-top: -55px; }
+/* Bottom rows appear in front of top rows. renderPyramid sets z-index inline for every
+   row (1..8); this generalized overlap rule pulls each row up onto the one above it. */
+.pyramid-row:nth-child(n+2) { margin-top: -55px; }
 
-/* 5-8P brick layout: every other flat row of 7 is nudged a half-card so two cards
-   still cover one (matches pyramidColCenter()). --pyr-cw tracks the responsive card
-   width (set alongside the card-size breakpoints); 0.35rem is the .pyramid-row gap. */
+/* Brick layout: every odd row of 7 is nudged a half-card so two cards still cover one
+   (matches pyramidColCenter()). --pyr-cw tracks the responsive pyramid-card width (set
+   alongside the card-size breakpoints); 0.35rem is the .pyramid-row gap. */
 .pyramid-row.brick-offset {
   transform: translateX(calc((var(--pyr-cw, 70px) + 0.35rem) / 2));
 }
@@ -1665,6 +1659,14 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   margin-top: -35px; /* ~56% of 62px */
 }
 
+/* Below the desktop grid (≥1200 keeps its locked 95/78/64 card width in BOTH phases,
+   so its inline --pyr-cw is already correct), the draw phase shrinks pyramid cards to
+   44px while the buy phase stays at the base 70px. Match the brick nudge to the 44px
+   draw-phase card. Scoped to <1200 so it never overrides the desktop inline values. */
+@media (max-width: 1199px) {
+  body.phase-draw #pyramid-zone { --pyr-cw: 44px; }
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   #game {
@@ -1690,6 +1692,9 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
     width: 44px;
     height: 62px;
   }
+
+  /* Mobile pyramid cards are 44px in both phases → match the brick nudge */
+  #pyramid-zone { --pyr-cw: 44px; }
 
   /* Recalculate overlap for smaller cards */
   .pyramid-row:nth-child(n+2) { margin-top: -35px; }

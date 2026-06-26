@@ -166,6 +166,12 @@
   margin-top: -14px;
 }
 
+/* Brick stagger: shift alternate rows half a card (card 22px + 3px gap = 25px → 12.5px)
+   so two cards cover the one above, matching the in-game pyramidColCenter() offset. */
+.pyramid-row.brick-offset {
+  transform: translateX(12.5px);
+}
+
 .pcard {
   width: 22px;
   height: 32px;

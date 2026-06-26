@@ -1224,9 +1224,12 @@ function getCardById(id) {
 function getActPool(act) {
   const pool = STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
   // 5-8P play with a second deck: the per-act pool tops out at 28 distinct cards
-  // (there is no minPlayers>4 tier), but the pyramid needs up to 56 (8P), so draw
-  // from two copies of the full act pool. buildPyramid wraps each in createCardInstance,
-  // so the duplicates get distinct uids; only card.id repeats.
+  // (there is no minPlayers>4 tier), but the Store needs up to 56 (8P), so draw from
+  // two copies of the full act pool. buildPyramid wraps each in createCardInstance, so
+  // the duplicates get distinct uids; only card.id repeats.
+  // Width note: needed = numPlayers × pyramidWidth(). The numPlayers>=5 threshold holds
+  // for any width ≤7 (4P needs ≤28 = the distinct pool; 5P+ exceeds it). If a future
+  // mode uses width >7, 4P could exceed 28 and would also need doubling — revisit then.
   if (G.numPlayers >= 5) return pool.concat(pool);
   return pool;
 }
@@ -1366,6 +1369,12 @@ function initState(numPlayers, players) {
     currentAct: 1,
     phase: 'start',
     roundNumber: 1,
+    // Cards per Store row. Default 7; a future game mode (set via a gamesetup flag, same
+    // 3-layer path as hiddenHerdMode) can override this to e.g. 6. All pyramid geometry
+    // reads it through pyramidWidth(), so changing this one value reshapes the whole Store.
+    // NOTE when wiring such a mode: also set it in startGame's MP/tutorial/AI branches and
+    // in reconstructG (rejoin), and re-check the getActPool 5-8P doubling math (below).
+    pyramidWidth: DEFAULT_PYRAMID_WIDTH,
     players: players || [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)],
     pyramid: [],
     log: [],
@@ -1383,31 +1392,37 @@ function initState(numPlayers, players) {
 
 // --- PYRAMID ---
 
-// Number of cards in pyramid row `row`. The triangle caps at width 7; for 5-8P,
-// rows past the triangle are flat rows of 7 (see PYRAMID_TRIANGLE_ROWS).
-const PYRAMID_MAX_WIDTH = 7;        // widest triangle row (== the 4P base)
-const PYRAMID_TRIANGLE_ROWS = 7;    // rows 0..6 form the triangle cap (1..7 cards)
+// New store layout (June 2026): every row is exactly 7 cards, and the number of rows
+// equals the player count (2P→2 … 8P→8). Rows are BRICK-staggered (alternate rows
+// shift a half-card) so two cards cover one, solitaire-style. Interior cards are
+// covered by 2 below them; the single overhang card at one end of each upper row is
+// covered by just 1 — both unlock only when their coverer(s) are removed. Simpler to
+// explain and lay out than the old centered triangle (which capped at width 7 then
+// added flat rows for 5-8P).
+const DEFAULT_PYRAMID_WIDTH = 7;   // standard Store width: 7 cards per row
+// Cards per row for the CURRENT game. Dynamic (reads G.pyramidWidth) so a future mode
+// can use a different width (e.g. 6) without touching any geometry — every function
+// below derives from this. Falls back to the default before G exists. The half-card
+// BRICK offset and "rows == player count" rule are width-independent and never change.
+function pyramidWidth() {
+  return (typeof G !== 'undefined' && G && G.pyramidWidth) || DEFAULT_PYRAMID_WIDTH;
+}
 function pyramidRowWidth(row) {
-  return Math.min(row + 1, PYRAMID_MAX_WIDTH);
+  return pyramidWidth();
 }
 
 // Horizontal center of card (row,col) in card-width units (origin = pyramid center).
-// Triangle rows are centered. Flat rows (5-8P) use a BRICK offset: alternate flat
-// rows shift a half-card so two cards still cover one (matches the printed layout).
-// Pure + deterministic → no per-row state needs to be stored or synced over MP.
+// All rows are pyramidWidth() wide; odd rows shift a half-card right (BRICK offset) so
+// the "2 cover 1" overlap reads correctly. Pure + deterministic → no per-row state.
 function pyramidColCenter(row, col) {
-  const w = pyramidRowWidth(row);
-  let col0 = -(w - 1) / 2; // centered
-  if (w === PYRAMID_MAX_WIDTH && row >= PYRAMID_TRIANGLE_ROWS) {
-    const flatIndex = row - PYRAMID_TRIANGLE_ROWS;
-    col0 += (flatIndex % 2 === 0) ? 0.5 : 0; // brick: every other flat row nudged half a card
-  }
+  let col0 = -(pyramidWidth() - 1) / 2; // centered
+  if (row % 2 === 1) col0 += 0.5;       // brick: odd rows nudged half a card right
   return col0 + col;
 }
 
 // Build pyramid from act pool; if cardIds provided (MP), use that fixed order
 function buildPyramid(act, cardIds) {
-  const numRows = G.numPlayers + 3; // 2P→5, 3P→6, 4P→7, 5P→8 ... 8P→11
+  const numRows = G.numPlayers; // rows == player count: 2P→2, 3P→3 … 8P→8 (all 7 wide)
   let needed = 0;
   for (let r = 0; r < numRows; r++) needed += pyramidRowWidth(r);
 
@@ -1442,9 +1457,8 @@ function buildPyramid(act, cardIds) {
 }
 
 // A card is covered if any non-removed card in the row below horizontally overlaps
-// it (centers within ~half a card). Geometry-based so it works for the centered
-// triangle AND the brick-offset flat rows; reduces to the old nextRow[col]/[col+1]
-// check for the pure-triangle 2-4P layouts.
+// it (centers within ~half a card). Geometry-based, so it works for the brick-offset
+// rows uniformly: interior cards have 2 coverers, the overhang end card has 1.
 function isCardCovered(pyramid, row, col) {
   if (row >= pyramid.length - 1) return false;
   const myX = pyramidColCenter(row, col);
@@ -2046,14 +2060,11 @@ function renderPyramid() {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'pyramid-row';
     // Lower rows paint in front of upper rows. Set inline so it generalizes past the
-    // CSS nth-child(1..7) cap to the 8-11 rows of 5-8P games (identical to the old
-    // values for 2-4P). Flat brick rows (5-8P) get a half-card horizontal nudge so
-    // the solitaire "2 cover 1" overlap reads correctly — see pyramidColCenter().
+    // CSS nth-child cap to the up-to-8 rows of 5-8P games. Odd rows get a half-card
+    // horizontal nudge so the solitaire "2 cover 1" overlap reads correctly — see
+    // pyramidColCenter().
     rowDiv.style.zIndex = String(row + 1);
-    const rowW = G.pyramid[row].length;
-    if (rowW === PYRAMID_MAX_WIDTH && row >= PYRAMID_TRIANGLE_ROWS && ((row - PYRAMID_TRIANGLE_ROWS) % 2 === 0)) {
-      rowDiv.classList.add('brick-offset');
-    }
+    if (row % 2 === 1) rowDiv.classList.add('brick-offset');
     for (let col = 0; col < G.pyramid[row].length; col++) {
       const slot = G.pyramid[row][col];
       if (!slot || !slot.card) continue; // defensive: skip corrupted slots
@@ -2098,18 +2109,18 @@ function renderPyramid() {
   fitPyramid();
 }
 
-// 5-8P pyramids are up to 11 rows and (via the brick offset) 7.5 cards wide, which
+// Every layout is now 7 cards wide (7.5 with the brick overhang) × up-to-8 rows, which
 // can overflow the fixed-size #pyramid-zone (overflow:hidden → clipped cards). Measure
 // the rendered cards and apply a single transform that recenters the pyramid in its
-// zone and scales it down to fit both width and height. No-op for 2-4P (those fit the
-// zone natively, so we leave their layout untouched).
+// zone and scales it down to fit both width and height. Only ever scales down (≤1), so
+// it's a recenter-only no-op when the pyramid already fits.
 function fitPyramid() {
   const pyr = document.getElementById('pyramid');
   const zone = document.getElementById('pyramid-zone');
   if (!pyr || !zone) return;
   pyr.style.transform = 'none';
   pyr.style.transformOrigin = '';
-  if (!G || G.numPlayers < 5) return; // 2-4P: native layout, no fitting needed
+  if (!G || !G.pyramid || !G.pyramid.length) return;
   const els = [...pyr.querySelectorAll('.card, .card-slot')];
   if (!els.length) return;
   let minL = 1e9, maxR = -1e9, minT = 1e9, maxB = -1e9;

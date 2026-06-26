@@ -122,7 +122,7 @@ watchForDisband()           ~532  — watches for status='disbanded' (or null fo
 STARTERS array              ~754  — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
 STORE_CARDS array           ~769  — 84 cards total (per-act 4P pool = 28 distinct; the "55" is just the 2P total). minPlayers field controls 2P/3P/4P inclusion (no 5+ tier).
 getCardById(id)             ~891
-getActPool(act)             ~897  — act+minPlayers filter; for numPlayers>=5 returns the act pool DOUBLED (second deck — see 5-8P note below)
+getActPool(act)             ~897  — act+minPlayers filter; for numPlayers>=5 returns the act pool DOUBLED (second deck — see Store Layout note below). Pool sizes: 2P=15, 3P=21, 4P=28 per act; layout needs 14/21/28 (2P slices to 14).
 ```
 
 ### Utilities (lines ~901–975)
@@ -146,35 +146,62 @@ initState(numPlayers)       ~1025 — creates G: pyramid, players[], round/act c
 
 ### Pyramid (lines ~1048–1132)
 ```
-pyramidRowWidth(row)        — cards per row: min(row+1, 7). Triangle caps at width 7; 5-8P rows past the triangle are flat 7s.
-pyramidColCenter(row, col)  — pure x-center (card units) of a cell. Triangle centered; 5-8P flat rows use BRICK offset (alternate rows +0.5 card). Used by covering + render.
-buildPyramid(act, cardIds)  — numRows = numPlayers+3 (2P→5 … 8P→11); triangle cap + flat rows of 7 (see 5-8P note).
-isCardCovered(pyr, r, c)    — GEOMETRY/overlap-based (any non-removed cell below within ~½ card). Reduces to old nextRow[col]/[col+1] for the 2-4P triangle.
+pyramidRowWidth(row)        — always 7 (PYRAMID_WIDTH). NEW LAYOUT (June 2026): every row is 7 cards, rows == player count. No more triangle.
+pyramidColCenter(row, col)  — pure x-center (card units) of a cell. All rows 7-wide & centered; ODD rows +0.5 card BRICK offset. Used by covering + render.
+buildPyramid(act, cardIds)  — numRows = numPlayers (2P→2 … 8P→8); 7 cards/row, bottom row face-up. 2P needs 14 (pool has 15 → slices 14); 3P/4P unchanged counts (21/28).
+isCardCovered(pyr, r, c)    — GEOMETRY/overlap-based (any non-removed cell below within ~½ card). Interior cards have 2 coverers; the one overhang end card per row has 1.
 revealUncovered(pyramid)    — face-up any card no longer covered
 getAvailablePyramidCards()
 isPyramidEmpty(pyramid)
 ```
 
+### Store Layout — W×N brick (REWORKED June 2026, replaces the old triangle)
+**The Store is no longer a triangle.** Every row is exactly **`pyramidWidth()` cards** (default **7**),
+and the **number of rows == the player count** (2P→2 rows … 8P→8 rows).
+
+**Width is dynamic.** `pyramidWidth()` reads `G.pyramidWidth` (seeded to `DEFAULT_PYRAMID_WIDTH=7` in
+`initState`). ALL geometry (`pyramidRowWidth`/`pyramidColCenter`/`buildPyramid` via `needed`) derives
+from it, and the half-card brick offset + `row%2` rendering + spectate + CSS are width-independent — so
+a **future "6 per row" mode** (or any width) is just: add a gamesetup flag (mirror `hiddenHerdMode`'s
+3-layer path), then set `G.pyramidWidth = mode ? 6 : 7` in `initState`/the `startGame` MP·tutorial·AI
+branches **and** `reconstructG` (rejoin — or the rebuilt pyramid mismatches the live one). Verified live:
+flipping `G.pyramidWidth=6` + rebuild → 4×6=24 cards, correct covering, renders cleanly with zero other
+edits. Re-check the `getActPool` 5-8P doubling only if width >7 (≤7 is safe; see its comment). The
+tutorial is fixed at width 7 (hardcoded 14-card scenario) — leave it unless the mode applies there. Rows are **brick-staggered**: odd rows shift +0.5 card
+(`pyramidColCenter`), so two cards cover the one above, solitaire-style. Covering is geometry-based
+(`isCardCovered`): interior cards have 2 coverers, the single overhang end card per row has 1; only
+the **bottom row** starts face-up. Card counts: 2P=**14** (was 15 — the only count that changed; the
+2P act pool has 15, `buildPyramid` slices the first 14), 3P=21, 4P=28, 5P=35, 6P=42, 7P=49, 8P=56 —
+all but 2P unchanged in *count*, just rearranged from a triangle into 7×N. `getActPool` still doubles
+the act pool for numPlayers>=5 (second deck; 5P needs 35 > the 28 distinct 4P cards). `fitPyramid`
+runs for **all** counts now (every layout is 7-wide; only ever scales down, so it's a recenter-only
+no-op when it already fits). `renderPyramid` tags `.brick-offset` on odd rows; CSS `.brick-offset`
+shift = `(--pyr-cw + 0.35rem)/2`, and `--pyr-cw` must track the pyramid card width at every breakpoint
+(base 70 / mobile 44 / `<1200 phase-draw` 44 / desktop inline 95·78·64). **⚠️ SIM NOT SYNCED:**
+`sim/game-core.js` (`getNumRows`/`buildPyramid`) + `sim/personality-engine.js` (`buildPyramidSeeded`)
+still model the OLD triangle (2-4P), and the golden fixture (`fixtures/golden-runGame.json`) freezes
+that. Left as-is on purpose (re-syncing breaks the golden + resume-reproduction gate). Before the next
+AI tuning run, re-sync the sim geometry, regenerate the golden, and re-validate AI win-rates — the
+covering structure changed, so buy decisions shift.
+
 ### 5-8 Player Support (SHIPPED June 2026 — full log: `docs/FIVE_TO_EIGHT_PLAYER_PLAN.md`)
-Rules identical to 2-4P; only setup/pyramid scale. Pyramid = 7-row triangle cap + one flat row of 7
-per player past 4 (5P=35 … 8P=56 cards), brick offset. `getActPool` doubles the act pool for
+Rules identical to 2-4P; only setup/pyramid scale (see **Store Layout** above — now uniform 7×N for
+ALL counts, not a special 5-8P case). `getActPool` doubles the act pool for
 numPlayers>=5 (second deck; card.id can repeat, uid stays unique). Buy-first (`burn_buy_first`/card_14)
 is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
 `games/{code}/buyFirstClaim/{act}_{round}`, fail-open) via gate `claimBuyFirstPriority()` (only when
 `MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
 (`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
-renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so 11 rows never clip
-(numPlayers>=5 only). **Short-viewport draw-phase fit (June 2026):** `fitPyramid` only downscales when
-its zone is height-bounded; the grid row auto-sizes to the pyramid, so without a cap `scale` computes
-to 1 and an 11-row pyramid (~640px) shoves the draw-phase hand below the fold on ≤900px-tall laptops
+renderPyramid + on resize) recenters & scales the pyramid into `#pyramid-zone` so tall stacks never
+clip (runs for all counts now; only ever scales down). **Short-viewport draw-phase fit:** `fitPyramid`
+only downscales when its zone is height-bounded; without a cap the zone auto-sizes to the pyramid, so a
+tall pyramid (up to 8 rows ≈ 540px) shoves the draw-phase hand below the fold on ≤900px-tall laptops
 (buy phase fits — its hand is smaller). Fix: `render()` toggles a `body.count-5plus` class
 (numPlayers>=5), and playgame.html caps `body.count-5plus.phase-draw #pyramid-zone { max-height:40vh }`
-inside `@media (min-width:1200px) and (max-height:900px)` (vh auto-scales: 360px@900 / 300px@750 /
-272px@680). The cap (with the zone's `overflow:hidden`) gives `fitPyramid` a bounded box so it actually
-scales the pyramid down and frees ~280px for the hand. Scoped to **draw phase + 5-8P only**: buy phase
-(needs the big clickable pyramid) and 2-4P (where `fitPyramid` is a no-op — a cap would just clip) are
-untouched. Count-agnostic for 5+: same cap, shorter pyramids (5P=8 rows … 8P=11) all exceed it and fit
-identically. **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
+inside `@media (min-width:1200px) and (max-height:900px)`. The cap (with the zone's `overflow:hidden`)
+gives `fitPyramid` a bounded box; it only shrinks pyramids taller than the cap, so shorter 5-6P ones
+stay full size. Scoped to **draw phase + 5-8P** (≤4 rows fit natively; buy phase needs the big
+clickable pyramid). **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
 desktop (`@media min-width:1200px`, grid in playgame.html) opponents are a fixed-width **scrolling
 rail** on the right — `#opponents-zone` spans grid rows "action/pyramid" + "player" (`grid-area:opp`),
 `position:sticky; max-height:calc(100vh-1rem); overflow-y:auto; flex-direction:column`. This decouples
@@ -196,10 +223,9 @@ clipped the entire hand away (the "8-player hands cut off" bug, June 2026; fix i
 width fallback + `.opp-grid` CSS). gamesetup: count buttons grouped
 2/3/4 + 5/6/7/8 via `.count-break`, slots 5-8 built by `renderDynamicSlots(n)`. `gameHistory.numPlayers`
 rule cap is 8 (deployed). Trajectory capture SKIPPED for 5-8P (`trajActive()` requires numPlayers<=4).
-**spectate.html** also mirrors the brick offset in its own `renderPyramid` (flat row of 7 where
-`rowIdx>=7 && (rowIdx-7)%2===0` gets `.spec-pyramid-row.brick-offset`, a half-card `translateX` keyed
-to `--spec-cw`); without it 5-8P flat rows render as a plain grid that doesn't match the game geometry.
-Spectate does NOT scale (no fitPyramid equiv) — the tall pyramid just scrolls.
+**spectate.html** also mirrors the brick offset in its own `renderPyramid` (odd rows, `rowIdx%2===1`,
+get `.spec-pyramid-row.brick-offset`, a half-card `translateX` keyed to `--spec-cw`). Spectate does NOT
+scale (no fitPyramid equiv) and does not vertically overlap rows — it just staggers + scrolls.
 
 ### Deck Operations (lines ~1130–1190)
 ```
@@ -227,8 +253,8 @@ renderPlayerZone(player)    ~1482 — opponents fan their hand via layoutOpponen
 layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed); on a 0 read (pre-layout) borrows parent width and clamps W to ≥ cardW — NEVER a fixed 240px fallback (that overflowed the narrow 5-8P grid cells and overflow:hidden clipped the whole hand away). Card size must match `.opp-zone .hand .card` in play.css (52×73). 5-8P note: `.opp-grid .opp-zone .hand-row` stacks (deck-preview ON TOP of the fan) so the fan claims the full ~90px cell width instead of a ~2px sliver beside the 60px deck-preview; `.collapsible:not(.collapsed)` max-height bumped to 410px for the taller stacked layout (the `:not` keeps the `.collapsed{max-height:0}` collapse working).
 relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
-renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child(1..7)) + tags `.brick-offset` flat rows; calls fitPyramid() at the end
-fitPyramid()                       — 5-8P only: recenters + scales the pyramid to fit #pyramid-zone (width+height) so 11 rows never clip. No-op for 2-4P. Also runs on window resize. NOTE: only downscales when the zone is height-bounded — on ≤900px-tall screens the `body.count-5plus.phase-draw #pyramid-zone {max-height:40vh}` cap (playgame.html) supplies that bound so the draw-phase hand stays on-screen (see 5-8P section).
+renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child) + tags `.brick-offset` on odd rows; calls fitPyramid() at the end
+fitPyramid()                       — recenters + scales the pyramid to fit #pyramid-zone (width+height) so tall stacks never clip. Runs for ALL counts now (only ever scales down → recenter-only no-op when it fits). Also runs on window resize. NOTE: only downscales vertically when the zone is height-bounded — on ≤900px-tall screens the `body.count-5plus.phase-draw #pyramid-zone {max-height:40vh}` cap (playgame.html) supplies that bound so the draw-phase hand stays on-screen (see Store Layout section).
 renderLog()                 ~1638
 setMessage(text)            ~1649
 setActions(buttons)         ~1653
@@ -395,7 +421,7 @@ G = {
   act: 1|2|3,
   round: 1..5,
   phase: 'draw'|'buy'|'score'|'showdown'|'gameover',
-  pyramid: [[{id, imgFile, faceUp, row, col}]],  // 5 rows, row 0 = top (1 card)
+  pyramid: [[{id, imgFile, faceUp, row, col}]],  // numPlayers rows × 7 cards, row 0 = top, bottom row face-up
   players: [Player],       // players[0] = always local human
   playerOrder: [slotIdx],  // Firebase slot index for each G.players[i]
   gameSeed: number,

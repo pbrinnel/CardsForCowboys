@@ -176,8 +176,8 @@
       gap: var(--spec-gap);
       margin-bottom: 4px;
     }
-    /* 5-8P brick layout: every other flat row of 7 is nudged a half-card so two
-       cards still cover one, matching the game's pyramidColCenter()/.brick-offset. */
+    /* Brick layout: every odd row of 7 is nudged a half-card so two cards still
+       cover one, matching the game's pyramidColCenter()/.brick-offset. */
     .spec-pyramid-row.brick-offset {
       transform: translateX(calc((var(--spec-cw) + var(--spec-gap)) / 2));
     }
@@ -636,15 +636,13 @@ function renderPyramid(state) {
 
   if (!state.pyramid || state.pyramid.length === 0) return;
 
-  // 5-8P pyramids cap the triangle at 7 rows (widths 1..7) then add flat rows of 7.
-  // Mirror the game's brick offset (pyramidColCenter): alternate flat rows shift a
-  // half-card so the "2 cover 1" overlap reads the same as in-game.
-  const TRIANGLE_ROWS = 7, MAX_WIDTH = 7;
-
+  // New layout: every row is 7 cards, rows == player count. Mirror the game's brick
+  // offset (pyramidColCenter): odd rows shift a half-card right so the "2 cover 1"
+  // overlap reads the same as in-game.
   state.pyramid.forEach((row, rowIdx) => {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'spec-pyramid-row';
-    if (row.length === MAX_WIDTH && rowIdx >= TRIANGLE_ROWS && ((rowIdx - TRIANGLE_ROWS) % 2 === 0)) {
+    if (rowIdx % 2 === 1) {
       rowDiv.classList.add('brick-offset');
     }
 
