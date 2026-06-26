@@ -553,15 +553,29 @@
       hard:   ['prospector', 'rancher', 'drifter', 'enforcer', 'deputy'],
     };
 
+    // Roman-numeral suffix for collision disambiguation (II, III, ... then fall back to arabic).
+    function romanSuffix(n) {
+      const map = [[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+      if (n > 39) return String(n); // beyond any real player count; keep it readable
+      let out = '', rem = n;
+      for (const [v, sym] of map) { while (rem >= v) { out += sym; rem -= v; } }
+      return out;
+    }
+
     // Pick one AI for a slot, avoiding personalities already used in this game.
-    function pickAiForSlot(difficulty, usedPersonalities) {
+    // Names can still collide once a tier's personalities are exhausted (e.g. 7 Hard AI in 8P),
+    // so a used name gets a roman-numeral suffix ("Quickdraw Andrea II", "... III", ...).
+    function pickAiForSlot(difficulty, usedPersonalities, usedNames) {
       const tier = DIFFICULTY_TIERS[difficulty];
       const pool = tier.filter(p => !usedPersonalities.has(p));
       const eligible = pool.length > 0 ? pool : tier;
       const personality = eligible[Math.floor(Math.random() * eligible.length)];
       usedPersonalities.add(personality);
       const names = AI_NAME_POOLS[personality];
-      const name = names[Math.floor(Math.random() * names.length)];
+      const baseName = names[Math.floor(Math.random() * names.length)];
+      let name = baseName, dupe = 2;
+      while (usedNames && usedNames.has(name)) name = baseName + ' ' + romanSuffix(dupe++);
+      if (usedNames) usedNames.add(name);
       return { personality, name };
     }
     // Enter the inline host waiting room (replaces navigating to creategame.html).
@@ -671,7 +685,8 @@
       if (playerCount === 2) {
         if (p2Type === 'ai') {
           const usedPersonalities = new Set();
-          const ai = pickAiForSlot(p2Difficulty, usedPersonalities);
+          const usedNames = new Set();
+          const ai = pickAiForSlot(p2Difficulty, usedPersonalities, usedNames);
           sessionStorage.setItem('player_count', '2');
           sessionStorage.setItem('player_defs', JSON.stringify([
             { name: myName, isHuman: true },
@@ -692,6 +707,7 @@
       }
       // 3P / 4P
       const usedPersonalities = new Set();
+      const usedNames = new Set();
       const defs = [{ name: myName, isHuman: true }];
       let anyHuman = false;
       for (let i = 2; i <= playerCount; i++) {
@@ -701,7 +717,7 @@
           defs.push({ name: '', isHuman: true });
         } else {
           const diff = slotDifficulties[playerCount][i];
-          const ai = pickAiForSlot(diff, usedPersonalities);
+          const ai = pickAiForSlot(diff, usedPersonalities, usedNames);
           defs.push({ name: ai.name, isHuman: false, personality: ai.personality });
         }
       }
