@@ -185,7 +185,7 @@ const MP = (() => {
       const s = (data.slots && data.slots[i]) || {};
       _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
-    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false, hiddenHerdMode: data.hiddenHerdMode || false };
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false, pioneerMode: data.pioneerMode || false, hiddenHerdMode: data.hiddenHerdMode || false };
   }
 
   // Push local player's full draw state (hand + deck + stats) after every draw action
@@ -822,6 +822,7 @@ function trajLogHeader() {
       gameSeed: G.gameSeed || 0,
       numPlayers: G.numPlayers,
       quickStartMode: !!G.quickStartMode,
+      pioneerMode: !!G.pioneerMode,
       hiddenHerdMode: !!G.hiddenHerdMode,
       seats,
     });
@@ -944,6 +945,7 @@ function buildSpectatorState() {
     act: G.currentAct,
     numPlayers: G.numPlayers,
     quickStartMode: !!G.quickStartMode,
+    pioneerMode: !!G.pioneerMode,
     hiddenHerdMode: !!G.hiddenHerdMode,
     pyramid: G.pyramid.map(row => row.map(slot => ({
       card: serializeCard(slot.card),
@@ -1369,12 +1371,9 @@ function initState(numPlayers, players) {
     currentAct: 1,
     phase: 'start',
     roundNumber: 1,
-    // Cards per Store row. Default 7; a future game mode (set via a gamesetup flag, same
-    // 3-layer path as hiddenHerdMode) can override this to e.g. 6. All pyramid geometry
-    // reads it through pyramidWidth(), so changing this one value reshapes the whole Store.
-    // NOTE when wiring such a mode: also set it in startGame's MP/tutorial/AI branches and
-    // in reconstructG (rejoin), and re-check the getActPool 5-8P doubling math (below).
-    pyramidWidth: DEFAULT_PYRAMID_WIDTH,
+    // Optional explicit Store-width override; null = derive from mode (Pioneer→6, else 7)
+    // in pyramidWidth(). Width never needs to be in G unless a future mode sets it directly.
+    pyramidWidth: null,
     players: players || [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)],
     pyramid: [],
     log: [],
@@ -1400,12 +1399,15 @@ function initState(numPlayers, players) {
 // explain and lay out than the old centered triangle (which capped at width 7 then
 // added flat rows for 5-8P).
 const DEFAULT_PYRAMID_WIDTH = 7;   // standard Store width: 7 cards per row
-// Cards per row for the CURRENT game. Dynamic (reads G.pyramidWidth) so a future mode
-// can use a different width (e.g. 6) without touching any geometry — every function
-// below derives from this. Falls back to the default before G exists. The half-card
+const PIONEER_PYRAMID_WIDTH = 6;   // Pioneer Mode: leaner 6-card rows (faster game)
+// Cards per row for the CURRENT game. Pioneer Mode → 6, otherwise 7. `G.pyramidWidth`
+// is an optional explicit override (unset by default) so a future width mode can set it
+// directly without a new branch. Every function below derives from this; the half-card
 // BRICK offset and "rows == player count" rule are width-independent and never change.
 function pyramidWidth() {
-  return (typeof G !== 'undefined' && G && G.pyramidWidth) || DEFAULT_PYRAMID_WIDTH;
+  if (typeof G === 'undefined' || !G) return DEFAULT_PYRAMID_WIDTH;
+  if (G.pyramidWidth) return G.pyramidWidth;                    // explicit override wins
+  return G.pioneerMode ? PIONEER_PYRAMID_WIDTH : DEFAULT_PYRAMID_WIDTH;
 }
 function pyramidRowWidth(row) {
   return pyramidWidth();
@@ -2606,6 +2608,7 @@ async function startGame() {
     // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
     G.quickStartMode = cfg.quickStartMode || false;
+    G.pioneerMode = cfg.pioneerMode || false;
     G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   } else {
     // Tutorial mode: skip gamesetup.html entirely
@@ -2618,6 +2621,7 @@ async function startGame() {
       G.gameSeed = 0;
       G.seatOrder = [0, 1];
       G.quickStartMode = false;
+      G.pioneerMode = false;
       G.hiddenHerdMode = false;
       TUTORIAL.init(G);
     } else {
@@ -2653,6 +2657,7 @@ async function startGame() {
           G.currentAct     = saved.act;
           G.roundNumber    = saved.round;
           G.quickStartMode = saved.quickStartMode || false;
+          G.pioneerMode    = saved.pioneerMode || false;
           G.hiddenHerdMode = saved.hiddenHerdMode || false;
           G.seatOrder      = saved.seatOrder || seededSeatOrder(players.length, G.gameSeed);
           G.pyramid = saved.pyramid.map(row => row.map(s => ({
@@ -2707,6 +2712,7 @@ async function startGame() {
       G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
       G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
       G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
+      G.pioneerMode = sessionStorage.getItem('pioneer_mode') === '1';
       G.hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
     }
   }
@@ -2766,6 +2772,7 @@ function saveLocalGame() {
       phase: G.phase,
       gameSeed: G.gameSeed,
       quickStartMode: G.quickStartMode || false,
+      pioneerMode: G.pioneerMode || false,
       hiddenHerdMode: G.hiddenHerdMode || false,
       seatOrder: G.seatOrder,
       drawsDone: G.drawsDone || {},
@@ -2857,6 +2864,10 @@ async function reconstructG(state, cfg) {
 
   G = initState(cfg.numPlayers, players);
   G.playerOrder = G_playerOrder;
+  // pioneerMode must be restored BEFORE any render/covering — it sets the Store width,
+  // and the reconstructed pyramid rows are already that width; a mismatch misaligns the
+  // brick offset and breaks isCardCovered on rejoin.
+  G.pioneerMode = cfg.pioneerMode || false;
   G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   G.phase       = state.phase;
   G.currentAct  = state.act;

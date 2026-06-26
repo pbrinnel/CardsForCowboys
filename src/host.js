@@ -105,9 +105,10 @@ async function startHosting() {
   const slots = {};
   defs.forEach((d, i) => { slots[i] = { name: d.name || '', isHuman: d.isHuman, personality: d.personality || null }; });
   const quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
+  const pioneerMode = sessionStorage.getItem('pioneer_mode') === '1';
   const hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
 
-  await set(gameRef, { status: 'waiting', numPlayers, gameSeed, slots, quickStartMode, hiddenHerdMode, createdAt: Date.now() });
+  await set(gameRef, { status: 'waiting', numPlayers, gameSeed, slots, quickStartMode, pioneerMode, hiddenHerdMode, createdAt: Date.now() });
 
   onDisconnect(gameRef).remove();
 

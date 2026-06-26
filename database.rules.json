@@ -128,6 +128,7 @@
           "gameSeed":   { ".validate": "newData.isNumber()" },
           "numPlayers": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 4" },
           "quickStartMode": { ".validate": "newData.isBoolean()" },
+          "pioneerMode": { ".validate": "newData.isBoolean()" },
           "hiddenHerdMode": { ".validate": "newData.isBoolean()" },
           "seats": {
             "$slot": {
@@ -153,8 +154,8 @@
           "special": { ".validate": "newData.isString() && newData.val().length <= 20" },
           "cardId":  { ".validate": "newData.isString() && newData.val().length <= 20" },
           "detail":  { ".validate": "newData.isString() && newData.val().length <= 20" },
-          "row": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
-          "col": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+          "row": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7" },
+          "col": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 6" },
 
           "herds":         { "$slot": { ".validate": "newData.isNumber()" } },
           "deckCounts":    { "$slot": { ".validate": "newData.isNumber()" } },

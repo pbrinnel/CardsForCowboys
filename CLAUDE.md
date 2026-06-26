@@ -159,15 +159,17 @@ isPyramidEmpty(pyramid)
 **The Store is no longer a triangle.** Every row is exactly **`pyramidWidth()` cards** (default **7**),
 and the **number of rows == the player count** (2P→2 rows … 8P→8 rows).
 
-**Width is dynamic.** `pyramidWidth()` reads `G.pyramidWidth` (seeded to `DEFAULT_PYRAMID_WIDTH=7` in
-`initState`). ALL geometry (`pyramidRowWidth`/`pyramidColCenter`/`buildPyramid` via `needed`) derives
-from it, and the half-card brick offset + `row%2` rendering + spectate + CSS are width-independent — so
-a **future "6 per row" mode** (or any width) is just: add a gamesetup flag (mirror `hiddenHerdMode`'s
-3-layer path), then set `G.pyramidWidth = mode ? 6 : 7` in `initState`/the `startGame` MP·tutorial·AI
-branches **and** `reconstructG` (rejoin — or the rebuilt pyramid mismatches the live one). Verified live:
-flipping `G.pyramidWidth=6` + rebuild → 4×6=24 cards, correct covering, renders cleanly with zero other
-edits. Re-check the `getActPool` 5-8P doubling only if width >7 (≤7 is safe; see its comment). The
-tutorial is fixed at width 7 (hardcoded 14-card scenario) — leave it unless the mode applies there. Rows are **brick-staggered**: odd rows shift +0.5 card
+**Width is dynamic.** `pyramidWidth()` returns 6 under **Pioneer Mode**, else 7 (`G.pyramidWidth` is an
+optional explicit override, null by default). ALL geometry (`pyramidRowWidth`/`pyramidColCenter`/
+`buildPyramid` via `needed`) derives from it, and the half-card brick offset + `row%2` rendering +
+spectate + CSS are width-independent — so any width change is just the `pyramidWidth()` return value.
+**Pioneer Mode** (shipped June 2026) is the 6-per-row mode: a leaner Store for a faster game (2P→2×6=12,
+4P→4×6=24, 8P→8×6=48 cards). Wired exactly like `hiddenHerdMode` (3-layer flag path: `pi-checkbox`
+→ `pioneer_mode` sessionStorage → host.js Firebase payload → `G.pioneerMode` in every `startGame`
+branch + `reconstructG`). **`reconstructG` MUST set `G.pioneerMode` before any render** — the rebuilt
+pyramid rows are already 6-wide, and a width mismatch misaligns the brick offset + breaks `isCardCovered`
+on rejoin. Re-check the `getActPool` 5-8P doubling only if width >7 (≤7 is safe; see its comment). The
+tutorial is fixed at width 7 (hardcoded 14-card scenario). Rows are **brick-staggered**: odd rows shift +0.5 card
 (`pyramidColCenter`), so two cards cover the one above, solitaire-style. Covering is geometry-based
 (`isCardCovered`): interior cards have 2 coverers, the single overhang end card per row has 1; only
 the **bottom row** starts face-up. Card counts: 2P=**14** (was 15 — the only count that changed; the
@@ -444,11 +446,16 @@ player = {
 
 ## Game Mode / Setup Flags
 
-Optional modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed 3-layer path. To add a new one, mirror an existing flag (`quickStartMode`, `hiddenHerdMode`) at each layer:
+Three modes ship today: **Quick Draw** (`quickStartMode` — the label is "Quick Draw"; the INTERNAL
+identifiers stay `quickStart*`/`quick_start_mode`/`runQuickStartDraft` — surface-only rename, June 2026),
+**Pioneer Mode** (`pioneerMode` — 6-per-row Store, see Store Layout), **Hidden Herd** (`hiddenHerdMode`).
+Selecting **Quick Draw + Pioneer** together is the fastest game (skip Act 1 + a leaner board; emergent,
+no special combined logic). Modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed
+3-layer path. To add a new one, mirror an existing flag at each layer:
 
 1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
 2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
-3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 187); `startGame` sets `G.<flag>Mode` in all branches (MP cfg ~2225, tutorial ~2236, AI/sessionStorage ~2251); **rejoin must also set it in `reconstructG`** (~2347) or a refresh loses the mode.
+3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 188); `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it (header carries `quickStartMode`/`pioneerMode`/`hiddenHerdMode`) — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails.**
 
 **Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
