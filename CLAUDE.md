@@ -204,13 +204,20 @@ inside `@media (min-width:1200px) and (max-height:900px)`. The cap (with the zon
 gives `fitPyramid` a bounded box; it only shrinks pyramids taller than the cap, so shorter 5-6P ones
 stay full size. Scoped to **draw phase + 5-8P** (≤4 rows fit natively; buy phase needs the big
 clickable pyramid). **Opponent layout (Option 3 "rail", June 2026 — ALL player counts):** on
-desktop (`@media min-width:1200px`, grid in playgame.html) opponents are a fixed-width **scrolling
-rail** on the right — `#opponents-zone` spans grid rows "action/pyramid" + "player" (`grid-area:opp`),
-`position:sticky; max-height:calc(100vh-1rem); overflow-y:auto; flex-direction:column`. This decouples
-your draw/hand area from opponent count: a tall/growing stack of opponent tiles scrolls inside the
-rail instead of pushing your `#player-zone` below the fold (the "tiles keep expanding, you keep
-scrolling" problem; pre-rail the opp block hit ~931px and shoved the player zone to y≈1028 on a 900px
-screen). The desktop block also overrides `.opp-grid` back to a flex column and the opp `.hand-row`
+desktop (`@media min-width:1200px`, grid in playgame.html) the page is a **2-column grid**:
+`#main-col` (your whole left column) + a fixed-width **scrolling rail** on the right (`grid-area:opp`,
+`position:sticky; max-height:calc(100vh-1rem); overflow-y:auto; flex-direction:column`). **`#main-col`
+(wraps pyramid+action+player+log) is ONE `align-self:start` grid item with its own nested grid
+(`"action pyramid" / "player player" / "log log"`)**, so the rail beside it lays out 100% independently
+— a tall/growing rail can no longer drag your Draw Card or hand around. (The earlier 3-col grid had the
+rail SHARE the action/pyramid + player rows; once the Store became short (brick rework), the rail's
+height drove those shared rows and shoved the action zone + hand. `min-height:0` didn't fix it — auto
+grid tracks still grow to a spanning item's max-content; the single-start-aligned-`#main-col` is the
+real fix.) On **narrow (<1200px)** `#main-col` is **`display:contents`** — invisible to layout, so its
+children flow directly in `#game`'s single-column flex with their existing `order` (NARROW LAYOUT
+UNCHANGED; don't give `#main-col` any narrow box or you'll break the `order`-based reflow). The rail
+still can't push your area off-screen (sticky + bounded + internal scroll). The desktop block also
+overrides `.opp-grid` back to a flex column and the opp `.hand-row`
 back to side-by-side (rail tiles are ~290px, so deck-preview + fan read fine — no stacking needed
 there). On **narrow (<1200px)** the grid collapses to the single-column flex and opponents "drop
 below" your area via `order` (`#opponents-zone {order:6}`, after `#player-zone {order:5}`), so your
@@ -256,7 +263,7 @@ layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: sp
 relayoutOpponentFans()      ~4650 — re-runs layoutOpponentFan for every opp hand; debounced on window 'resize'
 renderDeckPreview(player)   ~1548
 renderPyramid()             ~1585 — sets z-index inline (generalizes past CSS nth-child) + tags `.brick-offset` on odd rows; calls fitPyramid() at the end
-fitPyramid()                       — recenters + scales the pyramid to fit #pyramid-zone (width+height) so tall stacks never clip. Runs for ALL counts now (only ever scales down → recenter-only no-op when it fits). Also runs on window resize. NOTE: only downscales vertically when the zone is height-bounded — on ≤900px-tall screens the `body.count-5plus.phase-draw #pyramid-zone {max-height:40vh}` cap (playgame.html) supplies that bound so the draw-phase hand stays on-screen (see Store Layout section).
+fitPyramid()                       — recenters + scales the pyramid to fit #pyramid-zone (width+height) so tall stacks never clip. Runs for ALL counts now (only ever scales down → recenter-only no-op when it fits). Also runs on window resize. Height budget is `zone.bottom - pad - contentTop` (NOT zone.height): the pyramid sits below the "Store" label and the scale pivots on the content top, so using zone.height over-budgeted by the label height and clipped the bottom rows (8P draw phase under the 40vh cap). NOTE: only downscales vertically when the zone is height-bounded — on ≤900px-tall screens the `body.count-5plus.phase-draw #pyramid-zone {max-height:40vh}` cap (playgame.html) supplies that bound so the draw-phase hand stays on-screen (see Store Layout section).
 renderLog()                 ~1638
 setMessage(text)            ~1649
 setActions(buttons)         ~1653

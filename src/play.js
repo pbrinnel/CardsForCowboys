@@ -2135,7 +2135,13 @@ function fitPyramid() {
   const zr = zone.getBoundingClientRect();
   const pad = 14;
   const natW = maxR - minL, natH = maxB - minT;
-  const scale = Math.min(1, (zr.width - pad * 2) / natW, (zr.height - pad * 2) / natH);
+  // Vertical budget = from the content's CURRENT top down to the zone bottom, NOT the
+  // full zone height: the pyramid sits below the "Store" label, and scaling pivots on
+  // the content top (it stays put + scales downward). Using zr.height over-budgeted by
+  // the label height, so a height-capped pyramid (8P draw phase, 40vh cap) overshot the
+  // zone bottom by the label height and got clipped by overflow:hidden.
+  const availH = (zr.bottom - pad) - minT;
+  const scale = Math.min(1, (zr.width - pad * 2) / natW, availH / natH);
   const contentCenter = (minL + maxR) / 2;
   const pyrBox = pyr.getBoundingClientRect();
   // Pivot scaling about the content's center-x and top edge, then slide that center to
