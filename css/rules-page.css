@@ -119,18 +119,18 @@
 }
 
 .cacti-item img {
-  width: 60px;
-  height: 84px;
+  width: 150px;
+  height: 210px;
   border: 2px solid #1e1610;
   box-shadow: 3px 3px 0 #1e1610;
   object-fit: cover;
 }
 
 .cacti-item span {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #1e1610;
   text-align: center;
-  max-width: 120px;
+  max-width: 170px;
 }
 
 /* ── Pyramid diagrams ── */
@@ -237,13 +237,13 @@ nav a.active { color: #e9e0c6; text-decoration: underline; }
   .rules-page h2 { font-size: 1.3rem; }
   .rules-page h3 { font-size: 1.05rem; }
   .symbol-row img { width: 56px; height: 56px; }
-  .cacti-item img { width: 50px; height: 70px; }
+  .cacti-item img { width: 120px; height: 168px; }
   .symbol-row p { font-size: 0.85rem; }
 }
 
 @media (max-width: 400px) {
   .rules-page { padding: 1rem 0.75rem 1.5rem; }
   .symbol-row img { width: 44px; height: 44px; }
-  .cacti-item img { width: 42px; height: 59px; }
+  .cacti-item img { width: 96px; height: 134px; }
   .cacti-item span { font-size: 0.7rem; }
 }
