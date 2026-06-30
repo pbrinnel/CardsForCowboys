@@ -90,32 +90,6 @@
       </ul>
     </section>
 
-    <!-- 5+ PLAYER RULES -->
-    <section>
-      <h2>5+ Player Rules</h2>
-      <p>Cards For Cowboys plays with up to <strong>8</strong>. Everything plays exactly the same as
-      the 2&ndash;4 player game &mdash; only the setup changes.</p>
-      <ul>
-        <li><strong>Add a row per player.</strong> The Store is always 7 cards per row, one row per
-        player &mdash; just keep adding staggered rows of 7:
-          <ul>
-            <li>5 players &mdash; 5 rows (35 cards)</li>
-            <li>6 players &mdash; 6 rows (42 cards)</li>
-            <li>7 players &mdash; 7 rows (49 cards)</li>
-            <li>8 players &mdash; 8 rows (56 cards)</li>
-          </ul>
-        </li>
-        <li><strong>Use a second deck.</strong> Shuffle both copies of the Store cards together for
-        each Act so there are enough cards to fill the larger grid. (Each player still uses their
-        own 10-card starter deck.)</li>
-        <li><strong>"Buy/Burn 1st" counts only once per round.</strong> Because the second deck means
-        two copies of a card can be in play, only the <strong>first</strong> player to use a
-        "Buy/Burn 1st" Explosive gets the priority. If someone has already used one this round, a
-        second copy can't be played &mdash; keep it in hand for a later round.</li>
-      </ul>
-      <p>Everything else &mdash; drawing, busting, buying, burning, the Showdown &mdash; is unchanged.</p>
-    </section>
-
     <!-- DRAW PHASE -->
     <section>
       <h2>Sequence of Play</h2>
@@ -125,7 +99,7 @@
         <li>All players draw cards from the top of their personal deck, one at a time. (Players may draw simultaneously.)</li>
         <li>Players must draw at least one card, then may stop at any time.</li>
         <li>If a player draws <strong>3 or more Bandits</strong>, they <strong>bust</strong> immediately &mdash; their turn is over and all drawn cards go to the discard pile.</li>
-        <li>When your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
+        <li>If you want to draw and your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
       </ul>
     </section>
 
@@ -169,6 +143,26 @@
       <p>The player with the most Cows in their Herd after the Showdown wins!</p>
     </section>
 
+    <!-- CARD BACKS & SUITS -->
+    <section>
+      <h2>Card Backs &amp; Suits</h2>
+      <p>Every card belongs to one of three suits, visible on both the front and back. The suit tells you roughly how risky the card is to draw.</p>
+      <div class="cacti-row">
+        <div class="cacti-item">
+          <img src="assets/backs/River Back.jpg" alt="River card back">
+          <span><strong>River</strong> &mdash; Generally safe; fewer or no Bandits.</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/backs/Cactus Back.jpg" alt="Cactus card back">
+          <span><strong>Cactus</strong> &mdash; Moderate risk; may contain 1 Bandit.</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/backs/Rattlesnake Back.jpg" alt="Rattlesnake card back">
+          <span><strong>Rattlesnake</strong> &mdash; High risk, high reward; may contain 1&ndash;2 Bandits.</span>
+        </div>
+      </div>
+    </section>
+
     <!-- SYMBOLS -->
     <section>
       <h2>Symbols on Cards</h2>
@@ -201,31 +195,6 @@
           <img src="assets/symbols/One-Time Use-01.png" alt="Explosive symbol">
           <p><strong>Explosive</strong> &mdash; A one-time-use card. It does nothing when drawn; on your turn you may <strong>use</strong> it &mdash; its effect applies immediately and the card is then permanently removed from your deck. (Note: <em>using</em> an Explosive removes it from <em>your</em> deck; this is different from <em>burning</em>, which removes a card from the Store &mdash; see Errata.)</p>
         </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/If Drawn 1st + Cow-01.png" alt="If Drawn First symbol">
-          <p><strong>If Drawn 1st</strong> &mdash; If this is the very first card you draw this round, you gain an extra Cow.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/& $1 for Other Players-01.png" alt="Dollar for other players symbol">
-          <p><strong>&amp; $1 for Other Players</strong> &mdash; When drawn, each other player also gains $1 this round.</p>
-        </div>
-      </div>
-
-      <h3>Card Backs &amp; Suits</h3>
-      <p>Every card belongs to one of three suits, visible on both the front and back. The suit tells you roughly how risky the card is to draw.</p>
-      <div class="cacti-row">
-        <div class="cacti-item">
-          <img src="assets/backs/River Back.jpg" alt="River card back">
-          <span><strong>River</strong> &mdash; Generally safe; fewer or no Bandits.</span>
-        </div>
-        <div class="cacti-item">
-          <img src="assets/backs/Cactus Back.jpg" alt="Cactus card back">
-          <span><strong>Cactus</strong> &mdash; Moderate risk; may contain 1 Bandit.</span>
-        </div>
-        <div class="cacti-item">
-          <img src="assets/backs/Rattlesnake Back.jpg" alt="Rattlesnake card back">
-          <span><strong>Rattlesnake</strong> &mdash; High risk, high reward; may contain 1&ndash;2 Bandits.</span>
-        </div>
       </div>
     </section>
 
@@ -237,11 +206,20 @@
         <li>You may <strong>not</strong> look through your discard pile.</li>
         <li><strong>Burn</strong> = Remove a Store card from the game without buying it (returned to the game box). "Burn" always refers to a Store card &mdash; to consume one of your own cards, see <strong>Explosive</strong> above ("use").</li>
         <li><strong>Draw</strong> = Draw from the top of your personal deck.</li>
-        <li>Jail cards (Explosive with −1 Bandit) must be used <em>before</em> busting.</li>
+        <li>If you run out of cards in both your draw and discard pile, stop drawing for the round.</li>
+      </ul>
+    </section>
+
+    <!-- CARD CLARIFICATIONS -->
+    <section>
+      <h2>Card Clarifications</h2>
+      <ul>
+        <li><strong>"If Drawn 1st"</strong> &mdash; If this is the very first card you draw this round, you gain an extra Cow.</li>
+        <li><strong>"&amp; $1 for Other Players"</strong> &mdash; When drawn, each other player also gains $1 this round.</li>
+        <li><strong>Jail</strong> cards (Explosive with −1 Bandit) must be used <em>before</em> busting.</li>
         <li><strong>"Copy Next Card"</strong> &mdash; doubles the draw-time effects of the next card you draw. If that card is <strong>Explosive</strong>, Copy Next instead becomes a second independent copy &mdash; both can each be used separately for the full effect. If it&rsquo;s <strong>Draw 4</strong>, draw 8 instead of 4 (Cows also doubled). The link is set the moment the next card is drawn. If unused (you stop or bust), Copy Next discards normally &mdash; no link carries to the next round.</li>
         <li>When a <strong>"Draw 4"</strong> forces extra draws, you may pause between each draw to use Explosive cards before proceeding with your mandatory draws.</li>
         <li><strong>"Peek at Top 3 Cards"</strong> &mdash; view and re-order the top 3 cards of your draw pile. Peeking does not draw them automatically; you may then choose to keep drawing or stop.</li>
-        <li>If you run out of cards in both your draw and discard pile, stop drawing for the round.</li>
         <li><strong>"1 Extra Buy/Burn During Buy Phase"</strong> &mdash; Use this Explosive card during your Draw Phase <em>or</em> at the start of your Buy Turn to earn one bonus action. The bonus activates automatically after your normal buy or burn, letting you buy or burn one additional card from the pyramid. If the pyramid is empty when your bonus would trigger, it is lost.</li>
         <li><strong>"Swap" (4-player only)</strong> &mdash; On your Buy Turn you may use this card to swap it for <em>any</em> face-up card on the table &mdash; an available Store card, a card in an opponent's drawn hand, or the top of an opponent's discard. You take that card into your hand where the Swap card was (it scores in a later round when you draw it, not this one) and the Swap card takes the taken card's exact place. This is <em>in addition</em> to your normal buy or burn that turn.</li>
       </ul>
@@ -261,6 +239,17 @@
         <li>Tracking which cards you haven't drawn gives you a big edge. Start by remembering whether you've drawn your double-Bandit card yet.</li>
         <li>Balance the risk of busting against the reward of gaining more $ and Cows.</li>
         <li>It's not always best to draw as many cards as possible. If you have enough $ for this round, consider stopping to set up a strong hand next round.</li>
+      </ul>
+    </section>
+
+    <!-- 5+ PLAYER RULES -->
+    <section>
+      <h2>5+ Player Rules</h2>
+      <p>Plays up to <strong>8</strong> &mdash; same rules, only setup changes:</p>
+      <ul>
+        <li><strong>Shuffle in a second Store deck</strong> to fill the larger grid.</li>
+        <li><strong>One row of 7 per player</strong> (5P = 35 cards &hellip; 8P = 56).</li>
+        <li><strong>"Buy/Burn 1st" works once per round</strong> &mdash; only the first player to use it gets priority; keep extra copies for later.</li>
       </ul>
     </section>
 
