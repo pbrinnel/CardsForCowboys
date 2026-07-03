@@ -98,24 +98,37 @@ engine too.
 
 Line numbers are approximate (±10). Grep to verify exact location.
 
-### MP Layer (IIFE, lines 22–580)
+### MP Layer (IIFE, lines 22–700)
 ```
 (IIFE identity hydration)   ~27   — resolves identity sessionStorage → URL(code/slot/name) → localStorage(cfc_rejoin); sets MP.recovered on a recovery load
-gameRef(path)               ~52   — builds Firebase ref under games/{code}/
-init()                      ~56   — dynamic Firebase ESM import, arms onDisconnect
-startPresence()             ~81   — marks slot connected, watches opponent drops (30s grace, debounced message)
-watchOpponentDrawStates()   ~168  — live-syncs opp hand/deck/discard/stats from drawState/{slot}
-waitForAllHumanDrawsDone()  ~199  — resolves when all human slots push drawDone
-waitForDraftRoundPicks()    ~252  — waits for all draft picks in a round
-pushSpectatorState()        ~362  — host pushes full game snapshot to spectatorState; also calls pushLiveSummary()
-pushLiveSummary()           ~401  — host writes slim liveSummary/{code} for the Live Now list (no card state)
-waitForActSetup()           ~361  — non-hosts wait for host to push actSetup (pyramid card IDs)
-waitForBuyAction()          ~396  — waits for a specific slot's buyAction push
-waitForBuyOrder()           ~426  — waits for host to push buyOrder
-showDisconnectMessage()     ~444  — shows disconnect UI, offers return to home
-startRejoinCountdown()      ~453  — 5-min rejoin window timer
-cleanup()                   ~506  — unsubscribes all Firebase listeners
-watchForDisband()           ~532  — watches for status='disbanded' (or null for legacy)
+gameRef(path)               ~95   — builds Firebase ref under games/{code}/
+subscribeNamed(key,ref,cb)  ~100  — idempotent onValue: re-arming a key REPLACES the old sub (fixes the per-round listener leak, audit H1). Use for anything re-armed per round.
+init()                      ~110  — dynamic Firebase ESM import, arms onDisconnect
+startPresence()             ~135  — marks slot connected, watches opponent drops (30s grace, debounced message)
+pushDrawState()             ~205  — full draw state incl. entitlements + dollar1OtherPlayed
+watchOpponentDrawStates()   ~235  — live-syncs opp drawState via subscribeNamed (per-slot keys)
+signalDrawDone()            ~250  — awaited done signal; carries authoritative hand id list + dollar1OtherPlayed (audit R3/C5)
+forceSignalDrawDone()       ~275  — host recovery: forced done w/ last-known stats
+waitForAllHumanDrawsDone()  ~290  — resolves when all human slots push drawDone
+pushDraftPick/getDraftPick/forceDraftPick ~315 — draft pick push / own-pick read (re-entry) / host force (only-if-absent transaction) (audit H4/C8)
+waitForDraftRoundPicks()    ~350  — waits for all draft picks in a round
+pushSpectatorState()        ~380  — host pushes buildSpectatorState() (single shared serializer, audit H2)
+pushLiveSummary()           ~400  — host writes slim liveSummary/{code} for the Live Now list (no card state)
+clearActSetup/pushActSetup  ~425  — host act broadcast
+waitForActSetup()           ~440  — non-hosts wait for host to push actSetup (pyramid card IDs)
+pushBuyAction()             ~460  — stamps round+act+SEQ (1 normal / 2 extra buy; audit R1). buyAction is never cleared — seq matching replaces the old consume-then-null.
+forceBuyAction(slot, seq)   ~480  — host recovery skip; must stamp the seq waiters expect
+waitForBuyAction(slot,seq,cb) ~490 — matches round+act+seq (legacy no-seq passes)
+watchOwnBuyAction/watchOwnDrawDone ~510 — R2 tombstones: own-cell watches for host-forced signals
+pushBuyOrder/waitForBuyOrder ~520 — round+act-stamped buy order
+showDisconnectMessage()     ~545  — shows disconnect UI, offers return to home
+startRejoinCountdown()      ~555  — 5-min rejoin window timer
+fetchSpectatorState()       ~585  — one-shot snapshot get (rejoin)
+watchSpectatorState/unwatchSpectatorState ~595 — continuous snapshot watch (transient-phase rejoin, audit H3)
+fetchActSetup()             ~615  — read existing actSetup (host fresh-start safety, audit H5)
+cleanup()                   ~640  — unsubscribes all listeners incl. named subs
+watchForDisband()           ~665  — watches for status='disbanded' (or null for legacy)
+claimBuyFirst(act, round)   ~690  — 5-8P once-per-round priority claim (callers MUST pass G.currentAct/G.roundNumber — audit C2)
 ```
 
 ### Card Database (lines ~752–900)
@@ -285,11 +298,20 @@ startGame()                 ~1982 — entry point; branches MP rejoin vs normal;
 restartGame()               ~2119
 ```
 
-### Rejoin / Reconstruction (lines ~2128–2265)
+### Rejoin / Reconstruction (grep the names; July 2026 rework — audit C3/C4/C6/C7/H3)
 ```
-reconstructG(state, cfg)    ~2132 — rebuilds G from spectatorState on rejoin
-resumeDrawPhase()           ~2189 — re-enters draw phase after rejoin
-resumeBuyPhase()            ~2262 — re-enters buy phase after rejoin
+reconstructG(state, cfg)     — rebuilds G from spectatorState; restores buy entitlements,
+                               dollar1OtherPlayed, AI RNG seeds (aiRngSeeds — never re-seed
+                               mid-game), and stashes slot-keyed drawsDone on G._restoredDrawsDone
+applyOppDrawState(slot, st)  — SHARED drawState applier (startRound + resumeDrawPhase; all
+                               stale/done/empty-array guards live here — never fork it)
+applyOppDoneData(opp, done)  — SHARED drawDone applier; authoritative stats + hand reconcile
+resumeDrawPhase()            — re-enters draw phase; completes AI seats from restored
+                               drawsDone / busted / stoppedDrawing or re-runs aiDrawPhase
+resumeBuyPhase()             — re-enters buy phase after rejoin
+resumeFromState(state, cfg)  — the ONE resume entry point: handles draw/buy/gameOver and
+                               watches spectatorState through transient phases (score/showdown)
+armForcedDrawTombstone()     — adopts a host-forced drawDone instead of drawing past it (R2)
 ```
 
 ### Round Flow (lines ~2268–2415)
@@ -463,7 +485,7 @@ no special combined logic). Modes are toggled by checkboxes on `gamesetup.html` 
 
 1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
 2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
-3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 188); `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it (header carries `quickStartMode`/`pioneerMode`/`hiddenHerdMode`) — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails.**
+3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 188); `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it (header carries `quickStartMode`/`pioneerMode`/`hiddenHerdMode`) — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails — AND the rules must be DEPLOYED (`firebase deploy --only database`), not just edited: the Pioneer Mode flag sat undeployed ~a week and every trajectory header was silently rejected (audit C9).**
 
 **Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
@@ -634,14 +656,11 @@ batch or throttle `snap` writes. This is the only place trajectory capture touch
 ## Known Bug Watch List
 
 **⚠️ Read [`docs/MP_PROTOCOL_AUDIT.md`](docs/MP_PROTOCOL_AUDIT.md) before touching MP sync code**
-(July 2026 adversarial audit — findings only, NOT yet fixed). Confirmed open bugs: card_4 swap
-never applies on other clients (uid-resolved, C1); `claimBuyFirst` keys on `G.act`/`G.round`
-which don't exist (C2); MP rejoin mid-draw with AI seats softlocks (C3); rejoin resets AI RNG →
-post-rejoin AI divergence (C4); human-drawn card_24 `dollar1_other` desyncs AI dollars (C5);
-`spectatorState.currentBuyerIdx` stale-by-one → rejoin replays a buy turn (C6); rejoin drops
-`hasBuyBurnFirst`/`hasExtraBuy` (C7); drawState listeners accumulate every round (H1). The audit
-has fix sketches + a systemic reconciliation plan (the bug #16 follow-up). When one of these is
-fixed, update both the audit doc and this list.
+(July 2026 adversarial audit). **All confirmed findings were FIXED July 3 2026** — see bug #17
+below for the do-not-regress invariants, and the audit doc for full mechanism write-ups (C1-C9,
+R1-R3, H1-H5). Still open by choice: N1 (lobby dies on host wifi blip), N2 (public codes =
+joinable seats), and the audit's systemic item 2 (guest pyramid/state reconciliation at round
+boundaries — the recommended next MP investment).
 
 ### 1. Discard Desync (Recurring — fixed twice)
 **Commits:** `eba3437` (Mar 30 2026), `2744b26` (Mar 31 2026)
@@ -844,6 +863,27 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 **Fix in place:** `executeBuyLocal`/`executeBurnLocal` now **return a boolean** (true = applied, false = cell already gone). `mpOpponentBuyTurn` checks the result and, on `false`, advances the turn itself (`currentBuyerIdx++` → `endBuyPhase`/`processBuyTurn`, mirroring the `skip` branch). Local-human (`executeBuy`/`executeBurn`) and AI callers ignore the return value, so their behavior is unchanged; AI/humans only ever target available cells anyway.
 
 **Do not regress:** Any code path that drives the MP buy-turn chain MUST advance the turn even when the buy/burn no-ops on the receiving client. Never let `mpOpponentBuyTurn` apply a remote action without guaranteeing forward progress — a silent no-op there is a guaranteed round-long softlock. (Open follow-up, not yet done: the manual-only Force Continue is too slow; consider auto-firing it after a longer timeout, or having the host re-assert authoritative pyramid state, so a missed/no-op signal self-heals in seconds.)
+
+---
+
+### 17. MP Protocol Audit Fixes (July 3 2026) — do-not-regress invariants
+**Full mechanism write-ups: [`docs/MP_PROTOCOL_AUDIT.md`](docs/MP_PROTOCOL_AUDIT.md)** (findings C1-C9, R1-R3, H1-H5, all fixed in one pass). The invariants the fixes established:
+
+- **Swap (card_4) resolves by card `id`, never `uid`, on receivers** (`applySwapLocal`, spec carries `card4Id`). uids are per-client counters — a uid lookup matches nothing (or the wrong card) on every client but the activator. `mpOpponentBuyTurn` logs a console warning whenever a swap fails to apply; that warning = state divergence.
+- **`claimBuyFirst` args are `G.currentAct`/`G.roundNumber`** — `G.act`/`G.round` do not exist; passing them keyed the 5-8P priority claim on `"undefined_undefined"` (once per game instead of per round).
+- **`resumeDrawPhase` must complete AI seats**: restore from the snapshot's slot-keyed `drawsDone`, infer from `busted`/`stoppedDrawing`, or re-run `aiDrawPhase`. AI seats never signal via Firebase — leaving them false softlocks every mid-draw rejoin.
+- **AI RNG stream positions (`_aiRngs[slot].seed`) are persisted in spectatorState (`aiRngSeeds`) and restored on rejoin.** Never re-seed from gameSeed alone mid-game — the streams have advanced on the other clients, and a fresh stream silently diverges every later AI reshuffle.
+- **`dollar1_other` (card_24) grants are DEFERRED in MP** to one deterministic point (`onDrawPhaseComplete`, before the buy-order tiebreak), computed from per-player `dollar1OtherPlayed` counts (own local, remote via drawDone, AI via identical simulation). Never apply cross-player effects live during concurrent draw phases — wall-clock interleaving differs per client. SP keeps live grants.
+- **The host pushes spectatorState at the top of `processBuyTurn`** so `currentBuyerIdx` in the snapshot is never stale-by-one (a rejoiner would replay the previous buyer's turn).
+- **spectatorState is built ONLY by `buildSpectatorState()`** (MP + AI_SPEC share it). It carries the buy entitlements (`hasBuyBurnFirst`/`hasExtraBuy`/`extraBuyUsed`), `dollar1OtherPlayed`, `aiRngSeeds`, and slot-keyed `drawsDone`; `reconstructG` restores all of them. Add rejoin-relevant fields HERE, nowhere else.
+- **`buyAction` is sequenced (`seq`: 1 = normal turn, 2 = extra buy) and never cleared.** Receivers match on round+act+seq; the old consume-then-null pattern raced the actor's second action. `forceBuyAction`/`forceBuyTurn` must stamp the seq waiters expect.
+- **Force-continue tombstones**: the forced player's own client watches its own `buyAction`/`drawDone` cells and adopts a forced skip/done instead of applying its late local action (`watchOwnBuyAction`/`watchOwnDrawDone` + guards in `startPlayerDraw`/`playerDraw`); `showChooseFirstUI` adopts a forced buyOrder via a `resolved` flag. Removing these re-opens the force-vs-late-action divergence.
+- **`drawDone` carries the hand id list**; `applyOppDoneData` reconciles the opponent's hand from it (tiebreaker inputs `hand.length`/`hand[i].cost` must match the actor's). The draw-phase sync bodies live in `applyOppDrawState`/`applyOppDoneData` — shared by `startRound` and `resumeDrawPhase`; never fork them again.
+- **MP watchers that re-arm per round use `subscribeNamed`** (idempotent, replaces the old sub). Plain `fbOnValue` in a per-round path = listener leak (was ~15 duplicate full-snapshot writes per draw event by Act 3).
+- **Rejoin has no dead ends**: `resumeFromState` handles every phase; transient phases (`score`/`showdown`) and missing-snapshot recoveries keep an `onValue` watch on spectatorState instead of a static message. The recovered/!state case must still NEVER fall through to fresh-start for a non-quickStart game (bug #8/#15) — quickStart falls through on purpose (draft replay).
+- **`setupAct` (host) consumes an existing same-act `actSetup`** before building a new pyramid — a fresh-start fallthrough must not fork the pyramid guests already consumed.
+- **Draft state is keyed by `slotIdx`, never local player index** (`packsBySlot`, rotation in slot space); local index order differs per client. Draft re-entry auto-consumes the player's own already-pushed pick; the host gets a 45s force valve (`forceDraftPick`, only-if-absent transaction).
+- **`database.rules.json` edits are not done until DEPLOYED** (`firebase deploy --only database`). The Pioneer Mode header field sat undeployed for ~a week and every trajectory header was silently `permission_denied` (audit C9). After changing traj-validated fields, verify with a live game that the record lands.
 
 ---
 

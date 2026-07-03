@@ -78,6 +78,7 @@ const MP = (() => {
   let fbSet, fbUpdate, fbOnValue, fbOnDisconnect, fbRemove, fbGet, fbRef, fbTransaction;
 
   let unsubscribers     = [];
+  let _namedSubs        = {};  // key → unsubscribe; re-subscribing a key replaces the old sub
   let initialized       = false;
   let disconnectTimers  = {};  // slotIdx → setTimeout handle
   let rejoinCountdowns  = {};  // slotIdx → { interval } for 5-min rejoin window
@@ -89,6 +90,16 @@ const MP = (() => {
 
   function gameRef(path) {
     return fbRef(db, `games/${code}${path ? '/' + path : ''}`);
+  }
+
+  // Idempotent subscription: re-registering the same key first unsubscribes the old
+  // listener. Used for per-round re-arms (drawState watchers) that previously stacked a
+  // NEW onValue every round and never released them until game end — by Act 3 a single
+  // opponent draw event fired ~10-15 duplicate callbacks, each with a full re-render and
+  // (host) a full spectatorState write (audit H1).
+  function subscribeNamed(key, r, cb) {
+    if (_namedSubs[key]) { try { _namedSubs[key](); } catch (e) {} }
+    _namedSubs[key] = fbOnValue(r, cb);
   }
 
   async function init() {
@@ -203,20 +214,24 @@ const MP = (() => {
       busted: player.busted,
       stoppedDrawing: player.stoppedDrawing,
       discardCount: player.discard.length,
+      hasBuyBurnFirst: player.hasBuyBurnFirst || false,
+      hasExtraBuy: player.hasExtraBuy || false,
+      dollar1OtherPlayed: player.dollar1OtherPlayed || 0, // card_24 plays (audit C5)
     });
   }
 
-  // Live watch all human opponent draw states; callback(slotIdx, state) on every update
+  // Live watch all human opponent draw states; callback(slotIdx, state) on every update.
+  // Named subscription: startRound re-arms this every round — the old sub is replaced,
+  // not stacked (audit H1).
   function watchOpponentDrawStates(callback) {
     if (!initialized) return;
     for (let s = 0; s < _numPlayers; s++) {
       if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
       const slotIdx = s;
-      const unsub = fbOnValue(gameRef(`drawState/${slotIdx}`), (snap) => {
+      subscribeNamed(`drawState_${slotIdx}`, gameRef(`drawState/${slotIdx}`), (snap) => {
         const val = snap.val();
         if (val) callback(slotIdx, val);
       });
-      unsubscribers.push(unsub);
     }
   }
 
@@ -232,6 +247,12 @@ const MP = (() => {
       bandits: player.roundBandits,
       busted: player.busted,
       handCount: player.hand.length,
+      // Authoritative done-time hand contents (ids). Receivers reconcile the hand from
+      // this: late drawState re-fires are ignored once done (stats protection), so
+      // without it a reconnect-ordering race could leave a stale hand feeding the
+      // buy-order tiebreaker (hand.length / hand[i].cost) — audit R3.
+      hand: player.hand.map(c => c.id),
+      dollar1OtherPlayed: player.dollar1OtherPlayed || 0,
       hasBuyBurnFirst: player.hasBuyBurnFirst || false,
       hasExtraBuy: player.hasExtraBuy || false,
     });
@@ -246,6 +267,7 @@ const MP = (() => {
       round: G.roundNumber, act: G.currentAct,
       dollars: stats.dollars || 0, cows: stats.cows || 0, bandits: stats.bandits || 0,
       busted: !!stats.busted, handCount: 0,
+      dollar1OtherPlayed: stats.dollar1OtherPlayed || 0, // last-synced card_24 count (audit C5)
       hasBuyBurnFirst: !!stats.hasBuyBurnFirst, hasExtraBuy: !!stats.hasExtraBuy,
     });
   }
@@ -279,6 +301,28 @@ const MP = (() => {
   async function pushDraftPick(round, cardId) {
     if (!initialized) return;
     await fbSet(gameRef(`draftPick/${round}/${mySlot}`), cardId);
+  }
+
+  // Read my own already-pushed pick for a draft round. Used on draft RE-ENTRY (refresh
+  // or evicted tab, audit H4): the replayed draft consumes the original pick silently
+  // so this client converges with what the other clients already consumed.
+  async function getDraftPick(round) {
+    if (!initialized) return null;
+    const snap = await fbGet(gameRef(`draftPick/${round}/${mySlot}`));
+    return snap.val();
+  }
+
+  // Host-only draft recovery (audit H4): claim a stuck seat's pick — only if absent,
+  // so a racing real pick always wins. Same only-if-null transaction shape as the
+  // lobby slot claim (null is the CLAIM case, never an abort case).
+  async function forceDraftPick(round, slotIdx, cardId) {
+    if (!initialized) return;
+    try {
+      await fbTransaction(gameRef(`draftPick/${round}/${slotIdx}`), (cur) => {
+        if (cur) return;   // real pick already there — abort, never clobber
+        return cardId;
+      });
+    } catch (e) { /* best-effort recovery */ }
   }
 
   // Wait for all human opponent slots to pick in a given draft round.
@@ -324,51 +368,15 @@ const MP = (() => {
     await fbUpdate(dbRef, updates);
   }
 
-  // Serialize a card object to the minimal data spectate.html needs
-  function serializeCard(c) {
-    if (!c) return null;
-    return {
-      id: c.id, img: c.img, cacti: c.cacti,
-      dollars: c.dollars, cows: c.cows, bandits: c.bandits,
-      special: c.special || null, cost: c.cost || 0,
-    };
-  }
-
-  // Push a full game-state snapshot for spectators (host only).
-  // Called at phase boundaries and after every buy/burn action.
+  // Push a full game-state snapshot for spectators + rejoin reconstruction (host only).
+  // Called at phase boundaries and after every buy/burn action. Uses the SHARED
+  // buildSpectatorState() (same serializer as AI_SPEC.push) — the two used to be
+  // separate copies that drifted (audit H2); keep them unified so every field added
+  // for rejoin (entitlements, aiRngSeeds, drawsDone) reaches both MP and AI snapshots.
   async function pushSpectatorState() {
     if (!initialized || !isHost || !G || G.phase === 'start') return;
     try {
-      const state = {
-        phase: G.phase,
-        round: G.roundNumber,
-        act: G.currentAct,
-        numPlayers: G.numPlayers,
-        pyramid: G.pyramid.map(row => row.map(slot => ({
-          card: serializeCard(slot.card),
-          faceUp: slot.faceUp,
-          removed: slot.removed,
-        }))),
-        players: G.players.map(p => ({
-          slotIdx: p.slotIdx,
-          name: p.name,
-          isHuman: p.isHuman,
-          herd: p.herd,
-          roundDollars: p.roundDollars,
-          roundCows: p.roundCows,
-          roundBandits: p.roundBandits,
-          busted: p.busted,
-          stoppedDrawing: p.stoppedDrawing,
-          hand: p.hand.map(serializeCard),
-          deck: p.deck.map(c => ({ id: c.id, cacti: c.cacti })),
-          discard: p.discard.map(c => ({ id: c.id, cacti: c.cacti })),
-          personality: p.personality || null,
-        })),
-        buyOrder: G.buyOrder || [],
-        currentBuyerIdx: G.currentBuyerIdx || 0,
-        ts: Date.now(),
-      };
-      await fbSet(gameRef('spectatorState'), state);
+      await fbSet(gameRef('spectatorState'), buildSpectatorState());
       await pushLiveSummary();
     } catch (e) {
       // Non-critical — spectator state is best-effort
@@ -427,38 +435,36 @@ const MP = (() => {
   }
 
   // Push local player's buy action (buy or burn at row/col).
-  // Stamps round+act so recipients can reject stale values from previous rounds.
-  async function pushBuyAction(action, row, col, swap) {
+  // Stamps round+act+seq so recipients can reject stale values. `seq` distinguishes a
+  // slot's TWO legitimate same-round actions (normal turn = 1, extra buy = 2): the cell
+  // is last-writer-wins, and consumers used to null it out after consuming — a slow
+  // clear could wipe the actor's second action before others consumed it, and a
+  // reconnecting client could apply action #2 as if it were #1 (audit R1). Seq matching
+  // replaces clearing entirely: a stale same-round value simply fails the seq check.
+  async function pushBuyAction(action, row, col, swap, seq) {
     if (!initialized) return;
     const payload = {
-      action, row, col, round: G.roundNumber, act: G.currentAct, ts: Date.now(),
+      action, row, col, round: G.roundNumber, act: G.currentAct, seq: seq || 1, ts: Date.now(),
     };
     if (swap) payload.swap = swap; // optional card_4 swap, applied by recipients before the buy/burn
     await fbSet(gameRef(`buyAction/${mySlot}`), payload);
   }
 
-  // Clear an opponent's buy action after we've consumed it.
-  // This prevents the NEXT waitForBuyAction call for the same slot in the same
-  // round from immediately re-firing with the stale same-round value (which would
-  // hit slot.removed and silently skip processBuyTurn, hanging the buy phase).
-  async function clearBuyAction(slotIdx) {
-    if (!initialized) return;
-    await fbSet(gameRef(`buyAction/${slotIdx}`), null);
-  }
-
   // Host-only recovery: broadcast a 'skip' action for a stuck slot so every client's
   // waitForBuyAction fires and the buy phase advances past the unresponsive player.
-  async function forceBuyAction(slotIdx) {
+  // Must carry the seq the waiters expect (1 normal turn / 2 extra buy).
+  async function forceBuyAction(slotIdx, seq) {
     if (!initialized) return;
     await fbSet(gameRef(`buyAction/${slotIdx}`), {
-      action: 'skip', forced: true,
+      action: 'skip', forced: true, seq: seq || 1,
       round: G.roundNumber, act: G.currentAct, ts: Date.now(),
     });
   }
 
   // Listen for a specific slot's buy action.
-  // Captures expected round+act so stale values from prior rounds are ignored.
-  function waitForBuyAction(slotIdx, callback) {
+  // Captures expected round+act (and seq — see pushBuyAction) so stale values are
+  // ignored. Payloads without seq (older clients) pass the seq check for compatibility.
+  function waitForBuyAction(slotIdx, expectedSeq, callback) {
     if (!initialized) return;
     const expectedRound = G.roundNumber;
     const expectedAct   = G.currentAct;
@@ -466,7 +472,8 @@ const MP = (() => {
     let unsub = null;
     unsub = fbOnValue(gameRef(`buyAction/${slotIdx}`), (snap) => {
       const data = snap.val();
-      const matches = data && data.round === expectedRound && data.act === expectedAct;
+      const matches = data && data.round === expectedRound && data.act === expectedAct
+                      && (data.seq === undefined || data.seq === (expectedSeq || 1));
       if (matches && !fired) {
         fired = true;
         if (unsub) unsub();
@@ -474,6 +481,17 @@ const MP = (() => {
       }
     });
     unsubscribers.push(unsub);
+  }
+
+  // Watch MY OWN buyAction / drawDone cells for a host-forced signal that raced my
+  // real action (R2 tombstones). Named subs — re-arming replaces, never stacks.
+  function watchOwnBuyAction(callback) {
+    if (!initialized) return;
+    subscribeNamed('ownBuyAction', gameRef(`buyAction/${mySlot}`), (snap) => callback(snap.val()));
+  }
+  function watchOwnDrawDone(callback) {
+    if (!initialized) return;
+    subscribeNamed('ownDrawDone', gameRef(`drawDone/${mySlot}`), (snap) => callback(snap.val()));
   }
 
   // Push buy order as array of Firebase slot indices [first, second, ...]
@@ -549,6 +567,29 @@ const MP = (() => {
     return snap.val();
   }
 
+  // Watch spectatorState continuously — rejoin recovery for transient phases (score/
+  // showdown) and for snapshots that appear after a transient fetch miss (audit H3).
+  // Named sub: re-arming replaces; call unwatchSpectatorState once resumed.
+  function watchSpectatorState(callback) {
+    if (!initialized) return;
+    subscribeNamed('spectatorState', gameRef('spectatorState'), (snap) => callback(snap.val()));
+  }
+  function unwatchSpectatorState() {
+    if (_namedSubs['spectatorState']) {
+      try { _namedSubs['spectatorState'](); } catch (e) {}
+      delete _namedSubs['spectatorState'];
+    }
+  }
+
+  // Fetch the current actSetup (host fresh-start safety, audit H5: a refresh in the
+  // window between pushActSetup and the first spectatorState must consume the already-
+  // pushed pyramid instead of rebuilding a new random one guests will never see).
+  async function fetchActSetup() {
+    if (!initialized) return null;
+    const snap = await fbGet(gameRef('actSetup'));
+    return snap.val();
+  }
+
   // Write status (and player metadata) to games/{code} for live-game tracking.
   // 'active' includes player names/modes so history.html can display them without
   // reading the full slots subtree. 'finished' is a simple status-only write.
@@ -573,6 +614,8 @@ const MP = (() => {
   function cleanup() {
     unsubscribers.forEach(u => u && u());
     unsubscribers = [];
+    Object.values(_namedSubs).forEach(u => { try { u && u(); } catch (e) {} });
+    _namedSubs = {};
     // Cancel all pending grace-period timers and rejoin countdown intervals
     Object.values(disconnectTimers).forEach(t => clearTimeout(t));
     disconnectTimers = {};
@@ -647,15 +690,21 @@ const MP = (() => {
     pushActSetup,
     waitForActSetup,
     pushBuyAction,
-    clearBuyAction,
     forceBuyAction,
     waitForBuyAction,
+    watchOwnBuyAction,
+    watchOwnDrawDone,
     pushBuyOrder,
     waitForBuyOrder,
     pushDraftPick,
+    getDraftPick,
+    forceDraftPick,
     waitForDraftRoundPicks,
     pushSpectatorState,
     fetchSpectatorState,
+    watchSpectatorState,
+    unwatchSpectatorState,
+    fetchActSetup,
     setLiveStatus,
     saveRejoinInfo,
     clearRejoinInfo,
@@ -939,6 +988,21 @@ function serializeCard(c) {
 }
 
 function buildSpectatorState() {
+  // Per-slot AI RNG stream positions. Restored on rejoin so the rejoiner's future AI
+  // shuffles match everyone else's (audit C4: re-seeding from gameSeed mid-game made
+  // every post-rejoin AI reshuffle diverge — the streams had advanced everywhere else).
+  const aiRngSeeds = {};
+  G.players.forEach(p => {
+    if (!p.isHuman && _aiRngs[p.slotIdx] && typeof _aiRngs[p.slotIdx].seed === 'number') {
+      aiRngSeeds[p.slotIdx] = _aiRngs[p.slotIdx].seed;
+    }
+  });
+  // Draw-phase completion, keyed by SLOT (G.drawsDone is keyed by local player index,
+  // which only matches slots on the host — the only writer). Used by resumeDrawPhase
+  // to restore AI seats' done flags (audit C3: without it a mid-draw rejoiner waits on
+  // AI seats forever).
+  const drawsDone = {};
+  G.players.forEach((p, i) => { drawsDone[p.slotIdx] = !!G.drawsDone[i]; });
   return {
     phase: G.phase,
     round: G.roundNumber,
@@ -953,6 +1017,8 @@ function buildSpectatorState() {
       removed: slot.removed,
     }))),
     showdownTallies: G.showdownTallies || null,
+    aiRngSeeds,
+    drawsDone,
     players: G.players.map(p => ({
       slotIdx: p.slotIdx,
       name: p.name,
@@ -963,6 +1029,12 @@ function buildSpectatorState() {
       roundBandits: p.roundBandits,
       busted: p.busted,
       stoppedDrawing: p.stoppedDrawing,
+      // Buy entitlements — restored on rejoin (audit C7: dropping them deadlocked the
+      // buy-order wait / softlocked the extra-buy wait after a mid-round refresh).
+      hasBuyBurnFirst: p.hasBuyBurnFirst || false,
+      hasExtraBuy: p.hasExtraBuy || false,
+      extraBuyUsed: p.extraBuyUsed || false,
+      dollar1OtherPlayed: p.dollar1OtherPlayed || 0,
       hand: p.hand.map(serializeCard),
       deck: p.deck.map(c => ({ id: c.id, cacti: c.cacti })),
       discard: p.discard.map(c => ({ id: c.id, cacti: c.cacti })),
@@ -1359,6 +1431,7 @@ function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
     hasExtraBuy: false,
     extraBuyUsed: false,
     forcedDraws: 0,   // mandatory draws still owed from a "Draw 4" (human path)
+    dollar1OtherPlayed: 0, // card_24 plays this round; MP grants +$1/other at draw-phase end (audit C5)
   };
 }
 
@@ -1569,6 +1642,7 @@ function resetPlayerRound(player) {
   player.hasExtraBuy = false;
   player.extraBuyUsed = false;
   player.forcedDraws = 0;
+  player.dollar1OtherPlayed = 0;
 }
 
 // --- CARD EFFECTS ---
@@ -1625,10 +1699,20 @@ function applyCardEffects(player, card, isFirstCard) {
   // Special: burn_buy_first — handled in UI
   if (card.special === 'burn_buy_first') { }
 
-  // Special: dollar1_other — gives $1 to each other player
+  // Special: dollar1_other — gives $1 to each other player.
+  // MP: DO NOT grant live (audit C5). A cross-player grant applied at draw time only
+  // executes on the drawing client — remote humans never received theirs (their own
+  // pushed stats overwrote the bump) and AI copies diverged per client (each client's
+  // concurrently-running AI loops read the +$1 at different wall-clock interleavings).
+  // Instead the play is COUNTED here and every client applies all grants at one
+  // deterministic point: onDrawPhaseComplete, before any buy-order decision reads
+  // roundDollars. SP keeps the immediate grant (single client — nothing to desync).
   if (card.special === 'dollar1_other' && G) {
-    for (let i = 0; i < G.numPlayers; i++) {
-      if (G.players[i] !== player) G.players[i].roundDollars += 1;
+    player.dollar1OtherPlayed = (player.dollar1OtherPlayed || 0) + 1;
+    if (!MP.active) {
+      for (let i = 0; i < G.numPlayers; i++) {
+        if (G.players[i] !== player) G.players[i].roundDollars += 1;
+      }
     }
   }
 
@@ -2429,6 +2513,39 @@ function showDraftPackAndWait(pack, round) {
   });
 }
 
+// Host-only draft force valve (audit H4): the draft used to have NO recovery - a stuck
+// player (evicted tab, closed browser) blocked waitForDraftRoundPicks forever, with no
+// spectatorState for anyone to rejoin into. After 45s the host gets a button that
+// transaction-writes a default pick (top of the stuck seat's current pack) for every
+// human seat without a pick this round; only-if-absent, so a racing real pick wins.
+let _draftForceTimer = null;
+function armDraftForceValve(round, packsBySlot) {
+  clearDraftForceValve();
+  if (!(MP.active && MP.isHost)) return;
+  _draftForceTimer = setTimeout(() => {
+    _draftForceTimer = null;
+    const msgEl = document.getElementById('draft-message');
+    if (!msgEl) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-secondary btn-force';
+    btn.textContent = 'Force continue \u25b8';
+    btn.style.marginLeft = '0.75rem';
+    btn.onclick = () => {
+      btn.remove();
+      for (let i = 1; i < G.numPlayers; i++) {
+        const p = G.players[i];
+        if (!p.isHuman) continue;
+        const pack = packsBySlot[p.slotIdx] || [];
+        if (pack.length) MP.forceDraftPick(round, p.slotIdx, pack[0].id);
+      }
+    };
+    msgEl.appendChild(btn);
+  }, 45000);
+}
+function clearDraftForceValve() {
+  if (_draftForceTimer) { clearTimeout(_draftForceTimer); _draftForceTimer = null; }
+}
+
 async function runQuickStartDraft() {
   G.phase = 'draft';
 
@@ -2436,61 +2553,90 @@ async function runQuickStartDraft() {
   overlay.classList.remove('hidden');
   document.getElementById('draft-log').innerHTML = '';
 
-  // Deal packs: seeded so all MP clients compute the same initial layout
+  // Deal packs: seeded so all MP clients compute the same initial layout.
   const pool = seededDraftShuffle(getActPool(1), G.gameSeed);
   const neededCards = G.numPlayers * 6;
   if (pool.length < neededCards) {
     console.warn(`[Draft] Act 1 pool has ${pool.length} cards, need ${neededCards}.`);
   }
 
-  // packs[playerIdx] = cards currently held by that player
-  let packs = [];
-  for (let i = 0; i < G.numPlayers; i++) {
-    const templates = pool.slice(i * 6, i * 6 + 6);
-    packs.push(templates.map(c => createCardInstance(c)));
-  }
+  // packsBySlot[slotIdx] = cards currently held by that SEAT. Keyed by Firebase slot,
+  // NOT by local G.players index (audit C8): local index order differs per client in
+  // MP (the local player is always index 0), so index-keyed packs dealt each client a
+  // DIFFERENT slice for the same seat - every human drafted from slice 0 on their own
+  // client, AI picks were computed from mismatched packs per client, and the pass
+  // rotation ran in different orders. Slot-keying restores one shared layout on every
+  // client (in SP slotIdx === player index, so SP behavior is unchanged).
+  let packsBySlot = {};
+  G.players.forEach(p => {
+    packsBySlot[p.slotIdx] = pool.slice(p.slotIdx * 6, p.slotIdx * 6 + 6).map(c => createCardInstance(c));
+  });
 
   addLog('--- Quick Start Draft begins! ---', 'log-score');
 
+  const mySlot = G.players[0].slotIdx;
+
   // 4 draft rounds
   for (let round = 0; round < 4; round++) {
-    const picks = new Array(G.numPlayers).fill(null);
+    const picksBySlot = {};
 
-    // Local human always at index 0
-    const humanPickId = await showDraftPackAndWait(packs[0], round);
-    picks[0] = humanPickId;
+    // Local human always drafts from their own seat's pack. On a draft RE-ENTRY
+    // (refresh / evicted tab, audit H4) our pick for this round may already be in
+    // Firebase: consume it silently instead of re-prompting, so the replayed draft
+    // converges with what the other clients already consumed.
+    let humanPickId = null;
+    if (MP.active) {
+      const existing = await MP.getDraftPick(round);
+      if (existing && packsBySlot[mySlot].some(c => c.id === existing)) {
+        humanPickId = existing;
+        addDraftLog(`Round ${round + 1}: restored your earlier pick.`);
+      }
+    }
+    if (!humanPickId) {
+      humanPickId = await showDraftPackAndWait(packsBySlot[mySlot], round);
+    }
+    picksBySlot[mySlot] = humanPickId;
 
     if (MP.active) {
       await MP.pushDraftPick(round, humanPickId);
       document.getElementById('draft-message').textContent = 'Waiting for other players\u2026';
+      armDraftForceValve(round, packsBySlot);
       // Receive human opponent picks from Firebase; compute AI picks locally
       const opponentPicks = await MP.waitForDraftRoundPicks(round);
+      clearDraftForceValve();
       for (let i = 1; i < G.numPlayers; i++) {
         const p = G.players[i];
-        picks[i] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packs[i], p);
+        picksBySlot[p.slotIdx] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packsBySlot[p.slotIdx], p);
       }
     } else {
       for (let i = 1; i < G.numPlayers; i++) {
-        picks[i] = aiDraftPick(packs[i], G.players[i]);
+        const p = G.players[i];
+        picksBySlot[p.slotIdx] = aiDraftPick(packsBySlot[p.slotIdx], p);
       }
     }
 
-    // Apply picks: add chosen card to player's discard; pass remaining to next player
-    const newPacks = new Array(G.numPlayers);
-    for (let i = 0; i < G.numPlayers; i++) {
-      const pickedId = picks[i];
-      const pickedCard = packs[i].find(c => c.id === pickedId);
+    // Apply picks: each seat's chosen card goes to that player's discard; the rest of
+    // the pack passes to the next SLOT - the same shared rotation on every client.
+    const newPacksBySlot = {};
+    for (const p of G.players) {
+      const s = p.slotIdx;
+      const pack = packsBySlot[s] || [];
+      const pickedId = picksBySlot[s];
+      // Remove exactly ONE instance: 5-8P packs can hold duplicate ids (doubled act
+      // pool), and filtering by id would strip both copies from the passed pack.
+      const idx = pickedId ? pack.findIndex(c => c.id === pickedId) : -1;
+      const pickedCard = idx >= 0 ? pack[idx] : null;
       if (pickedCard) {
-        G.players[i].discard.push(pickedCard);
-        if (i === 0) {
+        p.discard.push(pickedCard);
+        if (p === G.players[0]) {
           const costStr = pickedCard.cost > 0 ? ` (cost $${pickedCard.cost})` : '';
           addDraftLog(`Round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
           addLog(`Draft round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
         }
       }
-      newPacks[(i + 1) % G.numPlayers] = packs[i].filter(c => c.id !== pickedId);
+      newPacksBySlot[(s + 1) % G.numPlayers] = pack.filter((c, j) => j !== idx);
     }
-    packs = newPacks;
+    packsBySlot = newPacksBySlot;
 
     if (round < 3) {
       document.getElementById('draft-message').textContent = 'Passing cards to next player\u2026';
@@ -2542,6 +2688,13 @@ async function startGame() {
       return;
     }
     const cfg = await MP.buildPlayersConfig();
+    if (!cfg) {
+      // Game node is gone (host cancelled, disbanded, or cleaned up) — nothing to
+      // join or resume. Without this guard the code below throws on cfg.slotDefs.
+      setMessage('Game not found — it may have ended.');
+      setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
+      return;
+    }
     await MP.startPresence();
     MP.saveRejoinInfo();
 
@@ -2553,34 +2706,43 @@ async function startGame() {
       if (!state) { await delay(600);  state = await MP.fetchSpectatorState(); }
       if (!state) { await delay(1200); state = await MP.fetchSpectatorState(); }
       if (state) {
-        await reconstructG(state, cfg);
-        if (MP.active) document.getElementById('btn-spectate-link').classList.remove('hidden');
-        render();
-        addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
         if (reentryKey) sessionStorage.setItem(reentryKey, '1');
-        if (state.phase === 'draw') {
-          await resumeDrawPhase();
-        } else if (state.phase === 'buy') {
-          resumeBuyPhase();
-        } else if (state.phase === 'gameOver') {
-          gameOver();
-        } else {
-          // Fallback: re-arm spectator state and wait
-          setMessage('Waiting for the current phase to begin…');
-        }
+        await resumeFromState(state, cfg); // handles transient phases (score/showdown) itself
         return;
       }
       // No game state to restore.
       if (params.has('rejoin') || MP.recovered) {
-        // Explicit rejoin OR eviction-recovery reload: never fall through to fresh-start
-        // (that would call setupAct(1) and clobber an in-progress game for everyone).
-        setMessage('Could not restore game — the game may have ended.');
-        setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
-        return;
+        if (cfg.quickStartMode) {
+          // Quick Draw game with no snapshot ⇒ still in (or before) the draft — the
+          // first spectatorState is only pushed at Act 2 round 1. Fall through to the
+          // normal path: the seeded draft replays deterministically and this player's
+          // already-pushed picks are auto-consumed (see runQuickStartDraft), so an
+          // evicted player recovers instead of being locked out of the draft (audit H4).
+        } else {
+          // Explicit rejoin OR eviction-recovery reload: NEVER fall through to the
+          // fresh-start path (that would call setupAct(1) and clobber an in-progress
+          // game for everyone — bugs #8/#15). But the missing snapshot can also be a
+          // transient fetch miss (flaky mobile connectivity), so keep watching and
+          // resume the moment one appears instead of dead-ending (audit H3).
+          setMessage('Could not restore the game yet — retrying…');
+          setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
+          let resuming = false;
+          MP.watchSpectatorState((s) => {
+            if (!s || resuming) return;
+            resuming = true;
+            MP.unwatchSpectatorState();
+            if (reentryKey) sessionStorage.setItem(reentryKey, '1');
+            resumeFromState(s, cfg);
+          });
+          return;
+        }
       }
       // Marker-only re-entry with no state yet (e.g. refresh during the initial
       // connecting handshake, before any setup was pushed) — fall through and start
-      // fresh. setupAct will no-op safely on the host because no actSetup exists yet.
+      // fresh. Safe on the host: setupAct consumes an already-pushed actSetup for the
+      // same act instead of rebuilding (audit H5), so even a refresh in the tiny
+      // window between pushActSetup and the first spectatorState can't fork the
+      // pyramid guests already consumed.
     }
 
     // Mark this game as started in this tab so a later refresh resumes instead of
@@ -2832,10 +2994,16 @@ function restartGame() {
 // Rebuild G from a spectatorState snapshot (called during MP rejoin).
 // spectatorState.players is ordered by the host's G.players indices (= slot indices for host).
 async function reconstructG(state, cfg) {
-  // Re-init AI RNGs from seed (mid-game rejoin can't restore exact RNG state, but game state
-  // is fully restored from spectatorState so AI card choices going forward are fine)
+  // Restore each AI slot's RNG stream POSITION from the snapshot when available.
+  // Re-seeding from gameSeed alone is wrong mid-game (audit C4): the streams on every
+  // other client have advanced with each shuffle, so a fresh stream makes the
+  // rejoiner's next AI reshuffle diverge from the table — silently, for the rest of
+  // the game. The fresh seed remains only as a fallback for old snapshots.
   cfg.slotDefs.forEach((def, slotIdx) => {
-    if (!def.isHuman) initAiRng(slotIdx, cfg.gameSeed);
+    if (def.isHuman) return;
+    initAiRng(slotIdx, cfg.gameSeed);
+    const saved = state.aiRngSeeds && state.aiRngSeeds[slotIdx];
+    if (typeof saved === 'number') _aiRngs[slotIdx].seed = saved;
   });
 
   // Build G.playerOrder with local player at index 0
@@ -2861,6 +3029,12 @@ async function reconstructG(state, cfg) {
       p.roundBandits   = sp.roundBandits   || 0;
       p.busted         = sp.busted         || false;
       p.stoppedDrawing = sp.stoppedDrawing || false;
+      // Buy entitlements (audit C7) — losing these on rejoin deadlocked the buy-order
+      // wait (priority holder) or softlocked the extra-buy wait on other clients.
+      p.hasBuyBurnFirst = sp.hasBuyBurnFirst || false;
+      p.hasExtraBuy     = sp.hasExtraBuy     || false;
+      p.extraBuyUsed    = sp.extraBuyUsed    || false;
+      p.dollar1OtherPlayed = sp.dollar1OtherPlayed || 0;
       p.hand    = (sp.hand    || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
       p.deck    = (sp.deck    || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
       p.discard = (sp.discard || []).map(c => c ? getCardById(c.id) : null).filter(Boolean);
@@ -2875,12 +3049,17 @@ async function reconstructG(state, cfg) {
   // brick offset and breaks isCardCovered on rejoin.
   G.pioneerMode = cfg.pioneerMode || false;
   G.hiddenHerdMode = cfg.hiddenHerdMode || false;
+  G.quickStartMode = cfg.quickStartMode || false;
   G.phase       = state.phase;
   G.currentAct  = state.act;
   G.roundNumber = state.round;
   // Convert host's G.players indices (= slot indices) to local G.players indices
   G.buyOrder       = (state.buyOrder || []).map(s => MP.slotToPlayer[s]).filter(i => i !== undefined);
   G.currentBuyerIdx = state.currentBuyerIdx || 0;
+  // Slot-keyed draw-done flags from the snapshot (may be absent in old snapshots).
+  // resumeDrawPhase uses these to restore AI seats' completion (audit C3) — humans
+  // are re-confirmed through their round-stamped drawDone signals instead.
+  G._restoredDrawsDone = state.drawsDone || null;
 
   // Rebuild pyramid from stored card IDs
   if (state.pyramid) {
@@ -2892,67 +3071,110 @@ async function reconstructG(state, cfg) {
   }
 }
 
+// --- Shared draw-phase sync appliers (used by startRound AND resumeDrawPhase) ---
+// These used to be two near-identical inline copies whose guards drifted (the root of
+// bugs #1/#2/#11). Keep ONE body so a guard fix always lands in both paths.
+
+// Apply a remote human's live drawState to our local copy of them.
+function applyOppDrawState(slotIdx, state) {
+  // Ignore stale data from a previous round or act (Firebase fires immediately on
+  // subscription with whatever value is in the DB). Both round AND act must match:
+  // round resets to 1 at each act boundary (bug #2).
+  if (state.round !== undefined && state.round !== G.roundNumber) return;
+  if (state.act   !== undefined && state.act   !== G.currentAct)  return;
+  const playerIdx = MP.slotToPlayer[slotIdx];
+  // Once drawDone has fired for this player, their final stats are authoritative.
+  // Ignore any late drawState re-fires (e.g. Firebase reconnect) that could overwrite
+  // roundCows/discard with stale mid-draw values and corrupt showdown scoring.
+  if (G.drawsDone && G.drawsDone[playerIdx]) return;
+  const opp = G.players[playerIdx];
+  if (!opp) return;
+  const mk = id => { const tmpl = CARD_DB[id]; return tmpl ? createCardInstance(tmpl) : null; };
+  opp.hand = (state.hand || []).map(mk).filter(Boolean);
+  opp.deck = (state.deck || []).map(mk).filter(Boolean);
+  // Sync discard so host always has accurate state (prevents duplication after mid-draw
+  // reshuffles). ALWAYS set it (treat absent as empty): Firebase omits empty arrays, so
+  // a freshly-reshuffled discard ([]) reads back as undefined. Guarding on `!== undefined`
+  // would leave opp.discard STALE and scoreRound's discard.push(...hand) would then
+  // double-count those cards (bug #11). Mirror hand/deck's `|| []`.
+  opp.discard = (state.discard || []).map(mk).filter(Boolean);
+  opp.roundDollars    = state.dollars;
+  opp.roundCows       = state.cows;
+  opp.roundBandits    = state.bandits;
+  opp.busted          = state.busted;
+  opp.stoppedDrawing  = state.stoppedDrawing;
+  opp.hasBuyBurnFirst = state.hasBuyBurnFirst || false;
+  opp.hasExtraBuy     = state.hasExtraBuy     || false;
+  opp.dollar1OtherPlayed = state.dollar1OtherPlayed || 0;
+  if (state.discardCount !== undefined) opp._syncedDiscardCount = state.discardCount;
+  // Do NOT mark a busted opponent done from drawState — drawDone is the sole
+  // authoritative done signal (bug #10).
+  render();
+  MP.pushSpectatorState(); // host keeps spectatorState current (no-op for non-hosts)
+}
+
+// Apply a remote human's authoritative drawDone payload to our local copy of them.
+function applyOppDoneData(opp, doneData) {
+  if (!doneData) return;
+  opp.roundDollars    = doneData.dollars;
+  opp.roundCows       = doneData.cows;
+  opp.roundBandits    = doneData.bandits;
+  opp.busted          = doneData.busted;
+  opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
+  opp.hasExtraBuy     = doneData.hasExtraBuy     || false;
+  // Only overwrite when the signal carries the field (new clients always send it, 0
+  // included) — an old client's signal must not wipe a count synced via drawState.
+  if (doneData.dollar1OtherPlayed !== undefined) opp.dollar1OtherPlayed = doneData.dollar1OtherPlayed;
+  // Reconcile the hand to the authoritative done-time contents (audit R3): once done,
+  // drawState re-fires are ignored (stats protection above), so a reconnect-ordering
+  // race could leave a stale hand — which feeds the buy-order tiebreaker
+  // (hand.length / hand[i].cost) and could pick a different winner on this client.
+  if (Array.isArray(doneData.hand)) {
+    const mk = id => { const tmpl = CARD_DB[id]; return tmpl ? createCardInstance(tmpl) : null; };
+    opp.hand = doneData.hand.map(mk).filter(Boolean);
+  } else if (doneData.handCount === 0 && !doneData.forced) {
+    // Empty hand: Firebase drops empty arrays, so absence + handCount 0 means [].
+    // A FORCED done (handCount stamped 0 with no hand data) keeps the last-synced
+    // hand instead — it's the best-known contents for showdown counting.
+    opp.hand = [];
+  }
+}
+
 // Resume draw phase after a rejoin: re-arm Firebase watchers then resume local draw turn.
 async function resumeDrawPhase() {
   G.phase = 'draw';
   G.drawsDone = {};
-  for (let i = 0; i < G.numPlayers; i++) G.drawsDone[i] = false;
+  for (let i = 0; i < G.numPlayers; i++) {
+    const p = G.players[i];
+    if (i > 0 && !p.isHuman) {
+      // AI seats never signal through Firebase — restore their completion from the
+      // snapshot, or infer it from their restored state (audit C3: leaving these false
+      // made every mid-draw rejoin into an MP game with AI seats wait forever).
+      const restored = G._restoredDrawsDone ? !!G._restoredDrawsDone[p.slotIdx] : false;
+      G.drawsDone[i] = restored || p.busted || p.stoppedDrawing;
+    } else {
+      G.drawsDone[i] = false; // humans re-confirm via their round-stamped drawDone signals
+    }
+  }
   render();
 
-  const findCard = id => CARD_DB[id];
-  MP.watchOpponentDrawStates((slotIdx, drawState) => {
-    if (drawState.round !== undefined && drawState.round !== G.roundNumber) return;
-    if (drawState.act  !== undefined && drawState.act  !== G.currentAct)   return;
-    const playerIdx = MP.slotToPlayer[slotIdx];
-    // Once drawDone has fired for this player, their final stats are authoritative.
-    // Ignore any late drawState re-fires (e.g. Firebase reconnect) that could overwrite
-    // roundCows/discard with stale mid-draw values and corrupt showdown scoring.
-    if (G.drawsDone && G.drawsDone[playerIdx]) return;
-    const opp = G.players[playerIdx];
-    if (!opp) return;
-    opp.hand = (drawState.hand || []).map(id => {
-      const tmpl = findCard(id);
-      return tmpl ? createCardInstance(tmpl) : null;
-    }).filter(Boolean);
-    opp.deck = (drawState.deck || []).map(id => {
-      const tmpl = findCard(id);
-      return tmpl ? createCardInstance(tmpl) : null;
-    }).filter(Boolean);
-    // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles).
-    // ALWAYS set it (treat absent as empty): Firebase omits empty arrays, so a freshly-reshuffled
-    // discard (discard:[]) reads back as undefined. Guarding on `!== undefined` would leave opp.discard
-    // STALE (still holding the pre-reshuffle cards), and scoreRound's discard.push(...hand) would then
-    // double-count those cards. Mirror how hand/deck are restored above with `|| []`.
-    opp.discard = (drawState.discard || []).map(id => {
-      const tmpl = findCard(id);
-      return tmpl ? createCardInstance(tmpl) : null;
-    }).filter(Boolean);
-    opp.roundDollars    = drawState.dollars;
-    opp.roundCows       = drawState.cows;
-    opp.roundBandits    = drawState.bandits;
-    opp.busted          = drawState.busted;
-    opp.stoppedDrawing  = drawState.stoppedDrawing;
-    opp.hasBuyBurnFirst = drawState.hasBuyBurnFirst || false;
-    opp.hasExtraBuy     = drawState.hasExtraBuy     || false;
-    if (drawState.discardCount !== undefined) opp._syncedDiscardCount = drawState.discardCount;
-    render();
-    if (MP.isHost) MP.pushSpectatorState();
-  });
+  MP.watchOpponentDrawStates(applyOppDrawState);
 
   MP.waitForAllHumanDrawsDone((slotIdx, doneData) => {
     const playerIdx = MP.slotToPlayer[slotIdx];
-    const opp = G.players[playerIdx];
-    if (doneData) {
-      opp.roundDollars    = doneData.dollars;
-      opp.roundCows       = doneData.cows;
-      opp.roundBandits    = doneData.bandits;
-      opp.busted          = doneData.busted;
-      opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
-      opp.hasExtraBuy     = doneData.hasExtraBuy     || false;
-    }
+    applyOppDoneData(G.players[playerIdx], doneData);
     G.drawsDone[playerIdx] = true;
     checkDrawPhaseComplete();
   });
+
+  armForcedDrawTombstone(); // R2: adopt a host-forced done instead of drawing past it
+
+  // Any AI seat still mid-draw resumes its loop from the restored deck/hand/stats.
+  // Its RNG stream position was restored in reconstructG, so any reshuffle it makes
+  // matches the other clients' simulation of the same seat.
+  for (let i = 1; i < G.numPlayers; i++) {
+    if (!G.players[i].isHuman && !G.drawsDone[i]) aiDrawPhase(i);
+  }
 
   const localPlayer = G.players[0];
   if (localPlayer.busted || localPlayer.stoppedDrawing) {
@@ -2974,6 +3196,57 @@ function resumeBuyPhase() {
   processBuyTurn();
 }
 
+// Entry point for every MP resume: reconstruct G from a snapshot and re-enter its
+// phase. Transient phases (score — a ~1s window each round boundary; showdown — the
+// whole reveal animation) can't be re-entered mid-flight, so keep watching the
+// snapshot and resume when a resumable phase arrives. The old code showed a dead-end
+// "waiting" message with NO listener for these — the player was stranded until they
+// manually refreshed again (audit H3).
+async function resumeFromState(state, cfg) {
+  if (state.phase === 'score' || state.phase === 'showdown') {
+    setMessage(state.phase === 'showdown'
+      ? 'Showdown in progress — rejoining at the results…'
+      : 'Round is being scored — rejoining…');
+    clearActions();
+    let resuming = false;
+    MP.watchSpectatorState((s) => {
+      if (!s || resuming) return;
+      if (s.phase === 'score' || s.phase === 'showdown') return; // still transient
+      resuming = true;
+      MP.unwatchSpectatorState();
+      resumeFromState(s, cfg);
+    });
+    return;
+  }
+  await reconstructG(state, cfg);
+  document.getElementById('btn-spectate-link').classList.remove('hidden');
+  // Re-arm the disband controls the normal path sets up (the old rejoin path skipped
+  // these: a rejoined host lost its Disband button, a rejoined guest stopped watching
+  // for disbands).
+  if (MP.isHost) document.getElementById('btn-disband').classList.remove('hidden');
+  else MP.watchForDisband();
+  render();
+  addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
+  if (state.phase === 'draw') {
+    await resumeDrawPhase();
+  } else if (state.phase === 'buy') {
+    resumeBuyPhase();
+  } else if (state.phase === 'gameOver') {
+    gameOver();
+  } else {
+    // Unknown phase (future-proofing): watch until a known one arrives.
+    setMessage('Waiting for the current phase to begin…');
+    let resuming = false;
+    MP.watchSpectatorState((s) => {
+      if (!s || resuming) return;
+      if (s.phase !== 'draw' && s.phase !== 'buy' && s.phase !== 'gameOver') return;
+      resuming = true;
+      MP.unwatchSpectatorState();
+      resumeFromState(s, cfg);
+    });
+  }
+}
+
 async function setupAct(act) {
   G.currentAct = act;
   G.roundNumber = 1;
@@ -2989,13 +3262,25 @@ async function setupAct(act) {
 
   if (MP.active) {
     if (MP.isHost) {
-      // Host builds pyramid and shares card IDs with guest
-      G.pyramid = buildPyramid(act);
-      const cardIds = G.pyramid.flatMap(row => row.map(slot => slot.card.id));
-      // Clear previous actSetup first so guest listener fires fresh
-      await MP.clearActSetup();
-      await MP.pushActSetup(act, cardIds);
-      MP.pushSpectatorState(); // let spectators see the new pyramid immediately
+      // If an actSetup for THIS act already exists, consume it instead of rebuilding
+      // (audit H5). A host refresh in the window between pushActSetup and the first
+      // spectatorState push falls through to the fresh-start path (no snapshot to
+      // resume from); rebuilding here would deal a NEW random pyramid that guests —
+      // who already consumed the original — would never see. A normal act transition
+      // finds the PREVIOUS act's setup (act mismatch) and rebuilds as before.
+      const existing = await MP.fetchActSetup();
+      if (existing && existing.act === act && Array.isArray(existing.cardIds)) {
+        G.pyramid = buildPyramid(act, existing.cardIds);
+        MP.pushSpectatorState();
+      } else {
+        // Host builds pyramid and shares card IDs with guest
+        G.pyramid = buildPyramid(act);
+        const cardIds = G.pyramid.flatMap(row => row.map(slot => slot.card.id));
+        // Clear previous actSetup first so guest listener fires fresh
+        await MP.clearActSetup();
+        await MP.pushActSetup(act, cardIds);
+        MP.pushSpectatorState(); // let spectators see the new pyramid immediately
+      }
     } else {
       // Guest waits for host's pyramid layout
       setMessage(`Waiting for opponent to set up Act ${act}...`);
@@ -3041,6 +3326,7 @@ async function startRound() {
   if (MP.active) {
     await MP.resetRound();
     MP.pushSpectatorState(); // initial draw-phase state for spectators
+    armForcedDrawTombstone(); // R2: adopt a host-forced done instead of drawing past it
     startPlayerDraw();
 
     // Run AI draws locally (deterministic — same on all clients via seeded RNG)
@@ -3048,71 +3334,19 @@ async function startRound() {
       if (!G.players[i].isHuman) aiDrawPhase(i);
     }
 
-    // Live watch remote human opponents' draw states
-    const findCard = id => STORE_CARDS.find(c => c.id === id) || STARTER_TEMPLATES.find(t => t.id === id);
-    MP.watchOpponentDrawStates((slotIdx, state) => {
-      // Ignore stale data from a previous round or act (Firebase fires immediately on subscription
-      // with whatever value is in the DB, which may still be the busted state from last round).
-      // Both round AND act must match: round resets to 1 at each act boundary, so checking only
-      // round would let stale round-1 busted data from a previous act pass the guard.
-      if (state.round !== undefined && state.round !== G.roundNumber) return;
-      if (state.act  !== undefined && state.act  !== G.currentAct)   return;
-      const playerIdx = MP.slotToPlayer[slotIdx];
-      // Once drawDone has fired for this player, their final stats are authoritative.
-      // Ignore any late drawState re-fires (e.g. Firebase reconnect) that could overwrite
-      // roundCows/discard with stale mid-draw values and corrupt showdown scoring.
-      if (G.drawsDone && G.drawsDone[playerIdx]) return;
-      const opp = G.players[playerIdx];
-      opp.hand = (state.hand || []).map(id => {
-        const tmpl = findCard(id);
-        return tmpl ? createCardInstance(tmpl) : null;
-      }).filter(Boolean);
-      opp.deck = (state.deck || []).map(id => {
-        const tmpl = findCard(id);
-        return tmpl ? createCardInstance(tmpl) : null;
-      }).filter(Boolean);
-      // Sync discard so host always has accurate state (prevents duplication after mid-draw reshuffles).
-      // ALWAYS set it (treat absent as empty): Firebase omits empty arrays, so a freshly-reshuffled
-      // discard (discard:[]) reads back as undefined. Guarding on `!== undefined` would leave opp.discard
-      // STALE (still holding the pre-reshuffle cards), and scoreRound's discard.push(...hand) would then
-      // double-count those cards. Mirror how hand/deck are restored above with `|| []`.
-      opp.discard = (state.discard || []).map(id => {
-        const tmpl = findCard(id);
-        return tmpl ? createCardInstance(tmpl) : null;
-      }).filter(Boolean);
-      opp.roundDollars      = state.dollars;
-      opp.roundCows         = state.cows;
-      opp.roundBandits      = state.bandits;
-      opp.busted            = state.busted;
-      opp.stoppedDrawing    = state.stoppedDrawing;
-      opp.hasBuyBurnFirst   = state.hasBuyBurnFirst || false;
-      opp.hasExtraBuy       = state.hasExtraBuy     || false;
-      if (state.discardCount !== undefined) opp._syncedDiscardCount = state.discardCount;
-      // Do NOT mark a busted opponent done from drawState. A busting human stays in the
-      // draw phase locally until they press "Clear Hand" (which fires their drawDone signal).
-      // Treating bust as done here desynced the table: everyone else advanced to the buy
-      // phase while the busted player was still on the Clear Hand screen, then waited forever
-      // for a buy turn that player couldn't take (bug: buy-before-draw-finished). Mark done
-      // ONLY via the authoritative drawDone signal in waitForAllHumanDrawsDone below — this
-      // matches resumeDrawPhase, which never had the premature shortcut.
-      render();
-      MP.pushSpectatorState(); // host keeps spectatorState current as opponent draws arrive
-    });
+    // Live watch remote human opponents' draw states — shared applier (also used by
+    // resumeDrawPhase; the two used to be drift-prone copies). All the load-bearing
+    // guards live in applyOppDrawState: round+act staleness (bug #2), authoritative-
+    // after-done (stats protection), always-set discard (bug #11), and never marking
+    // done from drawState (bug #10 — drawDone below is the sole done signal).
+    MP.watchOpponentDrawStates(applyOppDrawState);
 
-    // One-shot done signal per remote human opponent
+    // One-shot done signal per remote human opponent. applyOppDoneData uses the
+    // authoritative final stats from the signal itself (avoids the race where drawDone
+    // arrives before the last drawState update) and reconciles the hand (audit R3).
     MP.waitForAllHumanDrawsDone((slotIdx, doneData) => {
       const playerIdx = MP.slotToPlayer[slotIdx];
-      const opp = G.players[playerIdx];
-      // Use authoritative final stats from the done signal itself to avoid
-      // a race condition where drawDone arrives before the last drawState update.
-      if (doneData) {
-        opp.roundDollars    = doneData.dollars;
-        opp.roundCows       = doneData.cows;
-        opp.roundBandits    = doneData.bandits;
-        opp.busted          = doneData.busted;
-        opp.hasBuyBurnFirst = doneData.hasBuyBurnFirst || false;
-        opp.hasExtraBuy     = doneData.hasExtraBuy     || false;
-      }
+      applyOppDoneData(G.players[playerIdx], doneData);
       G.drawsDone[playerIdx] = true;
       checkDrawPhaseComplete();
     });
@@ -3180,6 +3414,14 @@ function getDrawPhaseMessage(player) {
 function startPlayerDraw() {
   G.phase = 'draw';
   const player = G.players[0];
+
+  // R2 tombstone: the host force-marked our draw done while we were mid-decision (e.g.
+  // inside a modal) — the table has our forced stats; don't offer any more draws.
+  if (MP.active && G.drawsDone[0]) {
+    setMessage('Waiting for other players to finish drawing...');
+    clearActions();
+    return;
+  }
 
   if (player.deck.length === 0 && player.discard.length === 0) {
     player.stoppedDrawing = true;
@@ -3256,6 +3498,7 @@ function startPlayerDraw() {
 
 async function playerDraw() {
   if (TUTORIAL.active && !TUTORIAL.isAllowed('draw')) { TUTORIAL.flashBlocked(); return; }
+  if (MP.active && G.drawsDone[0]) return; // R2 tombstone: force-continued past us mid-decision
   if (G.busy) return;
   G.busy = true;
 
@@ -3454,9 +3697,37 @@ function forceDrawPhase() {
     MP.forceSignalDrawDone(p.slotIdx, {
       dollars: p.roundDollars, cows: p.roundCows, bandits: p.roundBandits,
       busted: p.busted, hasBuyBurnFirst: p.hasBuyBurnFirst, hasExtraBuy: p.hasExtraBuy,
+      dollar1OtherPlayed: p.dollar1OtherPlayed,
     });
   }
   // The host's own waitForAllHumanDrawsDone listeners fire on these writes and advance.
+}
+
+// R2 tombstone (draw phase): if the host force-marked OUR draw done (we looked stuck)
+// while we were actually still drawing, every other client consumed the forced stats.
+// Adopt those stats and stop, instead of drawing on — cards drawn after the force
+// would score only on this client and diverge the table. Armed once per round from
+// startRound/resumeDrawPhase (named sub — re-arming replaces).
+function armForcedDrawTombstone() {
+  if (!MP.active) return;
+  MP.watchOwnDrawDone((val) => {
+    if (!val || !val.forced || val.done !== true) return;
+    if (val.round !== G.roundNumber || val.act !== G.currentAct) return;
+    if (G.phase !== 'draw' || G.drawsDone[0]) return;
+    const player = G.players[0];
+    if (player.busted) return; // bust flow already ends in its own done signal — let it finish
+    player.roundDollars = val.dollars || 0;
+    player.roundCows    = val.cows    || 0;
+    player.roundBandits = val.bandits || 0;
+    player.dollar1OtherPlayed = val.dollar1OtherPlayed || 0; // match what others consumed
+    player.stoppedDrawing = true;
+    addLog('The host continued the game — your draw phase was ended with your last-synced cards.', 'log-score');
+    G.drawsDone[0] = true; // startPlayerDraw/playerDraw guard on this — no more draws
+    clearActions();
+    setMessage('Waiting for other players to finish drawing...');
+    render();
+    checkDrawPhaseComplete();
+  });
 }
 
 // Force-skip the current (stuck) buyer; broadcast so all clients advance together.
@@ -3465,7 +3736,9 @@ function forceBuyTurn() {
   const player = G.players[playerIdx];
   if (!player) return;
   addLog(`Host force-continued: ${player.name}'s buy turn was skipped.`, 'log-score');
-  MP.forceBuyAction(player.slotIdx); // host's own waitForBuyAction fires and advances
+  // Stamp the seq every waiter expects for this turn (2 = the extra-buy re-entry).
+  const seq = player.extraBuyUsed ? 2 : 1;
+  MP.forceBuyAction(player.slotIdx, seq); // host's own waitForBuyAction fires and advances
 }
 
 // Force a default buy order (seat order of non-busted players) when the chooser is stuck.
@@ -4169,7 +4442,9 @@ async function activateCardInBuyPhase(player, card) {
 // claim is atomic — only ONE player per round wins it (two card_14 copies exist under
 // the doubled deck). In ≤4P / solo there's a single card_14, so it's always granted.
 async function claimBuyFirstPriority() {
-  if (MP.active && G.numPlayers >= 5) return await MP.claimBuyFirst(G.act, G.round);
+  // Fields are currentAct/roundNumber — G.act/G.round don't exist. Passing them (audit
+  // bug C2) keyed every claim on "undefined_undefined", making the claim once-per-GAME.
+  if (MP.active && G.numPlayers >= 5) return await MP.claimBuyFirst(G.currentAct, G.roundNumber);
   return true;
 }
 
@@ -4368,6 +4643,21 @@ function onDrawPhaseComplete() {
   clearForceContinue();
   G.phase = 'buy';
 
+  // MP: apply the round's deferred dollar1_other (card_24) grants HERE — one
+  // deterministic point, on every client, before anything reads roundDollars for the
+  // buy order (audit C5; see applyCardEffects). Counts: own plays tracked locally,
+  // remote humans' from their authoritative drawDone payload, AI seats' from the
+  // identical local simulation — so every client computes the same totals. Runs
+  // exactly once per round (checkDrawPhaseComplete's phase guard gates entry).
+  if (MP.active) {
+    G.players.forEach(src => {
+      const n = src.dollar1OtherPlayed || 0;
+      if (n <= 0) return;
+      G.players.forEach(p => { if (p !== src) p.roundDollars += n; });
+      addLog(`${src.name}'s card gives +$${n} to everyone else.`, 'log-score');
+    });
+  }
+
   mpLog('onDrawPhaseComplete — player stats:', G.players.map((p, i) => ({
     i, name: p.name, slot: G.playerOrder[i],
     dollars: p.roundDollars, cows: p.roundCows, busted: p.busted,
@@ -4449,6 +4739,20 @@ function onDrawPhaseComplete() {
 }
 
 function showChooseFirstUI(nonBustedIndices) {
+  // R2 tombstone: while we're choosing, the host's force valve may push a default
+  // order (we looked stuck). Adopt it instead of applying a conflicting local choice —
+  // everyone else consumed the forced order, so our own would diverge the turn chain.
+  // `resolved` also swallows the echo of our OWN push (waitForBuyOrder fires on it).
+  let resolved = false;
+  if (MP.active) {
+    MP.waitForBuyOrder((slotOrder) => {
+      if (resolved) return;
+      resolved = true;
+      addLog('The host set the buy order automatically.', 'log-score');
+      const localOrder = slotOrder.map(s => MP.slotToPlayer[s]).filter(i => i !== undefined);
+      applyBuyOrder(localOrder);
+    });
+  }
   // Sort buttons into seat order so the list matches the turn order bar.
   const sorted = [...nonBustedIndices].sort((a, b) =>
     G.seatOrder.indexOf(G.playerOrder[a]) - G.seatOrder.indexOf(G.playerOrder[b])
@@ -4457,6 +4761,8 @@ function showChooseFirstUI(nonBustedIndices) {
   setActions(sorted.map(i => ({
     text: i === 0 ? 'I Go First' : `${G.players[i].name} Goes First`,
     onClick: () => {
+      if (resolved) return; // forced order already applied — buttons are stale
+      resolved = true;
       addLog(i === 0 ? 'You chose to go first.' : `You chose ${G.players[i].name} to go first.`);
       startBuyPhase(i, true); // local player made this choice — always push to Firebase
     },
@@ -4515,6 +4821,12 @@ function applyBuyOrder(order) {
 function processBuyTurn() {
   clearForceContinue();
   saveLocalGame();
+  // Host: refresh the snapshot AFTER the turn pointer advanced. executeBuy/BurnLocal
+  // push before advanceOrExtraBuy increments, so without this the snapshot's
+  // currentBuyerIdx points at the buyer who ALREADY acted for the whole wait window —
+  // a rejoiner then replays that turn (phantom AI buy / wait on a consumed buyAction /
+  // local double-buy). Audit C6.
+  if (MP.active) MP.pushSpectatorState();
   if (G.currentBuyerIdx >= G.buyOrder.length) {
     endBuyPhase();
     return;
@@ -4554,15 +4866,21 @@ function mpOpponentBuyTurn(opp) {
   clearActions();
   render();
   armForceContinue(forceBuyTurn); // host-only: skip this buyer if they never respond
-  MP.waitForBuyAction(opp.slotIdx, (data) => {
+  // Expected seq: 1 for the normal turn, 2 for the extra-buy turn (extraBuyUsed is set
+  // before this re-entry). Seq matching replaced the old consume-then-clear pattern —
+  // a stale same-round value now simply fails the seq check instead of needing a null
+  // write that could race the actor's second action (audit R1).
+  const expectedSeq = opp.extraBuyUsed ? 2 : 1;
+  MP.waitForBuyAction(opp.slotIdx, expectedSeq, (data) => {
     mpLog('waitForBuyAction fired for', opp.name, data);
     clearForceContinue();
-    // Clear the consumed action so the NEXT waitForBuyAction for this slot in the
-    // same round doesn't immediately re-fire with this stale same-round value.
-    MP.clearBuyAction(opp.slotIdx);
     // A remote human may have used Card 4 this turn — apply the swap before their buy/burn
-    // so every client mutates the shared state in the same order.
-    if (data.swap) applySwapLocal(opp, data.swap);
+    // so every client mutates the shared state in the same order. A false return means
+    // this client's state diverged from the actor's (target or card_4 not found) — log
+    // loudly; a silently dropped swap is how card_4 desyncs compound (audit C1).
+    if (data.swap && !applySwapLocal(opp, data.swap)) {
+      console.warn('[MP] swap from', opp.name, 'could not be applied on this client — state divergence', data.swap);
+    }
     if (data.action === 'skip') {
       // Forced skip (host recovery) — advance past this player's turn unconditionally
       // (don't honor extra-buy, which would re-enter the wait).
@@ -4592,6 +4910,25 @@ function mpOpponentBuyTurn(opp) {
 
 function humanBuyTurn(player) {
   G.selectedPyramidCard = null;
+  // R2 tombstone: if the host force-skipped OUR turn while we were deciding (we looked
+  // stuck — asleep tab, slow network), every other client advances past us. Without
+  // this watcher we'd still apply our buy locally and diverge for the rest of the game.
+  // Token-guarded so a fire after we acted normally (turn pointer moved) is a no-op.
+  if (MP.active) {
+    const token = { round: G.roundNumber, act: G.currentAct, buyerIdx: G.currentBuyerIdx };
+    MP.watchOwnBuyAction((data) => {
+      if (!data || !data.forced || data.action !== 'skip') return;
+      if (data.round !== token.round || data.act !== token.act) return;
+      if (G.phase !== 'buy' || G.currentBuyerIdx !== token.buyerIdx) return;
+      if (G.buyOrder[G.currentBuyerIdx] !== 0) return; // no longer our turn
+      addLog('The host continued the game — your buy turn was skipped.', 'log-score');
+      G.selectedPyramidCard = null;
+      clearActions();
+      G.currentBuyerIdx++;
+      if (isPyramidEmpty(G.pyramid)) endBuyPhase();
+      else processBuyTurn();
+    });
+  }
   const available = getAvailablePyramidCards(G.pyramid);
   const affordable = available.filter(a => a.slot.card.cost <= player.roundDollars);
 
@@ -4658,10 +4995,12 @@ function onPyramidCardClick(row, col) {
   setActions(buttons);
 }
 
-// Human buy: push to Firebase (MP, local human only) then apply locally
+// Human buy: push to Firebase (MP, local human only) then apply locally.
+// seq 1 = normal turn, 2 = extra buy (extraBuyUsed is set before the re-entry) — see
+// pushBuyAction (audit R1).
 function executeBuy(player, row, col) {
   trajLogBuy(player, 'buy', row, col); // trajectory: before state changes (gates seat/host internally)
-  if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col, player._pendingSwap);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('buy', row, col, player._pendingSwap, player.extraBuyUsed ? 2 : 1);
   player._pendingSwap = null;
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('buy');
   executeBuyLocal(player, row, col);
@@ -4727,7 +5066,7 @@ function executeBurn(player, row, col) {
     TUTORIAL.flashBlocked(); return;
   }
   trajLogBuy(player, 'burn', row, col); // trajectory: before state changes (gates seat/host internally)
-  if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col, player._pendingSwap);
+  if (MP.active && player === G.players[0]) MP.pushBuyAction('burn', row, col, player._pendingSwap, player.extraBuyUsed ? 2 : 1);
   player._pendingSwap = null;
   if (TUTORIAL.active && player === G.players[0]) TUTORIAL.onActionDone('burn');
   executeBurnLocal(player, row, col);
@@ -4804,7 +5143,14 @@ function applySwapLocal(player, spec) {
     taken = pile[ti];
     place = (c4) => { pile[ti] = c4; };
   }
-  const c4idx = player.hand.findIndex(c => c.uid === spec.card4Uid);
+  // Resolve Card 4 in the activator's hand by card ID, not uid: uids are per-client
+  // counters, so on every client except the activator the spec's uid matches nothing
+  // (or worse, collides with an unrelated card) — audit bug C1, which made MP swaps
+  // apply only on the activator's client. card4Id is unambiguous (one card_4 per hand).
+  // The uid path remains only as a fallback for legacy specs without card4Id.
+  const c4idx = spec.card4Id
+    ? player.hand.findIndex(c => c.id === spec.card4Id)
+    : player.hand.findIndex(c => c.uid === spec.card4Uid);
   if (c4idx < 0) return false;                 // activator no longer holds Card 4
   const card4 = player.hand.splice(c4idx, 1)[0];
   place(card4);                                // true swap: Card 4 fills the vacated slot
@@ -4847,9 +5193,17 @@ function openSwapModal(player, swapCard) {
         const spec = {
           kind: item.kind, victimSlot: item.victimSlot ?? null,
           row: item.row ?? null, col: item.col ?? null,
-          takenId: item.card.id, card4Uid: swapCard.uid,
+          takenId: item.card.id, card4Uid: swapCard.uid, card4Id: swapCard.id,
         };
-        trajLogSpecial(player, 'swap_revealed', swapCard.id, spec, 'buy');
+        // Compact string detail — the traj rules validate `detail` as a string ≤20 chars,
+        // so passing the spec object made every swap record fail validation and drop.
+        // Format: p{row},{col}:{id} | h{victimSlot}:{id} | d{victimSlot}:{id}, with
+        // card_N → N and starter_N → sN.
+        const shortId = spec.takenId.replace('card_', '').replace('starter_', 's');
+        const detail = spec.kind === 'pyramid'
+          ? `p${spec.row},${spec.col}:${shortId}`
+          : `${spec.kind[0]}${spec.victimSlot}:${shortId}`;
+        trajLogSpecial(player, 'swap_revealed', swapCard.id, detail, 'buy');
         if (applySwapLocal(player, spec)) player._pendingSwap = spec; // carried on next buyAction (MP)
         humanBuyTurn(player);
       };
@@ -4948,7 +5302,7 @@ async function aiBuyTurn(ai) {
     if (target && tScore >= 6 && tScore > bestAffordable) {
       applySwapLocal(ai, {
         kind: 'pyramid', victimSlot: null, row: target.row, col: target.col,
-        takenId: target.slot.card.id, card4Uid: aiSwapCard.uid,
+        takenId: target.slot.card.id, card4Uid: aiSwapCard.uid, card4Id: aiSwapCard.id,
       });
     }
   }

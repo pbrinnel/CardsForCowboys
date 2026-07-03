@@ -10,36 +10,44 @@ showdown → rejoin). Every "Confirmed" finding below was verified against the a
 (grep-checked call sites); "Race window" findings are mechanism-verified but need specific
 timing to fire.
 
-**Status: FINDINGS ONLY — nothing has been fixed.** Line numbers are as of this audit
-(±10 after edits; grep the identifier).
+**Status: FIXES SHIPPED (July 3 2026).** Everything except N1/N2 and systemic item 2 was
+fixed in the day-after-audit pass (see the commit referencing this doc). Two ADDITIONAL
+confirmed bugs were found during fixing: **C8** (draft packs keyed by local player index)
+and **C9** (database rules never deployed → every trajectory header since the Pioneer Mode
+launch was silently rejected in production — fixed by deploying, no code change). The
+finding write-ups below are kept as the reasoning record; each notes its fix. Line numbers
+are as of the audit (±10 after edits; grep the identifier).
 
 ---
 
 ## Ranked summary
 
-| # | Finding | Severity | Confidence | Class |
-|---|---------|----------|------------|-------|
-| C1 | card_4 Swap never applies on other clients (uid-resolved) | High | Confirmed | Silent divergence |
-| C2 | `claimBuyFirst` keys on undefined → once-per-game, not per-round | High (5-8P) | Confirmed | Broken mechanic |
-| C3 | MP rejoin mid-draw with AI seats → permanent softlock | High | Confirmed | Softlock |
-| C4 | Rejoin resets AI RNG → all subsequent AI play diverges per client | High | Confirmed | Silent divergence |
-| C5 | card_24 (`dollar1_other`) drawn by a human desyncs AI dollars + drops the effect | High | Confirmed | Silent divergence |
-| C6 | `spectatorState.currentBuyerIdx` stale-by-one → rejoin replays the previous buy turn | Medium-High | Confirmed | Softlock / double-buy |
-| C7 | Rejoin drops `hasBuyBurnFirst`/`hasExtraBuy`/`extraBuyUsed` (not in spectatorState) | Medium | Confirmed | Softlock / deadlock |
-| R1 | `buyAction` is last-writer-wins, not a queue — extra-buy double actions can be lost | Medium | Race window | Softlock / divergence |
-| R2 | Force-continue racing the stuck player's late real action → divergence | Medium | Race window | Divergence |
-| R3 | Buy-winner tiebreaker can diverge on stale opponent hands | Low-Medium | Race window | Softlock |
-| H1 | drawState listeners accumulate every round → k× render + k× spectator writes | Medium | Confirmed | Perf / write flood |
-| H2 | Two drifted spectator-state serializers (MP inline vs `buildSpectatorState`) | Low | Confirmed | Maintenance hazard |
-| H3 | Rejoin during `score`/`showdown` phase → dead-end message, no retry | Low | Confirmed | UX softlock |
-| H4 | Quick Draw draft has no recovery path (no snapshot, no force valve) | Medium | Confirmed | Softlock |
-| H5 | Host fresh-start fallthrough can rebuild Act 1 despite an existing `actSetup` | Low | Confirmed (tiny window) | Divergence |
-| N1 | Host wifi blip in waiting room deletes the lobby | Low | Confirmed | UX |
-| N2 | Seat hijack: identity URL is a bearer token and game codes are public | Info | Confirmed | Abuse model |
+| # | Finding | Severity | Confidence | Class | Status |
+|---|---------|----------|------------|-------|--------|
+| C1 | card_4 Swap never applies on other clients (uid-resolved) | High | Confirmed | Silent divergence | **FIXED** |
+| C2 | `claimBuyFirst` keys on undefined → once-per-game, not per-round | High (5-8P) | Confirmed | Broken mechanic | **FIXED** |
+| C3 | MP rejoin mid-draw with AI seats → permanent softlock | High | Confirmed | Softlock | **FIXED** |
+| C4 | Rejoin resets AI RNG → all subsequent AI play diverges per client | High | Confirmed | Silent divergence | **FIXED** |
+| C5 | card_24 (`dollar1_other`) drawn by a human desyncs AI dollars + drops the effect | High | Confirmed | Silent divergence | **FIXED** |
+| C6 | `spectatorState.currentBuyerIdx` stale-by-one → rejoin replays the previous buy turn | Medium-High | Confirmed | Softlock / double-buy | **FIXED** |
+| C7 | Rejoin drops `hasBuyBurnFirst`/`hasExtraBuy`/`extraBuyUsed` (not in spectatorState) | Medium | Confirmed | Softlock / deadlock | **FIXED** |
+| C8 | Draft packs keyed by LOCAL player index → per-client pack mismatch in MP (found during fixing) | High (Quick Draw MP) | Confirmed | Silent divergence | **FIXED** |
+| C9 | Deployed DB rules predate Pioneer Mode → every traj header since ~June 25 rejected (found during fixing) | Medium (research data) | Confirmed | Silent data loss | **FIXED** (rules deployed) |
+| R1 | `buyAction` is last-writer-wins, not a queue — extra-buy double actions can be lost | Medium | Race window | Softlock / divergence | **FIXED** (seq) |
+| R2 | Force-continue racing the stuck player's late real action → divergence | Medium | Race window | Divergence | **FIXED** (tombstones) |
+| R3 | Buy-winner tiebreaker can diverge on stale opponent hands | Low-Medium | Race window | Softlock | **FIXED** (hand in drawDone) |
+| H1 | drawState listeners accumulate every round → k× render + k× spectator writes | Medium | Confirmed | Perf / write flood | **FIXED** (named subs) |
+| H2 | Two drifted spectator-state serializers (MP inline vs `buildSpectatorState`) | Low | Confirmed | Maintenance hazard | **FIXED** (unified) |
+| H3 | Rejoin during `score`/`showdown` phase → dead-end message, no retry | Low | Confirmed | UX softlock | **FIXED** (watch+resume) |
+| H4 | Quick Draw draft has no recovery path (no snapshot, no force valve) | Medium | Confirmed | Softlock | **FIXED** (valve + pick auto-resume) |
+| H5 | Host fresh-start fallthrough can rebuild Act 1 despite an existing `actSetup` | Low | Confirmed (tiny window) | Divergence | **FIXED** (consume existing) |
+| N1 | Host wifi blip in waiting room deletes the lobby | Low | Confirmed | UX | Open (accepted for now) |
+| N2 | Seat hijack: identity URL is a bearer token and game codes are public | Info | Confirmed | Abuse model | Open (accepted model) |
 
-Suggested fix order: **C2 → C1 → C3 → C6+C7 (one spectatorState enrichment pass, includes C4's
-RNG persistence) → C5 → H1** — then the systemic reconciliation work at the bottom, which
-subsumes R1/R2/R3.
+Also fixed in passing: the trajectory `s` record for card_4 swaps passed the raw spec
+OBJECT as `detail`, which the rules validate as a string ≤20 — every swap record was
+silently dropped. Swap details now use a compact string (`p{row},{col}:{id}` /
+`h{slot}:{id}` / `d{slot}:{id}`, with `card_N`→`N`, `starter_N`→`sN`).
 
 ---
 
@@ -232,6 +240,45 @@ never did. `reconstructG` therefore can't restore them.
 **Fix sketch:** one enrichment pass: add the entitlement fields + `drawsDone` + `aiRngSeeds`
 (C4) to the spectator snapshot and restore them in `reconstructG`. Do it in **one** serializer
 (see H2) so it can't drift again.
+
+---
+
+### C8 — Quick Draw draft packs were keyed by LOCAL player index (found during fixing)
+
+**Where:** `runQuickStartDraft` — packs were built as `packs[i] = pool.slice(i*6, i*6+6)`
+with `i` = `G.players` index, and passed to `(i+1) % numPlayers`.
+
+**Mechanism:** in MP, `G.players` ordering differs per client (the local player is always
+index 0). So every client dealt itself `pool.slice(0..6)` — multiple players drafting from
+the SAME six cards, each on their own client — while computing AI picks and the pass
+rotation from mismatched packs. Broadcast picks then frequently missed
+(`packs[i].find(id)` on the wrong slice), silently dropping opponents' drafted cards from
+the local view. Human decks partially self-corrected later via drawState sync, but AI-seat
+drafts diverged from Act 2 round 1, and duplicate physical cards could be drafted by two
+seats.
+
+**Fix (shipped):** packs are keyed by **slotIdx** (`packsBySlot`) with the rotation in slot
+space — one shared layout on every client; SP unchanged (slot === index there). Also fixed
+in passing: pack filtering now removes exactly ONE instance of the picked id (5-8P packs
+can hold duplicate ids under the doubled act pool; `.filter(id !== picked)` stripped both).
+
+---
+
+### C9 — Deployed database rules predated Pioneer Mode: every traj header rejected (found during fixing)
+
+**Where:** production Firebase rules vs `database.rules.json`.
+
+**Mechanism:** the traj rules use `$other: false`; the June 2026 Pioneer Mode change added
+`pioneerMode` to the trajectory header AND to the repo's rules file — but the rules were
+**never deployed**. From the Pioneer launch (~June 25) until July 3, every `hdr` record was
+rejected with `permission_denied` (verified in live data: headers present through 06-25,
+absent after — e.g. game R37LYX). All other record kinds still landed, but a trajectory
+without its header (gameSeed, seats, version stamps) can't be replayed by the planned
+offline reconstructor.
+
+**Fix (shipped):** `firebase deploy --only database` (verified: fresh game's header lands
+with `pioneerMode`). **Process rule:** any edit to `database.rules.json` isn't done until
+it's deployed — CLAUDE.md's mode-flag checklist now says so explicitly.
 
 ---
 
@@ -435,3 +482,9 @@ Items 1 and 3 are small, mechanical changes. Item 2 is the real design work — 
 smaller than it sounds because the authoritative snapshot and the reconstruction code
 (`reconstructG`) already exist; it's a scoped re-application of pieces of that path at a safe
 phase boundary.
+
+**Status (July 3 2026): items 1 and 3 are SHIPPED** (snapshot enriched + single-sourced +
+pushed post-increment; buyAction sequenced with clears removed). **Item 2 — guest
+reconciliation at round boundaries — is the remaining open work** and the recommended next
+MP investment: it converts any residual divergence (force-race leftovers, unknown-unknowns)
+into a one-round blip and doubles as divergence telemetry.
