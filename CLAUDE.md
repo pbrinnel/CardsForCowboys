@@ -633,6 +633,16 @@ batch or throttle `snap` writes. This is the only place trajectory capture touch
 
 ## Known Bug Watch List
 
+**⚠️ Read [`docs/MP_PROTOCOL_AUDIT.md`](docs/MP_PROTOCOL_AUDIT.md) before touching MP sync code**
+(July 2026 adversarial audit — findings only, NOT yet fixed). Confirmed open bugs: card_4 swap
+never applies on other clients (uid-resolved, C1); `claimBuyFirst` keys on `G.act`/`G.round`
+which don't exist (C2); MP rejoin mid-draw with AI seats softlocks (C3); rejoin resets AI RNG →
+post-rejoin AI divergence (C4); human-drawn card_24 `dollar1_other` desyncs AI dollars (C5);
+`spectatorState.currentBuyerIdx` stale-by-one → rejoin replays a buy turn (C6); rejoin drops
+`hasBuyBurnFirst`/`hasExtraBuy` (C7); drawState listeners accumulate every round (H1). The audit
+has fix sketches + a systemic reconciliation plan (the bug #16 follow-up). When one of these is
+fixed, update both the audit doc and this list.
+
 ### 1. Discard Desync (Recurring — fixed twice)
 **Commits:** `eba3437` (Mar 30 2026), `2744b26` (Mar 31 2026)
 
