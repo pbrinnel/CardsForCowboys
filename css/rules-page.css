@@ -227,6 +227,15 @@
   border-top: 2.5px solid #b87838;
 }
 
+/* End-of-rules Kickstarter hook — readers who reach here are the high-intent audience */
+.rules-kickstarter {
+  margin-top: 1.25rem;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #3a2a1a;
+}
+.rules-kickstarter a { color: #8a5a22; font-weight: bold; }
+
 /* Active nav link */
 nav a.active { color: #e9e0c6; text-decoration: underline; }
 

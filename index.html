@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cards For Cowboys</title>
-  <meta name="description" content="A Streamlined Deck Builder. No Draw Limits — But Watch Out for Those Bandits!">
+  <meta name="description" content="A tabletop deck-building card game coming to Kickstarter in 2027. Play it free online — no draw limits, but watch out for those bandits!">
   <meta property="og:site_name" content="Cards For Cowboys">
   <meta property="og:title" content="Cards For Cowboys">
-  <meta property="og:description" content="A Streamlined Deck Builder. No Draw Limits — But Watch Out for Those Bandits!">
+  <meta property="og:description" content="A tabletop deck-building card game coming to Kickstarter in 2027. Play it free online — no draw limits, but watch out for those bandits!">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://cardsforcowboys.com/">
   <link rel="canonical" href="https://cardsforcowboys.com/">
@@ -61,13 +61,15 @@
       font-size: 1.1rem;
       color: #3a2a1a;
       font-style: italic;
-      margin-bottom: 2rem;
+      margin-bottom: 0.9rem;
     }
     .deck-fan {
       position: relative;
       width: 330px;
-      height: 232px;
-      margin: 0 auto 1.6rem;
+      height: 170px; /* scaled 0.72 below — keep layout box in sync */
+      margin: 0 auto 1rem;
+      transform: scale(0.72);
+      transform-origin: top center;
     }
     .deck-fan .fan-card {
       position: absolute;
@@ -183,17 +185,17 @@
       text-align: center;
       padding: 0.6rem 1rem;
       font-size: 0.75rem;
-      color: rgba(233,224,198,0.5);
+      color: rgba(233,224,198,0.85);
       border-top: 2.5px solid #1e1610;
       background: #1e1610;
       line-height: 1.6;
     }
-    .footer-link { color: rgba(233,224,198,0.7); text-decoration: underline; }
+    .footer-link { color: rgba(233,224,198,0.9); text-decoration: underline; }
     .footer-link:hover { color: #e9e0c6; }
+    /* Above-the-fold email capture (sits between the tagline and the deck fan —
+       the site's one conversion element; keep it visible without scrolling) */
     .signup-section {
-      margin-top: 1.75rem;
-      padding-top: 1.25rem;
-      border-top: 2px solid rgba(30,22,16,0.2);
+      margin: 0 auto 0.9rem;
     }
     .signup-label {
       font-size: 0.85rem;
@@ -220,14 +222,16 @@
     .signup-btn {
       padding: 0.55rem 1.2rem;
       background: transparent;
-      border: 2px solid rgba(30,22,16,0.4);
-      color: rgba(30,22,16,0.6);
+      border: 2px solid #1e1610;
+      color: #1e1610;
       font-size: 0.95rem;
       font-family: Georgia, serif;
+      font-weight: bold;
       cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
+      box-shadow: 2px 2px 0 #1e1610;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    .signup-btn:hover { color: #1e1610; border-color: rgba(30,22,16,0.7); }
+    .signup-btn:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #1e1610; }
     .signup-btn:disabled { opacity: 0.4; cursor: default; }
     .signup-msg {
       margin-top: 0.5rem;
@@ -248,7 +252,19 @@
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
-    <p class="tagline">A Streamlined Deck Builder<br>No Draw Limits — But Watch Out for Those Bandits!</p>
+    <p class="tagline">A Tabletop Deck-Builder Coming to Kickstarter in 2027<br>Play It Free Online — No Draw Limits, But Watch Out for Those Bandits!</p>
+
+    <div class="signup-section" id="signup">
+      <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
+      <div class="signup-row">
+        <input id="signup-email" class="signup-input" type="email" placeholder="your@email.com">
+        <button id="signup-btn" class="signup-btn">Notify Me</button>
+      </div>
+      <p class="signup-consent">
+        No spam. <a href="privacy.html">Privacy Policy</a>.
+      </p>
+      <p id="signup-msg" class="signup-msg"></p>
+    </div>
 
     <div class="deck-fan" aria-hidden="true">
       <div class="fan-bandit b1"><img src="assets/symbols/1%20Bandit-01.png" alt=""></div>
@@ -272,18 +288,6 @@
       <a href="playgame.html?tutorial=1" class="btn-outline" onclick="sessionStorage.setItem('tutorial_mode','1')">Tutorial</a>
       <a href="rules.html" class="btn-outline">Rules</a>
       <a href="history.html" class="btn-outline btn-outline-sm">Game History &amp; Top Scores</a>
-    </div>
-
-    <div class="signup-section">
-      <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
-      <div class="signup-row">
-        <input id="signup-email" class="signup-input" type="email" placeholder="your@email.com">
-        <button id="signup-btn" class="signup-btn">Notify Me</button>
-      </div>
-      <p class="signup-consent">
-        No spam. <a href="privacy.html">Privacy Policy</a>.
-      </p>
-      <p id="signup-msg" class="signup-msg"></p>
     </div>
 
     <div style="margin-top: 1rem;">
