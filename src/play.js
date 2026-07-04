@@ -390,7 +390,7 @@ const MP = (() => {
   // loaded only when someone opens spectate.html. Kept in sync because this
   // is called from pushSpectatorState (the single MP spectator chokepoint).
   async function pushLiveSummary() {
-    if (!initialized || !isHost || !G || G.phase === 'start') return;
+    if (!initialized || !isHost || !code || !G || G.phase === 'start') return;
     try {
       await fbSet(fbRef(db, `liveSummary/${code}`), {
         mode: 'mp',
@@ -1079,14 +1079,18 @@ const AI_SPEC = (() => {
     initialized = true;
   }
 
-  // Use liveGames/ path (not games/) to avoid Firebase rules that gate games/ to the lobby flow
-  function liveRef(path) { return _fbRef(`liveGames/${_code}${path ? '/' + path : ''}`); }
+  // Use liveGames/ path (not games/) to avoid Firebase rules that gate games/ to the lobby flow.
+  // Takes the code as an argument — callers snapshot `_code` into a local BEFORE any await and
+  // never re-read `_code` afterward. A push() in flight when finish() nulled `_code` used to
+  // resume and interpolate `liveSummary/null` (stray node observed live, July 2026 audit).
+  function liveRef(code, path) { return _fbRef(`liveGames/${code}${path ? '/' + path : ''}`); }
 
   async function start(players) {
-    _code = generateCode();
+    const code = generateCode();
+    _code = code;
     try {
       await init();
-      await _fbSet(liveRef(), {
+      await _fbSet(liveRef(code), {
         status: 'active',
         mode: 'ai',
         numPlayers: players.length,
@@ -1095,23 +1099,24 @@ const AI_SPEC = (() => {
       });
     } catch (e) {
       console.error('[AI_SPEC] Failed to start:', e);
-      _code = null;
+      if (_code === code) _code = null;
       return;
     }
     // Best-effort: mark finished if the tab closes mid-game (both the full
     // node and the slim summary used by the Live Now list)
-    try { _fbOnDisconnect(liveRef('status')).set('finished'); } catch (e) {}
-    try { _fbOnDisconnect(_fbRef(`liveSummary/${_code}/status`)).set('finished'); } catch (e) {}
+    try { _fbOnDisconnect(liveRef(code, 'status')).set('finished'); } catch (e) {}
+    try { _fbOnDisconnect(_fbRef(`liveSummary/${code}/status`)).set('finished'); } catch (e) {}
   }
 
   async function push() {
-    if (!_code || !initialized || !G || G.phase === 'start') return;
+    const code = _code; // snapshot — never re-read _code after an await (see liveRef note)
+    if (!code || !initialized || !G || G.phase === 'start') return;
     try {
-      await _fbSet(liveRef('spectatorState'), buildSpectatorState());
+      await _fbSet(liveRef(code, 'spectatorState'), buildSpectatorState());
     } catch (e) { /* non-critical */ }
     // Slim summary for history.html's Live Now list (no full card state)
     try {
-      await _fbSet(_fbRef(`liveSummary/${_code}`), {
+      await _fbSet(_fbRef(`liveSummary/${code}`), {
         mode: 'ai',
         status: G.phase === 'gameover' ? 'finished' : 'active',
         numPlayers: G.numPlayers,
