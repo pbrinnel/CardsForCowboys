@@ -1,0 +1,24 @@
+/* ── Shared accessibility baseline (July 2026 audit, findings A1/A2) ──
+   Linked by every page. Keep this file tiny and page-agnostic. */
+
+/* Keyboard focus must be visible. :focus-visible only matches keyboard-style
+   focus, so mouse/touch clicks stay outline-free. Elements with their own
+   focus treatment (e.g. .signup-input:focus box-shadow) out-specify this.
+   #8a5a22 clears 3:1 on the cream surfaces that dominate the site; on dark
+   zones the 2px offset gap keeps the ring legible. */
+:focus-visible {
+  outline: 3px solid #8a5a22;
+  outline-offset: 2px;
+}
+
+/* Respect the OS "reduce motion" setting: collapse animations/transitions to
+   near-instant. Durations stay >0 so animationend/transitionend still fire
+   for any code that waits on them. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
