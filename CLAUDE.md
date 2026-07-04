@@ -601,7 +601,12 @@ an offline, re-runnable, any-personality (or any-future-model) operation, not ba
 - Hooks: `trajLogHeader` (startGame), `trajLogActSetup` (setupAct), `trajLogRoundSnaps` (startRound),
   `trajLogDraw` (after `drawFromDeck` in playerDraw), `trajLogStop` (playerStopDraw), `trajLogSpecial`
   (activateSpecialCard + replay_discard pick), `trajLogBuy` (executeBuy/executeBurn — also catches AI
-  buys, host-gated), `trajLogCanary` (scoreRound). Skips debug + tutorial games.
+  buys, host-gated), `trajLogCanary` (scoreRound). Skips debug + tutorial games — the tutorial
+  exclusion is the **sticky per-game flag `G.isTutorialGame`** (set in `startGame`'s tutorial
+  branch), NOT `TUTORIAL.active`: the active flag drops when the coached steps end while the game
+  continues as free play, which used to leak a headerless (unreplayable) trajectory from the
+  remainder (July 2026 audit, game FBEURP). `saveLocalGame` uses the same flag for the same reason.
+  Any future gate that must exclude the WHOLE tutorial game checks `G.isTutorialGame`.
 - **Phase 0 scope:** AI *draws* are NOT per-event logged (deterministic from seed; `snap`+`ck` suffice);
   only human draws are. Look3-rearrange order is not captured (deck-order only, covered by outcome
   logging). The canary flags any under-capture during offline replay.

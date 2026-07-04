@@ -841,7 +841,10 @@ function amTrajHost() {
 // the ≤4P benchmark corpus shouldn't be diluted with big-game data. Revisit if/when the
 // reconstructor learns the 5-8P pyramid geometry (see docs/FIVE_TO_EIGHT_PLAYER_PLAN.md).
 function trajActive() {
-  return !G.isDebug && !TUTORIAL.active && G.numPlayers <= 4 && !!trajGameCode();
+  // G.isTutorialGame (not TUTORIAL.active) — the active flag drops when the coached
+  // steps finish, and the free-play remainder must stay excluded or it writes a
+  // headerless (unreplayable) trajectory.
+  return !G.isDebug && !G.isTutorialGame && G.numPlayers <= 4 && !!trajGameCode();
 }
 
 // Compact card-instance serialization for snapshots (id only — stats come from the card DB).
@@ -2791,6 +2794,12 @@ async function startGame() {
       G.quickStartMode = false;
       G.pioneerMode = false;
       G.hiddenHerdMode = false;
+      // Sticky per-game marker: TUTORIAL.active flips false when the coached steps end
+      // (TUTORIAL.complete()) but the game keeps going as free play. Gates that must
+      // exclude the WHOLE tutorial game (traj capture, solo save) check this flag,
+      // never TUTORIAL.active — a headerless /traj/{code} leaked from the free-play
+      // remainder before this existed (July 2026 audit, game FBEURP).
+      G.isTutorialGame = true;
       TUTORIAL.init(G);
     } else {
       // Restore a saved mid-game state (survives page reload / mobile tab eviction)
@@ -2930,7 +2939,9 @@ async function startGame() {
 // Only used for non-MP, non-tutorial games. Cleared on game-over and restart.
 
 function saveLocalGame() {
-  if (MP.active || TUTORIAL.active || !G || G.isDebug) return;
+  // G.isTutorialGame keeps the free-play remainder after TUTORIAL.complete() from
+  // being saved as a normal solo game (same sticky-exclusion rule as trajActive).
+  if (MP.active || !G || G.isDebug || G.isTutorialGame) return;
   try {
     localStorage.setItem('cfc_solo_game', JSON.stringify({
       v: 1,
