@@ -4680,6 +4680,12 @@ function onDrawPhaseComplete() {
     hasBuyBurnFirst: p.hasBuyBurnFirst, handLen: p.hand.length,
   })));
 
+  // Why the round's first buyer goes first — shown by aiBuyTurn on the first buy
+  // turn (audit F2: the reason used to live only in the collapsed log). Only set
+  // in branches where the order STARTS with the player who earned it; a chooser
+  // sending someone else first leaves it null (that player earned nothing).
+  G._buyOrderReason = null;
+
   // Check hasBuyBurnFirst (special card overrides normal order)
   const priorityIdx = G.players.findIndex((p, i) => p.hasBuyBurnFirst && !p.busted);
   if (priorityIdx >= 0) {
@@ -4698,6 +4704,7 @@ function onDrawPhaseComplete() {
         applyBuyOrder(localOrder);
       });
     } else {
+      G._buyOrderReason = 'played Buy/Burn 1st';
       startBuyPhase(priorityIdx, priorityIdx === 0);
     }
     return;
@@ -4721,6 +4728,7 @@ function onDrawPhaseComplete() {
   if (nonBusted.length === 1) {
     const soloIdx = nonBusted[0];
     addLog(`--- Buy Phase --- ${soloIdx === 0 ? 'You go' : G.players[soloIdx].name + ' goes'} first (only non-busted player).`);
+    G._buyOrderReason = 'only player not busted';
     startBuyPhase(soloIdx, soloIdx === 0);
     return;
   }
@@ -4731,14 +4739,15 @@ function onDrawPhaseComplete() {
     startBuyPhase(0, true);
   } else if (winnerIdx === 0) {
     addLog(`--- Buy Phase --- You choose buy order (${reason}).`);
-    showChooseFirstUI(nonBusted);
+    showChooseFirstUI(nonBusted, reason);
   } else if (!G.players[winnerIdx].isHuman) {
     addLog(`--- Buy Phase --- ${winnerName} goes first (${reason}).`);
+    G._buyOrderReason = reason;
     startBuyPhase(winnerIdx);
   } else {
     // Remote human wins — wait for their buy order push
     addLog(`--- Buy Phase --- ${winnerName} chooses buy order (${reason}).`);
-    setMessage(`Waiting for ${winnerName} to choose who buys first...`);
+    setMessage(`${winnerName} won the draw (${reason}) — waiting for them to choose who buys first...`);
     clearActions();
     render();
     armForceContinue(forceBuyOrder); // host-only: auto-set order if chooser stalls
@@ -4754,7 +4763,7 @@ function onDrawPhaseComplete() {
   }
 }
 
-function showChooseFirstUI(nonBustedIndices) {
+function showChooseFirstUI(nonBustedIndices, reason) {
   // R2 tombstone: while we're choosing, the host's force valve may push a default
   // order (we looked stuck). Adopt it instead of applying a conflicting local choice —
   // everyone else consumed the forced order, so our own would diverge the turn chain.
@@ -4773,7 +4782,11 @@ function showChooseFirstUI(nonBustedIndices) {
   const sorted = [...nonBustedIndices].sort((a, b) =>
     G.seatOrder.indexOf(G.playerOrder[a]) - G.seatOrder.indexOf(G.playerOrder[b])
   );
-  setMessage('Buy Phase — Who goes first?');
+  // Say WHY the player gets to choose (audit F2): choosing the order is the
+  // reward for winning the draw, and the reason used to be visible only in the
+  // collapsed log — new players thought the prompt was arbitrary.
+  setMessage(reason ? `You won the draw — ${reason}. Who buys first?`
+                    : 'Buy Phase — Who goes first?');
   setActions(sorted.map(i => ({
     text: i === 0 ? 'I Go First' : `${G.players[i].name} Goes First`,
     onClick: () => {
@@ -5254,7 +5267,11 @@ async function aiBuyTurn(ai) {
     processBuyTurn();
     return;
   }
-  setMessage(`${ai.name} is buying\u2026`);
+  // First buy turn of the round: say why this player goes first (audit F2) \u2014
+  // G._buyOrderReason is only set when the first buyer earned the spot.
+  setMessage(G.currentBuyerIdx === 0 && G._buyOrderReason
+    ? `${ai.name} buys first \u2014 ${G._buyOrderReason}\u2026`
+    : `${ai.name} is buying\u2026`);
   clearActions();
   await delay(1000);
 

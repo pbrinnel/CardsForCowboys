@@ -47,6 +47,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `css/style.css` | Shared/general styles |
 | `css/rules-page.css` | Rules page styles |
 | `css/theme.css` | Theme variables / font imports |
+| `css/a11y.css` | Shared accessibility baseline (`:focus-visible` outline + `prefers-reduced-motion` collapse) — linked by ALL pages (July 2026 audit A1/A2). Add the link to any new page. |
 
 ### `sim/` — Simulation & AI tooling
 **Start at [`sim/TUNING.md`](sim/TUNING.md)** — the authoritative goal/steps/outputs guide for
@@ -389,7 +390,7 @@ tiny window between a human's swap and their buy/burn can lose an un-broadcast s
 ### Buy Phase (lines ~3265–3590)
 ```
 onDrawPhaseComplete()       ~3269 — called when all draw phases done; kicks off buy ordering
-showChooseFirstUI()         ~3348 — host picks who goes first (after tied draw)
+showChooseFirstUI(nonBusted, reason) ~3348 — local draw-winner picks who buys first; message shows WHY they get to choose (the win reason from determineBuyWinner — audit F2). onDrawPhaseComplete also sets G._buyOrderReason (per-round, only when the order STARTS with the player who earned it); aiBuyTurn shows it on the round's first buy turn ("X buys first — most $ ($3)…")
 startBuyPhase(startIdx)     ~3364
 applyBuyOrder(order)        ~3390
 processBuyTurn()            ~3399 — dispatcher: human / AI / mpOpponent
