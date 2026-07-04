@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cards For Cowboys</title>
-  <meta name="description" content="A tabletop deck-building card game coming to Kickstarter in 2027. Play it free online — no draw limits, but watch out for those bandits!">
+  <meta name="description" content="A Streamlined Deck Builder. No Draw Limits — But Watch Out for Those Bandits! A physical tabletop card game coming to Kickstarter in 2027 — play the full game free online.">
   <meta property="og:site_name" content="Cards For Cowboys">
   <meta property="og:title" content="Cards For Cowboys">
-  <meta property="og:description" content="A tabletop deck-building card game coming to Kickstarter in 2027. Play it free online — no draw limits, but watch out for those bandits!">
+  <meta property="og:description" content="A Streamlined Deck Builder. No Draw Limits — But Watch Out for Those Bandits! A physical tabletop card game coming to Kickstarter in 2027 — play the full game free online.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://cardsforcowboys.com/">
   <link rel="canonical" href="https://cardsforcowboys.com/">
@@ -61,14 +61,22 @@
       font-size: 1.1rem;
       color: #3a2a1a;
       font-style: italic;
+      margin-bottom: 0.5rem;
+    }
+    /* Physical/free-online framing — present and above the fold, but visually
+       secondary to the slogan (which stays the hero line). */
+    .hero-physical {
+      font-size: 0.9rem;
+      color: #8a5a22;
+      font-weight: bold;
       margin-bottom: 0.9rem;
     }
     .deck-fan {
       position: relative;
       width: 330px;
-      height: 170px; /* scaled 0.72 below — keep layout box in sync */
-      margin: 0 auto 1rem;
-      transform: scale(0.72);
+      height: 140px; /* scaled 0.60 below — keep layout box in sync with scaled art (232*0.6) */
+      margin: 0 auto 0.85rem;
+      transform: scale(0.60);
       transform-origin: top center;
     }
     .deck-fan .fan-card {
@@ -252,7 +260,8 @@
 <body>
   <div class="home">
     <h1>Cards For Cowboys</h1>
-    <p class="tagline">A Tabletop Deck-Builder Coming to Kickstarter in 2027<br>Play It Free Online — No Draw Limits, But Watch Out for Those Bandits!</p>
+    <p class="tagline">A Streamlined Deck Builder<br>No Draw Limits — But Watch Out for Those Bandits!</p>
+    <p class="hero-physical">A physical tabletop card game &mdash; play the full game free online, right here.</p>
 
     <div class="signup-section" id="signup">
       <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
