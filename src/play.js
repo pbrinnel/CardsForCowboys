@@ -6019,6 +6019,11 @@ function layoutOpponentFan(handEl) {
 }
 
 function showCardHoverPreview(cardEl, card) {
+  // Hover-capable pointers only. On touch, a tap fires mouseover but mouseleave is
+  // unreliable (especially when the hovered card is removed by the buy that follows),
+  // leaving the preview stuck over half the screen. The tap→confirm dialog already
+  // shows a big card on mobile, so nothing is lost by skipping this.
+  if (!window.matchMedia('(hover: hover)').matches) return;
   const preview = document.getElementById('card-hover-preview');
   const img = document.getElementById('card-hover-img');
   img.src = cardImgSrc(card, true);
