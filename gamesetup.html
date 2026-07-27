@@ -493,18 +493,6 @@
     <div class="section-label">Mode</div>
     <div class="mode-row">
       <label class="mode-toggle">
-        <input type="checkbox" id="qs-checkbox" onchange="toggleQuickStart(this.checked)">
-        <span class="mode-toggle-text">
-          <strong>Quick Draw</strong> — Skip Act 1. Each player drafts 4 cards from the Act 1 deck, then Act 2 begins. A faster game.
-        </span>
-      </label>
-      <label class="mode-toggle">
-        <input type="checkbox" id="pi-checkbox" onchange="togglePioneer(this.checked)">
-        <span class="mode-toggle-text">
-          <strong>Pioneer Mode</strong> — A leaner Store: 6 cards per row instead of 7. Fewer cards on the table for a faster game.
-        </span>
-      </label>
-      <label class="mode-toggle">
         <input type="checkbox" id="hh-checkbox" onchange="toggleHiddenHerd(this.checked)">
         <span class="mode-toggle-text">
           <strong>Hidden Herd</strong> — Opponents' herd totals stay secret until the final showdown.
@@ -588,10 +576,6 @@
     let playerCount = 2;
     let p2Type = 'ai';
     let p2Difficulty = 'medium';
-    let quickStartMode = false;
-    function toggleQuickStart(checked) { quickStartMode = checked; }
-    let pioneerMode = false;
-    function togglePioneer(checked) { pioneerMode = checked; }
     let hiddenHerdMode = false;
     function toggleHiddenHerd(checked) { hiddenHerdMode = checked; }
     const slotTypes = { 3: { 2: 'ai', 3: 'ai' }, 4: { 2: 'ai', 3: 'ai', 4: 'ai' } };
@@ -680,8 +664,6 @@
 
     function startGame() {
       const myName = document.getElementById('player-name').value.trim() || 'Cowboy';
-      sessionStorage.setItem('quick_start_mode', quickStartMode ? '1' : '0');
-      sessionStorage.setItem('pioneer_mode', pioneerMode ? '1' : '0');
       sessionStorage.setItem('hidden_herd_mode', hiddenHerdMode ? '1' : '0');
       if (playerCount === 2) {
         if (p2Type === 'ai') {

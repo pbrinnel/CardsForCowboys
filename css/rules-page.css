@@ -194,6 +194,49 @@
   box-shadow: 0 3px 4px rgba(0,0,0,0.3);
 }
 
+/* Act bands: the three tiers of the single Store (Act 3 back → Act 1 front). The tint
+   sits behind the card backs so the reader can see where each Act deck goes. */
+.pyramid-row.act-band-3 { background: rgba(120, 70, 40, 0.30); }
+.pyramid-row.act-band-2 { background: rgba(160, 110, 50, 0.26); }
+.pyramid-row.act-band-1 { background: rgba(200, 165, 90, 0.30); }
+.pyramid-row[class*="act-band-"] { border-radius: 2px; }
+
+.act-band-key {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #3a2a1a;
+  margin: 0.25rem 0 1rem;
+}
+.act-band-key span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.act-band-key .swatch {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #1e1610;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ── Setup table (players → Store shape) ── */
+.table-scroll { overflow-x: auto; margin: 1rem 0 0.5rem; }
+.setup-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-size: 0.88rem;
+  min-width: 30rem;
+}
+.setup-table th,
+.setup-table td {
+  border: 1px solid rgba(30, 22, 16, 0.25);
+  padding: 0.35rem 0.7rem;
+  text-align: center;
+}
+.setup-table thead th { background: #1e1610; color: #e9e0c6; }
+.setup-table tbody tr:nth-child(even) td { background: rgba(30, 22, 16, 0.05); }
+.setup-note { text-align: center; font-size: 0.85rem; margin: 0 0 0.5rem; }
+
 .pyramid-demo-label {
   font-size: 0.8rem;
   font-weight: bold;

@@ -4,17 +4,26 @@
 
 const TUTORIAL = (() => {
 
-  // ─── Pyramid layout ──────────────────────────────────────────────────────────
-  // 14 cards for Act 1, 2-player store (2 rows of 7, brick-staggered).
-  // buildPyramid() fills row 0 (top, hidden) → row 1 (bottom, face-up). IDs are
-  // listed top row first, then bottom row.
+  // ─── Store layout ────────────────────────────────────────────────────────────
+  // A REAL 2-player Store: 6 rows × 5 cards = 30, brick-staggered, dealt in act tiers
+  // (rows 0-1 Act 3, rows 2-3 Act 2, rows 4-5 Act 1) exactly like a normal game — so
+  // the tutorial teaches the board players actually see. buildPyramid() fills row 0
+  // (top, hidden) through row 5 (front, face-up) in this order.
   //
-  //   Row 0 (hidden):  card_13, card_15, card_75, card_46, card_47, card_48, card_80
-  //   Row 1 (face-up): card_10, card_11, card_77, card_74, card_76, card_79, card_12
-  //                            └ card_11 (1 cow, $2) is the buy target, at row 1 col 1.
+  // Every id must be a LIVE (non-deprecated) card: buildPyramid drops unknown ids, and
+  // a short list would silently misalign every row after the gap.
+  //                                                          ┌ buy target: card_11
+  //   Row 5 (face-up): card_10, card_11, card_12, card_48, card_49   (1 cow, $2)
   const PYRAMID_IDS = [
-    'card_13', 'card_15', 'card_75', 'card_46', 'card_47', 'card_48', 'card_80',
-    'card_10', 'card_11', 'card_77', 'card_74', 'card_76', 'card_79', 'card_12',
+    // Act 3 tier (rows 0-1, back of the Store)
+    'card_26', 'card_28', 'card_29', 'card_30', 'card_32',
+    'card_58', 'card_59', 'card_86', 'card_88', 'card_89',
+    // Act 2 tier (rows 2-3)
+    'card_18', 'card_51', 'card_52', 'card_53', 'card_54',
+    'card_66', 'card_67', 'card_81', 'card_82', 'card_83',
+    // Act 1 tier (rows 4-5, the front — row 5 starts face-up)
+    'card_46', 'card_47', 'card_74', 'card_79', 'card_80',
+    'card_10', 'card_11', 'card_12', 'card_48', 'card_49',
   ];
 
   // ─── Draw queues (0-indexed, one array per tutorial round) ───────────────────
@@ -195,8 +204,8 @@ const TUTORIAL = (() => {
     {
       id: 'r3_buy',
       message: 'Buy the highlighted Cow card.',
-      required: { type: 'buy', row: 1, col: 1 }, // card_11 (1 cow, cost $2)
-      pyramidHint: { row: 1, col: 1 },
+      required: { type: 'buy', row: 5, col: 1 }, // card_11 (1 cow, cost $2) — front row
+      pyramidHint: { row: 5, col: 1 },
     },
 
   ];
@@ -334,16 +343,30 @@ const TUTORIAL = (() => {
   }
 
   function clearSpotlight() {
+    _pyramidHint = null;
     document.querySelectorAll('.tutorial-spotlight, .tutorial-pyramid-hint').forEach(el => {
       el.classList.remove('tutorial-spotlight', 'tutorial-pyramid-hint');
     });
   }
 
+  // The highlighted Store cell for the current step, remembered so it can be re-applied.
+  // renderPyramid() rebuilds the whole Store DOM, which drops the class — and the buy
+  // step's highlight lands in exactly that window, so "Buy the highlighted Cow card"
+  // could end up with nothing highlighted. play.js calls reapplyPyramidHint() at the end
+  // of every renderPyramid() to put it back.
+  let _pyramidHint = null;
+
+  function applyPyramidHint() {
+    if (!_pyramidHint) return;
+    const el = document.querySelector(
+      `#pyramid .card[data-row="${_pyramidHint.row}"][data-col="${_pyramidHint.col}"]`);
+    if (el) el.classList.add('tutorial-pyramid-hint');
+  }
+
   function highlightPyramidCard(row, col) {
-    requestAnimationFrame(() => {
-      const el = document.querySelector(`#pyramid .card[data-row="${row}"][data-col="${col}"]`);
-      if (el) el.classList.add('tutorial-pyramid-hint');
-    });
+    _pyramidHint = { row, col };
+    applyPyramidHint();                       // immediate, if the DOM is already there
+    requestAnimationFrame(applyPyramidHint);  // and again after the pending paint
   }
 
   function showMessage(text) {
@@ -452,6 +475,12 @@ const TUTORIAL = (() => {
 
     getPyramidIds() {
       return PYRAMID_IDS;
+    },
+
+    // Called at the end of renderPyramid(): the Store DOM is rebuilt from scratch there,
+    // so any highlight class is lost. Re-applies the current step's hint, if any.
+    reapplyPyramidHint() {
+      applyPyramidHint();
     },
 
     // Called at the start of each draw phase (from startRound()).

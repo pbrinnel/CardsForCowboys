@@ -320,6 +320,9 @@
       </thead>
       <tbody id="leaderboard-body"></tbody>
     </table>
+    <p id="leaderboard-empty" style="display:none; color:#b87838; font-size:0.9rem; font-style:italic; margin:0.5rem 0 0;">
+      No ranked games yet — the leaderboard was reset for the new Store rules. Play a game to claim the top spot.
+    </p>
   </div>
 
   <!-- Completed games -->
@@ -552,8 +555,14 @@ onValue(q, (snap) => {
   }
 
   // ── Leaderboard: top herd scores (human only, all entries including repeat names) ──
+  // Only games played under the current rules are RANKED. The July 2026 single-Store
+  // rework changed the card pool and the Store size, so herds from older builds are not
+  // comparable — those games stay in the list below, they just don't compete.
+  // Entries written before gameV existed have no field at all, hence the `|| 0`.
+  const MIN_RANKED_GAME_V = 3;
   const allScores = [];
   for (const r of rows) {
+    if ((r.gameV || 0) < MIN_RANKED_GAME_V) continue;
     for (const p of (r.players || [])) {
       if (!p.isHuman) continue;
       allScores.push({ name: p.name, herd: p.herd, ts: r.ts });
@@ -565,7 +574,9 @@ onValue(q, (snap) => {
 
   const lbBodyEl  = document.getElementById('leaderboard-body');
   const lbTableEl = document.getElementById('leaderboard-table');
+  const lbEmptyEl = document.getElementById('leaderboard-empty');
   lbBodyEl.innerHTML = '';
+  lbEmptyEl.style.display = leaderboard.length > 0 ? 'none' : 'block';
   if (leaderboard.length > 0) {
     lbTableEl.style.display = 'table';
     let rank = 0;

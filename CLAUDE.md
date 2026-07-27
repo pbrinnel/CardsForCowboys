@@ -89,7 +89,7 @@ engine too.
 |------|---------|
 | `assets/` | Card images, card backs, symbols, photos |
 | `data/` | Card data CSV (designer reference) |
-| `docs/` | Rules PDF, planning docs |
+| `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md` |
 | `admin/` | Gitignored admin scripts (email tools) |
 | `test/` | Playwright tests |
 
@@ -134,10 +134,14 @@ claimBuyFirst(act, round)   ~690  — 5-8P once-per-round priority claim (caller
 
 ### Card Database (lines ~752–900)
 ```
-STARTERS array              ~754  — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
-STORE_CARDS array           ~769  — 84 cards total (per-act 4P pool = 28 distinct; the "55" is just the 2P total). minPlayers field controls 2P/3P/4P inclusion (no 5+ tier).
-getCardById(id)             ~891
-getActPool(act)             ~897  — act+minPlayers filter; for numPlayers>=5 returns the act pool DOUBLED (second deck — see Store Layout note below). Pool sizes: 2P=15, 3P=21, 4P=28 per act; layout needs 14/21/28 (2P slices to 14).
+STARTERS array                    — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
+STORE_CARDS array                 — 84 entries: 54 LIVE (exactly 18 per act) + 30 `deprecated: true`.
+                                    Deprecated cards are KEPT so getCardById resolves them for
+                                    pre-gameV-3 spectate/rejoin/review; they can never be dealt.
+                                    The old `minPlayers` (3+P / 4+P) tier is GONE.
+getCardById(id)                   — resolves live AND deprecated cards
+getActPool(act)                   — filters `act === act && !deprecated` (18 cards); for
+                                    numPlayers>=5 returns that pool DOUBLED (36, second deck)
 ```
 
 ### Utilities (lines ~901–975)
@@ -161,51 +165,75 @@ initState(numPlayers)       ~1025 — creates G: pyramid, players[], round/act c
 
 ### Pyramid (lines ~1048–1132)
 ```
-pyramidRowWidth(row)        — always 7 (PYRAMID_WIDTH). NEW LAYOUT (June 2026): every row is 7 cards, rows == player count. No more triangle.
-pyramidColCenter(row, col)  — pure x-center (card units) of a cell. All rows 7-wide & centered; ODD rows +0.5 card BRICK offset. Used by covering + render.
-buildPyramid(act, cardIds)  — numRows = numPlayers (2P→2 … 8P→8); 7 cards/row, bottom row face-up. 2P needs 14 (pool has 15 → slices 14); 3P/4P unchanged counts (21/28).
+pyramidWidth()              — STORE_WIDTH[numPlayers] (5/7/9 | 8/9/10/11). No longer a constant.
+rowsPerTier() / storeRows() — rows per act tier (2 or 3) and in the whole Store (×3 → 6 or 9)
+rowAct(row)                 — the act tier a row belongs to (row 0 = Act 3 … front rows = Act 1)
+storeStage()                — 1|2|3 from the FRONTMOST row still holding a card. The AI's
+                              replacement for G.currentAct; pure + identical on every client.
+pyramidRowWidth(row)        — pyramidWidth() (uniform across rows)
+pyramidColCenter(row, col)  — pure x-center (card units) of a cell. Rows centered; ODD rows +0.5 card BRICK offset. Used by covering + render.
+buildPyramid(cardIds)       — builds the WHOLE Store in one pass (no act param): shuffles each act
+                              pool independently, slices rowsPerTier()×width from each, lays them
+                              Act 3 → Act 2 → Act 1 top-to-bottom. Front row face-up.
 isCardCovered(pyr, r, c)    — GEOMETRY/overlap-based (any non-removed cell below within ~½ card). Interior cards have 2 coverers; the one overhang end card per row has 1.
 revealUncovered(pyramid)    — face-up any card no longer covered
 getAvailablePyramidCards()
 isPyramidEmpty(pyramid)
 ```
 
-### Store Layout — W×N brick (REWORKED June 2026, replaces the old triangle)
-**The Store is no longer a triangle.** Every row is exactly **`pyramidWidth()` cards** (default **7**),
-and the **number of rows == the player count** (2P→2 rows … 8P→8 rows).
+### Store Layout — ONE structure, three act tiers (REWORKED July 2026)
+**The Store is built ONCE, at the start of the game.** There is no mid-game setup, no act
+boundary, and no between-act deck reshuffle. `setupStore()` (was `setupAct(act)`) runs a single
+time from `startGame`; `endAct()` is gone, and `scoreRound()` goes straight to `startShowdown()`
+when the Store empties.
 
-**Width is dynamic.** `pyramidWidth()` returns 6 under **Pioneer Mode**, else 7 (`G.pyramidWidth` is an
-optional explicit override, null by default). ALL geometry (`pyramidRowWidth`/`pyramidColCenter`/
-`buildPyramid` via `needed`) derives from it, and the half-card brick offset + `row%2` rendering +
-spectate + CSS are width-independent — so any width change is just the `pyramidWidth()` return value.
-**Pioneer Mode** (shipped June 2026) is the 6-per-row mode: a leaner Store for a faster game (2P→2×6=12,
-4P→4×6=24, 8P→8×6=48 cards). Wired exactly like `hiddenHerdMode` (3-layer flag path: `pi-checkbox`
-→ `pioneer_mode` sessionStorage → host.js Firebase payload → `G.pioneerMode` in every `startGame`
-branch + `reconstructG`). **`reconstructG` MUST set `G.pioneerMode` before any render** — the rebuilt
-pyramid rows are already 6-wide, and a width mismatch misaligns the brick offset + breaks `isCardCovered`
-on rejoin. Re-check the `getActPool` 5-8P doubling only if width >7 (≤7 is safe; see its comment). The
-tutorial is fixed at width 7 (hardcoded 14-card scenario). Rows are **brick-staggered**: odd rows shift +0.5 card
-(`pyramidColCenter`), so two cards cover the one above, solitaire-style. Covering is geometry-based
-(`isCardCovered`): interior cards have 2 coverers, the single overhang end card per row has 1; only
-the **bottom row** starts face-up. Card counts: 2P=**14** (was 15 — the only count that changed; the
-2P act pool has 15, `buildPyramid` slices the first 14), 3P=21, 4P=28, 5P=35, 6P=42, 7P=49, 8P=56 —
-all but 2P unchanged in *count*, just rearranged from a triangle into 7×N. `getActPool` still doubles
-the act pool for numPlayers>=5 (second deck; 5P needs 35 > the 28 distinct 4P cards). `fitPyramid`
-runs for **all** counts now (every layout is 7-wide; only ever scales down, so it's a recenter-only
-no-op when it already fits). `renderPyramid` tags `.brick-offset` on odd rows; CSS `.brick-offset`
-shift = `(--pyr-cw + 0.35rem)/2`, and `--pyr-cw` must track the pyramid card width at every breakpoint
-(base 70 / mobile 44 / `<1200 phase-draw` 44 / desktop inline 95·78·64). **⚠️ SIM NOT SYNCED:**
-`sim/game-core.js` (`getNumRows`/`buildPyramid`) + `sim/personality-engine.js` (`buildPyramidSeeded`)
-still model the OLD triangle (2-4P), and the golden fixture (`fixtures/golden-runGame.json`) freezes
-that. Left as-is on purpose (re-syncing breaks the golden + resume-reproduction gate). Before the next
-AI tuning run, re-sync the sim geometry, regenerate the golden, and re-validate AI win-rates — the
-covering structure changed, so buy decisions shift.
+The Store is dealt in three **act tiers** — Act 3 at the back (row 0), Act 2 in the middle, Act 1
+at the front (bottom, the only face-up row). Play eats it front-to-back, so the act progression is
+emergent. Rows are brick-staggered exactly as before (odd rows +0.5 card, `pyramidColCenter`), and
+covering is still geometry-based (`isCardCovered`) — both are width-independent and unchanged.
+
+| Players | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|
+| **Width** (`STORE_WIDTH`) | 5 | 7 | 9 | 8 | 9 | 10 | 11 |
+| **Rows** (`storeRows()`) | 6 | 6 | 6 | 9 | 9 | 9 | 9 |
+| Rows per tier (`rowsPerTier()`) | 2 | 2 | 2 | 3 | 3 | 3 | 3 |
+| Cards per act | 10 | 14 | 18 | 24 | 27 | 30 | 33 |
+| **Store total** | 30 | 42 | 54 | 72 | 81 | 90 | 99 |
+
+Rows are **no longer** `numPlayers`, and width is **no longer** a constant 7 — both derive from
+`numPlayers` alone. `pyramidWidth()` reads `STORE_WIDTH`; `G.pyramidWidth` remains an unused
+explicit override hook. **Pioneer Mode is gone** (it was a width mode and no longer composes).
+
+`rowAct(row)` maps a row to its tier, and **`storeStage()`** returns 1|2|3 from the frontmost row
+that still holds a card — this is the AI's replacement for the old `G.currentAct` (see AI section).
+
+Card pool: 18 live cards per act. 2-4P draw 10/14/18 from that single pool; **5-8P draw from a
+doubled pool (36)** via `getActPool`, so ids repeat (uids stay unique). Note 4P uses ALL 18 act
+cards every game — only their positions vary.
+
+`fitPyramid()` now **bails out** when the zone is unmeasurable (0×0 viewport, display:none
+ancestor): `availH` went negative there and `scale(-0.01)` mirrored the whole Store out of
+existence. The `body.count-5plus.phase-draw` draw-phase cap is **52vh** (was 40vh) — at 40vh the
+9-row Store was height-bound and used only ~77% of the available width; 52vh lets it grow into the
+width it already has while keeping the hand on screen at 1280×800.
+
+The tutorial builds a REAL 2P Store (5×6, 30 hardcoded live ids, act tiers) — its buy target is at
+row 5 col 1. `renderPyramid` calls `TUTORIAL.reapplyPyramidHint()` at the end, because rebuilding
+the Store DOM drops the highlight class and the buy step lands in exactly that window.
+
+**spectate.html** mirrors the brick offset in its own `renderPyramid` and now lets a too-wide Store
+scroll inside `#spec-pyramid-zone` (`overflow-x:auto`) — it has no `fitPyramid` equivalent.
+
+**⚠️ SIM NOT SYNCED:** `sim/` models the pre-rework game entirely (old triangle Store, old card
+pool, per-act setup). It was already stale before this rework and is now fully invalid. See
+`sim/AI_DISTILLATION_PLAN.md` Phase D0.
 
 ### 5-8 Player Support (SHIPPED June 2026 — full log: `docs/FIVE_TO_EIGHT_PLAYER_PLAN.md`)
-Rules identical to 2-4P; only setup/pyramid scale (see **Store Layout** above — now uniform 7×N for
-ALL counts, not a special 5-8P case). `getActPool` doubles the act pool for
-numPlayers>=5 (second deck; card.id can repeat, uid stays unique). Buy-first (`burn_buy_first`/card_14)
-is once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
+Rules identical to 2-4P; only setup/Store scale (see **Store Layout** above — 5-8P is 9 rows vs
+2-4P's 6, with a per-count width). `getActPool` doubles the act pool for
+numPlayers>=5 (second deck; card.id can repeat, uid stays unique). Buy-first (`burn_buy_first`/card_14) is **DEPRECATED as of July 2026** — card_14 is no longer dealt,
+so the whole claim path below is dormant (kept, not removed — see `docs/DEAD_CODE_INVENTORY.md`).
+It was once-per-round: `MP.claimBuyFirst(act,round)` (atomic `runTransaction` on
 `games/{code}/buyFirstClaim/{act}_{round}`, fail-open) via gate `claimBuyFirstPriority()` (only when
 `MP.active && numPlayers>=5`); lost claim keeps the card. Sim parity at the buy-order layer
 (`computeBuyOrder` / evolve) — honor only the first holder, inert at ≤4P. `fitPyramid()` (end of
@@ -291,11 +319,8 @@ mpSyncDraw()                ~1770 — pushes local draw state to Firebase drawSt
 
 ### Game Flow — Setup (lines ~1779–2130)
 ```
-seededDraftShuffle()        ~1786
-aiDraftPick(pack, ai)       ~1801 — quick-draft AI pick; scores each card via scoreCardForAI(card, ai) (personality-driven, cost-free) and takes the max, tiebreak by card id for cross-client determinism. Scored under current act (Act 1 lens, draft runs before setupAct(2)). NOT mirrored in sim (quick-draft isn't simulated).
-showDraftPackAndWait(pack)  ~1822 — human draft pick UI
-runQuickStartDraft()        ~1900 — full draft flow (3 rounds × N players)
-startGame()                 ~1982 — entry point; branches MP rejoin vs normal; calls setupAct
+startGame()                       — entry point; branches MP rejoin vs normal; calls setupStore()
+                                    (the Quick Draw draft functions were deleted July 2026)
 restartGame()               ~2119
 ```
 
@@ -317,8 +342,10 @@ armForcedDrawTombstone()     — adopts a host-forced drawDone instead of drawin
 
 ### Round Flow (lines ~2268–2415)
 ```
-setupAct(act)               ~2268 — host builds pyramid + pushes actSetup; non-hosts receive
-startRound()                ~2311 — resets players, deals, starts draw phase
+setupStore()                      — runs ONCE from startGame. Host builds the Store + pushes a
+                                    single actSetup (act:1, all card ids); guests wait for it.
+                                    No deck merge/reshuffle (there is no act boundary any more).
+startRound()                      — resets players, deals, starts draw phase
 ```
 
 ### Draw Phase (lines ~2413–2670)
@@ -407,15 +434,16 @@ executeBurnLocal(player, r, c)    — returns true if applied, false on a no-op 
 ### AI Buy Phase (lines ~3586–3730)
 ```
 aiBuyTurn(ai)               ~3588  — hoists cfg at top; passes cfg.revealBonus to pyramidRevealBonus
-scoreCardForAI(card, ai)    ~3673  — uses cfg.act1DollarBonus / cfg.act3CowBonus (per-personality)
+scoreCardForAI(card, ai)    ~3673  — uses cfg.act1DollarBonus / cfg.act3CowBonus, gated on
+                                     storeStage() (was G.currentAct)
 pyramidRevealBonus(r, c, b) ~3707  — b = cfg.revealBonus (per-personality, was hardcoded 1.5)
 ```
 
 ### End Phases (lines ~3805–4070)
 ```
 endBuyPhase()               ~3807
-scoreRound()                ~3812
-endAct()                    ~3846
+scoreRound()                ~3812 — Store empty ⇒ startShowdown() directly (endAct() was deleted
+                                    July 2026 — one Store means no act transition)
 startShowdown()             ~3861 — final scoring + card flip animations; ends by calling showShowdownResult (no more "See Who Wins" button / separate game-over screen)
 showShowdownResult()        ~4426 — crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
 gameOver()                  ~4470 — REJOIN-ONLY now: rebuilds the showdown board statically (cards face-up, final herds) for a rejoin into an already-finished game, then calls showShowdownResult. (Animated live games go through startShowdown instead.)
@@ -452,14 +480,14 @@ applyDebugScenario(name)    ~4302
 // Global game state (window.G)
 G = {
   act: 1|2|3,
-  round: 1..5,
+  roundNumber: 1..N,      // monotonic for the WHOLE game; never resets (no acts)
   phase: 'draw'|'buy'|'score'|'showdown'|'gameover',
-  pyramid: [[{id, imgFile, faceUp, row, col}]],  // numPlayers rows × 7 cards, row 0 = top, bottom row face-up
+  pyramid: [[{card, faceUp, removed}]],  // storeRows() rows × pyramidWidth(), row 0 = back, front row face-up
+  currentAct: 1,           // PINNED to 1 — kept only so MP stamps + trajectory records keep their shape
   players: [Player],       // players[0] = always local human
   playerOrder: [slotIdx],  // Firebase slot index for each G.players[i]
   gameSeed: number,
   buyOrder: [playerIdx],   // G.players indices in buy sequence this round
-  quickStartMode: bool,    // skip Act 1, draft 4 cards (gamesetup checkbox)
   hiddenHerdMode: bool,    // conceal opponents' herd totals until showdown (gamesetup checkbox)
 }
 
@@ -477,16 +505,29 @@ player = {
 
 ## Game Mode / Setup Flags
 
-Three modes ship today: **Quick Draw** (`quickStartMode` — the label is "Quick Draw"; the INTERNAL
-identifiers stay `quickStart*`/`quick_start_mode`/`runQuickStartDraft` — surface-only rename, June 2026),
-**Pioneer Mode** (`pioneerMode` — 6-per-row Store, see Store Layout), **Hidden Herd** (`hiddenHerdMode`).
-Selecting **Quick Draw + Pioneer** together is the fastest game (skip Act 1 + a leaner board; emergent,
-no special combined logic). Modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed
-3-layer path. To add a new one, mirror an existing flag at each layer:
+**One mode ships today: Hidden Herd** (`hiddenHerdMode`). Quick Draw (`quickStartMode`) and
+Pioneer Mode (`pioneerMode`) were **removed in the July 2026 single-Store rework** — Quick Draw
+"skipped Act 1", which no longer means anything, and Pioneer was a Store-width mode when width was
+a constant; width is now per-player-count. Their whole stack is gone: checkboxes, `host.js` payload
+fields, `G.*Mode`, the draft flow (`runQuickStartDraft`/`showDraftPackAndWait`/`aiDraftPick`/
+`seededDraftShuffle`), the MP draft protocol (`pushDraftPick`/`getDraftPick`/`forceDraftPick`/
+`waitForDraftRoundPicks` + the `draftPick` node), the draft overlay markup + CSS.
+
+The `quickStartMode`/`pioneerMode` `.validate` entries were deliberately LEFT in
+`database.rules.json`'s `traj` shape — an allowed-but-never-written field is harmless, and removing
+them buys nothing while risking a rules/code mismatch.
+
+Modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed 3-layer path. To add a
+new one, mirror `hiddenHerdMode` at each layer:
 
 1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
 2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
-3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return (~line 188); `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it (header carries `quickStartMode`/`pioneerMode`/`hiddenHerdMode`) — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails — AND the rules must be DEPLOYED (`firebase deploy --only database`), not just edited: the Pioneer Mode flag sat undeployed ~a week and every trajectory header was silently rejected (audit C9).**
+3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return; `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails — AND the rules must be DEPLOYED (`firebase deploy --only database`), not just edited: the Pioneer Mode flag sat undeployed ~a week and every trajectory header was silently rejected (audit C9).**
+
+**A width-changing mode is now special:** `reconstructG` no longer restores any width flag, because
+width derives from `numPlayers`. If a future mode changes the Store width again it MUST be restored
+in `reconstructG` before the first render — the rebuilt rows are already that width, and a mismatch
+misaligns the brick offset and breaks `isCardCovered` on rejoin.
 
 **Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
@@ -495,6 +536,17 @@ no special combined logic). Modes are toggled by checkboxes on `gamesetup.html` 
 ## AI Personality System
 
 **Full reference:** [`sim/AI_PERSONALITIES.md`](sim/AI_PERSONALITIES.md)
+
+> **⚠️ Tiers are UNVERIFIED since July 2026.** Every win-rate below was measured on the pre-rework
+> game (old triangle Store, old card pool, per-act setup). The single-Store rework invalidated all
+> of it, and `sim/` was not re-synced. The bots still play — the Easy/Medium/Hard labels on
+> gamesetup are just no longer evidence-backed. Re-measure via `sim/AI_DISTILLATION_PLAN.md`
+> Phase D0 before tuning anything.
+>
+> Two knobs were act-gated and now read **`storeStage()`** instead of `G.currentAct`:
+> `act1DollarBonus` / `act3CowBonus` in `scoreCardForAI`, and `actProgress` in `aiBuyTurn`'s denial
+> heuristic. Semantics are preserved (early Store = Act 1 cards on offer = economy lens), so no
+> personality was retuned.
 
 ### Difficulty tiers (MEASURED — `node sim/simulate.js`, June 2026)
 
@@ -626,6 +678,7 @@ to replay when its engine's `gameV` ≠ the trajectory's, so the benchmark never
 |---|---|
 | 1 | baseline at trajectory launch (June 2026) |
 | 2 | June 2026 card rework: cards 5/16/22 `burn_for_2`→`burn_to_use` $3 (cost 3); card_4 `discard_to_player`→`swap_revealed` ($0, cost 6); `burn_for_2` mechanic removed |
+| 3 | **July 2026 single-Store rework.** 30 of 84 Store cards deprecated (54 live, 18/act); the 3+P/4+P `minPlayers` tier removed; cards 84/85 `-1 Bandit / -1 Cow` → `-1 Bandit + Draw 4`; ONE Store built at game start (act tiers, no mid-game setup, no between-act reshuffle); rounds monotonic 1..N; Quick Draw + Pioneer Mode removed. `gameHistory` entries now carry `gameV`; the leaderboard on history.html ranks `gameV >= 3` only. |
 
 **Storage:** top-level `traj/{code}` (push list), **deliberately NOT under `games/{code}`** —
 `spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the anti-pattern
@@ -918,6 +971,47 @@ While the "👁 Peek at stats" mode is active on the rearrange modal, `#special-
 **Commit:** (June 2026). `lobby.js` claims the first open human slot with a **`runTransaction`** on `games/{code}/slots`, not a `get` + `update`. Two guests joining simultaneously previously could both read slot 1 as empty and both write their name — one clobbered the other and both navigated in as slot 1. The transaction serializes the claim so each guest gets a distinct slot. Keep it a transaction.
 
 ---
+
+---
+
+### 18. fitPyramid Produced a NEGATIVE Scale on an Unmeasurable Zone
+**Found July 2026 during the single-Store rework.**
+
+**Symptom:** The Store renders as an empty box — 9 rows × 11 cards exist in the DOM with correct
+rects, every image loads, but nothing is visible. `#pyramid` carries `transform: scale(-0.0129)`.
+
+**Root cause:** `fitPyramid` computes `availH = (zone.bottom - pad) - contentTop`. When the zone
+has not been laid out (0×0 viewport mid-navigation, a `display:none` ancestor), `availH` goes
+NEGATIVE, and `Math.min(1, availW/natW, availH/natH)` happily returns a negative scale — which
+mirrors the Store and collapses it to nothing. The bigger 8P Store made it easy to hit; the bug
+was latent before.
+
+**Fix in place:** bail out early when nothing is measurable — `if (natW <= 0 || natH <= 0 ||
+availW <= 0 || availH <= 0) return;`. `transform` is reset to `'none'` at the top of the function,
+so returning leaves the Store unscaled and the next render/resize fits it properly.
+
+**Do not regress:** never let a fit/scale computation consume a viewport measurement without
+checking it is positive. Returning early beats scaling by a garbage ratio.
+
+---
+
+### 19. Tutorial Store Highlight Wiped by the Next Render
+**Found July 2026 during the single-Store rework.**
+
+**Symptom:** The tutorial's final step says "Buy the highlighted Cow card" and **nothing is
+highlighted**.
+
+**Root cause:** `highlightPyramidCard` added `.tutorial-pyramid-hint` inside a single
+`requestAnimationFrame`. `renderPyramid()` rebuilds the entire Store DOM, dropping the class — and
+the buy step's highlight lands in exactly that window, so the hint was applied to an element that
+was about to be thrown away.
+
+**Fix in place:** tutorial.js remembers the target cell (`_pyramidHint`, cleared by
+`clearSpotlight`) and exposes `reapplyPyramidHint()`; `renderPyramid()` calls it at the end. The
+hint is also applied immediately as well as on the next rAF.
+
+**Do not regress:** any class applied to Store DOM from outside `renderPyramid` is transient. Give
+it a re-apply hook rather than trusting a single rAF to win the race.
 
 ## Debugging Approach for Multiplayer Issues
 

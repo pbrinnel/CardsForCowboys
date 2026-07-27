@@ -162,7 +162,12 @@
       border: 2.5px solid #1e1610;
       padding: 0.75rem;
       margin-bottom: 1rem;
+      /* The Store is up to 11 cards wide (8P) since the single-Store rework. Spectate has
+         no fitPyramid() equivalent, so let a too-wide Store scroll inside its own box
+         instead of overflowing the page. */
+      overflow-x: auto;
     }
+    #spec-pyramid-zone > #spec-pyramid { min-width: max-content; }
     #spec-pyramid-zone .zone-label {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -177,8 +182,9 @@
       gap: var(--spec-gap);
       margin-bottom: 4px;
     }
-    /* Brick layout: every odd row of 7 is nudged a half-card so two cards still
-       cover one, matching the game's pyramidColCenter()/.brick-offset. */
+    /* Brick layout: every odd row is nudged a half-card so two cards still cover one,
+       matching the game's pyramidColCenter()/.brick-offset. Width-independent, so it
+       works for every Store width (5-11 cards per row). */
     .spec-pyramid-row.brick-offset {
       transform: translateX(calc((var(--spec-cw) + var(--spec-gap)) / 2));
     }
@@ -468,8 +474,7 @@ function startSpectating(gameCode, isAI) {
 
 function renderSpectatorState(state) {
   // Header
-  document.getElementById('spec-actround').textContent =
-    `Act ${state.act} · Round ${state.round}`;
+  document.getElementById('spec-actround').textContent = `Round ${state.round}`;
   document.getElementById('spec-phase').textContent = phaseLabel(state.phase);
 
   // Mode tags (only render once — flags don't change mid-game)

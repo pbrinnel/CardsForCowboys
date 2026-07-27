@@ -31,8 +31,18 @@
         "actsCompleted": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3"
         },
+        // Single-Store rework: the whole game is one Store, so rounds run 1..N with no
+        // per-act reset (2P is the longest at 30 cards / 2 per round = 15). Cap raised to
+        // 20 for headroom — the old 15 sat exactly on the 2P maximum.
         "totalRounds": {
-          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 15"
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 20"
+        },
+        // Game-content version of the build that produced this entry (see GAME_V in
+        // play.js). Optional: entries written before July 2026 have no gameV. The
+        // leaderboard on history.html only counts gameV >= 3 (the single-Store rules);
+        // older games stay listed but are not ranked against the new balance.
+        "gameV": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 99"
         },
         // winner is optional (null = tie); gameCode is optional (absent in SP)
         "winner": {
