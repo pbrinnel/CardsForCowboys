@@ -31,6 +31,25 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 
+**Home-link convention (July 2026 nav audit).** There is no shared header component — every page
+rolls its own — which is how the site drifted into three dead ends (spectate.html had *zero* links
+of any kind; lobby.html's exit lived inside `#screen-name` so the waiting/error screens had none;
+playgame.html had none at all during a solo game, since Disband is MP-host-only).
+
+**Every page must carry a clickable "Cards For Cowboys" that goes to `index.html`,** and it must be
+a real `<a href>` — that is what gives cmd/middle-click "open home in a new tab", which plain text
+and a `window.location` button do not. Rules for a new page:
+
+- Put it wherever the page shows the brand (nav logo, `<h1>`, or footer). Wrapping an existing `h1`
+  is fine — see `gamesetup.html` / `lobby.html`.
+- Place it **outside** any screen/state div, or it will vanish on the states that don't render that
+  div (the exact lobby.html bug).
+- A bottom-of-page "← Back to Home" is **not sufficient on its own**. On the long pages it sat
+  ~6800px down. Where the footer is `position:fixed` (privacy, bugreport, aboutthecreators),
+  linking the footer brand is what makes the exit always reachable.
+- Guard it only where navigating away destroys something — playgame.html's uses
+  `confirmLeaveGame()`, which deliberately lets a modified click through untouched.
+
 ### `src/` — App JavaScript
 | File | Purpose |
 |------|---------|
@@ -460,6 +479,11 @@ playgame.html (the review link kept its `#gameover-review-link` id, now inside t
 
 ### UI Helpers (lines ~4070–4380)
 ```
+confirmLeaveGame(e)         ~5490 — guard on the header brand home link. Returns true (allow
+                                    navigation) for a MODIFIED click (cmd/ctrl/shift/alt — that
+                                    opens a new tab, so the game tab survives) or once the game
+                                    is over; otherwise confirms, with different wording for MP
+                                    ("others left waiting") vs solo ("progress will be lost").
 showRules() / closeRules()  ~4087
 showDeck() / closeDeck()    ~4097  — My Deck modal (2-row × 3-col suit grid)
 showDeckPeek()              ~4147  — draw-phase ordered deck back preview
