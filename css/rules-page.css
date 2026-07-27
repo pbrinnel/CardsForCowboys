@@ -182,6 +182,69 @@ html { scroll-behavior: smooth; }
   font-size: 1.15rem;
 }
 
+/* ── Callouts ──
+   For rules that INTERRUPT the normal sequence, or that players reliably forget:
+   bust-at-3, always-reveal, the last-card-ends-the-round trigger. These must not
+   carry the same visual weight as an ordinary bullet, or they get skimmed past.
+   Reserved for that job — don't use .rules-callout for general emphasis, or it
+   stops meaning anything. Distinguished by border + fill + inset, NOT by hue
+   alone, so it survives greyscale and colour-vision deficiency. */
+.rules-page .rules-callout {
+  margin: 1rem 0 1.25rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid #8a5a22;
+  border-left-width: 6px;
+  border-radius: 3px;
+  background: rgba(138, 90, 34, 0.08);
+}
+
+/* Worked examples — recessive, so they read as illustration rather than rule. */
+.rules-page .rules-example {
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.7rem 1rem;
+  border-left: 3px dashed rgba(30, 22, 16, 0.3);
+  background: rgba(30, 22, 16, 0.03);
+  font-size: 0.95rem;
+}
+
+.rules-page h5 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b4c32;
+  margin: 1rem 0 0.3rem;
+}
+
+.rules-page .component-list { margin-bottom: 1rem; }
+
+/* ── Quick reference ──
+   The returning player's section: everything restated compactly, nothing new.
+   Two columns where there's room so it stays near one screen. */
+.quickref {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.quickref-block {
+  border: 1.5px solid rgba(30, 22, 16, 0.2);
+  border-radius: 4px;
+  background: rgba(30, 22, 16, 0.03);
+  padding: 0.8rem 1rem 0.9rem;
+}
+.rules-page .quickref-block h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+.rules-page .quickref-block ol,
+.rules-page .quickref-block ul { margin-bottom: 0; margin-left: 1.1rem; }
+.rules-page .quickref-block li,
+.rules-page .quickref-block p { font-size: 0.9rem; line-height: 1.5; }
+.rules-page .quickref-block p:last-child { margin-bottom: 0; }
+
 /* Version stamp — quiet, but findable. Sits above the footer CTA. */
 .rules-page .rules-version {
   margin: 2.5rem 0 0;

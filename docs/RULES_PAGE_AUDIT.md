@@ -4,7 +4,9 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 11 ✅ / 9 ⚠️ / 3 ❌** — after fixes 1–6 plus the Draw-4 clarification (July 2026).
+**Current: 21 ✅ / 2 ⚠️ / 0 ❌** — after fixes 1–6 and the July 2026 full sweep.
+The two remaining ⚠️ are both blocked on artwork (annotated card, uncovering diagram), specced in
+[`RULES_PLAN.md`](RULES_PLAN.md) §4.
 The three ❌ left are all *additions* — callout styling, a quick-reference summary, a worked
 scoring example. None is a defect in what the page already says.
 
@@ -14,16 +16,16 @@ is polish (⚠️) and the three missing additions.
 
 ---
 
-## Structure — 4 ✅ / 2 ⚠️ / 0 ❌
+## Structure — 6 ✅ / 0 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
 | Objective in one sentence, before any mechanic | ✅ | **Fixed (fix 1).** Was the page's biggest defect: `<h1>Rules</h1>` went straight to **Setup**, so a reader was told to separate Act decks and brick-stagger rows before learning they collect cows. There is now an `#objective` section ahead of Setup with a themed lede and a one-line goal callout. |
 | Win/end condition stated early | ✅ | **Fixed (fix 1).** Was buried four sections down at the end of "3. The Showdown"; the Objective block now carries a "How the game ends" paragraph. |
 | Sections build progressively, no forward references | ✅ | **Fixed across fixes 1, 2 and 4.** All six original forward references are closed — see [Forward references](#forward-references) below for what each one was. |
-| Setup numbered, matched to a diagram | ⚠️ | Diagrams are genuinely good (3 pyramid demos, colour-coded act bands + key, player-count table). But setup is a `<ul>`, not an `<ol>`, so there are no step numbers for the diagrams to reference. Stray markup: orphan `</div>` at [:125](../rules.html) and an empty `<ul></ul>` at [:127](../rules.html). |
+| Setup numbered, matched to a diagram | ✅ | **Fixed July 2026 (full sweep).** Setup is now an `<ol>` under a "Setting up" heading, so the steps are numbered; the orphan `</div>` and empty `<ul></ul>` are gone and step 2 points at the player-count table. Tag balance verified. |
 | Turn structure as explicit ordered sequence | ✅ | **Fixed July 2026 (fix 2).** Was ⚠️ for two reasons, both now resolved: **(a)** the three phases were sibling `<section>`s, two with no `<h2>` at all, so screen readers and any generated contents list were told Buy Phase and Showdown weren't part of the sequence — they are now one `<section id="sequence">` with the phases as `h3`s under the `h2`. **(b)** the round *loop* was never stated; the Objective block now ends "Repeat until the Store is empty." |
-| Complex rules broken out and linked from the sequence | ⚠️ | Errata and Card Clarifications exist and are separate — correct. But nothing in the Draw Phase points to them, and Explosive activation timing (a draw-phase mechanic) lives only in the Symbols section. |
+| Complex rules broken out and linked from the sequence | ✅ | **Fixed July 2026 (full sweep).** The Draw Phase now links to both Symbols on Cards (Explosive timing) and Card Clarifications. |
 
 ### Forward references
 
@@ -40,40 +42,40 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 
 ---
 
-## Language — 3 ✅ / 2 ⚠️ / 0 ❌
+## Language — 5 ✅ / 0 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
-| Present tense, active voice, second person | ⚠️ | Person switches inside single lists. Draw Phase: "All players draw…", "If a player draws… **they** bust" ([:137–139](../rules.html)) then "If **you** want to draw and **your** draw pile is empty" ([:140](../rules.html)). Buy Phase repeats it: "Players who did not bust add any Cows **they** drew" ([:148](../rules.html)) → "On **your** turn **you** must take an action" ([:149](../rules.html)). |
+| Present tense, active voice, second person | ✅ | **Fixed July 2026 (full sweep).** Draw and Buy phases rewritten in second person; the person no longer switches inside a list. Remaining third person is where it is correct — player-count tables, "the player with the most $ chooses", "clockwise from the first player" — all statements about the table rather than instructions to the reader. |
 | "May" vs "must" unambiguous | ✅ | Consistently precise. "must draw at least one card, then may stop"; "must take an action — either buy or burn… You cannot pass"; "may pause between each draw." Best-handled rule on the page. |
-| One term per concept | ⚠️ | The Burn/Explosive distinction is explicitly policed — exactly right. **Money drift fixed July 2026 (fix 3):** *$ / coins / sell value* were three words for two concepts; the page now uses **$** for money and **cost** for a card's price, everywhere. (On **collection** the original audit was wrong — the Showdown defines it inline with an em-dash gloss, "deck, hand, and discard".) **Still drifting:** **personal deck** / **draw pile** / **deck** for the pile you draw from. |
+| One term per concept | ✅ | **Fixed July 2026 (full sweep).** Settled on three distinct terms: **deck** = everything you own, **draw pile** = the face-down stack, **discard pile**. *personal deck* and *collection* are gone from the page, and Errata now defines deck and draw pile explicitly. |
 | Every term defined before first use | ✅ | **Fixed across fixes 1 and 3.** "Sell value" was the only term defined nowhere on the page, and it was load-bearing in a tiebreak — it turned out to mean a card's **cost**, compared position by position (`sim/tiebreaker.js` narrows on `hand[i].cost`), and the page now says exactly that. Herd, Bandit, Cow, bust, Store and $ are all introduced in context by the Objective block before Setup uses them; the Act hats are explained in the Setup bullet that first needs them. |
 | No paragraph buries its point | ✅ | Bullets are short and lead with the point throughout. |
 
 ---
 
-## Format — 2 ✅ / 2 ⚠️ / 2 ❌
+## Format — 5 ✅ / 1 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
-| Consistent bold/italic/caps system | ⚠️ | Bold does two jobs: marking game terms (**Bandits**, **Store**, **bust**) and emphasising instructions (**must take an action**, **not**, **once, at the start of the game**). Capitalisation of game terms is inconsistent — Cows/Herd/Store/Bandits/Act capitalised, bust/burn/buy lowercase. Defensible as noun-vs-verb, but nowhere stated. |
+| Consistent bold/italic/caps system | ✅ | **Fixed July 2026 (full sweep).** Convention documented in an HTML comment at the top of `<main>` and applied: capitalised game nouns, lowercase verbs, `<strong>` only for a term being defined or a must/may that changes what a player may do, `.rules-callout` reserved for interrupt rules, `.rules-example` for illustration. |
 | Diagrams for setup, component anatomy, icons | ⚠️ | Setup and icons: strong, and the act bands were made colour-blind-safe in July 2026 — the old three-shades-of-brown ramp stepped only ~10 L\* and read as one mud colour, so the tiers now separate on **lightness** (L\* ≈ 20/43/66) **and hatch direction** (45° / -45° / horizontal), neither of which is hue. Verified under a full greyscale filter. Hues deliberately stay brown: blue/yellow/red are the suit colours and a tinted band would read as a suit. **Component anatomy: partly closed.** Fix 3 added a "Reading a card" subsection describing the three fixed positions (suit top-right, cost bottom-left, Act hats bottom-right) in prose, so the rules gap is gone. **Still missing: the labelled card image itself.** Specced in [`RULES_PLAN.md`](RULES_PLAN.md) §4 (Card_43 + Card_70); needs art. For print it's a net space saver — the image replaces ~90 words of that prose. |
-| Callouts for interrupt/forgettable rules | ❌ | No callout styling exists (`css/rules-page.css` has only `.setup-note`, which is centred small text). Bust-at-3, reveal-when-uncovered, the last-card-ends-the-round trigger, and Explosive timing all carry the same visual weight as everything else. |
+| Callouts for interrupt/forgettable rules | ✅ | **Fixed July 2026 (full sweep).** `.rules-callout` added and used three times, for exactly the rules that interrupt the sequence or get forgotten: **bust at 3 Bandits**, **always reveal uncovered cards**, **the last card ends the round**. Distinguished by border weight, inset and fill — not hue — so it survives greyscale. |
 | Navigable table of contents | ✅ | **Fixed July 2026 (fix 2).** Every section carries an `id` (plus the three phase `h3`s); a `.rules-toc` contents panel lists all 13 targets, inline on narrow screens and `position: fixed` beside the 760px column at ≥1240px. It sits *after* the Objective in the DOM so it can't push the goal below the fold on a phone; on wide screens it's fixed, so DOM order doesn't affect where it renders. The four in-text cross-references are now real links. |
-| Quick-reference summary | ❌ | Nothing for a returning player. |
+| Quick-reference summary | ✅ | **Fixed July 2026 (full sweep).** New `#quick-reference` section: each round in 4 steps, buy-order ties, game end and herd ties, plus an "easy to forget" block. Pure restatement — the phase sections stay authoritative. |
 | Version number | ✅ | **Fixed (fix 6).** "Rules v3.1 · last updated 27 July 2026" above the footer CTA. Major tracks `GAME_V` in `src/play.js`; minor is a rules-page revision within that game version. A comment in the markup tells the next editor to bump both. |
 
 ---
 
-## Coverage — 2 ✅ / 3 ⚠️ / 1 ❌
+## Coverage — 5 ✅ / 1 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
-| Every component explained | ⚠️ | No components list. Starter deck is shown as card images (good). **Fix 3 closed two of the three gaps** — cards having a purchase cost, and what the cowboy-hat number is, are both explained now (Buy Phase + "Reading a card"). **Still missing:** total Store card count / anything a physical-copy owner could check box contents against. |
+| Every component explained | ✅ | **Fixed July 2026 (full sweep).** Setup opens with a "What you need" list: 54 Store cards (18 per Act, marked by the hats) and 10 starter cards per player (4 River, 4 Rattlesnake, 2 Cactus). Counts verified against the card data, not invented. |
 | Edge-case examples are non-obvious ones | ⚠️ | **Upgraded from ❌ July 2026** — the page now has exactly one worked example, and it is the right kind: Draw-4 chaining in Card Clarifications, with the arithmetic spelled out (owe 4 → draw a Draw 4 → owe 7). Everything else still has none. Worst gap remains the covering/reveal rule, which is purely verbal — "so two cards cover the one above" ([:60](../rules.html)), "reveal any cards underneath that are no longer covered" ([:152](../rules.html)) — with no diagram of the *uncovering* and no treatment of the end-of-row card that only one card covers. That is the spatial edge case every source says must be shown. |
-| Worked scoring example | ❌ | None. "Count all **positive** Cows… Negative Cow values do not count" ([:177](../rules.html)) has real subtlety and gets no example. |
+| Worked scoring example | ✅ | **Fixed July 2026 (full sweep).** Worked example under the Showdown: 14 Cows banked from rounds + 9 printed across the deck = 23, and it states that Cows on cards you never drew still count. |
 | Tie-breaking stated | ✅ | **Fixed July 2026 (fix 5).** Buy-order ties were always five levels deep — the best-written block on the page — but the *game-winning* tie had no rule at all, and the digital game just showed "It's a Tie!". There is now an **If Herds Are Tied** ladder that mirrors the buy-order one so players reuse one mental model: most **$** across your collection → most **cards**; still level = share the win. Implemented as `resolveShowdownWinners` in `src/play.js`. Deliberately stops at two steps (PB's call) rather than adding the buy-order ladder's card-by-card walk and random pick. |
-| First-player rule | ⚠️ | Works by accident — the most-$ buy-order rule covers round 1 too — but nothing says so, and "Buying proceeds clockwise from **the first player**" ([:163](../rules.html)) uses "first player" as a defined role that was never defined. |
+| First-player rule | ✅ | **Fixed July 2026 (full sweep).** Now explicit: "Whoever is chosen buys first. Play then continues clockwise from them, skipping anyone who busted. The same rule picks the first player every round, including the first." |
 | FAQ / errata inside the page | ✅ | Errata + Card Clarifications are on-page, not outsourced to a forum. |
 
 ### Also found (not on the checklist)

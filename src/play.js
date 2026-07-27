@@ -5295,6 +5295,10 @@ async function startShowdown() {
   // Score each player one at a time.
   // Note: special card effects (copy_next, burn_to_use, etc.) do NOT apply here —
   // the showdown counts only each card's raw printed cows/dollars values.
+  // The Math.max(0, ...) clamp is now a DEAD GUARD, kept deliberately: no live card has
+  // negative Cows (0 of 54 Store cards, 0 of 10 starters — only deprecated card_71 did), so
+  // rules.html no longer mentions them at all. Keep the clamp anyway, so reintroducing a
+  // negative-Cow card can't silently start subtracting at showdown without a rules update.
   for (const { player, allCards, i } of playerData) {
     const totalCows = allCards.reduce((s, c) => s + Math.max(0, c.cows || 0), 0);
 

@@ -34,6 +34,14 @@
     </nav>
   </header>
 
+  <!-- TYPOGRAPHIC CONVENTION — keep these consistent or the signals stop meaning anything:
+       • Capitalised game nouns: Cows, Bandits, Herd, Store, Act, Explosive, Jail, Showdown.
+         Verbs stay lowercase: buy, burn, bust, draw, use.
+       • <strong> marks a game term where it is being DEFINED, or a must/may that changes what
+         a player is allowed to do. Not for general emphasis.
+       • <p class="rules-callout"> is reserved for rules that interrupt the normal sequence or
+         that players reliably forget. Overuse kills it.
+       • <p class="rules-example"> is a worked example — illustration, never the rule itself. -->
   <main class="rules-page">
     <h1>Rules</h1>
 
@@ -49,7 +57,7 @@
 
       <h3>How a round works</h3>
       <ol>
-        <li><strong>Draw</strong> as many cards off your deck as you dare. Draw a 3rd Bandit and you
+        <li><strong>Draw</strong> as many cards off your draw pile as you dare. Draw a 3rd Bandit and you
           <strong>bust</strong> &mdash; you score nothing this round.</li>
         <li><strong>Score</strong> the Cows you drew into your Herd, if you didn't bust.</li>
         <li><strong>Buy</strong> one card from the Store with the $ you drew and add it to your deck
@@ -89,6 +97,7 @@
         <li><a href="#clarifications">Card Clarifications</a></li>
         <li><a href="#strategy">Strategy Tips</a></li>
         <li><a href="#five-plus">5+ Player Rules</a></li>
+        <li><a href="#quick-reference">Quick Reference</a></li>
         <li><a href="#variants">Variants</a></li>
       </ol>
     </nav>
@@ -96,8 +105,16 @@
     <!-- SETUP -->
     <section id="setup">
       <h2>Setup</h2>
-      <ul>
-        <li>Each player begins with a personal 10-card starter deck:
+
+      <h3>What you need</h3>
+      <ul class="component-list">
+        <li><strong>54 Store cards</strong> &mdash; 18 for each Act, marked by the cowboy hats in the bottom-right corner. 5&ndash;8 players use two copies of each Act.</li>
+        <li><strong>10 starter cards per player</strong> &mdash; 4 River, 4 Rattlesnake, 2 Cactus. Every player's starting deck is identical.</li>
+      </ul>
+
+      <h3>Setting up</h3>
+      <ol>
+        <li>Take your own <strong>10-card starter deck</strong>. Shuffle it and keep it face-down as your <strong>draw pile</strong>.
           <div class="starter-deck-grid">
             <img src="assets/cards/All-Cards/Card_91.jpg" alt="River $1">
             <img src="assets/cards/All-Cards/Card_92.jpg" alt="River $1">
@@ -111,10 +128,10 @@
             <img src="assets/cards/All-Cards/Card_64.jpg" alt="Rattlesnake 2 Cows + Double Bandit">
           </div>
         </li>
-        <li>Separate the Store cards into three Act decks by the cowboy hat number at the bottom-right (Act&nbsp;1 / 2 / 3). Shuffle each Act deck on its own.</li>
-        <li>Build the Store <strong>once, at the start of the game</strong> &mdash; there is no setup between Acts. Deal it face-down in three bands, back to front: <strong>Act&nbsp;3 at the back, Act&nbsp;2 in the middle, Act&nbsp;1 at the front</strong>. Each band is 2 rows (2&ndash;4 players) or 3 rows (5&ndash;8 players).</li>
+        <li>Separate the Store cards into three <strong>Act decks</strong> by the cowboy hat number in the bottom-right corner (Act&nbsp;1 / 2 / 3). Shuffle each Act deck on its own.</li>
+        <li>Build the Store <strong>once, at the start of the game</strong> &mdash; there is no setup between Acts. Deal it face-down in three bands, back to front: <strong>Act&nbsp;3 at the back, Act&nbsp;2 in the middle, Act&nbsp;1 at the front</strong>. Each band is 2 rows (2&ndash;4 players) or 3 rows (5&ndash;8 players). Use the table below for the row width at your player count.</li>
         <li><strong>Stagger every other row by half a card</strong>, brick-wall style, so two cards cover the one above. Flip the <strong>front row</strong> face-up to start.</li>
-      </ul>
+      </ol>
 
       <div class="table-scroll">
         <table class="setup-table">
@@ -177,10 +194,6 @@
         <span><i class="swatch act-band-2"></i> Act 2 (middle)</span>
         <span><i class="swatch act-band-1"></i> Act 1 (front, starts face-up)</span>
       </div>
-      </div>
-
-      <ul>
-      </ul>
     </section>
 
     <!-- SEQUENCE OF PLAY — all three phases live in ONE section so the h3s nest under
@@ -192,47 +205,65 @@
 
       <h3 id="draw-phase">1. Draw Phase</h3>
       <ul>
-        <li>All players draw cards from the top of their personal deck, one at a time. (Players may draw simultaneously.)</li>
-        <li>Players must draw at least one card, then may stop at any time.</li>
-        <li>If a player draws <strong>3 or more Bandits</strong>, they <strong>bust</strong> immediately &mdash; their turn is over and all drawn cards go to the discard pile.</li>
-        <li>If you want to draw and your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
+        <li>Draw cards one at a time from the top of your <strong>draw pile</strong>. Everyone draws at the same time &mdash; you don't wait for each other.</li>
+        <li>You <strong>must</strong> draw at least one card. After that you <strong>may</strong> stop whenever you like.</li>
+        <li>If your draw pile runs out and you want to keep drawing, shuffle your discard pile to make a new draw pile, then cut one card from top to bottom.</li>
+        <li>Some cards are <strong>Explosives</strong> you can use during this phase &mdash; see <a href="#symbols">Symbols on Cards</a>. A few cards have extra timing rules in <a href="#clarifications">Card Clarifications</a>.</li>
       </ul>
+
+      <p class="rules-callout"><strong>Bust.</strong> The moment you have <strong>3 Bandits</strong> in
+        front of you, you bust. Your Draw Phase ends, you score nothing this round, you don't buy or
+        burn, and everything you drew goes to your discard pile.</p>
       <h3 id="buy-phase">2. Buy Phase</h3>
       <ul>
-        <li>Players who did not bust add any Cows they drew this round to their Herd.</li>
-        <li>On your turn you <strong>must take an action</strong> &mdash; either buy or burn one card. You cannot pass.</li>
-        <li><strong>Buy one card</strong> from the Store, spending the total <strong>$</strong> you drew this round. Every Store card shows its <strong>cost</strong> in the bottom-left corner; you can buy any available card whose cost you can cover. Place the purchased card and all drawn cards into your discard pile.</li>
-        <li>Or <strong>burn one card</strong> &mdash; removing it from the game &mdash; if you can't afford or don't want any card.</li>
-        <li>When a card is purchased or burned, reveal any cards underneath that are no longer covered.</li>
+        <li>If you didn't bust, add the Cows you drew this round to your <strong>Herd</strong>. If you busted, you skip the rest of this phase &mdash; you don't buy or burn.</li>
+        <li>On your turn you <strong>must</strong> either buy or burn one card. You cannot pass.</li>
+        <li><strong>Buy one card</strong> from the Store, spending the total <strong>$</strong> you drew this round. Every Store card shows its <strong>cost</strong> in the bottom-left corner; you can buy any face-up card whose cost you can cover. Put the card you bought, and everything you drew, into your discard pile.</li>
+        <li>Or <strong>burn one card</strong> &mdash; take a face-up Store card out of the game &mdash; if you can't afford anything or don't want what's on offer.</li>
       </ul>
+
+      <p class="rules-callout"><strong>Always reveal.</strong> As soon as a card leaves the Store,
+        turn face-up any card behind it that is no longer covered. It's easy to forget, and it's
+        what puts the next cards on offer.</p>
 
       <h4>Buy Order</h4>
       <ol>
-        <li>The player with the most $ chooses who buys first.</li>
+        <li>The player with the most <strong>$</strong> this round chooses who buys first.</li>
         <li>If tied: most Cows this round.</li>
-        <li>If still tied: most drawn cards.</li>
+        <li>If still tied: most cards drawn.</li>
         <li>If still tied: compare the <strong>cost</strong> of your drawn cards one position at a time &mdash; 1st card against 1st card, then 2nd against 2nd, and so on. The first position where one player's cost is higher decides it.</li>
         <li>If still tied: a random draw decides.</li>
       </ol>
-      <p>Buying proceeds clockwise from the first player.</p>
+      <p>Whoever is chosen buys first. Play then continues clockwise from them, skipping anyone who
+        busted. The same rule picks the first player every round, including the first.</p>
 
       <ul>
-        <li>Once all eligible players have bought or burned, discard all drawn cards and begin a new round.</li>
-        <li>When the last card is bought or burned from the Store, the round ends immediately. All non-busted players still score Cows, even if they didn't get to buy.</li>
+        <li>Once everyone still in the round has bought or burned, put your drawn cards in your discard pile and start a new round.</li>
       </ul>
+
+      <p class="rules-callout"><strong>The last card ends the round.</strong> When the final card is
+        bought or burned out of the Store, the round stops there. Anyone who hasn't had a turn
+        doesn't get one &mdash; but if you didn't bust, you still score the Cows you drew.</p>
       <h3 id="showdown">3. The Showdown</h3>
       <p>When the last card leaves the Store, the game does not end straight away. Every player faces <strong>The Showdown</strong> first.</p>
       <ul>
-        <li>Every card in each player's collection &mdash; deck, hand, and discard &mdash; is laid face-up on the table.</li>
-        <li>Count all <strong>positive</strong> Cows across every card in your collection. These are added to your Herd. Negative Cow values do not count.</li>
-        <li>Everyone participates in the Showdown, even players who busted in the final round.</li>
+        <li>Lay out your whole <strong>deck</strong> face-up &mdash; draw pile, drawn cards and discard pile together.</li>
+        <li>Count every Cow you own and add them all to your Herd.</li>
+        <li>Everyone does this, including anyone who busted in the final round.</li>
       </ul>
-      <p>The player with the most Cows in their Herd after the Showdown wins!</p>
+      <p>The player with the most Cows in their Herd wins!</p>
+
+      <h5>Example</h5>
+      <p class="rules-example">Jo ends the game with <strong>14</strong> Cows in her Herd from
+        scoring rounds. She lays out her deck and counts <strong>9</strong> Cows printed across her
+        cards &mdash; 5 on one Rattlesnake, 2 on another, and 1 each on two more. Her final total is
+        <strong>23</strong>. Cows on cards she never drew still count; everything you own is counted
+        once.</p>
 
       <h4>If Herds Are Tied</h4>
       <ol>
-        <li>Most <strong>$</strong> printed across your whole collection.</li>
-        <li>If still tied: most <strong>cards</strong> in your collection.</li>
+        <li>Most <strong>$</strong> printed across your whole deck.</li>
+        <li>If still tied: most <strong>cards</strong> in your deck.</li>
       </ol>
       <p>Anyone still level after that shares the win.</p>
     </section>
@@ -311,8 +342,9 @@
         <li>You may freely check the card backs in your draw pile.</li>
         <li>You may <strong>not</strong> look through your discard pile.</li>
         <li><strong>Burn</strong> = Remove a Store card from the game without buying it (returned to the game box). "Burn" always refers to a Store card &mdash; to consume one of your own cards, see <a href="#symbols"><strong>Explosive</strong></a> above ("use").</li>
-        <li><strong>Draw</strong> = Draw from the top of your personal deck.</li>
-        <li>If you run out of cards in both your draw and discard pile, stop drawing for the round.</li>
+        <li><strong>Draw</strong> = take the top card of your <strong>draw pile</strong>.</li>
+        <li><strong>Deck</strong> = every card you own &mdash; draw pile, drawn cards and discard pile together.</li>
+        <li>If both your draw pile and discard pile are empty, stop drawing for the round.</li>
       </ul>
     </section>
 
@@ -348,6 +380,57 @@
         <li><strong>Shuffle in a second copy of each Act deck</strong> to fill the larger Store.</li>
         <li><strong>The Store is 9 rows</strong> (3 per Act) instead of 6 &mdash; see the <a href="#setup">Setup table</a> for the row width at each player count.</li>
       </ul>
+    </section>
+
+    <!-- QUICK REFERENCE — the returning player's section. Everything here is a restatement;
+         the phase sections stay authoritative. Keep it to one screen. -->
+    <section id="quick-reference">
+      <h2>Quick Reference</h2>
+      <p>The whole game on one screen, for when you already know how to play.</p>
+
+      <div class="quickref">
+        <div class="quickref-block">
+          <h3>Each round</h3>
+          <ol>
+            <li><strong>Draw</strong> &mdash; everyone at once, one card at a time. At least one card,
+              then stop when you like. <strong>3 Bandits = bust</strong> (score nothing, no buy).</li>
+            <li><strong>Score</strong> &mdash; if you didn't bust, your Cows go to your Herd.</li>
+            <li><strong>Buy or burn</strong> &mdash; one card each, no passing. Clockwise from the
+              first player, skipping busted players.</li>
+            <li><strong>Reveal</strong> anything no longer covered, discard, and go again.</li>
+          </ol>
+        </div>
+
+        <div class="quickref-block">
+          <h3>Buy order ties</h3>
+          <ol>
+            <li>Most <strong>$</strong> this round &mdash; that player picks who buys first</li>
+            <li>Most Cows this round</li>
+            <li>Most cards drawn</li>
+            <li>Cost of drawn cards, 1st vs 1st, 2nd vs 2nd&hellip;</li>
+            <li>Random draw</li>
+          </ol>
+        </div>
+
+        <div class="quickref-block">
+          <h3>Game end</h3>
+          <p>The last card leaving the Store ends the round. Then everyone lays out their whole
+            deck and adds up every Cow they own. <strong>Most Cows wins.</strong></p>
+          <p><strong>Herd ties:</strong> most $ in your deck &rarr; most cards in your deck &rarr;
+            share the win.</p>
+        </div>
+
+        <div class="quickref-block">
+          <h3>Easy to forget</h3>
+          <ul>
+            <li>You <strong>must</strong> buy or burn &mdash; you can't pass.</li>
+            <li>Reveal uncovered cards <strong>every</strong> time one leaves the Store.</li>
+            <li>You may check the backs in your draw pile, but <strong>never</strong> look through
+              your discard pile.</li>
+            <li>A <strong>Draw&nbsp;4</strong> drawn during forced draws <strong>stacks</strong>.</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <!-- VARIANTS -->
