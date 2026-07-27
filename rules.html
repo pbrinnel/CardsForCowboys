@@ -293,16 +293,53 @@
       <h2>Symbols on Cards</h2>
 
       <h3>Reading a card</h3>
-      <p>Three things always sit in the same place, so you can read any card at a glance:</p>
-      <ul>
-        <li><strong>Top-right: the suit</strong> &mdash; River, Cactus or Rattlesnake.</li>
-        <li><strong>Bottom-left: the cost</strong> &mdash; what you pay to buy the card from the
-          Store. This is a plain <strong>$</strong> number in the corner.</li>
-        <li><strong>Bottom-right: the Act</strong> &mdash; cowboy hats, one per Act (Act&nbsp;1 /
-          2 / 3). You use these when you sort the Store into its three decks during
-          <a href="#setup">Setup</a>.</li>
-      </ul>
-      <p>Everything in the middle of the card is what it does when you draw it:</p>
+      <p>Everything sits in the same place on every card, so you can read one at a glance.</p>
+
+      <!-- Card anatomy. Markers are positioned as PERCENTAGES of the card image via --x/--y,
+           so they stay locked to their feature at any width. If the card art is ever
+           re-cropped or replaced, these need re-checking against the new image. -->
+      <div class="card-anatomy">
+        <figure class="anatomy-fig">
+          <div class="anatomy-card">
+            <img src="assets/cards/All-Cards/Card_43.jpg"
+                 alt="A Rattlesnake card worth 5 Cows with 2 Bandits, costing $4, from Act 2">
+            <span class="anno" style="--x:76%; --y:9%">1</span>
+            <span class="anno" style="--x:22%; --y:27%">2</span>
+            <span class="anno" style="--x:20%; --y:62%">3</span>
+            <span class="anno" style="--x:33%; --y:92%">4</span>
+            <span class="anno" style="--x:74%; --y:94%">5</span>
+          </div>
+          <figcaption>A card that scores</figcaption>
+          <ol class="anatomy-key">
+            <li><strong>Suit</strong> &mdash; Rattlesnake. Tells you how risky the card is to draw.</li>
+            <li><strong>2 Bandits</strong> &mdash; your 3rd Bandit in a round busts you.</li>
+            <li><strong>5 Cows</strong> &mdash; go to your Herd if you don't bust.</li>
+            <li><strong>Cost $4</strong> &mdash; what you pay to buy it out of the Store.</li>
+            <li><strong>Act 2</strong> &mdash; two hats. Only used when you sort the Store during
+              <a href="#setup">Setup</a>.</li>
+          </ol>
+        </figure>
+
+        <figure class="anatomy-fig">
+          <div class="anatomy-card">
+            <img src="assets/cards/All-Cards/Card_70.jpg"
+                 alt="A River Explosive card giving $2 when used, costing $3, from Act 1">
+            <span class="anno" style="--x:33%; --y:23%">1</span>
+            <span class="anno" style="--x:26%; --y:63%">2</span>
+            <span class="anno" style="--x:33%; --y:92%">3</span>
+          </div>
+          <figcaption>A card that pays</figcaption>
+          <ol class="anatomy-key">
+            <li><strong>Explosive</strong> &mdash; one-time use. Does nothing when drawn; use it on
+              your turn and it leaves your deck for good.</li>
+            <li><strong>$2 in a circle</strong> &mdash; money you <em>gain</em>, to spend this round.</li>
+            <li><strong>$3 in the corner</strong> &mdash; what the card <em>costs</em>. Same symbol,
+              opposite meaning &mdash; the circle is the tell.</li>
+          </ol>
+        </figure>
+      </div>
+
+      <p>Everything in the middle of a card is what it does when you draw it:</p>
 
       <div class="symbols-grid">
         <div class="symbol-row">
