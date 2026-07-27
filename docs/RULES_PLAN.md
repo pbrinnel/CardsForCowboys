@@ -27,25 +27,57 @@ Current `rules.html`, counted in the browser:
 | Variants | 13 | — |
 | **Total** | **1,435** | **19 images + 1 table + 3 diagrams** |
 
-## 2. Space math for a bifold
+## 2. Space math for the real format options
 
-A bifold printed both sides = **4 panels**. Estimates below assume 9pt body type on ~1.3 leading,
-which is typical for a card-game insert and about as small as is comfortable.
+Two families are on the table:
 
-| Format | Live area / panel | Pure text | Realistic with headings + diagrams | 4-panel budget |
-|---|---|---:|---:|---:|
-| **A6 bifold** (folded A5, 105×148mm panels) | ~89×132mm | ~256 w | ~150–180 w | **~600–700 words** |
-| **A5 bifold** (folded A4, 148×210mm panels) | ~128×190mm | ~500 w | ~300–350 w | **~1,200–1,400 words** |
+- **Cross fold booklet**, 100×100mm folded, printed both sides → **8 panels**, and it opens out to a
+  **200×200mm spread on each side**.
+- **Poker-size folds**, 2.5×3.5in (63.5×88.9mm) folded → **bifold 4 / Z fold 6 / accordion 8** panels.
 
-**Verdict — your instinct is right.**
+Estimates assume 8–8.5pt body type on 1.3 leading (about as small as stays comfortable for rules),
+~0.5em average character width, and 5–7mm margins.
 
-- **A6 bifold: the current rules are ~2.2× too long.** Not a trim; a rewrite to roughly 600 words.
-- **A5 bifold: feasible but at the ceiling.** 1,435 words is already at the top of the range
-  *before* the Store diagrams, the player-count table, and 19 images compete for the same space.
-  Needs to come down to ~1,000–1,100 to breathe.
+| Format | Panels | Live area / panel | Pure text / panel | Realistic / panel | **Total budget** |
+|---|---:|---|---:|---:|---:|
+| **Cross fold booklet** 100×100mm | 8 | ~86×86mm | ~220 w | ~130–150 w | **~1,040–1,200 w** |
+| Poker **accordion** | 8 | ~53×79mm | ~147 w | ~90–110 w | ~720–880 w |
+| Poker **Z fold** | 6 | ~53×79mm | ~147 w | ~90–110 w | ~540–660 w |
+| Poker **bifold** | 4 | ~53×79mm | ~147 w | ~90–110 w | ~360–440 w |
 
-The three Store diagrams and the 7-row player-count table are the real estate hogs — they cost far
-more panel area than their word counts suggest.
+Against the current 1,435 words, and against a trimmed print ruleset (~900) or a Learn-to-Play
+(~650):
+
+| Format | Current 1,435 w | Trimmed ~900 w | Learn-to-Play ~650 w |
+|---|---|---|---|
+| Cross fold booklet | over by ~25% | ✅ comfortable | ✅ roomy |
+| Poker accordion | ~1.8× over | ⚠️ tight | ✅ fits |
+| Poker Z fold | ~2.4× over | ❌ | ⚠️ tight |
+| Poker bifold | ~3.6× over | ❌ | ❌ quick-start only |
+
+### Recommendation: cross fold booklet
+
+Three reasons, in order of weight:
+
+1. **The 200×200mm unfolded spread solves the layout problem the panels can't.** The Store diagram
+   and the 7-row player-count table are the two things that cost far more area than their word
+   count. On a spread they're easy. On a panel they're a fight.
+2. **Line length.** A poker panel is 63.5mm wide; after margins the text column is ~53mm, which at
+   8pt is about 38 characters. That is below the comfortable range for prose and forces heavy
+   ragging or hyphenation. The 100mm panel gives ~86mm / ~57 characters, which reads properly.
+3. **It's the only option that fits a real ruleset**, not just a Learn-to-Play. At ~1,040–1,200
+   words you can carry everything except Strategy, Variants and 5–8 player support.
+
+**The table is close to decisive on its own.** A 5-column player-count table will not fit in a 53mm
+column at any readable size — on the poker formats you'd have to drop it to 2–4 players and push
+the rest to the web, or replace it with prose.
+
+If poker size matters to you for box-fit reasons, the honest trade is: **poker accordion + a
+Learn-to-Play insert**, with `rules.html` carrying the full reference. That works. Z fold and
+bifold at poker size don't hold a ruleset.
+
+⚠️ **Proof-print at 100% before committing to any of these.** Screen estimates for 8pt type are
+reliable enough to choose a format and wrong enough to ruin a layout.
 
 ## 3. The decision that unlocks everything
 
@@ -81,7 +113,13 @@ shrink.
 
 Cutting Strategy (66) + Variants (13) + 5+ Player (51) + the "Reading a card" prose (~90, replaced
 by the annotated card) + errata dedup (~40) is **~260 words** before any tightening of Sequence of
-Play. That lands A5 comfortably. A6 still needs the harder Learn-to-Play rewrite.
+Play (450 w, the biggest single block).
+
+- → **~1,175 w**: fits the cross fold booklet, with the Store diagram and player-count table on the
+  200×200mm spread.
+- → also tighten Sequence of Play to ~300 and drop Draw-4 chaining: **~1,025 w**, comfortable.
+- → for a poker accordion, keep cutting to a **~650 w Learn-to-Play** and let `rules.html` carry the
+  full reference.
 
 ## 4. Annotated example cards — yes, do it
 
@@ -126,8 +164,10 @@ Callouts:
 
 **Do next**
 
-1. **Decide the insert format** (A6 vs A5). Everything below sizes off this answer. A5 = trim;
-   A6 = Learn-to-Play rewrite.
+1. **Decide the insert format.** Everything below sizes off it. Recommendation: **cross fold
+   booklet** (8 × 100mm panels + two 200×200mm spreads) — the only option that holds a real
+   ruleset and the only one where the player-count table fits. Poker accordion is the viable
+   fallback if box-fit wins, at Learn-to-Play scope.
 2. **Annotated cards A and B.** Highest teaching value per unit space, saves ~90 words of print,
    and closes the last Diagrams ⚠️. Blocked on you making the art.
 3. **Split the documents.** Add the print/web tags above to `rules.html` so the insert copy can be
