@@ -3,7 +3,7 @@
 Supersedes the ranked fix list in [`RULES_PAGE_AUDIT.md`](RULES_PAGE_AUDIT.md), which was written
 before the printed-insert constraint existed. The audit is still the scorecard; this is the plan.
 
-**Status:** 10 ✅ / 9 ⚠️ / 4 ❌ of 23 checks. Fixes 1–6 shipped (objective block, contents nav,
+**Status:** 11 ✅ / 9 ⚠️ / 3 ❌ of 23 checks. Fixes 1–6 shipped (objective block, contents nav,
 money terminology, edition-relative sentences, showdown tiebreak, version stamp), plus the
 colour-blind-safe act bands and the Draw-4 chaining rule.
 

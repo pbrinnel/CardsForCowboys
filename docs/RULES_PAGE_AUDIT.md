@@ -4,22 +4,22 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 10 ✅ / 9 ⚠️ / 4 ❌** — after fixes 1–5 plus the Draw-4 clarification (July 2026).
-Every ❌ left is an *addition* (callouts, quick-reference, version stamp, worked scoring example);
-none is a defect in what the page already says.
+**Current: 11 ✅ / 9 ⚠️ / 3 ❌** — after fixes 1–6 plus the Draw-4 clarification (July 2026).
+The three ❌ left are all *additions* — callout styling, a quick-reference summary, a worked
+scoring example. None is a defect in what the page already says.
 
-The page is strong on *reference* material (symbols, errata, buy-order tiebreaks, setup diagrams)
-and weak on *teaching* — it reads as a rules reference for someone who already knows the game, with
-no on-ramp for a first-time reader and no navigation for a mid-game lookup.
+The original verdict was that the page was strong on *reference* and weak on *teaching*: no on-ramp
+for a first-time reader, no navigation for a mid-game lookup. Both are now addressed. What remains
+is polish (⚠️) and the three missing additions.
 
 ---
 
-## Structure — 0 ✅ / 3 ⚠️ / 3 ❌
+## Structure — 4 ✅ / 2 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
-| Objective in one sentence, before any mechanic | ❌ | The page goes `<h1>Rules</h1>` → **Setup**. No theme, no objective. A reader is told to separate Act decks and brick-stagger rows before learning they are collecting cows. This is the most-cited rule in every source and the page's biggest defect. |
-| Win/end condition stated early | ❌ | First appears [rules.html:180](../rules.html), four sections and ~140 lines down, at the end of "3. The Showdown". |
+| Objective in one sentence, before any mechanic | ✅ | **Fixed (fix 1).** Was the page's biggest defect: `<h1>Rules</h1>` went straight to **Setup**, so a reader was told to separate Act decks and brick-stagger rows before learning they collect cows. There is now an `#objective` section ahead of Setup with a themed lede and a one-line goal callout. |
+| Win/end condition stated early | ✅ | **Fixed (fix 1).** Was buried four sections down at the end of "3. The Showdown"; the Objective block now carries a "How the game ends" paragraph. |
 | Sections build progressively, no forward references | ✅ | **Fixed across fixes 1, 2 and 4.** All six original forward references are closed — see [Forward references](#forward-references) below for what each one was. |
 | Setup numbered, matched to a diagram | ⚠️ | Diagrams are genuinely good (3 pyramid demos, colour-coded act bands + key, player-count table). But setup is a `<ul>`, not an `<ol>`, so there are no step numbers for the diagrams to reference. Stray markup: orphan `</div>` at [:125](../rules.html) and an empty `<ul></ul>` at [:127](../rules.html). |
 | Turn structure as explicit ordered sequence | ✅ | **Fixed July 2026 (fix 2).** Was ⚠️ for two reasons, both now resolved: **(a)** the three phases were sibling `<section>`s, two with no `<h2>` at all, so screen readers and any generated contents list were told Buy Phase and Showdown weren't part of the sequence — they are now one `<section id="sequence">` with the phases as `h3`s under the `h2`. **(b)** the round *loop* was never stated; the Objective block now ends "Repeat until the Store is empty." |
@@ -40,7 +40,7 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 
 ---
 
-## Language — 2 ✅ / 2 ⚠️ / 1 ❌
+## Language — 3 ✅ / 2 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
@@ -52,20 +52,20 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 
 ---
 
-## Format — 0 ✅ / 2 ⚠️ / 4 ❌
+## Format — 2 ✅ / 2 ⚠️ / 2 ❌
 
 | Item | | Finding |
 |---|---|---|
 | Consistent bold/italic/caps system | ⚠️ | Bold does two jobs: marking game terms (**Bandits**, **Store**, **bust**) and emphasising instructions (**must take an action**, **not**, **once, at the start of the game**). Capitalisation of game terms is inconsistent — Cows/Herd/Store/Bandits/Act capitalised, bust/burn/buy lowercase. Defensible as noun-vs-verb, but nowhere stated. |
-| Diagrams for setup, component anatomy, icons | ⚠️ | Setup and icons: strong, and the act bands were made colour-blind-safe in July 2026 — the old three-shades-of-brown ramp stepped only ~10 L\* and read as one mud colour, so the tiers now separate on **lightness** (L\* ≈ 20/43/66) **and hatch direction** (45° / -45° / horizontal), neither of which is hue. Verified under a full greyscale filter. Hues deliberately stay brown: blue/yellow/red are the suit colours and a tinted band would read as a suit. **Component anatomy: still missing.** No labelled card diagram. [:58](../rules.html) asks the reader to find "the cowboy hat number at the bottom-right" with no picture of it, and **card purchase cost is never explained anywhere** — [:150](../rules.html) says buy "using the total coins drawn" without saying cards have a printed price or where it is. |
+| Diagrams for setup, component anatomy, icons | ⚠️ | Setup and icons: strong, and the act bands were made colour-blind-safe in July 2026 — the old three-shades-of-brown ramp stepped only ~10 L\* and read as one mud colour, so the tiers now separate on **lightness** (L\* ≈ 20/43/66) **and hatch direction** (45° / -45° / horizontal), neither of which is hue. Verified under a full greyscale filter. Hues deliberately stay brown: blue/yellow/red are the suit colours and a tinted band would read as a suit. **Component anatomy: partly closed.** Fix 3 added a "Reading a card" subsection describing the three fixed positions (suit top-right, cost bottom-left, Act hats bottom-right) in prose, so the rules gap is gone. **Still missing: the labelled card image itself.** Specced in [`RULES_PLAN.md`](RULES_PLAN.md) §4 (Card_43 + Card_70); needs art. For print it's a net space saver — the image replaces ~90 words of that prose. |
 | Callouts for interrupt/forgettable rules | ❌ | No callout styling exists (`css/rules-page.css` has only `.setup-note`, which is centred small text). Bust-at-3, reveal-when-uncovered, the last-card-ends-the-round trigger, and Explosive timing all carry the same visual weight as everything else. |
 | Navigable table of contents | ✅ | **Fixed July 2026 (fix 2).** Every section carries an `id` (plus the three phase `h3`s); a `.rules-toc` contents panel lists all 13 targets, inline on narrow screens and `position: fixed` beside the 760px column at ≥1240px. It sits *after* the Objective in the DOM so it can't push the goal below the fold on a phone; on wide screens it's fixed, so DOM order doesn't affect where it renders. The four in-text cross-references are now real links. |
 | Quick-reference summary | ❌ | Nothing for a returning player. |
-| Version number | ❌ | Absent. The game is internally at `gameV 3` after the July 2026 single-Store rework, and the page still contains text written against the prior version (items 2 and 3 under Forward references). No version, no last-updated date. |
+| Version number | ✅ | **Fixed (fix 6).** "Rules v3.1 · last updated 27 July 2026" above the footer CTA. Major tracks `GAME_V` in `src/play.js`; minor is a rules-page revision within that game version. A comment in the markup tells the next editor to bump both. |
 
 ---
 
-## Coverage — 1 ✅ / 3 ⚠️ / 2 ❌
+## Coverage — 2 ✅ / 3 ⚠️ / 1 ❌
 
 | Item | | Finding |
 |---|---|---|
