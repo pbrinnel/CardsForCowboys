@@ -79,6 +79,48 @@ bifold at poker size don't hold a ruleset.
 ⚠️ **Proof-print at 100% before committing to any of these.** Screen estimates for 8pt type are
 reliable enough to choose a format and wrong enough to ruin a layout.
 
+### Re-measured after the July 2026 sweep — no fold fits the full rules
+
+The page is now **1,989 words**, of which **1,562** is print-core (everything except Strategy,
+Variants, 5+ Player, Card Clarifications and the Quick Reference).
+
+But word count stopped being the binding constraint. **Visuals now dominate.** Estimated panel area
+at 100×100mm:
+
+| Element | ≈ panels |
+|---|---:|
+| Card anatomy (2 cards + keys) | 1.0 |
+| Symbols grid (6 entries with icons) | 1.0 |
+| One Store diagram | 0.6 |
+| Setup table (7 × 5) | 0.5 |
+| Starter-deck grid (10 cards) | 0.4 |
+| Suits (3 card backs) | 0.3 |
+| **Visuals subtotal** | **~3.8** |
+| Print-core text, 1,562 w at ~140 w/panel | ~11 |
+| **Total** | **~15 panels** |
+
+**A cross fold booklet is 8 panels — about half of what the full rules now need.** Every fold
+option is out for the complete ruleset.
+
+### So there are only two honest paths
+
+**Path A — cut to a real Learn-to-Play (recommended).** ~650 words + the card anatomy + one Store
+diagram + the symbols grid ≈ **6–7 panels**. Fits the cross fold booklet with room to breathe, or a
+poker accordion tightly. `rules.html` carries everything else: it's navigable, versioned, free to
+correct, and it's already the sales tool.
+
+**Path B — if everything must be on paper, stop folding and bind it.** ~15 panels means a
+**saddle-stitched square booklet, 12–16 pages at 100×100mm**. That is a different product with a
+different unit cost, and it locks errata into print permanently.
+
+**Recommendation: Path A.** Three reasons:
+
+1. Print cost scales with page count, and this is heading for a Kickstarter where unit cost matters.
+2. Paper errata is forever. The web rules already carry a version stamp and can be fixed the day a
+   problem is found.
+3. Nobody reads 15 panels at the table. Teach on paper, reference on screen — the three-audiences
+   split again.
+
 ## 3. The decision that unlocks everything
 
 **Stop treating the printed insert and the web page as the same document.**
