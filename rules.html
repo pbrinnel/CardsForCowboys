@@ -37,8 +37,64 @@
   <main class="rules-page">
     <h1>Rules</h1>
 
+    <!-- OBJECTIVE -->
+    <section id="objective">
+      <h2>Objective</h2>
+      <p class="rules-lede">Cards For Cowboys is a push-your-luck deck builder. You're building a
+        cattle herd out on the frontier, and every round you choose how hard to push your luck
+        drawing from your own deck &mdash; the deeper you go, the more $ and Cows you turn up, and
+        the closer you get to three Bandits and losing the round.</p>
+
+      <p class="rules-goal"><strong>Your goal: build the biggest Herd of Cows.</strong></p>
+
+      <h3>How a round works</h3>
+      <ol>
+        <li><strong>Draw</strong> as many cards off your deck as you dare. Draw a 3rd Bandit and you
+          <strong>bust</strong> &mdash; you score nothing this round.</li>
+        <li><strong>Score</strong> the Cows you drew into your Herd, if you didn't bust.</li>
+        <li><strong>Buy</strong> one card from the Store with the $ you drew and add it to your deck
+          &mdash; or <strong>burn</strong> one out of the game if nothing's worth buying.</li>
+      </ol>
+      <p>Then everyone discards, and a new round starts. Repeat until the Store is empty.</p>
+
+      <h3>How the game ends</h3>
+      <p>The game ends the round the last card leaves the Store. Everyone then lays out every card
+        they own for <a href="#showdown"><strong>The Showdown</strong></a> and totals up their Cows.
+        <strong>The biggest Herd wins.</strong></p>
+
+      <p class="rules-meta">2&ndash;8 players.</p>
+    </section>
+
+    <!-- Contents. This is the mid-game lookup index as much as an overview: a long scroll
+         has no page numbers to orient by, so every section needs a name you can jump to.
+         Placed AFTER Objective on purpose: inline (narrow screens) it would otherwise eat
+         the whole first screen and push the goal below the fold, which is the one thing the
+         Objective block exists to prevent. On wide screens it is position:fixed, so its DOM
+         position doesn't affect where it renders — hence no ordering CSS is needed. -->
+    <nav class="rules-toc" aria-label="Rules contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#objective">Objective</a></li>
+        <li><a href="#setup">Setup</a></li>
+        <li><a href="#sequence">Sequence of Play</a>
+          <ul>
+            <li><a href="#draw-phase">Draw Phase</a></li>
+            <li><a href="#buy-phase">Buy Phase</a></li>
+            <li><a href="#showdown">The Showdown</a></li>
+          </ul>
+        </li>
+        <li><a href="#suits">Card Backs &amp; Suits</a></li>
+        <li><a href="#symbols">Symbols on Cards</a></li>
+        <li><a href="#errata">Errata</a></li>
+        <li><a href="#clarifications">Card Clarifications</a></li>
+        <li><a href="#strategy">Strategy Tips</a></li>
+        <li><a href="#five-plus">5+ Player Rules</a></li>
+        <li><a href="#variants">Variants</a></li>
+      </ol>
+    </nav>
+
     <!-- SETUP -->
-    <section>
+    <section id="setup">
       <h2>Setup</h2>
       <ul>
         <li>Each player begins with a personal 10-card starter deck:
@@ -128,26 +184,25 @@
       </ul>
     </section>
 
-    <!-- DRAW PHASE -->
-    <section>
+    <!-- SEQUENCE OF PLAY — all three phases live in ONE section so the h3s nest under
+         the h2. They used to be three sibling <section>s, two of which had no h2 at all,
+         which told screen readers (and any generated contents list) that Buy Phase and
+         Showdown were not part of the sequence. -->
+    <section id="sequence">
       <h2>Sequence of Play</h2>
 
-      <h3>1. Draw Phase</h3>
+      <h3 id="draw-phase">1. Draw Phase</h3>
       <ul>
         <li>All players draw cards from the top of their personal deck, one at a time. (Players may draw simultaneously.)</li>
         <li>Players must draw at least one card, then may stop at any time.</li>
         <li>If a player draws <strong>3 or more Bandits</strong>, they <strong>bust</strong> immediately &mdash; their turn is over and all drawn cards go to the discard pile.</li>
         <li>If you want to draw and your draw pile is empty, shuffle your discard pile to form a new draw pile. Cut one card from top to bottom after shuffling.</li>
       </ul>
-    </section>
-
-    <!-- BUY PHASE -->
-    <section>
-      <h3>2. Buy Phase</h3>
+      <h3 id="buy-phase">2. Buy Phase</h3>
       <ul>
         <li>Players who did not bust add any Cows they drew this round to their Herd.</li>
         <li>On your turn you <strong>must take an action</strong> &mdash; either buy or burn one card. You cannot pass.</li>
-        <li><strong>Buy one card</strong> from the Store using the total coins drawn this round. Place the purchased card and all drawn cards into your discard pile.</li>
+        <li><strong>Buy one card</strong> from the Store, spending the total <strong>$</strong> you drew this round. Every Store card shows its <strong>cost</strong> in the bottom-left corner; you can buy any available card whose cost you can cover. Place the purchased card and all drawn cards into your discard pile.</li>
         <li>Or <strong>burn one card</strong> &mdash; removing it from the game &mdash; if you can't afford or don't want any card.</li>
         <li>When a card is purchased or burned, reveal any cards underneath that are no longer covered.</li>
       </ul>
@@ -157,7 +212,7 @@
         <li>The player with the most $ chooses who buys first.</li>
         <li>If tied: most Cows this round.</li>
         <li>If still tied: most drawn cards.</li>
-        <li>If still tied: compare sell value of drawn cards in order.</li>
+        <li>If still tied: compare the <strong>cost</strong> of your drawn cards one position at a time &mdash; 1st card against 1st card, then 2nd against 2nd, and so on. The first position where one player's cost is higher decides it.</li>
         <li>If still tied: a random draw decides.</li>
       </ol>
       <p>Buying proceeds clockwise from the first player.</p>
@@ -166,11 +221,7 @@
         <li>Once all eligible players have bought or burned, discard all drawn cards and begin a new round.</li>
         <li>When the last card is bought or burned from the Store, the round ends immediately. All non-busted players still score Cows, even if they didn't get to buy.</li>
       </ul>
-    </section>
-
-    <!-- WINNING -->
-    <section>
-      <h3>3. The Showdown</h3>
+      <h3 id="showdown">3. The Showdown</h3>
       <p>When the last card leaves the Store, instead of the game ending immediately, all players face <strong>The Showdown</strong>.</p>
       <ul>
         <li>Every card in each player's collection &mdash; deck, hand, and discard &mdash; is laid face-up on the table.</li>
@@ -181,7 +232,7 @@
     </section>
 
     <!-- CARD BACKS & SUITS -->
-    <section>
+    <section id="suits">
       <h2>Card Backs &amp; Suits</h2>
       <p>Every card belongs to one of three suits, visible on both the front and back. The suit tells you roughly how risky the card is to draw.</p>
       <div class="cacti-row">
@@ -201,12 +252,28 @@
     </section>
 
     <!-- SYMBOLS -->
-    <section>
+    <section id="symbols">
       <h2>Symbols on Cards</h2>
+
+      <h3>Reading a card</h3>
+      <p>Three things always sit in the same place, so you can read any card at a glance:</p>
+      <ul>
+        <li><strong>Top-right: the suit</strong> &mdash; River, Cactus or Rattlesnake.</li>
+        <li><strong>Bottom-left: the cost</strong> &mdash; what you pay to buy the card from the
+          Store. This is a plain <strong>$</strong> number in the corner.</li>
+        <li><strong>Bottom-right: the Act</strong> &mdash; cowboy hats, one per Act (Act&nbsp;1 /
+          2 / 3). You use these when you sort the Store into its three decks during
+          <a href="#setup">Setup</a>.</li>
+      </ul>
+      <p>Everything in the middle of the card is what it does when you draw it:</p>
+
       <div class="symbols-grid">
         <div class="symbol-row">
           <img src="assets/symbols/$1-01.png" alt="Dollar symbol">
-          <p><strong>$</strong> &mdash; Value that can be spent to purchase other cards.</p>
+          <p><strong>$</strong> &mdash; Money you gain when you draw the card, to spend in the buy
+            phase. It sits in a <strong>circle</strong> in the middle of the card &mdash; don't
+            confuse it with the plain <strong>$</strong> in the bottom-left corner, which is the
+            card's <strong>cost</strong>, not money you gain.</p>
         </div>
         <div class="symbol-row">
           <img src="assets/symbols/1 Cow-01.png" alt="Cow symbol">
@@ -226,33 +293,39 @@
         </div>
         <div class="symbol-row">
           <img src="assets/symbols/One-Time Use-01.png" alt="Explosive symbol">
-          <p><strong>Explosive</strong> &mdash; A one-time-use card. It does nothing when drawn; on your turn you may <strong>use</strong> it &mdash; its effect applies immediately and the card is then permanently removed from your deck. (Note: <em>using</em> an Explosive removes it from <em>your</em> deck; this is different from <em>burning</em>, which removes a card from the Store &mdash; see Errata.)</p>
+          <p><strong>Explosive</strong> &mdash; A one-time-use card. It does nothing when drawn; on your turn you may <strong>use</strong> it &mdash; its effect applies immediately and the card is then permanently removed from your deck. (Note: <em>using</em> an Explosive removes it from <em>your</em> deck; this is different from <em>burning</em>, which removes a card from the Store &mdash; see <a href="#errata">Errata</a>.)</p>
         </div>
       </div>
     </section>
 
     <!-- ERRATA -->
-    <section>
+    <section id="errata">
       <h2>Errata</h2>
       <ul>
         <li>You may freely check the card backs in your draw pile.</li>
         <li>You may <strong>not</strong> look through your discard pile.</li>
-        <li><strong>Burn</strong> = Remove a Store card from the game without buying it (returned to the game box). "Burn" always refers to a Store card &mdash; to consume one of your own cards, see <strong>Explosive</strong> above ("use").</li>
+        <li><strong>Burn</strong> = Remove a Store card from the game without buying it (returned to the game box). "Burn" always refers to a Store card &mdash; to consume one of your own cards, see <a href="#symbols"><strong>Explosive</strong></a> above ("use").</li>
         <li><strong>Draw</strong> = Draw from the top of your personal deck.</li>
         <li>If you run out of cards in both your draw and discard pile, stop drawing for the round.</li>
       </ul>
     </section>
 
     <!-- CARD CLARIFICATIONS -->
-    <section>
+    <section id="clarifications">
       <h2>Card Clarifications</h2>
       <ul>
-        <li>When a <strong>"Draw 4"</strong> forces extra draws, you may pause between each draw to use Explosive cards before proceeding with your mandatory draws.</li>
+        <li><strong>Draw 4s stack.</strong> If one of your mandatory draws is itself a
+          <strong>"Draw 4"</strong>, it counts as one of the draws you owed and then adds 4 more on
+          top of what's left &mdash; it doesn't replace them.
+          <em>Example:</em> you owe 4 mandatory draws. Your first one turns up another Draw 4:
+          that clears one of the four, leaving 3, then adds 4 more, so you now owe <strong>7</strong>.
+          There's no limit to how many times this can chain.</li>
+        <li>Mandatory draws you still owe are cancelled if you <strong>bust</strong>.</li>
       </ul>
     </section>
 
     <!-- STRATEGY -->
-    <section>
+    <section id="strategy">
       <h2>Strategy Tips</h2>
       <ul>
         <li>Tracking which cards you haven't drawn gives you a big edge. Start by remembering whether you've drawn your double-Bandit card yet.</li>
@@ -262,17 +335,17 @@
     </section>
 
     <!-- 5+ PLAYER RULES -->
-    <section>
+    <section id="five-plus">
       <h2>5+ Player Rules</h2>
       <p>Plays up to <strong>8</strong> &mdash; same rules, only setup changes:</p>
       <ul>
         <li><strong>Shuffle in a second copy of each Act deck</strong> to fill the larger Store.</li>
-        <li><strong>The Store is 9 rows</strong> (3 per Act) instead of 6 &mdash; see the Setup table for the row width at each player count.</li>
+        <li><strong>The Store is 9 rows</strong> (3 per Act) instead of 6 &mdash; see the <a href="#setup">Setup table</a> for the row width at each player count.</li>
       </ul>
     </section>
 
     <!-- VARIANTS -->
-    <section>
+    <section id="variants">
       <h2>Variants</h2>
       <ul>
         <li><strong>Hidden Herd</strong> &mdash; Opponents' herd totals stay secret until the final showdown.</li>

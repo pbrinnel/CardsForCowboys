@@ -23,7 +23,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `playgame.html` | Game UI shell |
 | `gamesetup.html` | **The "Table" screen.** Two states: (A) config — name, player count, per-seat AI/Human + difficulty, modes; (B) inline **host waiting room** (code, share, live slot list, Cancel). The game cannot start until every Human seat has joined (no "fill with AI" shortcut). Solo/all-AI games go straight to playgame; any Human seat creates the game in-place (via `src/host.js`) and shows state B. The former separate `creategame.html` page was merged in here (June 2026) — no more redundant second name prompt. |
 | `lobby.html` | **The "Join" screen** (online matchmaking). Name + code entry, invite-link mode (`?join=CODE`), rejoin (`?rejoin=CODE`), and the guest waiting room. |
-| `rules.html` | Standalone rules page |
+| `rules.html` | Standalone rules page. Audited July 2026 against `docs/RULEBOOK_WRITING_STANDARDS.md` — scorecard + remaining to-do list in `docs/RULES_PAGE_AUDIT.md`. Section `id`s + the `.rules-toc` contents panel are load-bearing: the panel is a `<nav>`, so it must keep its explicit `display`/`gap` resets or `css/style.css`'s bare `nav`/`nav ul` header rules turn it into a flex row. Store act bands are colour-blind-safe by **lightness + hatch angle**, never hue (blue/yellow/red are the suit colours) — see the comment block in `css/rules-page.css`. |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
 | `history.html` | Game history + leaderboard; "Live Now" list reads the slim `liveSummary/` node |
 | `aboutthecreators.html` | About page |
@@ -108,7 +108,7 @@ engine too.
 |------|---------|
 | `assets/` | Card images, card backs, symbols, photos |
 | `data/` | Card data CSV (designer reference) |
-| `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md` |
+| `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md`, `RULEBOOK_WRITING_STANDARDS.md` (compiled board-game-industry conventions for rules writing) + `RULES_PAGE_AUDIT.md` (`rules.html` scored against them — **live to-do list**, fix 1 of 10 done) |
 | `admin/` | Gitignored admin scripts (email tools) |
 | `test/` | Playwright tests |
 
@@ -895,7 +895,9 @@ Arming lives in `checkDrawPhaseComplete`, `mpOpponentBuyTurn`, and the two `wait
 
 **Fix in place:** Draw 4 now sets `player.forcedDraws += 4` and routes each extra draw through the normal `playerDraw`/`startPlayerDraw` flow, so the activate buttons (incl. jail) appear between draws. `startPlayerDraw` hides "Stop" while `forcedDraws > 0` (draws stay mandatory — preserves the card's risk/balance); activating a card does NOT decrement `forcedDraws`. Empty deck mid-Draw-4 auto-reshuffles and continues (only ends when both piles are empty). AI parity: the draw4 loops in `play.js` and `sim/personality-engine.js` proactively activate a held jail card at 2+ bandits before each forced draw.
 
-**Do not regress:** Never re-introduce an auto-loop that draws multiple cards without returning to `startPlayerDraw` between them — that's the only place burn-to-use cards can be activated, and skipping it re-breaks the activate-before-bust rule. Keep "Stop" hidden while `forcedDraws > 0`, and keep `forcedDraws` cleared in `handleBust`/`resetPlayerRound`. Errata in rules.html documents the caveat for players.
+**Do not regress:** Never re-introduce an auto-loop that draws multiple cards without returning to `startPlayerDraw` between them — that's the only place burn-to-use cards can be activated, and skipping it re-breaks the activate-before-bust rule. Keep "Stop" hidden while `forcedDraws > 0`, and keep `forcedDraws` cleared in `handleBust`/`resetPlayerRound`.
+
+**Status July 2026 — the activation window is now unused in practice.** Both `burn_to_use` jail cards (card_39/card_50, the `-1 bandit` Explosives this fix existed for) are `deprecated: true` and never dealt. Every LIVE Explosive is a pure dollar card (70/77/78 = $2; 5/16/22 = $3), so pausing mid-Draw-4 no longer saves you from a bust — it only banks $2–3. The mechanic and the AI-parity jail branch in `aiDrawPhase` are deliberately KEPT (undeprecating a jail card must not silently re-break the rule), but `rules.html` no longer advertises the pause: that clarification was replaced with the Draw-4 **chaining** rule, which is the live edge case (a Draw 4 drawn during forced draws decrements once then `+= 4`, so it stacks — see `playerDraw` ~3278/3288).
 
 ---
 

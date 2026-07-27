@@ -75,6 +75,119 @@
   line-height: 1.6;
 }
 
+/* ── Contents ──
+   a11y.css already downgrades scroll-behavior to auto under prefers-reduced-motion. */
+html { scroll-behavior: smooth; }
+
+/* Anchor targets need breathing room above them, or the heading you jumped to sits
+   flush against the top edge of the viewport. */
+.rules-page section[id],
+.rules-page h3[id] { scroll-margin-top: 1rem; }
+
+/* The contents list is a <nav>, which style.css styles for the SITE HEADER:
+   `nav { display:flex; justify-content:space-between; align-items:center }` and
+   `nav ul { display:flex; gap:1.5rem }`. Those are element selectors, so the class
+   rules below beat them on colour/padding/border but NOT on the properties we don't
+   name — leaving them to leak turned the panel into a flex row with "CONTENTS"
+   floating beside a squeezed, clipped list. Reset display/gap explicitly. */
+.rules-toc {
+  display: block;
+  border: 1.5px solid rgba(30, 22, 16, 0.22);
+  border-radius: 4px;
+  background: rgba(30, 22, 16, 0.04);
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 2.5rem;
+}
+.rules-toc ol,
+.rules-toc ul { display: block; gap: 0; }
+
+/* Out-specify .rules-page h2 — no Playfair display size, no rule underneath. */
+.rules-page .rules-toc h2 {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border-bottom: none;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.rules-page .rules-toc ol,
+.rules-page .rules-toc ul {
+  margin: 0 0 0 1.15rem;
+  padding: 0;
+}
+.rules-page .rules-toc li {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-bottom: 0.15rem;
+}
+.rules-page .rules-toc ul {
+  list-style: none;
+  margin-left: 0.5rem;
+  margin-top: 0.15rem;
+}
+.rules-page .rules-toc ul li::before {
+  content: "\21B3\00A0";  /* ↳ — marks the phases as children of Sequence of Play */
+  opacity: 0.55;
+}
+
+.rules-toc a {
+  color: #6b4c32;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(107, 76, 50, 0.3);
+}
+.rules-toc a:hover { color: #1e1610; border-bottom-color: #1e1610; }
+
+/* In-body cross-reference links ("see Errata", "see the Setup table"). Without this
+   they fall back to browser-default blue, which reads as off-brand and, worse, as a
+   suit colour on a page where blue means River. */
+.rules-page section a {
+  color: #8a5a22;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(138, 90, 34, 0.45);
+}
+.rules-page section a:hover { color: #1e1610; border-bottom-color: #1e1610; }
+
+/* Wide screens: park the contents beside the 760px column so it stays put while you
+   scroll — the mid-game "where's the bust rule again" case.
+   The column is border-box 760px and centred, so its left edge is at 50% - 380px;
+   14.5rem (232px) clears the 13rem panel plus a 1.5rem gutter. The 1240px breakpoint
+   is the width at which that still leaves a margin (0.5 x 1240 - 380 - 232 = 8px) —
+   below it the panel would collide with the text, so it stays inline. */
+@media (min-width: 1240px) {
+  .rules-toc {
+    position: fixed;
+    top: 5.5rem;
+    left: calc(50% - 380px - 14.5rem);
+    width: 13rem;
+    max-height: calc(100vh - 8rem);
+    max-height: calc(100svh - 8rem);
+    overflow-y: auto;
+    margin: 0;
+  }
+}
+
+/* ── Objective block ── */
+.rules-page .rules-lede {
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+/* The one-sentence goal — the first thing a new reader should land on. */
+.rules-page .rules-goal {
+  margin: 1rem 0 1.25rem;
+  padding: 0.7rem 1rem;
+  border-left: 4px solid #b87838;
+  background: rgba(184, 120, 56, 0.1);
+  font-size: 1.15rem;
+}
+
+.rules-page .rules-meta {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #3a2a1a;
+}
+
 /* ── Symbol rows ── */
 .symbols-grid {
   display: flex;
@@ -200,15 +313,48 @@
    row box, so a row-level tint is only ever visible in the 3px gutters between cards.
    Overriding background-COLOR (not the `background` shorthand) keeps .pcard's diagonal
    hatch gradient. `:not(.face-up)` keeps the front row's cream face colour — .pcard.face-up
-   is (0,2,0) and would otherwise lose to these (0,3,0) selectors. */
+   is (0,2,0) and would otherwise lose to these (0,3,0) selectors.
+
+   COLOUR-BLIND SAFETY (July 2026): the bands are separated on TWO channels that
+   survive every form of colour vision deficiency, because neither one is hue.
+     1. LIGHTNESS — wide steps (roughly L* 20 / 43 / 66). The old ramp
+        (#4a2f1c/#6b4c32/#906a44) stepped only ~10 L* and read as one mud brown.
+     2. HATCH DIRECTION — 45° / -45° / horizontal. A genuine non-colour cue, so
+        the tiers still separate in greyscale or for a monochromat.
+   Hues stay inside the brown family ON PURPOSE. Blue, yellow and red are the
+   three SUIT colours (River / Cactus / Rattlesnake), so tinting a band any of
+   them would read as "this band is that suit". Don't "improve" these to a
+   rainbow. Act 1 must also stay clearly darker than the cream .face-up card
+   (#e9e0c6) or face-up and face-down stop being distinguishable. */
 :root {
-  --act-band-3: #4a2f1c;  /* back   — darkest */
-  --act-band-2: #6b4c32;  /* middle — the default card back */
-  --act-band-1: #906a44;  /* front  — lightest */
+  --act-band-3: #241610;  /* back   — near-black brown */
+  --act-band-2: #7d5636;  /* middle */
+  --act-band-1: #c19464;  /* front  — light tan */
 }
-.pyramid-row.act-band-3 .pcard:not(.face-up) { background-color: var(--act-band-3); }
-.pyramid-row.act-band-2 .pcard:not(.face-up) { background-color: var(--act-band-2); }
-.pyramid-row.act-band-1 .pcard:not(.face-up) { background-color: var(--act-band-1); }
+
+/* Each band overrides background-IMAGE too, so the hatch angle changes with the
+   tier. These are (0,4,0) and beat .pcard's own (0,1,0) hatch. */
+.pyramid-row.act-band-3 .pcard:not(.face-up),
+.act-band-key .swatch.act-band-3 {
+  background-color: var(--act-band-3);
+  background-image: repeating-linear-gradient(45deg,
+    transparent, transparent 3px,
+    rgba(255,255,255,0.16) 3px, rgba(255,255,255,0.16) 5px);
+}
+.pyramid-row.act-band-2 .pcard:not(.face-up),
+.act-band-key .swatch.act-band-2 {
+  background-color: var(--act-band-2);
+  background-image: repeating-linear-gradient(-45deg,
+    transparent, transparent 3px,
+    rgba(255,255,255,0.18) 3px, rgba(255,255,255,0.18) 5px);
+}
+.pyramid-row.act-band-1 .pcard:not(.face-up),
+.act-band-key .swatch.act-band-1 {
+  background-color: var(--act-band-1);
+  background-image: repeating-linear-gradient(0deg,
+    transparent, transparent 3px,
+    rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 5px);
+}
 
 .act-band-key {
   display: flex;
@@ -220,18 +366,20 @@
   margin: 0.25rem 0 1rem;
 }
 .act-band-key span { display: inline-flex; align-items: center; gap: 0.4rem; }
+/* 16px, not 14: the swatch has to show the band's HATCH ANGLE, not just its
+   colour — that's the cue a colour-blind reader matches against the diagram. */
 .act-band-key .swatch {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border: 1.5px solid #1e1610;
   border-radius: 2px;
   display: inline-block;
 }
-/* The swatches are <i class="swatch act-band-N">, NOT .pyramid-row descendants — they
-   need their own rules or they render transparent (the original bug here). */
-.act-band-key .swatch.act-band-3 { background: var(--act-band-3); }
-.act-band-key .swatch.act-band-2 { background: var(--act-band-2); }
-.act-band-key .swatch.act-band-1 { background: var(--act-band-1); }
+/* The swatches are <i class="swatch act-band-N">, NOT .pyramid-row descendants, so
+   they need their own selectors or they render transparent (the original bug here).
+   Those selectors are grouped into the band rules above — do NOT re-add standalone
+   `.swatch.act-band-N { background: ... }` rules here: the `background` SHORTHAND
+   resets background-image, which would silently strip the hatch off the legend. */
 
 /* ── Setup table (players → Store shape) ── */
 .table-scroll { overflow-x: auto; margin: 1rem 0 0.5rem; }
