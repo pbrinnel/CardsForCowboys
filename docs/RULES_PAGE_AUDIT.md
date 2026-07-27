@@ -86,6 +86,10 @@ is answerable only by inference from an undefined word.
 
 ---
 
+> **The ranked list below is superseded by [`RULES_PLAN.md`](RULES_PLAN.md)** (July 2026), which
+> re-prioritises everything around the printed-insert space budget. This section is kept as the
+> record of what each fix was. The tables above remain the live scorecard.
+
 ## Ranked fix list
 
 **Do now — cheap, high impact**
