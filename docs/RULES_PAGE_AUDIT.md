@@ -29,7 +29,7 @@ no on-ramp for a first-time reader and no navigation for a mid-game lookup.
 
 All six are now closed. Kept as a record of the failure modes to watch for.
 
-1. ~~"Store cards" and "Act decks" — neither **Store** nor **Act** is ever defined. Acts are used as deck labels with no explanation that they gate power/cost.~~ **Fixed (1, 4):** the Objective introduces the Store; the Setup bullet now says what Acts mean in play — *"Later Acts cost more and are worth more."* (Checked against the card data before writing it: avg cost 3.3 / 4.2 / 6.9 and avg Cows 0.7 / 1.3 / 2.3 across Acts 1–3.)
+1. "Store cards" and "Act decks" — neither **Store** nor **Act** was ever defined. **Mostly fixed (1, 2):** the Objective introduces the Store, and Setup introduces Acts at first use as the cowboy-hat sort key, which is all Setup needs; "Reading a card" covers the hats too. **Small remainder:** the page never says what the Acts *represent* (later Acts cost more and score more — avg cost 3.3 / 4.2 / 6.9, avg Cows 0.7 / 1.3 / 2.3 across Acts 1–3). A bullet saying so was added in fix 4 and **deliberately cut** — PB judged it filler, and the rules do read fine without it. Only revisit if playtesters ask what the Acts are for.
 2. ~~"the same progression **as before**, with none of the mid-game shuffling"~~ — "before" meant *a previous edition of the rules*. A first-time reader has no "before." Leftover changelog voice. **Fixed (4).**
 3. ~~"**instead of** the game ending immediately"~~ — same problem; compared to a rule that does not exist in this document. **Fixed (4)**, now "the game does not end straight away."
 4. ~~bust rule uses **Bandits** before they're defined~~ **Fixed (1):** the Objective states "Draw a 3rd Bandit and you bust."
@@ -120,11 +120,12 @@ is answerable only by inference from an undefined word.
    (Verified against the card art itself: `Card_70.jpg` shows a circled `$2` gain and a plain
    `$3` cost.) Still drifting, not yet fixed: **personal deck** / **draw pile** / **deck**.
 4. ~~Delete the two edition-relative phrases — they reference a document the reader doesn't have.~~
-   **DONE** (July 2026). Replaced rather than deleted, because both sentences were trying to say
-   something real: "the same progression as before, with none of the mid-game shuffling" became
-   *"Later Acts cost more and are worth more, so the Store gets richer as it empties — and it does
-   that on its own. You never stop to set anything up mid-game"*; "instead of the game ending
-   immediately" became *"the game does not end straight away."*
+   **DONE** (July 2026).
+   - "the same progression as before, with none of the mid-game shuffling" → **cut entirely.** It
+     was first rewritten into a longer bullet about Acts getting richer; PB cut that as filler.
+     Nothing was lost — the bullet above it already says the Store is built once with no setup
+     between Acts, and the deal order (Act 3 back → Act 1 front) makes the progression obvious.
+   - "instead of the game ending immediately" → *"the game does not end straight away."*
 5. Add a final-victory tie rule.
 
 **Do next — needs assets or layout work**
