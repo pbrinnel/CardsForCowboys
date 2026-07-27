@@ -210,15 +210,19 @@
       }
       #pyramid-zone .card-cost { font-size: 0.75rem !important; }
 
-      /* 5-8P draw phase: the tallest pyramids (up to 8 rows ≈ 540px) plus the draw-phase
-         hand (100px cards, wraps 2-3 rows) can overflow a ≤900px viewport, pushing your
-         hand below the fold. Cap the zone height (overflow:hidden) so fitPyramid() —
-         which scales the pyramid to fit its zone — downscales the pyramid and frees
-         vertical room for the hand. Only shrinks pyramids taller than the cap; shorter
-         5-6P ones are untouched (scale stays 1). Draw phase only: the buy phase needs
-         the big clickable pyramid and already fits. 2-4P (≤4 rows) fit natively. */
+      /* 5-8P draw phase: the tall 9-row Store plus the draw-phase hand (100px cards,
+         wraps 2-3 rows) can overflow a ≤900px viewport, pushing your hand below the
+         fold. Cap the zone height (overflow:hidden) so fitPyramid() — which scales the
+         pyramid to fit its zone — downscales the pyramid and frees vertical room for
+         the hand. Only shrinks Stores taller than the cap. Draw phase only: the buy
+         phase needs the big clickable pyramid and already fits. 2-4P fit natively.
+         52vh (was 40vh): since the single-Store rework 5-8P is always 9 rows and up to
+         11 wide, and at 40vh height was the sole binding constraint — the Store used
+         only ~77% of the available width and cards scaled to ~43px. 52vh lets it grow
+         into the width it already has while still leaving the hand on screen at
+         1280×800 (measured: player zone bottom ~700 of 800). */
       body.count-5plus.phase-draw #pyramid-zone {
-        max-height: 40vh;
+        max-height: 52vh;
       }
     }
 
@@ -242,27 +246,6 @@
   <link rel="stylesheet" href="css/a11y.css">
 </head>
 <body>
-
-  <!-- Quick Draw Draft Overlay -->
-  <div id="draft-overlay" class="overlay draft-overlay hidden">
-    <div class="draft-inner">
-      <h2 class="draft-title">Quick Draw Draft</h2>
-      <p id="draft-round-label" class="draft-round-label"></p>
-      <p class="draft-subtitle">Pick 1 card to add to your deck, then pass the rest</p>
-      <div id="draft-card-grid" class="draft-card-grid"></div>
-      <div id="draft-action-row" class="draft-action-row">
-        <div id="draft-action-preview-wrap" class="draft-action-preview-wrap">
-          <img id="draft-action-preview" class="draft-action-preview" src="" alt="">
-        </div>
-        <div class="draft-action-buttons">
-          <button id="draft-confirm-btn" class="draft-confirm-btn" disabled>Add to your deck</button>
-          <button id="draft-cancel-btn" class="draft-cancel-btn" disabled>Cancel</button>
-        </div>
-      </div>
-      <p id="draft-message" class="draft-message"></p>
-      <div id="draft-log" class="draft-log"></div>
-    </div>
-  </div>
 
   <!-- Showdown Screen -->
   <div id="showdown-screen" class="overlay showdown-overlay hidden">
@@ -328,8 +311,6 @@
     <!-- Header -->
     <header id="game-header">
       <div class="header-left">
-        <span id="act-display">Act 1</span>
-        <span class="sep">|</span>
         <span id="round-display">Round 1</span>
       </div>
       <div class="header-right">

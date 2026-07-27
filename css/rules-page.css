@@ -194,6 +194,63 @@
   box-shadow: 0 3px 4px rgba(0,0,0,0.3);
 }
 
+/* Act bands: the three tiers of the single Store (Act 3 back → Act 1 front), shaded
+   dark-to-light so depth reads at a glance.
+   Tint the CARD BACKS, not the row: .pcard paints an opaque background over the whole
+   row box, so a row-level tint is only ever visible in the 3px gutters between cards.
+   Overriding background-COLOR (not the `background` shorthand) keeps .pcard's diagonal
+   hatch gradient. `:not(.face-up)` keeps the front row's cream face colour — .pcard.face-up
+   is (0,2,0) and would otherwise lose to these (0,3,0) selectors. */
+:root {
+  --act-band-3: #4a2f1c;  /* back   — darkest */
+  --act-band-2: #6b4c32;  /* middle — the default card back */
+  --act-band-1: #906a44;  /* front  — lightest */
+}
+.pyramid-row.act-band-3 .pcard:not(.face-up) { background-color: var(--act-band-3); }
+.pyramid-row.act-band-2 .pcard:not(.face-up) { background-color: var(--act-band-2); }
+.pyramid-row.act-band-1 .pcard:not(.face-up) { background-color: var(--act-band-1); }
+
+.act-band-key {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #3a2a1a;
+  margin: 0.25rem 0 1rem;
+}
+.act-band-key span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.act-band-key .swatch {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #1e1610;
+  border-radius: 2px;
+  display: inline-block;
+}
+/* The swatches are <i class="swatch act-band-N">, NOT .pyramid-row descendants — they
+   need their own rules or they render transparent (the original bug here). */
+.act-band-key .swatch.act-band-3 { background: var(--act-band-3); }
+.act-band-key .swatch.act-band-2 { background: var(--act-band-2); }
+.act-band-key .swatch.act-band-1 { background: var(--act-band-1); }
+
+/* ── Setup table (players → Store shape) ── */
+.table-scroll { overflow-x: auto; margin: 1rem 0 0.5rem; }
+.setup-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-size: 0.88rem;
+  min-width: 30rem;
+}
+.setup-table th,
+.setup-table td {
+  border: 1px solid rgba(30, 22, 16, 0.25);
+  padding: 0.35rem 0.7rem;
+  text-align: center;
+}
+.setup-table thead th { background: #1e1610; color: #e9e0c6; }
+.setup-table tbody tr:nth-child(even) td { background: rgba(30, 22, 16, 0.05); }
+.setup-note { text-align: center; font-size: 0.85rem; margin: 0 0 0.5rem; }
+
 .pyramid-demo-label {
   font-size: 0.8rem;
   font-weight: bold;

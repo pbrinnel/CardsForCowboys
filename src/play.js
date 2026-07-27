@@ -196,7 +196,7 @@ const MP = (() => {
       const s = (data.slots && data.slots[i]) || {};
       _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
-    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, quickStartMode: data.quickStartMode || false, pioneerMode: data.pioneerMode || false, hiddenHerdMode: data.hiddenHerdMode || false };
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, hiddenHerdMode: data.hiddenHerdMode || false };
   }
 
   // Push local player's full draw state (hand + deck + stats) after every draw action
@@ -204,7 +204,10 @@ const MP = (() => {
     if (!initialized) return;
     await fbSet(gameRef(`drawState/${mySlot}`), {
       round: G.roundNumber, // used by receivers to discard stale data from previous rounds
-      act: G.currentAct,   // also checked: round resets to 1 each act, so act is needed too
+      // act is pinned to 1 since the single-Store rework (roundNumber is now monotonic for
+      // the whole game, so round alone is unique). Kept in the payload so the stale-guard
+      // shape — and any client still running an older build — stays compatible.
+      act: G.currentAct,
       hand: player.hand.map(c => c.id),
       deck: player.deck.map(c => c.id),
       discard: player.discard.map(c => c.id), // full discard so host can reconstruct correctly after reshuffles
@@ -296,64 +299,6 @@ const MP = (() => {
     }
   }
 
-
-  // Push this player's card pick for a given Quick Start draft round
-  async function pushDraftPick(round, cardId) {
-    if (!initialized) return;
-    await fbSet(gameRef(`draftPick/${round}/${mySlot}`), cardId);
-  }
-
-  // Read my own already-pushed pick for a draft round. Used on draft RE-ENTRY (refresh
-  // or evicted tab, audit H4): the replayed draft consumes the original pick silently
-  // so this client converges with what the other clients already consumed.
-  async function getDraftPick(round) {
-    if (!initialized) return null;
-    const snap = await fbGet(gameRef(`draftPick/${round}/${mySlot}`));
-    return snap.val();
-  }
-
-  // Host-only draft recovery (audit H4): claim a stuck seat's pick — only if absent,
-  // so a racing real pick always wins. Same only-if-null transaction shape as the
-  // lobby slot claim (null is the CLAIM case, never an abort case).
-  async function forceDraftPick(round, slotIdx, cardId) {
-    if (!initialized) return;
-    try {
-      await fbTransaction(gameRef(`draftPick/${round}/${slotIdx}`), (cur) => {
-        if (cur) return;   // real pick already there — abort, never clobber
-        return cardId;
-      });
-    } catch (e) { /* best-effort recovery */ }
-  }
-
-  // Wait for all human opponent slots to pick in a given draft round.
-  // Returns a Promise<{slotIdx: cardId, ...}> resolving when all picks are received.
-  function waitForDraftRoundPicks(round) {
-    if (!initialized) return Promise.resolve({});
-    return new Promise(resolve => {
-      const result = {};
-      const pending = new Set();
-      for (let s = 0; s < _numPlayers; s++) {
-        if (s === mySlot || !_slotDefs[s] || !_slotDefs[s].isHuman) continue;
-        pending.add(s);
-      }
-      if (pending.size === 0) { resolve({}); return; }
-      for (const slotIdx of [...pending]) {
-        let fired = false;
-        let unsub = null;
-        unsub = fbOnValue(gameRef(`draftPick/${round}/${slotIdx}`), (snap) => {
-          const cardId = snap.val();
-          if (cardId && !fired) {
-            fired = true;
-            if (unsub) unsub();
-            result[slotIdx] = cardId;
-            pending.delete(slotIdx);
-            if (pending.size === 0) resolve(result);
-          }
-        });
-        unsubscribers.push(unsub);
-      }
-    });
-  }
 
   // Reset all per-round signals at start of each round
   async function resetRound() {
@@ -696,10 +641,6 @@ const MP = (() => {
     watchOwnDrawDone,
     pushBuyOrder,
     waitForBuyOrder,
-    pushDraftPick,
-    getDraftPick,
-    forceDraftPick,
-    waitForDraftRoundPicks,
     pushSpectatorState,
     fetchSpectatorState,
     watchSpectatorState,
@@ -770,7 +711,7 @@ const HISTORY = (() => {
 // {isHuman, personality} per seat. Research data — never read by clients.
 // ============================================================
 const TRAJ_SCHEMA_V = 1; // trajectory record format version
-const GAME_V        = 2; // bump on any rules / card-stat change (see CLAUDE.md version table)
+const GAME_V        = 3; // bump on any rules / card-stat change (see CLAUDE.md version table)
 
 // Stable content hash of the card-stat table — lets the offline reconstructor
 // refuse to replay a trajectory captured under a different card balance.
@@ -873,8 +814,6 @@ function trajLogHeader() {
       mode: MP.active ? 'mp' : 'ai',
       gameSeed: G.gameSeed || 0,
       numPlayers: G.numPlayers,
-      quickStartMode: !!G.quickStartMode,
-      pioneerMode: !!G.pioneerMode,
       hiddenHerdMode: !!G.hiddenHerdMode,
       seats,
     });
@@ -1011,8 +950,6 @@ function buildSpectatorState() {
     round: G.roundNumber,
     act: G.currentAct,
     numPlayers: G.numPlayers,
-    quickStartMode: !!G.quickStartMode,
-    pioneerMode: !!G.pioneerMode,
     hiddenHerdMode: !!G.hiddenHerdMode,
     pyramid: G.pyramid.map(row => row.map(slot => ({
       card: serializeCard(slot.card),
@@ -1175,120 +1112,120 @@ const STARTER_TEMPLATES = [
   { id: 'starter_34', dollars: 0, cows: 0, bandits: 1, cacti: 2, count: 1, img: 'Card_34.jpg' },
 ];
 
-// --- STORE CARDS (all player counts; minPlayers field controls inclusion) ---
-// Derived from CSV. Color→Cacti: River(Blue)=1, Cactus(Yellow)=2, Rattlesnake(Red)=3
-// minPlayers: 2=all, 3=3+P games, 4=4+P games only
+// --- STORE CARDS ---
+// Derived from data/Deck Buster Cards - Cards.csv. Colour→Cacti: River(Blue)=1,
+// Cactus(Yellow)=2, Rattlesnake(Red)=3.
+//
+// 54 LIVE cards — exactly 18 per act. The old `minPlayers` tier (3+P / 4+P card sets) is GONE:
+// every player count now draws from the same per-act pool (5-8P doubles it, see getActPool).
+//
+// `deprecated: true` = cut from the game in the July 2026 single-Store rework. These are KEPT in
+// the DB on purpose so getCardById still resolves them for spectating/rejoining/reviewing a
+// pre-gameV-3 game. getActPool filters them out, so they can never reach a live Store.
 const STORE_CARDS = [
-  // --- ACT 1 ---
-  // River (Blue) – 1 cacti  [2P: IDs 74-80]
-  { id: 'card_74', img: 'Card_74.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_75', img: 'Card_75.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_76', img: 'Card_76.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_77', img: 'Card_77.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_to_use' },
-  { id: 'card_78', img: 'Card_78.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_to_use' },
-  { id: 'card_79', img: 'Card_79.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_80', img: 'Card_80.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  // River (Blue) – 1 cacti  [3+P: ID 65]
-  { id: 'card_65', img: 'Card_65.jpg', act: 1, minPlayers: 3, dollars: 0, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  // River (Blue) – 1 cacti  [4+P: IDs 68-70]
-  { id: 'card_68', img: 'Card_68.jpg', act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_69', img: 'Card_69.jpg', act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 3, cacti: 1, special: null },
-  { id: 'card_70', img: 'Card_70.jpg', act: 1, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 1, special: 'burn_to_use' },
-  // Rattlesnake (Red) – 3 cacti  [2P: IDs 46-49]
-  { id: 'card_46', img: 'Card_46.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_47', img: 'Card_47.jpg', act: 1, minPlayers: 2, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_48', img: 'Card_48.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
-  { id: 'card_49', img: 'Card_49.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
-  // Rattlesnake (Red) – 3 cacti  [3+P: IDs 35-37]
-  { id: 'card_35', img: 'Card_35.jpg', act: 1, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_36', img: 'Card_36.jpg', act: 1, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_37', img: 'Card_37.jpg', act: 1, minPlayers: 3, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
-  // Rattlesnake (Red) – 3 cacti  [4+P: ID 40]
-  { id: 'card_40', img: 'Card_40.jpg', act: 1, minPlayers: 4, dollars: 0, cows:  2, bandits:  0, cost: 5, cacti: 3, special: null },
-  // Cactus (Yellow) – 2 cacti  [2P: IDs 10-15]
-  { id: 'card_10', img: 'Card_10.jpg', act: 1, minPlayers: 2, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_11', img: 'Card_11.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_12', img: 'Card_12.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_13', img: 'Card_13.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_14', img: 'Card_14.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 2, cacti: 2, special: 'burn_buy_first' },
-  { id: 'card_15', img: 'Card_15.jpg', act: 1, minPlayers: 2, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
-  // Cactus (Yellow) – 2 cacti  [4+P: IDs 1-3]
-  { id: 'card_1',  img: 'Card_1.jpg',  act: 1, minPlayers: 4, dollars: 1, cows:  0, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_2',  img: 'Card_2.jpg',  act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 2, cacti: 2, special: null },
-  { id: 'card_3',  img: 'Card_3.jpg',  act: 1, minPlayers: 4, dollars: 0, cows:  1, bandits:  0, cost: 3, cacti: 2, special: '2cow_if_first' },
+  // --- ACT 1 (18 live) ---
+  // River (Blue) – 1 cacti
+  { id: 'card_70',   img: 'Card_70.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 1, special: 'burn_to_use' },
+  { id: 'card_74',   img: 'Card_74.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  3, cacti: 1, special: null },
+  { id: 'card_77',   img: 'Card_77.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 1, special: 'burn_to_use' },
+  { id: 'card_78',   img: 'Card_78.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 1, special: 'burn_to_use' },
+  { id: 'card_79',   img: 'Card_79.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null },
+  { id: 'card_80',   img: 'Card_80.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_35',   img: 'Card_35.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_36',   img: 'Card_36.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_37',   img: 'Card_37.jpg',  act: 1, dollars:  0, cows:  2, bandits:  0, cost:  5, cacti: 3, special: null },
+  { id: 'card_40',   img: 'Card_40.jpg',  act: 1, dollars:  0, cows:  2, bandits:  0, cost:  5, cacti: 3, special: null },
+  { id: 'card_46',   img: 'Card_46.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_47',   img: 'Card_47.jpg',  act: 1, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_48',   img: 'Card_48.jpg',  act: 1, dollars:  0, cows:  2, bandits:  0, cost:  5, cacti: 3, special: null },
+  { id: 'card_49',   img: 'Card_49.jpg',  act: 1, dollars:  0, cows:  2, bandits:  0, cost:  5, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_1',    img: 'Card_1.jpg',   act: 1, dollars:  1, cows:  0, bandits:  0, cost:  2, cacti: 2, special: null },
+  { id: 'card_10',   img: 'Card_10.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  2, cacti: 2, special: null },
+  { id: 'card_11',   img: 'Card_11.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  2, cacti: 2, special: null },
+  { id: 'card_12',   img: 'Card_12.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  2, cacti: 2, special: null },
 
-  // --- ACT 2 ---
-  // River (Blue) – 1 cacti  [2P: IDs 81-83]
-  { id: 'card_81', img: 'Card_81.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_82', img: 'Card_82.jpg', act: 2, minPlayers: 2, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_83', img: 'Card_83.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
-  // River (Blue) – 1 cacti  [3+P: IDs 66-67]
-  { id: 'card_66', img: 'Card_66.jpg', act: 2, minPlayers: 3, dollars: 1, cows:  1, bandits:  0, cost: 4, cacti: 1, special: null },
-  { id: 'card_67', img: 'Card_67.jpg', act: 2, minPlayers: 3, dollars: 0, cows:  2, bandits:  0, cost: 6, cacti: 1, special: null },
-  // Rattlesnake (Red) – 3 cacti  [2P: IDs 50-54]
-  { id: 'card_50', img: 'Card_50.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_51', img: 'Card_51.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
-  { id: 'card_52', img: 'Card_52.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
-  { id: 'card_53', img: 'Card_53.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 5, cacti: 3, special: null },
-  { id: 'card_54', img: 'Card_54.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost: 5, cacti: 3, special: 'draw4' },
-  // Rattlesnake (Red) – 3 cacti  [3+P: IDs 38-39]
-  { id: 'card_38', img: 'Card_38.jpg', act: 2, minPlayers: 3, dollars: 2, cows:  0, bandits:  0, cost: 3, cacti: 3, special: null },
-  { id: 'card_39', img: 'Card_39.jpg', act: 2, minPlayers: 3, dollars: 0, cows:  0, bandits: -1, cost: 4, cacti: 3, special: 'burn_to_use' },
-  // Rattlesnake (Red) – 3 cacti  [4+P: IDs 41-43]
-  { id: 'card_41', img: 'Card_41.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
-  { id: 'card_42', img: 'Card_42.jpg', act: 2, minPlayers: 4, dollars: 2, cows:  1, bandits:  0, cost: 4, cacti: 3, special: null },
-  { id: 'card_43', img: 'Card_43.jpg', act: 2, minPlayers: 4, dollars: 0, cows:  5, bandits:  2, cost: 4, cacti: 3, special: null },
-  // Cactus (Yellow) – 2 cacti  [2P: IDs 16-24]
-  { id: 'card_16', img: 'Card_16.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_17', img: 'Card_17.jpg', act: 2, minPlayers: 2, dollars: 4, cows:  0, bandits:  1, cost: 3, cacti: 2, special: null },
-  { id: 'card_18', img: 'Card_18.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  2, bandits:  0, cost: 4, cacti: 2, special: null },
-  { id: 'card_19', img: 'Card_19.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'look3_rearrange' },
-  { id: 'card_20', img: 'Card_20.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
-  { id: 'card_21', img: 'Card_21.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'extra_buy' },
-  { id: 'card_22', img: 'Card_22.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_23', img: 'Card_23.jpg', act: 2, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost: 5, cacti: 2, special: 'replay_discard' },
-  { id: 'card_24', img: 'Card_24.jpg', act: 2, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'dollar1_other' },
-  // Cactus (Yellow) – 2 cacti  [4+P: IDs 4-7]
-  { id: 'card_4',  img: 'Card_4.jpg',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 6, cacti: 2, special: 'swap_revealed' },
-  { id: 'card_5',  img: 'Card_5.jpg',  act: 2, minPlayers: 4, dollars: 3, cows:  0, bandits:  0, cost: 3, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_6',  img: 'Card_6.jpg',  act: 2, minPlayers: 4, dollars: 2, cows:  0, bandits:  0, cost: 4, cacti: 2, special: null },
-  { id: 'card_7',  img: 'Card_7.jpg',  act: 2, minPlayers: 4, dollars: 0, cows:  0, bandits:  0, cost: 4, cacti: 2, special: 'copy_next' },
+  // --- ACT 2 (18 live) ---
+  // River (Blue) – 1 cacti
+  { id: 'card_66',   img: 'Card_66.jpg',  act: 2, dollars:  1, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null },
+  { id: 'card_67',   img: 'Card_67.jpg',  act: 2, dollars:  0, cows:  2, bandits:  0, cost:  6, cacti: 1, special: null },
+  { id: 'card_81',   img: 'Card_81.jpg',  act: 2, dollars:  1, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null },
+  { id: 'card_82',   img: 'Card_82.jpg',  act: 2, dollars:  1, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null },
+  { id: 'card_83',   img: 'Card_83.jpg',  act: 2, dollars:  0, cows:  2, bandits:  0, cost:  6, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_5',    img: 'Card_5.jpg',   act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
+  { id: 'card_16',   img: 'Card_16.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
+  { id: 'card_22',   img: 'Card_22.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
+  { id: 'card_38',   img: 'Card_38.jpg',  act: 2, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_41',   img: 'Card_41.jpg',  act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
+  { id: 'card_42',   img: 'Card_42.jpg',  act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
+  { id: 'card_43',   img: 'Card_43.jpg',  act: 2, dollars:  0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
+  { id: 'card_51',   img: 'Card_51.jpg',  act: 2, dollars:  0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
+  { id: 'card_52',   img: 'Card_52.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  5, cacti: 3, special: null },
+  { id: 'card_53',   img: 'Card_53.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  5, cacti: 3, special: null },
+  { id: 'card_54',   img: 'Card_54.jpg',  act: 2, dollars:  0, cows:  3, bandits:  0, cost:  5, cacti: 3, special: 'draw4' },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_6',    img: 'Card_6.jpg',   act: 2, dollars:  2, cows:  0, bandits:  0, cost:  4, cacti: 2, special: null },
+  { id: 'card_18',   img: 'Card_18.jpg',  act: 2, dollars:  0, cows:  2, bandits:  0, cost:  4, cacti: 2, special: null },
 
-  // --- ACT 3 ---
-  // River (Blue) – 1 cacti  [2P: IDs 84-90]
-  { id: 'card_84', img: 'Card_84.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
-  { id: 'card_85', img: 'Card_85.jpg', act: 3, minPlayers: 2, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
-  { id: 'card_86', img: 'Card_86.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
-  { id: 'card_87', img: 'Card_87.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
-  { id: 'card_88', img: 'Card_88.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
-  { id: 'card_89', img: 'Card_89.jpg', act: 3, minPlayers: 2, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
-  { id: 'card_90', img: 'Card_90.jpg', act: 3, minPlayers: 2, dollars: 2, cows:  3, bandits:  0, cost:  9, cacti: 1, special: null },
-  // River (Blue) – 1 cacti  [4+P: IDs 71-73]
-  { id: 'card_71', img: 'Card_71.jpg', act: 3, minPlayers: 4, dollars: 0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null },
-  { id: 'card_72', img: 'Card_72.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
-  { id: 'card_73', img: 'Card_73.jpg', act: 3, minPlayers: 4, dollars: 4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
-  // Rattlesnake (Red) – 3 cacti  [2P: IDs 55-60]
-  { id: 'card_55', img: 'Card_55.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  3, bandits:  0, cost: 10, cacti: 3, special: null },
-  { id: 'card_56', img: 'Card_56.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
-  { id: 'card_57', img: 'Card_57.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
-  { id: 'card_58', img: 'Card_58.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
-  { id: 'card_59', img: 'Card_59.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
-  { id: 'card_60', img: 'Card_60.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  5, bandits:  1, cost:  9, cacti: 3, special: null },
-  // Rattlesnake (Red) – 3 cacti  [4+P: IDs 44-45]
-  { id: 'card_44', img: 'Card_44.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null },
-  { id: 'card_45', img: 'Card_45.jpg', act: 3, minPlayers: 4, dollars: 0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
-  // Cactus (Yellow) – 2 cacti  [2P: IDs 25-32]
-  { id: 'card_25', img: 'Card_25.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  2, bandits: -1, cost: 10, cacti: 2, special: null },
-  { id: 'card_26', img: 'Card_26.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
-  { id: 'card_27', img: 'Card_27.jpg', act: 3, minPlayers: 2, dollars: 3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
-  { id: 'card_28', img: 'Card_28.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
-  { id: 'card_29', img: 'Card_29.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
-  { id: 'card_30', img: 'Card_30.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
-  { id: 'card_31', img: 'Card_31.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  0, bandits:  0, cost:  8, cacti: 2, special: 'look3_immediate' },
-  { id: 'card_32', img: 'Card_32.jpg', act: 3, minPlayers: 2, dollars: 0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
-  // Cactus (Yellow) – 2 cacti  [4+P: IDs 8-9]
-  { id: 'card_8',  img: 'Card_8.jpg',  act: 3, minPlayers: 4, dollars: 0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
-  { id: 'card_9',  img: 'Card_9.jpg',  act: 3, minPlayers: 4, dollars: 3, cows:  2, bandits:  0, cost:  8, cacti: 2, special: null },
+  // --- ACT 3 (18 live) ---
+  // River (Blue) – 1 cacti
+  { id: 'card_72',   img: 'Card_72.jpg',  act: 3, dollars:  0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_73',   img: 'Card_73.jpg',  act: 3, dollars:  4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
+  { id: 'card_84',   img: 'Card_84.jpg',  act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 1, special: 'draw4' },
+  { id: 'card_85',   img: 'Card_85.jpg',  act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 1, special: 'draw4' },
+  { id: 'card_86',   img: 'Card_86.jpg',  act: 3, dollars:  3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
+  { id: 'card_88',   img: 'Card_88.jpg',  act: 3, dollars:  0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
+  { id: 'card_89',   img: 'Card_89.jpg',  act: 3, dollars:  4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
+  { id: 'card_90',   img: 'Card_90.jpg',  act: 3, dollars:  2, cows:  3, bandits:  0, cost:  9, cacti: 1, special: null },
+  // Rattlesnake (Red) – 3 cacti
+  { id: 'card_45',   img: 'Card_45.jpg',  act: 3, dollars:  0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_57',   img: 'Card_57.jpg',  act: 3, dollars:  0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },
+  { id: 'card_58',   img: 'Card_58.jpg',  act: 3, dollars:  0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  { id: 'card_59',   img: 'Card_59.jpg',  act: 3, dollars:  0, cows:  4, bandits:  0, cost:  8, cacti: 3, special: null },
+  // Cactus (Yellow) – 2 cacti
+  { id: 'card_9',    img: 'Card_9.jpg',   act: 3, dollars:  3, cows:  2, bandits:  0, cost:  8, cacti: 2, special: null },
+  { id: 'card_26',   img: 'Card_26.jpg',  act: 3, dollars:  3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null },
+  { id: 'card_28',   img: 'Card_28.jpg',  act: 3, dollars:  0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_29',   img: 'Card_29.jpg',  act: 3, dollars:  0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
+  { id: 'card_30',   img: 'Card_30.jpg',  act: 3, dollars:  0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
+  { id: 'card_32',   img: 'Card_32.jpg',  act: 3, dollars:  0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
+
+  // --- DEPRECATED (never dealt; retained so historical games still render) ---
+  // was Act 1
+  { id: 'card_2',    img: 'Card_2.jpg',   act: 1, dollars:  0, cows:  1, bandits:  0, cost:  2, cacti: 2, special: null, deprecated: true },
+  { id: 'card_3',    img: 'Card_3.jpg',   act: 1, dollars:  0, cows:  1, bandits:  0, cost:  3, cacti: 2, special: '2cow_if_first', deprecated: true },
+  { id: 'card_13',   img: 'Card_13.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  2, cacti: 2, special: null, deprecated: true },
+  { id: 'card_14',   img: 'Card_14.jpg',  act: 1, dollars:  0, cows:  0, bandits:  0, cost:  2, cacti: 2, special: 'burn_buy_first', deprecated: true },
+  { id: 'card_15',   img: 'Card_15.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  3, cacti: 2, special: '2cow_if_first', deprecated: true },
+  { id: 'card_65',   img: 'Card_65.jpg',  act: 1, dollars:  0, cows:  1, bandits:  0, cost:  4, cacti: 1, special: null, deprecated: true },
+  { id: 'card_68',   img: 'Card_68.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  3, cacti: 1, special: null, deprecated: true },
+  { id: 'card_69',   img: 'Card_69.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  3, cacti: 1, special: null, deprecated: true },
+  { id: 'card_75',   img: 'Card_75.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  3, cacti: 1, special: null, deprecated: true },
+  { id: 'card_76',   img: 'Card_76.jpg',  act: 1, dollars:  1, cows:  0, bandits:  0, cost:  3, cacti: 1, special: null, deprecated: true },
+  // was Act 2
+  { id: 'card_4',    img: 'Card_4.jpg',   act: 2, dollars:  0, cows:  0, bandits:  0, cost:  6, cacti: 2, special: 'swap_revealed', deprecated: true },
+  { id: 'card_7',    img: 'Card_7.jpg',   act: 2, dollars:  0, cows:  0, bandits:  0, cost:  4, cacti: 2, special: 'copy_next', deprecated: true },
+  { id: 'card_17',   img: 'Card_17.jpg',  act: 2, dollars:  4, cows:  0, bandits:  1, cost:  3, cacti: 2, special: null, deprecated: true },
+  { id: 'card_19',   img: 'Card_19.jpg',  act: 2, dollars:  0, cows:  0, bandits:  0, cost:  4, cacti: 2, special: 'look3_rearrange', deprecated: true },
+  { id: 'card_20',   img: 'Card_20.jpg',  act: 2, dollars:  0, cows:  0, bandits:  0, cost:  4, cacti: 2, special: 'copy_next', deprecated: true },
+  { id: 'card_21',   img: 'Card_21.jpg',  act: 2, dollars:  0, cows:  0, bandits:  0, cost:  4, cacti: 2, special: 'extra_buy', deprecated: true },
+  { id: 'card_23',   img: 'Card_23.jpg',  act: 2, dollars:  0, cows:  0, bandits:  0, cost:  5, cacti: 2, special: 'replay_discard', deprecated: true },
+  { id: 'card_24',   img: 'Card_24.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  6, cacti: 2, special: 'dollar1_other', deprecated: true },
+  { id: 'card_39',   img: 'Card_39.jpg',  act: 2, dollars:  0, cows:  0, bandits: -1, cost:  4, cacti: 3, special: 'burn_to_use', deprecated: true },
+  { id: 'card_50',   img: 'Card_50.jpg',  act: 2, dollars:  0, cows:  0, bandits: -1, cost:  4, cacti: 3, special: 'burn_to_use', deprecated: true },
+  // was Act 3
+  { id: 'card_8',    img: 'Card_8.jpg',   act: 3, dollars:  0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null, deprecated: true },
+  { id: 'card_25',   img: 'Card_25.jpg',  act: 3, dollars:  0, cows:  2, bandits: -1, cost: 10, cacti: 2, special: null, deprecated: true },
+  { id: 'card_27',   img: 'Card_27.jpg',  act: 3, dollars:  3, cows:  0, bandits:  0, cost:  5, cacti: 2, special: null, deprecated: true },
+  { id: 'card_31',   img: 'Card_31.jpg',  act: 3, dollars:  0, cows:  0, bandits:  0, cost:  8, cacti: 2, special: 'look3_immediate', deprecated: true },
+  { id: 'card_44',   img: 'Card_44.jpg',  act: 3, dollars:  0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null, deprecated: true },
+  { id: 'card_55',   img: 'Card_55.jpg',  act: 3, dollars:  3, cows:  3, bandits:  0, cost: 10, cacti: 3, special: null, deprecated: true },
+  { id: 'card_56',   img: 'Card_56.jpg',  act: 3, dollars:  0, cows:  5, bandits:  0, cost: 11, cacti: 3, special: null, deprecated: true },
+  { id: 'card_60',   img: 'Card_60.jpg',  act: 3, dollars:  0, cows:  5, bandits:  1, cost:  9, cacti: 3, special: null, deprecated: true },
+  { id: 'card_71',   img: 'Card_71.jpg',  act: 3, dollars:  0, cows: -1, bandits: -1, cost:  5, cacti: 1, special: null, deprecated: true },
+  { id: 'card_87',   img: 'Card_87.jpg',  act: 3, dollars:  0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null, deprecated: true },
 ];
 
 // Build lookup
@@ -1303,15 +1240,14 @@ function getCardById(id) {
   return createCardInstance(tmpl, tmpl.img);
 }
 
+// The cards eligible for one act tier of the Store. Every player count draws from the SAME
+// 18-card per-act pool (the minPlayers tier is gone); deprecated cards are never dealt.
 function getActPool(act) {
-  const pool = STORE_CARDS.filter(c => c.act === act && c.minPlayers <= G.numPlayers);
-  // 5-8P play with a second deck: the per-act pool tops out at 28 distinct cards
-  // (there is no minPlayers>4 tier), but the Store needs up to 56 (8P), so draw from
-  // two copies of the full act pool. buildPyramid wraps each in createCardInstance, so
-  // the duplicates get distinct uids; only card.id repeats.
-  // Width note: needed = numPlayers × pyramidWidth(). The numPlayers>=5 threshold holds
-  // for any width ≤7 (4P needs ≤28 = the distinct pool; 5P+ exceeds it). If a future
-  // mode uses width >7, 4P could exceed 28 and would also need doubling — revisit then.
+  const pool = STORE_CARDS.filter(c => c.act === act && !c.deprecated);
+  // 2-4P take 10/14/18 of the 18 distinct cards — one deck. 5-8P need 24/27/30/33 per act,
+  // which exceeds 18, so they play with a SECOND deck: two copies of the act pool (36).
+  // buildPyramid wraps each in createCardInstance, so duplicates get distinct uids; only
+  // card.id repeats. 33 ≤ 36, so 8P (the largest) still fits.
   if (G.numPlayers >= 5) return pool.concat(pool);
   return pool;
 }
@@ -1452,7 +1388,7 @@ function initState(numPlayers, players) {
     currentAct: 1,
     phase: 'start',
     roundNumber: 1,
-    // Optional explicit Store-width override; null = derive from mode (Pioneer→6, else 7)
+    // Optional explicit Store-width override; null = derive from numPlayers (STORE_WIDTH)
     // in pyramidWidth(). Width never needs to be in G unless a future mode sets it directly.
     pyramidWidth: null,
     players: players || [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)],
@@ -1479,19 +1415,50 @@ function initState(numPlayers, players) {
 // covered by just 1 — both unlock only when their coverer(s) are removed. Simpler to
 // explain and lay out than the old centered triangle (which capped at width 7 then
 // added flat rows for 5-8P).
-const DEFAULT_PYRAMID_WIDTH = 7;   // standard Store width: 7 cards per row
-const PIONEER_PYRAMID_WIDTH = 6;   // Pioneer Mode: leaner 6-card rows (faster game)
-// Cards per row for the CURRENT game. Pioneer Mode → 6, otherwise 7. `G.pyramidWidth`
-// is an optional explicit override (unset by default) so a future width mode can set it
-// directly without a new branch. Every function below derives from this; the half-card
-// BRICK offset and "rows == player count" rule are width-independent and never change.
+// --- STORE SHAPE (single structure, built once at game start) ---
+// The whole game is ONE Store, dealt in three act tiers: Act 3 on top, Act 2 in the middle,
+// Act 1 in front (bottom). Play eats it front-to-back, so the act progression is emergent —
+// there is no mid-game setup and no act boundary. 2-4P get 6 rows (2 per act), 5-8P get 9
+// rows (3 per act); width varies by player count so cards-per-act lands on the design target.
+//
+//   Players   2    3    4  |  5    6    7    8
+//   Width     5    7    9  |  8    9   10   11
+//   Rows      6    6    6  |  9    9    9    9
+//   Cards/act 10   14   18 | 24   27   30   33
+//   Store    30   42   54  | 72   81   90   99
+const STORE_WIDTH  = { 2: 5, 3: 7, 4: 9, 5: 8, 6: 9, 7: 10, 8: 11 };
+const DEFAULT_PYRAMID_WIDTH = 7;   // fallback only (pre-G calls, e.g. early CSS sizing)
+
+// Cards per row for the CURRENT game. `G.pyramidWidth` is an optional explicit override
+// (unset by default) so a future mode can set it directly without a new branch. Every
+// function below derives from this; the half-card BRICK offset is width-independent.
 function pyramidWidth() {
   if (typeof G === 'undefined' || !G) return DEFAULT_PYRAMID_WIDTH;
   if (G.pyramidWidth) return G.pyramidWidth;                    // explicit override wins
-  return G.pioneerMode ? PIONEER_PYRAMID_WIDTH : DEFAULT_PYRAMID_WIDTH;
+  return STORE_WIDTH[G.numPlayers] || DEFAULT_PYRAMID_WIDTH;
 }
 function pyramidRowWidth(row) {
   return pyramidWidth();
+}
+// Rows in one act tier (2-4P → 2, 5-8P → 3) and in the whole Store (3 tiers).
+function rowsPerTier() { return (G.numPlayers <= 4) ? 2 : 3; }
+function storeRows()   { return rowsPerTier() * 3; }
+// The act tier a Store row belongs to: rows 0..(t-1) are Act 3, the middle t are Act 2,
+// the front t are Act 1. Used by storeStage() to tell the AI how far along the game is.
+function rowAct(row) {
+  return 3 - Math.floor(row / rowsPerTier());
+}
+
+// How far along the game is, as 1|2|3 — the AI's replacement for the old G.currentAct.
+// It is the act tier of the FRONTMOST row that still holds a card: at the start the Act 1
+// rows are on offer (stage 1, economy lens), by the end only the Act 3 rows remain (stage 3,
+// cow lens). Pure and derived from shared state, so every client computes it identically.
+function storeStage() {
+  if (!G.pyramid || !G.pyramid.length) return 1;
+  for (let row = G.pyramid.length - 1; row >= 0; row--) {
+    if (G.pyramid[row].some(slot => slot && !slot.removed)) return rowAct(row);
+  }
+  return 3; // Store empty — the game is over anyway
 }
 
 // Horizontal center of card (row,col) in card-width units (origin = pyramid center).
@@ -1503,22 +1470,29 @@ function pyramidColCenter(row, col) {
   return col0 + col;
 }
 
-// Build pyramid from act pool; if cardIds provided (MP), use that fixed order
-function buildPyramid(act, cardIds) {
-  const numRows = G.numPlayers; // rows == player count: 2P→2, 3P→3 … 8P→8 (all 7 wide)
-  let needed = 0;
-  for (let r = 0; r < numRows; r++) needed += pyramidRowWidth(r);
+// Build the whole Store in one pass. Each act tier is shuffled and sliced independently,
+// then laid top-to-bottom Act 3 → Act 2 → Act 1, so the front rows a player can reach at
+// the start are always Act 1. If cardIds is provided (MP guest / rejoin / tutorial) that
+// exact row-major order is used instead.
+function buildPyramid(cardIds) {
+  const numRows = storeRows();
+  const width   = pyramidWidth();
+  const perTier = rowsPerTier() * width;   // cards in one act tier
 
   let selected;
   if (cardIds) {
-    // MP: reconstruct cards from shared IDs
+    // MP: reconstruct cards from shared IDs (ids repeat under the 5-8P double deck; each
+    // still gets its own uid via createCardInstance below)
     selected = cardIds.map(id => STORE_CARDS.find(c => c.id === id)).filter(Boolean);
   } else {
-    const pool = shuffle(getActPool(act));
-    if (pool.length < needed) {
-      console.warn(`Act ${act} only has ${pool.length} cards, need ${needed}. Using all available.`);
+    selected = [];
+    for (const act of [3, 2, 1]) {          // top tier first — row 0 is the back of the Store
+      const pool = shuffle(getActPool(act));
+      if (pool.length < perTier) {
+        console.warn(`Act ${act} pool has ${pool.length} cards, need ${perTier}. Using all available.`);
+      }
+      selected.push(...pool.slice(0, Math.min(perTier, pool.length)));
     }
-    selected = pool.slice(0, Math.min(needed, pool.length));
   }
 
   const pyramid = [];
@@ -1921,7 +1895,7 @@ function updateBugContext() {
 }
 
 function render() {
-  if (!G || G.phase === 'start' || G.phase === 'draft') return;
+  if (!G || G.phase === 'start') return;
 
   // Always clear hover preview on every render (phase changes, store resets, etc.)
   hideCardHoverPreview();
@@ -1939,8 +1913,7 @@ function render() {
   // fold). fitPyramid is already a no-op at <5P, so the cap must not apply there.
   document.body.classList.toggle('count-5plus', G.numPlayers >= 5);
 
-  // Header
-  document.getElementById('act-display').textContent = 'Act ' + G.currentAct;
+  // Header — acts are gone (one Store for the whole game), so it's just the round now
   document.getElementById('round-display').textContent = 'Round ' + G.roundNumber;
 
   // Keep a lightweight game snapshot in localStorage so the bug-report page can
@@ -2201,9 +2174,13 @@ function renderPyramid() {
     pyramidEl.appendChild(rowDiv);
   }
   fitPyramid();
+  // This function rebuilds the Store DOM from scratch, dropping any tutorial highlight.
+  // Put the current step's hint back, or the buy step says "Buy the highlighted Cow
+  // card" with nothing highlighted.
+  if (TUTORIAL.active) TUTORIAL.reapplyPyramidHint();
 }
 
-// Every layout is now 7 cards wide (7.5 with the brick overhang) × up-to-8 rows, which
+// The Store is up to 11 cards wide (11.5 with the brick overhang) × 9 rows, which
 // can overflow the fixed-size #pyramid-zone (overflow:hidden → clipped cards). Measure
 // the rendered cards and apply a single transform that recenters the pyramid in its
 // zone and scales it down to fit both width and height. Only ever scales down (≤1), so
@@ -2233,7 +2210,14 @@ function fitPyramid() {
   // the label height, so a height-capped pyramid (8P draw phase, 40vh cap) overshot the
   // zone bottom by the label height and got clipped by overflow:hidden.
   const availH = (zr.bottom - pad) - minT;
-  const scale = Math.min(1, (zr.width - pad * 2) / natW, availH / natH);
+  const availW = zr.width - pad * 2;
+  // Bail out if nothing is measurable yet rather than scaling by a garbage ratio. A zone
+  // that hasn't been laid out (0×0 viewport during navigation, display:none ancestor)
+  // yields availH <= 0, and availH/natH then goes NEGATIVE — scale(-0.01) mirrors the
+  // whole Store down to nothing and it vanishes. transform was reset to 'none' above, so
+  // returning here just leaves it unscaled; the next render/resize fits it properly.
+  if (natW <= 0 || natH <= 0 || availW <= 0 || availH <= 0) return;
+  const scale = Math.min(1, availW / natW, availH / natH);
   const contentCenter = (minL + maxR) / 2;
   const pyrBox = pyr.getBoundingClientRect();
   // Pivot scaling about the content's center-x and top edge, then slide that center to
@@ -2400,271 +2384,6 @@ function mpSyncDraw() {
 
 // --- GAME FLOW ---
 
-// ============================================================
-// QUICK START DRAFT
-// ============================================================
-
-// Seeded shuffle for draft pack dealing — all MP clients derive identical packs from gameSeed
-function seededDraftShuffle(arr, gameSeed) {
-  const a = [...arr];
-  let seed = ((gameSeed ^ 0x5a5a5a5a) >>> 0) || 1;
-  function next() {
-    seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  }
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(next() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// AI drafts by buy-phase card value (personality-driven). The pick is free, so cost
-// is irrelevant — we reuse scoreCardForAI (the cost-free value half of the buy decision)
-// so draft choices match how each AI values cards everywhere else. Scored under the
-// current act (Act 1 economy lens; the draft runs before setupAct(2)). Ties break by
-// card id for cross-client determinism — all clients compute AI draft picks locally.
-function aiDraftPick(pack, ai) {
-  if (!pack || pack.length === 0) return null;
-  return pack
-    .map(card => ({ id: card.id, score: scoreCardForAI(card, ai) }))
-    .sort((a, b) => (b.score - a.score) || a.id.localeCompare(b.id))[0].id;
-}
-
-// Append a line to the draft overlay's running log
-function addDraftLog(text) {
-  const log = document.getElementById('draft-log');
-  if (!log) return;
-  const entry = document.createElement('div');
-  entry.className = 'draft-log-entry';
-  entry.textContent = text;
-  log.appendChild(entry);
-  log.scrollTop = log.scrollHeight;
-}
-
-// Show the current pack in the draft overlay; resolves with the card ID the human picks
-function showDraftPackAndWait(pack, round) {
-  return new Promise(resolve => {
-    document.getElementById('draft-round-label').textContent =
-      `Round ${round + 1} of 4 \u2014 ${pack.length} cards to choose from`;
-
-    const grid        = document.getElementById('draft-card-grid');
-    const msgEl       = document.getElementById('draft-message');
-    const previewWrap = document.getElementById('draft-action-preview-wrap');
-    const previewImg  = document.getElementById('draft-action-preview');
-    const confirmBtn  = document.getElementById('draft-confirm-btn');
-    const cancelBtn   = document.getElementById('draft-cancel-btn');
-    grid.innerHTML = '';
-    msgEl.textContent = 'Pick a card to add to your deck.';
-    previewWrap.classList.remove('has-card');
-    previewImg.src = '';
-    confirmBtn.disabled = true;
-    cancelBtn.disabled  = true;
-
-    let pendingCard = null;
-    let pendingEl   = null;
-    let confirmed   = false;
-
-    function selectCard(card, el) {
-      if (pendingEl) pendingEl.classList.remove('draft-pending');
-      pendingCard = card;
-      pendingEl   = el;
-      el.classList.add('draft-pending');
-      previewImg.src = cardImgSrc(card, true);
-      previewWrap.classList.add('has-card');
-      confirmBtn.disabled = false;
-      cancelBtn.disabled  = false;
-      msgEl.textContent = '';
-    }
-
-    function clearSelection() {
-      if (pendingEl) pendingEl.classList.remove('draft-pending');
-      pendingCard = null;
-      pendingEl   = null;
-      previewWrap.classList.remove('has-card');
-      previewImg.src = '';
-      confirmBtn.disabled = true;
-      cancelBtn.disabled  = true;
-      msgEl.textContent = 'Pick a card to add to your deck.';
-    }
-
-    confirmBtn.onclick = () => {
-      if (!pendingCard || confirmed) return;
-      confirmed = true;
-      previewWrap.classList.remove('has-card');
-      confirmBtn.disabled = true;
-      cancelBtn.disabled  = true;
-      grid.querySelectorAll('.card').forEach(c => {
-        c.classList.remove('draft-pending');
-        c.classList.add('draft-unchosen');
-      });
-      pendingEl.classList.remove('draft-unchosen');
-      pendingEl.classList.add('draft-selected');
-      msgEl.textContent = G.numPlayers > 1 ? 'Waiting for others\u2026' : '';
-      resolve(pendingCard.id);
-    };
-
-    cancelBtn.onclick = () => {
-      if (confirmed) return;
-      clearSelection();
-    };
-
-    pack.forEach(card => {
-      const el = renderCardEl(card, true);
-      el.onclick = (e) => {
-        if (confirmed) return;
-        e.stopPropagation();
-        selectCard(card, el);
-      };
-      grid.appendChild(el);
-    });
-  });
-}
-
-// Host-only draft force valve (audit H4): the draft used to have NO recovery - a stuck
-// player (evicted tab, closed browser) blocked waitForDraftRoundPicks forever, with no
-// spectatorState for anyone to rejoin into. After 45s the host gets a button that
-// transaction-writes a default pick (top of the stuck seat's current pack) for every
-// human seat without a pick this round; only-if-absent, so a racing real pick wins.
-let _draftForceTimer = null;
-function armDraftForceValve(round, packsBySlot) {
-  clearDraftForceValve();
-  if (!(MP.active && MP.isHost)) return;
-  _draftForceTimer = setTimeout(() => {
-    _draftForceTimer = null;
-    const msgEl = document.getElementById('draft-message');
-    if (!msgEl) return;
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-secondary btn-force';
-    btn.textContent = 'Force continue \u25b8';
-    btn.style.marginLeft = '0.75rem';
-    btn.onclick = () => {
-      btn.remove();
-      for (let i = 1; i < G.numPlayers; i++) {
-        const p = G.players[i];
-        if (!p.isHuman) continue;
-        const pack = packsBySlot[p.slotIdx] || [];
-        if (pack.length) MP.forceDraftPick(round, p.slotIdx, pack[0].id);
-      }
-    };
-    msgEl.appendChild(btn);
-  }, 45000);
-}
-function clearDraftForceValve() {
-  if (_draftForceTimer) { clearTimeout(_draftForceTimer); _draftForceTimer = null; }
-}
-
-async function runQuickStartDraft() {
-  G.phase = 'draft';
-
-  const overlay = document.getElementById('draft-overlay');
-  overlay.classList.remove('hidden');
-  document.getElementById('draft-log').innerHTML = '';
-
-  // Deal packs: seeded so all MP clients compute the same initial layout.
-  const pool = seededDraftShuffle(getActPool(1), G.gameSeed);
-  const neededCards = G.numPlayers * 6;
-  if (pool.length < neededCards) {
-    console.warn(`[Draft] Act 1 pool has ${pool.length} cards, need ${neededCards}.`);
-  }
-
-  // packsBySlot[slotIdx] = cards currently held by that SEAT. Keyed by Firebase slot,
-  // NOT by local G.players index (audit C8): local index order differs per client in
-  // MP (the local player is always index 0), so index-keyed packs dealt each client a
-  // DIFFERENT slice for the same seat - every human drafted from slice 0 on their own
-  // client, AI picks were computed from mismatched packs per client, and the pass
-  // rotation ran in different orders. Slot-keying restores one shared layout on every
-  // client (in SP slotIdx === player index, so SP behavior is unchanged).
-  let packsBySlot = {};
-  G.players.forEach(p => {
-    packsBySlot[p.slotIdx] = pool.slice(p.slotIdx * 6, p.slotIdx * 6 + 6).map(c => createCardInstance(c));
-  });
-
-  addLog('--- Quick Start Draft begins! ---', 'log-score');
-
-  const mySlot = G.players[0].slotIdx;
-
-  // 4 draft rounds
-  for (let round = 0; round < 4; round++) {
-    const picksBySlot = {};
-
-    // Local human always drafts from their own seat's pack. On a draft RE-ENTRY
-    // (refresh / evicted tab, audit H4) our pick for this round may already be in
-    // Firebase: consume it silently instead of re-prompting, so the replayed draft
-    // converges with what the other clients already consumed.
-    let humanPickId = null;
-    if (MP.active) {
-      const existing = await MP.getDraftPick(round);
-      if (existing && packsBySlot[mySlot].some(c => c.id === existing)) {
-        humanPickId = existing;
-        addDraftLog(`Round ${round + 1}: restored your earlier pick.`);
-      }
-    }
-    if (!humanPickId) {
-      humanPickId = await showDraftPackAndWait(packsBySlot[mySlot], round);
-    }
-    picksBySlot[mySlot] = humanPickId;
-
-    if (MP.active) {
-      await MP.pushDraftPick(round, humanPickId);
-      document.getElementById('draft-message').textContent = 'Waiting for other players\u2026';
-      armDraftForceValve(round, packsBySlot);
-      // Receive human opponent picks from Firebase; compute AI picks locally
-      const opponentPicks = await MP.waitForDraftRoundPicks(round);
-      clearDraftForceValve();
-      for (let i = 1; i < G.numPlayers; i++) {
-        const p = G.players[i];
-        picksBySlot[p.slotIdx] = p.isHuman ? opponentPicks[p.slotIdx] : aiDraftPick(packsBySlot[p.slotIdx], p);
-      }
-    } else {
-      for (let i = 1; i < G.numPlayers; i++) {
-        const p = G.players[i];
-        picksBySlot[p.slotIdx] = aiDraftPick(packsBySlot[p.slotIdx], p);
-      }
-    }
-
-    // Apply picks: each seat's chosen card goes to that player's discard; the rest of
-    // the pack passes to the next SLOT - the same shared rotation on every client.
-    const newPacksBySlot = {};
-    for (const p of G.players) {
-      const s = p.slotIdx;
-      const pack = packsBySlot[s] || [];
-      const pickedId = picksBySlot[s];
-      // Remove exactly ONE instance: 5-8P packs can hold duplicate ids (doubled act
-      // pool), and filtering by id would strip both copies from the passed pack.
-      const idx = pickedId ? pack.findIndex(c => c.id === pickedId) : -1;
-      const pickedCard = idx >= 0 ? pack[idx] : null;
-      if (pickedCard) {
-        p.discard.push(pickedCard);
-        if (p === G.players[0]) {
-          const costStr = pickedCard.cost > 0 ? ` (cost $${pickedCard.cost})` : '';
-          addDraftLog(`Round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
-          addLog(`Draft round ${round + 1}: You drafted Card ${pickedCard.id.replace('card_', '')}${costStr}.`);
-        }
-      }
-      newPacksBySlot[(s + 1) % G.numPlayers] = pack.filter((c, j) => j !== idx);
-    }
-    packsBySlot = newPacksBySlot;
-
-    if (round < 3) {
-      document.getElementById('draft-message').textContent = 'Passing cards to next player\u2026';
-      await delay(700);
-    }
-  }
-
-  // Done — remaining 2 cards per pack are discarded
-  document.getElementById('draft-round-label').textContent = 'Draft complete!';
-  document.getElementById('draft-card-grid').innerHTML = '';
-  document.getElementById('draft-message').textContent = '';
-  addDraftLog('Remaining cards burned. Starting Act 2\u2026');
-  addLog('Quick Start Draft complete \u2014 4 cards drafted into each deck.', 'log-score');
-
-  await delay(1600);
-  overlay.classList.add('hidden');
-
-  await setupAct(2);
-}
-
 async function startGame() {
   document.getElementById('showdown-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
@@ -2720,34 +2439,28 @@ async function startGame() {
       }
       // No game state to restore.
       if (params.has('rejoin') || MP.recovered) {
-        if (cfg.quickStartMode) {
-          // Quick Draw game with no snapshot ⇒ still in (or before) the draft — the
-          // first spectatorState is only pushed at Act 2 round 1. Fall through to the
-          // normal path: the seeded draft replays deterministically and this player's
-          // already-pushed picks are auto-consumed (see runQuickStartDraft), so an
-          // evicted player recovers instead of being locked out of the draft (audit H4).
-        } else {
-          // Explicit rejoin OR eviction-recovery reload: NEVER fall through to the
-          // fresh-start path (that would call setupAct(1) and clobber an in-progress
-          // game for everyone — bugs #8/#15). But the missing snapshot can also be a
-          // transient fetch miss (flaky mobile connectivity), so keep watching and
-          // resume the moment one appears instead of dead-ending (audit H3).
-          setMessage('Could not restore the game yet — retrying…');
-          setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
-          let resuming = false;
-          MP.watchSpectatorState((s) => {
-            if (!s || resuming) return;
-            resuming = true;
-            MP.unwatchSpectatorState();
-            if (reentryKey) sessionStorage.setItem(reentryKey, '1');
-            resumeFromState(s, cfg);
-          });
-          return;
-        }
+        // Explicit rejoin OR eviction-recovery reload: NEVER fall through to the
+        // fresh-start path (that would call setupStore() and clobber an in-progress
+        // game for everyone — bugs #8/#15). But the missing snapshot can also be a
+        // transient fetch miss (flaky mobile connectivity), so keep watching and
+        // resume the moment one appears instead of dead-ending (audit H3).
+        // (Quick Draw used to be the one exception here — it had no snapshot until Act 2.
+        //  That mode is gone, so this path now has no exceptions at all.)
+        setMessage('Could not restore the game yet — retrying…');
+        setActions([{ text: 'Back to Home', onClick: () => { window.location.href = 'index.html'; } }]);
+        let resuming = false;
+        MP.watchSpectatorState((s) => {
+          if (!s || resuming) return;
+          resuming = true;
+          MP.unwatchSpectatorState();
+          if (reentryKey) sessionStorage.setItem(reentryKey, '1');
+          resumeFromState(s, cfg);
+        });
+        return;
       }
       // Marker-only re-entry with no state yet (e.g. refresh during the initial
       // connecting handshake, before any setup was pushed) — fall through and start
-      // fresh. Safe on the host: setupAct consumes an already-pushed actSetup for the
+      // fresh. Safe on the host: setupStore consumes an already-pushed actSetup for the
       // same act instead of rebuilding (audit H5), so even a refresh in the tiny
       // window between pushActSetup and the first spectatorState can't fork the
       // pyramid guests already consumed.
@@ -2783,8 +2496,6 @@ async function startGame() {
     G.gameSeed = cfg.gameSeed || 0;
     // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
-    G.quickStartMode = cfg.quickStartMode || false;
-    G.pioneerMode = cfg.pioneerMode || false;
     G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   } else {
     // Tutorial mode: skip gamesetup.html entirely
@@ -2796,8 +2507,6 @@ async function startGame() {
       G.players[1].personality = 'sheriff';
       G.gameSeed = 0;
       G.seatOrder = [0, 1];
-      G.quickStartMode = false;
-      G.pioneerMode = false;
       G.hiddenHerdMode = false;
       // Sticky per-game marker: TUTORIAL.active flips false when the coached steps end
       // (TUTORIAL.complete()) but the game keeps going as free play. Gates that must
@@ -2838,8 +2547,6 @@ async function startGame() {
           G.gameSeed       = saved.gameSeed || 0;
           G.currentAct     = saved.act;
           G.roundNumber    = saved.round;
-          G.quickStartMode = saved.quickStartMode || false;
-          G.pioneerMode    = saved.pioneerMode || false;
           G.hiddenHerdMode = saved.hiddenHerdMode || false;
           G.seatOrder      = saved.seatOrder || seededSeatOrder(players.length, G.gameSeed);
           G.pyramid = saved.pyramid.map(row => row.map(s => ({
@@ -2849,7 +2556,7 @@ async function startGame() {
           })));
           players.forEach((p, i) => { if (!p.isHuman) initAiRng(i, G.gameSeed); });
           render();
-          addLog(`Game resumed — Act ${G.currentAct}, Round ${G.roundNumber}`);
+          addLog(`Game resumed — Round ${G.roundNumber}`);
 
           if (saved.phase === 'draw') {
             G.phase = 'draw';
@@ -2893,8 +2600,6 @@ async function startGame() {
       // Generate a random seed for SP mode (used for tiebreaking and seat order)
       G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
       G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
-      G.quickStartMode = sessionStorage.getItem('quick_start_mode') === '1';
-      G.pioneerMode = sessionStorage.getItem('pioneer_mode') === '1';
       G.hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
     }
   }
@@ -2931,11 +2636,7 @@ async function startGame() {
 
   trajLogHeader(); // trajectory: header (seed, seats, version stamps) once the game code exists
 
-  if (G.quickStartMode) {
-    await runQuickStartDraft();
-  } else {
-    await setupAct(1);
-  }
+  await setupStore();
 }
 
 // --- SOLO GAME PERSISTENCE (localStorage, survives mobile tab eviction) ---
@@ -2955,8 +2656,6 @@ function saveLocalGame() {
       round: G.roundNumber,
       phase: G.phase,
       gameSeed: G.gameSeed,
-      quickStartMode: G.quickStartMode || false,
-      pioneerMode: G.pioneerMode || false,
       hiddenHerdMode: G.hiddenHerdMode || false,
       seatOrder: G.seatOrder,
       drawsDone: G.drawsDone || {},
@@ -3060,12 +2759,12 @@ async function reconstructG(state, cfg) {
 
   G = initState(cfg.numPlayers, players);
   G.playerOrder = G_playerOrder;
-  // pioneerMode must be restored BEFORE any render/covering — it sets the Store width,
-  // and the reconstructed pyramid rows are already that width; a mismatch misaligns the
-  // brick offset and breaks isCardCovered on rejoin.
-  G.pioneerMode = cfg.pioneerMode || false;
+  // NOTE: Store width now derives purely from numPlayers (STORE_WIDTH), which initState
+  // already has, so there is no mode flag to restore before the first render. If a future
+  // mode ever changes the width again, it MUST be restored here — the reconstructed rows
+  // are already that width, and a mismatch misaligns the brick offset and breaks
+  // isCardCovered on rejoin.
   G.hiddenHerdMode = cfg.hiddenHerdMode || false;
-  G.quickStartMode = cfg.quickStartMode || false;
   G.phase       = state.phase;
   G.currentAct  = state.act;
   G.roundNumber = state.round;
@@ -3242,7 +2941,7 @@ async function resumeFromState(state, cfg) {
   if (MP.isHost) document.getElementById('btn-disband').classList.remove('hidden');
   else MP.watchForDisband();
   render();
-  addLog(`Rejoined game — Act ${G.currentAct}, Round ${G.roundNumber}`);
+  addLog(`Rejoined game — Round ${G.roundNumber}`);
   if (state.phase === 'draw') {
     await resumeDrawPhase();
   } else if (state.phase === 'buy') {
@@ -3263,61 +2962,54 @@ async function resumeFromState(state, cfg) {
   }
 }
 
-async function setupAct(act) {
-  G.currentAct = act;
-  G.roundNumber = 1;
+// Build the Store. Runs exactly ONCE, at the start of the game — there is no mid-game
+// setup any more, so there is also no between-act deck merge/reshuffle (starter decks are
+// already shuffled by createStarterDeck, and decks now just cycle through discard normally).
+async function setupStore() {
+  G.currentAct  = 1;   // pinned: kept only so MP stamps + trajectory records keep their shape
+  G.roundNumber = 1;   // now counts monotonically 1..N for the WHOLE game (never resets)
 
-  // Between acts, merge everything back and reshuffle
-  for (const player of G.players) {
-    const allCards = [...player.deck, ...player.discard, ...player.hand];
-    player.deck = shuffleForPlayer(allCards, player.slotIdx, player.isHuman);
-    player.discard = [];
-    player.hand = [];
-    resetPlayerRound(player);
-  }
+  for (const player of G.players) resetPlayerRound(player);
 
   if (MP.active) {
     if (MP.isHost) {
-      // If an actSetup for THIS act already exists, consume it instead of rebuilding
-      // (audit H5). A host refresh in the window between pushActSetup and the first
-      // spectatorState push falls through to the fresh-start path (no snapshot to
-      // resume from); rebuilding here would deal a NEW random pyramid that guests —
-      // who already consumed the original — would never see. A normal act transition
-      // finds the PREVIOUS act's setup (act mismatch) and rebuilds as before.
+      // If an actSetup already exists, consume it instead of rebuilding (audit H5). A host
+      // refresh in the window between pushActSetup and the first spectatorState push falls
+      // through to the fresh-start path (no snapshot to resume from); rebuilding here would
+      // deal a NEW random Store that guests — who already consumed the original — never see.
       const existing = await MP.fetchActSetup();
-      if (existing && existing.act === act && Array.isArray(existing.cardIds)) {
-        G.pyramid = buildPyramid(act, existing.cardIds);
+      if (existing && Array.isArray(existing.cardIds)) {
+        G.pyramid = buildPyramid(existing.cardIds);
         MP.pushSpectatorState();
       } else {
-        // Host builds pyramid and shares card IDs with guest
-        G.pyramid = buildPyramid(act);
+        // Host builds the Store and shares card IDs with guests
+        G.pyramid = buildPyramid();
         const cardIds = G.pyramid.flatMap(row => row.map(slot => slot.card.id));
-        // Clear previous actSetup first so guest listener fires fresh
         await MP.clearActSetup();
-        await MP.pushActSetup(act, cardIds);
-        MP.pushSpectatorState(); // let spectators see the new pyramid immediately
+        await MP.pushActSetup(1, cardIds);
+        MP.pushSpectatorState(); // let spectators see the Store immediately
       }
     } else {
-      // Guest waits for host's pyramid layout
-      setMessage(`Waiting for opponent to set up Act ${act}...`);
+      // Guest waits for the host's Store layout
+      setMessage('Waiting for the host to set up the Store...');
       clearActions();
       await new Promise(resolve => {
-        MP.waitForActSetup(act, (data) => {
-          G.pyramid = buildPyramid(act, data.cardIds);
+        MP.waitForActSetup(1, (data) => {
+          G.pyramid = buildPyramid(data.cardIds);
           resolve();
         });
       });
     }
   } else {
-    const pyramidIds = (TUTORIAL.active && act === 1) ? TUTORIAL.getPyramidIds() : null;
-    G.pyramid = buildPyramid(act, pyramidIds);
+    const pyramidIds = TUTORIAL.active ? TUTORIAL.getPyramidIds() : null;
+    G.pyramid = buildPyramid(pyramidIds);
   }
 
-  // trajectory: record this act's pyramid (host only). Read IDs from the built pyramid
-  // so it works on every branch (host/guest/AI), not just where cardIds was computed.
-  trajLogActSetup(act, G.pyramid.flatMap(row => row.map(slot => slot.card.id)));
+  // trajectory: record the Store layout (host only). Read IDs from the built pyramid so it
+  // works on every branch (host/guest/AI), not just where cardIds was computed.
+  trajLogActSetup(1, G.pyramid.flatMap(row => row.map(slot => slot.card.id)));
 
-  addLog(`--- Act ${act} begins! ---`, 'log-score');
+  addLog('--- The Store is stocked. Round 1 begins! ---', 'log-score');
   render();
   startRound();
 }
@@ -5379,8 +5071,8 @@ async function aiBuyTurn(ai) {
     }
 
     if (!burnTarget) {
-      // Act-aware: in late acts with a sparse pyramid, deny the leader's best card
-      const actProgress = G.currentAct / 3;
+      // Stage-aware: late in the Store, with few cards left, deny the leader's best card
+      const actProgress = storeStage() / 3;
       const pyramidDensity = Math.min(1, available.length / Math.max(1, G.numPlayers * 2));
       if (actProgress * (1 - pyramidDensity) > 0.4) {
         const leader = G.players.filter(p => p !== ai).sort((a, b) => b.herd - a.herd)[0];
@@ -5436,8 +5128,9 @@ function scoreCardForAI(card, ai) {
   if (card.special === 'burn_buy_first') score += 1;
   if (card.special === 'dollar1_other') score -= 0.5;
   if (card.cows < 0) score -= 2;
-  if (G.currentAct === 1) score += card.dollars * (cfg.act1DollarBonus ?? 1);  // Act 1: economy bonus (per personality)
-  if (G.currentAct === 3) score += card.cows   * (cfg.act3CowBonus   ?? 2);  // Act 3: cow bonus (per personality)
+  const stage = storeStage();  // 1|2|3 from the Store's frontmost live tier (was G.currentAct)
+  if (stage === 1) score += card.dollars * (cfg.act1DollarBonus ?? 1);  // early: economy bonus (per personality)
+  if (stage === 3) score += card.cows    * (cfg.act3CowBonus    ?? 2);  // late:  cow bonus (per personality)
   return score;
 }
 
@@ -5506,29 +5199,15 @@ async function scoreRound() {
   if (MP.active) MP.pushSpectatorState(); else AI_SPEC.push(); // spectators see final scores for the round
   await delay(1000);
 
-  // Check if pyramid empty (end of act)
+  // The Store is built once and never rebuilt, so emptying it ends the GAME (there is no
+  // act boundary to fall through to any more).
   if (isPyramidEmpty(G.pyramid)) {
-    await endAct();
+    await startShowdown();
   } else {
     G.roundNumber++;
     if (TUTORIAL.active) TUTORIAL.nextRound(G);
     await startRound();
   }
-}
-
-async function endAct() {
-  if (G.currentAct >= 3) {
-    await startShowdown();
-    return;
-  }
-
-  const nextAct = G.currentAct + 1;
-  setMessage(`Act ${G.currentAct} complete! Starting Act ${nextAct}...`);
-  clearActions();
-  addLog(`=== Act ${G.currentAct} complete! ===`, 'log-score');
-  await delay(2000);
-
-  await setupAct(nextAct);
 }
 
 async function startShowdown() {
@@ -5773,8 +5452,12 @@ function finalizeGame(topPlayers) {
         isWinner: topPlayers.includes(p),
       })),
       winner: winnerName,
+      // actsCompleted is vestigial since the single-Store rework (there are no act
+      // boundaries left, so it is always 1). Kept because the rules require the field
+      // and old entries carry a meaningful 1-3.
       actsCompleted: G.currentAct,
       totalRounds: G.roundNumber,
+      gameV: GAME_V,   // leaderboard on history.html ranks gameV >= 3 only
       gameCode,
     });
   }
@@ -6205,10 +5888,9 @@ function applyDebugScenario(name) {
     const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
     players[0].deck = baseOrder.map(id => getCardById(id)).filter(Boolean);
     G = initState(2, players);
-    G.currentAct = 2;
     G.roundNumber = 1;
     G.gameSeed = DEBUG_SEED;
-    G.pyramid = buildPyramid(2);
+    G.pyramid = buildPyramid();
     initAiRng(1, DEBUG_SEED);
   }
 
@@ -6221,10 +5903,9 @@ function applyDebugScenario(name) {
       players.push(createPlayer(aiNames[i], false, i + 1));
     }
     G = initState(numPlayers, players);
-    G.currentAct = act;
     G.roundNumber = 1;
     G.gameSeed = DEBUG_SEED;
-    G.pyramid = buildPyramid(act);
+    G.pyramid = buildPyramid();
     for (let i = 1; i < numPlayers; i++) initAiRng(i, DEBUG_SEED);
   }
 
@@ -6262,10 +5943,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
       players.forEach((p, i) => { p.herd = herds[i]; });
       G = initState(4, players);
-      G.currentAct = 3;
       G.roundNumber = 9;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(3);
+      G.pyramid = buildPyramid();
       nearEndPyramid(G.pyramid);
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
@@ -6284,10 +5964,9 @@ function applyDebugScenario(name) {
       players[0].deck = noBanditDeck();
       for (let i = 1; i < players.length; i++) players[i].deck = noMoneyDeck();
       G = initState(8, players);
-      G.currentAct = 3;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(3);
+      G.pyramid = buildPyramid();
       for (let i = 1; i <= 7; i++) initAiRng(i, DEBUG_SEED);
     },
 
@@ -6317,10 +5996,9 @@ function applyDebugScenario(name) {
         players[i].discard = [createCardInstance(getCardById('card_28'))]; // 3 cows → discard-top target
       }
       G = initState(4, players);
-      G.currentAct = 2;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid();
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
 
@@ -6332,10 +6010,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
       players.forEach((p, i) => { p.herd = herds[i]; });
       G = initState(4, players);
-      G.currentAct = 3;
       G.roundNumber = 9;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(3);
+      G.pyramid = buildPyramid();
       oneCardPyramid(G.pyramid);
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
@@ -6370,10 +6047,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
-      G.currentAct = 1;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(1);
+      G.pyramid = buildPyramid();
       initAiRng(1, DEBUG_SEED);
     },
 
@@ -6397,10 +6073,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
-      G.currentAct = 2;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid();
       initAiRng(1, DEBUG_SEED);
     },
 
@@ -6418,10 +6093,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
-      G.currentAct = 2;     // card_54 (Draw 4) is an Act 2 card
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid();
       initAiRng(1, DEBUG_SEED);
     },
 
@@ -6543,10 +6217,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
-      G.currentAct = 2;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid();
       initAiRng(1, DEBUG_SEED);
     },
 
@@ -6570,10 +6243,9 @@ function applyDebugScenario(name) {
       const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
       players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
       G = initState(2, players);
-      G.currentAct = 2;
       G.roundNumber = 1;
       G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid(2);
+      G.pyramid = buildPyramid();
       initAiRng(1, DEBUG_SEED);
     },
   };
