@@ -29,7 +29,15 @@ body {
   background-color: var(--paper);
   color: var(--ink);
   line-height: 1.4;
+  /* iOS: `vh` is pinned to the LARGE viewport (chrome retracted), so 100vh makes
+     even an empty page ~1 toolbar taller than the visible area. That phantom
+     scroll range lets any stray swipe retract the browser ribbon, after which the
+     page exactly fills the grown viewport, becomes unscrollable, and the ribbon
+     can't be scrolled back into view. `svh` = viewport WITH chrome showing, so
+     short pages fit exactly and never trigger the collapse. Keep both lines —
+     the `vh` fallback covers pre-iOS-15.4 / pre-Chrome-108. */
   min-height: 100vh;
+  min-height: 100svh;
 }
 
 /* ── Typography helpers ── */

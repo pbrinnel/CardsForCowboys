@@ -235,7 +235,9 @@ body {
   color: #1e1610;
   background-color: #e9e0c6;
   line-height: 1.4;
+  /* svh, not vh — see css/theme.css (iOS hides the browser ribbon otherwise) */
   min-height: 100vh;
+  min-height: 100svh;
   overflow-x: hidden;
 }
 
@@ -263,7 +265,10 @@ body {
   text-align: center;
   max-width: 500px;
   width: 90%;
+  /* svh, not vh — a 90vh box renders taller than the visible area on iOS, putting
+     its bottom under the browser ribbon and re-arming the same scroll trigger */
   max-height: 90vh;
+  max-height: 90svh;
   overflow-y: auto;
   position: relative;
 }
@@ -503,7 +508,9 @@ body {
 #game {
   display: flex;
   flex-direction: column;
+  /* svh, not vh — see css/theme.css (iOS hides the browser ribbon otherwise) */
   min-height: 100vh;
+  min-height: 100svh;
   max-width: 900px;
   margin: 0 auto;
   padding: 0 0.5rem;
@@ -1431,7 +1438,9 @@ body.phase-draw #player-deck-preview {
 
 #card-zoom-img {
   max-width: 260px;
+  /* svh, not vh — keeps the zoomed card clear of the iOS browser ribbon */
   max-height: 80vh;
+  max-height: 80svh;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }

@@ -20,7 +20,9 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
+      /* svh, not vh — see css/theme.css (iOS hides the browser ribbon otherwise) */
       min-height: 100vh;
+      min-height: 100svh;
       background-color: #e9e0c6;
       font-family: Georgia, 'Times New Roman', serif;
       color: #1e1610;

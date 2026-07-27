@@ -1013,6 +1013,54 @@ hint is also applied immediately as well as on the next rAF.
 **Do not regress:** any class applied to Store DOM from outside `renderPyramid` is transient. Give
 it a re-apply hook rather than trusting a single rAF to win the race.
 
+---
+
+### 20. `100vh` Permanently Hid the iOS Browser Ribbon ("the app went fullscreen")
+**Found July 2026.** Reported on iOS Chrome: the site pushed the browser ribbon (back / refresh /
+URL) off the bottom of the screen and it would not come back.
+
+**Symptom:** On iOS the page feels like it forced fullscreen. The browser chrome retracts on the
+first scroll gesture — including a stray drag while tapping a card — and then can't be restored by
+scrolling up. Affected every page, worst on the short ones.
+
+**Root cause:** On iOS (Safari *and* Chrome — both WebKit) the `vh` unit is pinned to the **large
+viewport**: the height as if the chrome were already retracted. It does NOT shrink to account for
+the visible toolbar. So `body { min-height: 100vh }` made every page ~1 toolbar-height taller than
+the visible area *even with no content*. That phantom scroll range is enough for iOS to read a
+swipe as "scrolling down" and retract the chrome — after which the visible viewport grows to
+exactly `100vh`, `scrollHeight === innerHeight`, the page is no longer scrollable at all, and there
+is no scroll-up gesture left to bring the chrome back. The fixed `bottom:0` footers compounded it:
+iOS lays fixed elements out against that same retracted-height layout viewport, so the footer parks
+*under* the ribbon while it's showing (this is also what the 5-8rem `padding-bottom` hacks in
+bug #7 are really compensating for).
+
+**Fix in place:** every viewport-height value that applies on mobile is now declared twice — `vh`
+first as a fallback, then `svh` (**small** viewport height = the height WITH chrome showing):
+
+```css
+min-height: 100vh;
+min-height: 100svh;
+```
+
+15 sites: `body` in [`css/theme.css`](css/theme.css) + [`css/play.css`](css/play.css) + the 9 inline
+`<style>` copies (index, gamesetup, lobby, history, privacy, bugreport, spectate, aboutthecreators,
+debug — **these override theme.css, so fixing the shared sheet alone does nothing**), plus `#game`
+(play.css), `.overlay-content` (`90svh`) and `#card-zoom-img` (`80svh`).
+
+**`svh`, not `dvh`** — `dvh` tracks the live viewport, so the layout reflows mid-scroll as the
+chrome retracts, and on the game page that would re-fire `fitPyramid` on every `resize` iOS emits
+during the transition. `svh` is static, so short pages fit exactly when the ribbon is visible and
+never trigger the collapse at all. `svh`/`lvh`/`dvh` = iOS 15.4+ / Chrome 108+; older browsers
+ignore the second declaration and keep today's behavior.
+
+**Do not regress:** never ship a bare `vh` value that applies on mobile. Always pair it with an
+`svh` line. Genuinely-long pages (rules, privacy) still retract the chrome on scroll-down — that's
+correct iOS behavior, because a real scroll range means scrolling up restores it. The bug is
+specifically making a *short* page ~1 toolbar too tall, which turns the retraction into a one-way
+trip. The `vh` values inside `@media (min-width: 1200px)` in [playgame.html](playgame.html) (the
+opponent rail's `calc(100vh - 1rem)`, the 52vh Store cap) are desktop-only and deliberately left
+alone — no phone ever matches those queries.
+
 ## Debugging Approach for Multiplayer Issues
 
 **Always start with Firebase logs, not blind code review.**
