@@ -38,6 +38,14 @@
       font-size: 0.85rem;
       border-bottom: 2.5px solid #1e1610;
     }
+    /* Brand doubles as the home link — spectate is often reached from a shared
+       link, so this is the only way out of the page. */
+    #spec-header .spec-home {
+      color: inherit;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #spec-header .spec-home:hover { color: #b87838; }
     #spec-header .code-badge {
       background: #b87838;
       color: #1e1610;
@@ -302,7 +310,7 @@
 
 <div id="spec-header">
   <div>
-    Cards For Cowboys
+    <a href="index.html" class="spec-home">Cards For Cowboys</a>
     <span class="code-badge" id="spec-code">------</span>
     <span id="spec-modes"></span>
     <span style="margin-left:0.75rem" id="spec-actround"></span>

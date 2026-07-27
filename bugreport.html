@@ -94,6 +94,8 @@
       text-align: center; padding: 0.6rem; font-size: 0.78rem;
       color: rgba(233,224,198,0.5); background: #1e1610;
     }
+    .footer-link { color: rgba(233,224,198,0.7); text-decoration: underline; }
+    .footer-link:hover { color: #e9e0c6; }
   </style>
   <link rel="stylesheet" href="css/a11y.css">
 </head>
@@ -126,7 +128,9 @@
   </div>
 
   <footer>
-    Cards For Cowboys &mdash; Public Test Version
+    <!-- Footer is position:fixed — always-visible way home without scrolling
+         past the form to the back-link. -->
+    <a href="index.html" class="footer-link">Cards For Cowboys</a> &mdash; Public Test Version
   </footer>
 
   <script type="module">

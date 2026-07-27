@@ -47,6 +47,8 @@
       letter-spacing: 2px;
       text-transform: uppercase;
     }
+    .brand-home { text-decoration: none; color: inherit; display: block; }
+    .brand-home:hover h1 { color: #b87838; }
     .subtitle { color: #3a2a1a; font-style: italic; margin-bottom: 2rem; font-size: 0.95rem; }
     .btn {
       display: block;
@@ -148,7 +150,10 @@
 </head>
 <body>
 <div class="card-ui">
-  <h1>Cards For Cowboys</h1>
+  <!-- Title is the home link (matches gamesetup.html). It sits OUTSIDE the screen
+       divs on purpose: the "← Back to home" link below lives inside #screen-name,
+       so the waiting and error screens would otherwise have no way out. -->
+  <a href="index.html" class="brand-home"><h1>Cards For Cowboys</h1></a>
   <p class="subtitle" id="page-subtitle">Join a Game</p>
 
   <!-- Screen 1: Name + code entry -->

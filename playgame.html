@@ -311,6 +311,11 @@
     <!-- Header -->
     <header id="game-header">
       <div class="header-left">
+        <!-- Home link. Disband is MP-host-only, so without this a solo game vs AI
+             has no way back to the site at all. Guarded by confirmLeaveGame(). -->
+        <a href="index.html" class="brand-home" onclick="return confirmLeaveGame(event)"
+           title="Back to Cards For Cowboys home"><span class="brand-full">Cards For Cowboys</span><span class="brand-short">CFC</span></a>
+        <span class="sep">|</span>
         <span id="round-display">Round 1</span>
       </div>
       <div class="header-right">

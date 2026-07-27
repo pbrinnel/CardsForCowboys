@@ -56,6 +56,19 @@
       text-decoration: none;
     }
     .back-link:hover { color: #1e1610; }
+    .brand-home {
+      display: block;
+      text-align: center;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #1e1610;
+      text-decoration: none;
+      margin-bottom: 1.2rem;
+    }
+    .brand-home:hover { color: #b87838; }
     #status {
       text-align: center;
       color: #3a2a1a;
@@ -290,6 +303,9 @@
 </head>
 <body>
 <div class="page">
+  <!-- This page had no "Cards For Cowboys" text anywhere; the brand is the
+       expected home affordance, so it sits above the page title. -->
+  <a href="index.html" class="brand-home">Cards For Cowboys</a>
   <a href="index.html" class="back-link">← Back to home</a>
   <h1>Game History</h1>
   <p class="subtitle">Live games and completed matches</p>

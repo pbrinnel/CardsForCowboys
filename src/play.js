@@ -5486,6 +5486,21 @@ function copySpectateLink() {
   });
 }
 
+// --- HEADER HOME LINK ---
+
+// The header brand is a real <a href="index.html"> so middle/cmd-click opens the
+// home page in a new tab. This guard only fires for a plain click (which would
+// navigate THIS tab away from a live game) — a modified click is left alone
+// because the game tab survives it.
+function confirmLeaveGame(e) {
+  if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return true;
+  if (!G || G.phase === 'gameover' || G.phase === 'showdown') return true;
+  const msg = MP.active
+    ? 'Leave this game and go back to the home page? The other players will be left waiting.'
+    : 'Leave this game and go back to the home page? Your progress will be lost.';
+  return confirm(msg);
+}
+
 // --- RULES MODAL ---
 
 function showRules() {

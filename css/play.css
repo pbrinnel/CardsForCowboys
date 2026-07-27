@@ -538,6 +538,17 @@ body {
   opacity: 0.5;
 }
 
+.header-left .brand-home {
+  color: inherit;
+  text-decoration: none;
+}
+
+.header-left .brand-home:hover {
+  color: #b87838;
+}
+
+.header-left .brand-home .brand-short { display: none; }
+
 .header-right {
   display: flex;
   gap: 0.4rem;
@@ -1866,6 +1877,14 @@ body.phase-draw .pyramid-row:nth-child(n+2) {
   #game-header {
     font-size: 0.85rem;
   }
+
+  /* Phone header is tight (up to 5 buttons on the right), so the brand drops to
+     "CFC" rather than wrapping the row. Still a link, still goes home. */
+  .header-left .brand-home {
+    font-size: 0.75rem;
+  }
+  .header-left .brand-home .brand-full { display: none; }
+  .header-left .brand-home .brand-short { display: inline; }
 
   .ai-summary-left {
     font-size: 0.7rem;
