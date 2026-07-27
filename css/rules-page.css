@@ -182,6 +182,16 @@ html { scroll-behavior: smooth; }
   font-size: 1.15rem;
 }
 
+/* Version stamp — quiet, but findable. Sits above the footer CTA. */
+.rules-page .rules-version {
+  margin: 2.5rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(30, 22, 16, 0.18);
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b4c32;
+}
+
 .rules-page .rules-meta {
   margin-top: 1rem;
   font-size: 0.85rem;
