@@ -4,9 +4,9 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 21 ✅ / 2 ⚠️ / 0 ❌** — after fixes 1–6 and the July 2026 full sweep.
-The two remaining ⚠️ are both blocked on artwork (annotated card, uncovering diagram), specced in
-[`RULES_PLAN.md`](RULES_PLAN.md) §4.
+**Current: 22 ✅ / 1 ⚠️ / 0 ❌** — after fixes 1–6, the full sweep, the card anatomy, and the
+parity cut (1,989 → 1,016 words). The one remaining ⚠️ is the **uncovering diagram**: the
+covering/reveal rule is still taught in words only.
 The three ❌ left are all *additions* — callout styling, a quick-reference summary, a worked
 scoring example. None is a defect in what the page already says.
 
@@ -54,12 +54,12 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 
 ---
 
-## Format — 5 ✅ / 1 ⚠️ / 0 ❌
+## Format — 6 ✅ / 0 ⚠️ / 0 ❌
 
 | Item | | Finding |
 |---|---|---|
 | Consistent bold/italic/caps system | ✅ | **Fixed July 2026 (full sweep).** Convention documented in an HTML comment at the top of `<main>` and applied: capitalised game nouns, lowercase verbs, `<strong>` only for a term being defined or a must/may that changes what a player may do, `.rules-callout` reserved for interrupt rules, `.rules-example` for illustration. |
-| Diagrams for setup, component anatomy, icons | ⚠️ | Setup and icons: strong, and the act bands were made colour-blind-safe in July 2026 — the old three-shades-of-brown ramp stepped only ~10 L\* and read as one mud colour, so the tiers now separate on **lightness** (L\* ≈ 20/43/66) **and hatch direction** (45° / -45° / horizontal), neither of which is hue. Verified under a full greyscale filter. Hues deliberately stay brown: blue/yellow/red are the suit colours and a tinted band would read as a suit. **Component anatomy: partly closed.** Fix 3 added a "Reading a card" subsection describing the three fixed positions (suit top-right, cost bottom-left, Act hats bottom-right) in prose, so the rules gap is gone. **Still missing: the labelled card image itself.** Specced in [`RULES_PLAN.md`](RULES_PLAN.md) §4 (Card_43 + Card_70); needs art. For print it's a net space saver — the image replaces ~90 words of that prose. |
+| Diagrams for setup, component anatomy, icons | ✅ | **Closed July 2026.** Setup and icons were always strong; the act bands were made colour-blind-safe (lightness L\* ≈ 20/43/66 **plus** hatch direction 45° / -45° / horizontal — verified under a full greyscale filter; hues stay brown because blue/yellow/red are the suit colours). Component anatomy now ships as an annotated diagram: `Card_43` for suit / Bandits / Cows / cost / Act hats and `Card_70` for the circled-$-gain vs corner-$-cost ambiguity. Numbered markers positioned in **percent** of the image so they stay locked to their feature at any width — leader lines would break at every size and in print. |
 | Callouts for interrupt/forgettable rules | ✅ | **Fixed July 2026 (full sweep).** `.rules-callout` added and used three times, for exactly the rules that interrupt the sequence or get forgotten: **bust at 3 Bandits**, **always reveal uncovered cards**, **the last card ends the round**. Distinguished by border weight, inset and fill — not hue — so it survives greyscale. |
 | Navigable table of contents | ✅ | **Fixed July 2026 (fix 2).** Every section carries an `id` (plus the three phase `h3`s); a `.rules-toc` contents panel lists all 13 targets, inline on narrow screens and `position: fixed` beside the 760px column at ≥1240px. It sits *after* the Objective in the DOM so it can't push the goal below the fold on a phone; on wide screens it's fixed, so DOM order doesn't affect where it renders. The four in-text cross-references are now real links. |
 | Quick-reference summary | ✅ | **Fixed July 2026 (full sweep).** New `#quick-reference` section: each round in 4 steps, buy-order ties, game end and herd ties, plus an "easy to forget" block. Pure restatement — the phase sections stay authoritative. |

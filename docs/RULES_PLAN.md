@@ -102,7 +102,34 @@ at 100×100mm:
 **A cross fold booklet is 8 panels — about half of what the full rules now need.** Every fold
 option is out for the complete ruleset.
 
-### So there are only two honest paths
+### Resolved: parity, achieved by cutting the web page (July 2026)
+
+PB's call: **one ruleset, identical in print and on the web.** Not a Learn-to-Play insert plus a
+fuller web reference — the same words in both, so the two can never drift and there is only one
+place to fix errata.
+
+That made `rules.html` itself the thing to cut. **1,989 → 1,016 words, 11 sections → 6**, with
+every rule preserved (40 checked against the rendered page, 0 missing).
+
+| | before | after |
+|---|---:|---:|
+| Text | 1,989 w (~11 panels) | 1,016 w (~5.6 panels) |
+| Visuals | ~3.8 panels | ~3.2 panels |
+| **Total** | **~15 panels** | **~8.8 panels** |
+
+Against a cross fold booklet's 8 panels that is *in range* — it needs one more tightening pass or a
+slightly smaller card-anatomy block, where before it was nearly double the budget.
+
+Merged rather than dropped: Card Backs & Suits + Symbols → **Reading the Cards**; Errata +
+Clarifications + Variants → **Fine Print**; 5+ Player Rules → Setup step 3 plus the existing table.
+
+Cut outright: the Objective's 3-step round overview (it duplicated Sequence of Play directly
+below it), 2 of the 3 Store diagrams (~0.6 panel each; the table carries every other player count),
+the 10-thumbnail starter-deck grid (composition is stated in the setup step), and Strategy Tips
+(not rules). Quick Reference went 206 → 64 words: at this length the document is close to being its
+own quick reference, so it keeps only the round order and both tie ladders as a back panel.
+
+### The two paths that were considered
 
 **Path A — cut to a real Learn-to-Play (recommended).** ~650 words + the card anatomy + one Store
 diagram + the symbols grid ≈ **6–7 panels**. Fits the cross fold booklet with room to breathe, or a
