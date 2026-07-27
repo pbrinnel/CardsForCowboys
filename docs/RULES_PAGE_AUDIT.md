@@ -4,7 +4,7 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 9 ✅ / 10 ⚠️ / 4 ❌** — after fixes 1–4 plus the Draw-4 clarification (July 2026).
+**Current: 10 ✅ / 9 ⚠️ / 4 ❌** — after fixes 1–5 plus the Draw-4 clarification (July 2026).
 Every ❌ left is an *addition* (callouts, quick-reference, version stamp, worked scoring example);
 none is a defect in what the page already says.
 
@@ -72,7 +72,7 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 | Every component explained | ⚠️ | No components list. Starter deck is shown as card images (good). **Fix 3 closed two of the three gaps** — cards having a purchase cost, and what the cowboy-hat number is, are both explained now (Buy Phase + "Reading a card"). **Still missing:** total Store card count / anything a physical-copy owner could check box contents against. |
 | Edge-case examples are non-obvious ones | ⚠️ | **Upgraded from ❌ July 2026** — the page now has exactly one worked example, and it is the right kind: Draw-4 chaining in Card Clarifications, with the arithmetic spelled out (owe 4 → draw a Draw 4 → owe 7). Everything else still has none. Worst gap remains the covering/reveal rule, which is purely verbal — "so two cards cover the one above" ([:60](../rules.html)), "reveal any cards underneath that are no longer covered" ([:152](../rules.html)) — with no diagram of the *uncovering* and no treatment of the end-of-row card that only one card covers. That is the spatial edge case every source says must be shown. |
 | Worked scoring example | ❌ | None. "Count all **positive** Cows… Negative Cow values do not count" ([:177](../rules.html)) has real subtlety and gets no example. |
-| Tie-breaking stated | ⚠️ | Buy-order ties: ✅ five levels deep, the best-written block on the page ([:156–162](../rules.html)). **Final-victory ties: nothing.** [:180](../rules.html) declares most-Cows wins with no tie rule. |
+| Tie-breaking stated | ✅ | **Fixed July 2026 (fix 5).** Buy-order ties were always five levels deep — the best-written block on the page — but the *game-winning* tie had no rule at all, and the digital game just showed "It's a Tie!". There is now an **If Herds Are Tied** ladder that mirrors the buy-order one so players reuse one mental model: most **$** across your collection → most **cards**; still level = share the win. Implemented as `resolveShowdownWinners` in `src/play.js`. Deliberately stops at two steps (PB's call) rather than adding the buy-order ladder's card-by-card walk and random pick. |
 | First-player rule | ⚠️ | Works by accident — the most-$ buy-order rule covers round 1 too — but nothing says so, and "Buying proceeds clockwise from **the first player**" ([:163](../rules.html)) uses "first player" as a defined role that was never defined. |
 | FAQ / errata inside the page | ✅ | Errata + Card Clarifications are on-page, not outsourced to a forum. |
 
@@ -126,7 +126,9 @@ is answerable only by inference from an undefined word.
      Nothing was lost — the bullet above it already says the Store is built once with no setup
      between Acts, and the deal order (Act 3 back → Act 1 front) makes the progression obvious.
    - "instead of the game ending immediately" → *"the game does not end straight away."*
-5. Add a final-victory tie rule.
+5. ~~Add a final-victory tie rule.~~ **DONE** (July 2026) — rules text + `resolveShowdownWinners`
+   in `src/play.js`. Note for whoever touches `sim/`: `personality-engine.js`'s `gameResult` still
+   reports raw herd ties, so sim win-rates now count tied games differently from the real game.
 
 **Do next — needs assets or layout work**
 

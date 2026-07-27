@@ -245,7 +245,10 @@ scroll inside `#spec-pyramid-zone` (`overflow-x:auto`) — it has no `fitPyramid
 
 **⚠️ SIM NOT SYNCED:** `sim/` models the pre-rework game entirely (old triangle Store, old card
 pool, per-act setup). It was already stale before this rework and is now fully invalid. See
-`sim/AI_DISTILLATION_PLAN.md` Phase D0.
+`sim/AI_DISTILLATION_PLAN.md` Phase D0. **Also drifted (July 2026):** the live game now breaks a
+tied final Herd via `resolveShowdownWinners` (most $ → most cards); `sim/personality-engine.js`
+`gameResult` still reports a raw herd tie. Fold this into D0 — until then, sim win-rates count
+tied games differently from the real game.
 
 ### 5-8 Player Support (SHIPPED June 2026 — full log: `docs/FIVE_TO_EIGHT_PLAYER_PLAN.md`)
 Rules identical to 2-4P; only setup/Store scale (see **Store Layout** above — 5-8P is 9 rows vs
@@ -464,6 +467,17 @@ endBuyPhase()               ~3807
 scoreRound()                ~3812 — Store empty ⇒ startShowdown() directly (endAct() was deleted
                                     July 2026 — one Store means no act transition)
 startShowdown()             ~3861 — final scoring + card flip animations; ends by calling showShowdownResult (no more "See Who Wins" button / separate game-over screen)
+showdownCollection(player)  ~5341 — deck + hand + discard (what the Showdown lays face-up)
+resolveShowdownWinners(ps)  ~5346 — SHOWDOWN TIEBREAK (July 2026). 3 steps, mirroring the
+                                    buy-order ladder so players reuse one model:
+                                    most Cows → most $ across collection → most cards.
+                                    STOPS there: no card-by-card walk, no random pick —
+                                    players still level genuinely share the win.
+                                    ⚠️ Do NOT add a Bandit step: only 4 of 54 live Store
+                                    cards carry any, so nearly all Bandits come from the
+                                    identical starter deck and it would almost always tie.
+                                    MP-safe (collection contents + printed `dollars` are
+                                    shared state). NOT mirrored in sim/ — see D0 note.
 showShowdownResult()        ~4426 — crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
 gameOver()                  ~4470 — REJOIN-ONLY now: rebuilds the showdown board statically (cards face-up, final herds) for a rejoin into an already-finished game, then calls showShowdownResult. (Animated live games go through startShowdown instead.)
 finalizeGame(topPlayers)    ~4505 — end-of-game bookkeeping only (MP cleanup, gameHistory log, AI review link). No result DOM.

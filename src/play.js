@@ -5337,14 +5337,57 @@ async function startShowdown() {
   showShowdownResult();
 }
 
+// Every card a player owns at the Showdown — what gets laid face-up on the table.
+function showdownCollection(player) {
+  return [...player.deck, ...player.hand, ...player.discard];
+}
+
+// ── Showdown tiebreak ────────────────────────────────────────────────────────
+// Deliberately mirrors the buy-order ladder (sim/tiebreaker.js) so players reuse
+// ONE mental model: primary resource → wealth → volume.
+//   1. most Cows in Herd  2. most $ across your collection  3. most cards
+// Unlike the buy-order version this ladder STOPS at step 3 — no card-by-card
+// cost walk and no random pick. Players still level after "most cards" genuinely
+// share the win, and showShowdownResult still renders that as a tie.
+//
+// Bandits look like the obvious thematic tiebreak and are a TRAP: only 4 of the
+// 54 live Store cards carry any (2 more remove one), so nearly every player's
+// Bandits come from the identical 10-card starter deck and the step would almost
+// always tie. $ discriminates (28 of 54 Store cards carry $1–4, and identical
+// starters mean any difference is purely what you bought).
+//
+// MP-safe: every input is shared state all clients already agree on — collection
+// contents and each card's printed `dollars`. It is exactly what the Showdown
+// lays out face-up. Counts PRINTED $ only; one-shot effects don't apply here.
+function resolveShowdownWinners(players) {
+  let top = players.slice();
+  let reason = 'most Cows';
+
+  const narrow = (scoreFn, label) => {
+    if (top.length <= 1) return;
+    const best = Math.max(...top.map(scoreFn));
+    const next = top.filter(p => scoreFn(p) === best);
+    if (next.length < top.length) reason = label;
+    top = next;
+  };
+
+  narrow(p => p.herd, 'most Cows');
+  narrow(p => showdownCollection(p).reduce((s, c) => s + (c.dollars || 0), 0), 'most $');
+  narrow(p => showdownCollection(p).length, 'most cards');
+
+  return { winners: top, reason };
+}
+
 // Crown the winning player's section inline on the showdown screen and reveal the
 // action footer (Play Again / Review / Home). Replaces the old separate game-over screen.
 function showShowdownResult() {
   G.phase = 'gameOver';
   const me = G.players[0];
 
-  const maxHerd = Math.max(...G.players.map(p => p.herd));
-  const topPlayers = G.players.filter(p => p.herd === maxHerd);
+  const { winners: topPlayers, reason: winReason } = resolveShowdownWinners(G.players);
+  if (topPlayers.length === 1 && winReason !== 'most Cows') {
+    addLog(`Herds tied — ${topPlayers[0].name} wins on ${winReason}.`);
+  }
 
   let title;
   if (topPlayers.length === 1 && topPlayers[0] === me) {
