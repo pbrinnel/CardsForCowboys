@@ -4,7 +4,9 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 8 ✅ / 10 ⚠️ / 5 ❌** — after fixes 1–3 plus the Draw-4 clarification (July 2026).
+**Current: 9 ✅ / 10 ⚠️ / 4 ❌** — after fixes 1–4 plus the Draw-4 clarification (July 2026).
+Every ❌ left is an *addition* (callouts, quick-reference, version stamp, worked scoring example);
+none is a defect in what the page already says.
 
 The page is strong on *reference* material (symbols, errata, buy-order tiebreaks, setup diagrams)
 and weak on *teaching* — it reads as a rules reference for someone who already knows the game, with
@@ -18,21 +20,23 @@ no on-ramp for a first-time reader and no navigation for a mid-game lookup.
 |---|---|---|
 | Objective in one sentence, before any mechanic | ❌ | The page goes `<h1>Rules</h1>` → **Setup**. No theme, no objective. A reader is told to separate Act decks and brick-stagger rows before learning they are collecting cows. This is the most-cited rule in every source and the page's biggest defect. |
 | Win/end condition stated early | ❌ | First appears [rules.html:180](../rules.html), four sections and ~140 lines down, at the end of "3. The Showdown". |
-| Sections build progressively, no forward references | ❌ | Six found — see [Forward references](#forward-references) below. |
+| Sections build progressively, no forward references | ✅ | **Fixed across fixes 1, 2 and 4.** All six original forward references are closed — see [Forward references](#forward-references) below for what each one was. |
 | Setup numbered, matched to a diagram | ⚠️ | Diagrams are genuinely good (3 pyramid demos, colour-coded act bands + key, player-count table). But setup is a `<ul>`, not an `<ol>`, so there are no step numbers for the diagrams to reference. Stray markup: orphan `</div>` at [:125](../rules.html) and an empty `<ul></ul>` at [:127](../rules.html). |
 | Turn structure as explicit ordered sequence | ✅ | **Fixed July 2026 (fix 2).** Was ⚠️ for two reasons, both now resolved: **(a)** the three phases were sibling `<section>`s, two with no `<h2>` at all, so screen readers and any generated contents list were told Buy Phase and Showdown weren't part of the sequence — they are now one `<section id="sequence">` with the phases as `h3`s under the `h2`. **(b)** the round *loop* was never stated; the Objective block now ends "Repeat until the Store is empty." |
 | Complex rules broken out and linked from the sequence | ⚠️ | Errata and Card Clarifications exist and are separate — correct. But nothing in the Draw Phase points to them, and Explosive activation timing (a draw-phase mechanic) lives only in the Symbols section. |
 
 ### Forward references
 
-1. [:58](../rules.html) "Store cards" and "Act decks" — neither **Store** nor **Act** is ever defined. Acts are used as deck labels with no explanation that they gate power/cost.
-2. [:61](../rules.html) "the same progression **as before**, with none of the mid-game shuffling" — "before" means *a previous edition of the rules*. A first-time reader has no "before." Leftover changelog voice.
-3. [:174](../rules.html) "**instead of** the game ending immediately" — same problem; compares to a rule that does not exist in this document.
-4. [:139](../rules.html) bust rule uses **Bandits**; defined at [:217](../rules.html).
-5. [:148](../rules.html) uses **Herd**; only glossed in passing at [:213](../rules.html).
-6. ~~[:229](../rules.html) Explosive says "see Errata"; [:240](../rules.html) Errata says "see Explosive above." Circular, and neither is a link.~~ **Both are links now (fix 2).** They still point at each other, but that's a genuine mutual definition and it's one click either way.
+All six are now closed. Kept as a record of the failure modes to watch for.
 
-Items 1–5 are still open — see fix 4 in the ranked list for the two edition-relative sentences.
+1. ~~"Store cards" and "Act decks" — neither **Store** nor **Act** is ever defined. Acts are used as deck labels with no explanation that they gate power/cost.~~ **Fixed (1, 4):** the Objective introduces the Store; the Setup bullet now says what Acts mean in play — *"Later Acts cost more and are worth more."* (Checked against the card data before writing it: avg cost 3.3 / 4.2 / 6.9 and avg Cows 0.7 / 1.3 / 2.3 across Acts 1–3.)
+2. ~~"the same progression **as before**, with none of the mid-game shuffling"~~ — "before" meant *a previous edition of the rules*. A first-time reader has no "before." Leftover changelog voice. **Fixed (4).**
+3. ~~"**instead of** the game ending immediately"~~ — same problem; compared to a rule that does not exist in this document. **Fixed (4)**, now "the game does not end straight away."
+4. ~~bust rule uses **Bandits** before they're defined~~ **Fixed (1):** the Objective states "Draw a 3rd Bandit and you bust."
+5. ~~uses **Herd** before it's glossed~~ **Fixed (1):** the Objective's goal line and step 2 both use it in context.
+6. ~~Explosive says "see Errata"; Errata says "see Explosive above." Circular, and neither is a link.~~ **Both are links now (fix 2).** They still point at each other, but that's a genuine mutual definition and it's one click either way.
+
+**The pattern to watch:** every one of these except the circular pair came from writing the page as a *diff against the previous edition* rather than as a standalone document. After any rules rework, re-read the page as someone who has never seen the old version.
 
 ---
 
@@ -115,8 +119,12 @@ is answerable only by inference from an undefined word.
    two different things: **in a circle** = money you gain, **plain, bottom-left** = cost.
    (Verified against the card art itself: `Card_70.jpg` shows a circled `$2` gain and a plain
    `$3` cost.) Still drifting, not yet fixed: **personal deck** / **draw pile** / **deck**.
-4. Delete the two edition-relative phrases ([:61](../rules.html), [:174](../rules.html)) — they reference a document
-   the reader doesn't have.
+4. ~~Delete the two edition-relative phrases — they reference a document the reader doesn't have.~~
+   **DONE** (July 2026). Replaced rather than deleted, because both sentences were trying to say
+   something real: "the same progression as before, with none of the mid-game shuffling" became
+   *"Later Acts cost more and are worth more, so the Store gets richer as it empties — and it does
+   that on its own. You never stop to set anything up mid-game"*; "instead of the game ending
+   immediately" became *"the game does not end straight away."*
 5. Add a final-victory tie rule.
 
 **Do next — needs assets or layout work**
