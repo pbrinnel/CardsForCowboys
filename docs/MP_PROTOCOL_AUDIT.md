@@ -366,7 +366,7 @@ once per game and route through the callback (guards already handle staleness).
 
 `MP.pushSpectatorState` builds its own inline snapshot (`play.js:342`) while `AI_SPEC.push`
 uses `buildSpectatorState` (`play.js:941`). They have **already drifted**: `quickStartMode` /
-`pioneerMode` / `hiddenHerdMode` / `showdownTallies` exist only in `buildSpectatorState`.
+`showdownTallies` exists only in `buildSpectatorState`. (`pioneerMode` and `hiddenHerdMode` were also listed here; both modes were removed from the game in July 2026 and no longer appear in the snapshot.)
 Any C7/C4 enrichment applied to one and not the other recreates the class of bug this audit
 is full of. Make `MP.pushSpectatorState` call `buildSpectatorState`.
 

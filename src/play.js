@@ -196,7 +196,7 @@ const MP = (() => {
       const s = (data.slots && data.slots[i]) || {};
       _slotDefs[i] = { name: s.name || `Player ${i + 1}`, isHuman: s.isHuman !== false, personality: s.personality || null };
     }
-    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers, hiddenHerdMode: data.hiddenHerdMode || false };
+    return { slotDefs: _slotDefs, gameSeed: _gameSeed, numPlayers: _numPlayers };
   }
 
   // Push local player's full draw state (hand + deck + stats) after every draw action
@@ -814,7 +814,6 @@ function trajLogHeader() {
       mode: MP.active ? 'mp' : 'ai',
       gameSeed: G.gameSeed || 0,
       numPlayers: G.numPlayers,
-      hiddenHerdMode: !!G.hiddenHerdMode,
       seats,
     });
   });
@@ -950,7 +949,6 @@ function buildSpectatorState() {
     round: G.roundNumber,
     act: G.currentAct,
     numPlayers: G.numPlayers,
-    hiddenHerdMode: !!G.hiddenHerdMode,
     pyramid: G.pyramid.map(row => row.map(slot => ({
       card: serializeCard(slot.card),
       faceUp: slot.faceUp,
@@ -2003,13 +2001,7 @@ function triggerHerdBump(prefix) {
 
 function renderPlayerZone(player, prefix) {
   const herdEl = document.getElementById(prefix + '-herd');
-  // Hidden Herd mode: conceal opponents' herd totals until the final showdown.
-  // The local player (prefix 'player') always sees their own herd.
-  const concealHerd = G.hiddenHerdMode && prefix !== 'player' && G.phase !== 'showdown';
-  if (concealHerd) {
-    herdEl.textContent = '?';
-    applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), 0);
-  } else {
+  {
     herdEl.textContent = player.herd;
     applyHerdTier(herdEl, document.getElementById(prefix + '-herd-dust'), player.herd);
   }
@@ -2496,7 +2488,6 @@ async function startGame() {
     G.gameSeed = cfg.gameSeed || 0;
     // Randomize seat order (clockwise rotation) using gameSeed — deterministic on all clients
     G.seatOrder = seededSeatOrder(cfg.numPlayers, G.gameSeed);
-    G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   } else {
     // Tutorial mode: skip gamesetup.html entirely
     const isTutorial = new URLSearchParams(location.search).has('tutorial') ||
@@ -2507,7 +2498,6 @@ async function startGame() {
       G.players[1].personality = 'sheriff';
       G.gameSeed = 0;
       G.seatOrder = [0, 1];
-      G.hiddenHerdMode = false;
       // Sticky per-game marker: TUTORIAL.active flips false when the coached steps end
       // (TUTORIAL.complete()) but the game keeps going as free play. Gates that must
       // exclude the WHOLE tutorial game (traj capture, solo save) check this flag,
@@ -2547,7 +2537,6 @@ async function startGame() {
           G.gameSeed       = saved.gameSeed || 0;
           G.currentAct     = saved.act;
           G.roundNumber    = saved.round;
-          G.hiddenHerdMode = saved.hiddenHerdMode || false;
           G.seatOrder      = saved.seatOrder || seededSeatOrder(players.length, G.gameSeed);
           G.pyramid = saved.pyramid.map(row => row.map(s => ({
             card:    s.id ? getCardById(s.id) : null,
@@ -2600,7 +2589,6 @@ async function startGame() {
       // Generate a random seed for SP mode (used for tiebreaking and seat order)
       G.gameSeed = (Math.random() * 0xFFFFFFFF) >>> 0 || 1;
       G.seatOrder = seededSeatOrder(G.numPlayers, G.gameSeed);
-      G.hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
     }
   }
 
@@ -2656,7 +2644,6 @@ function saveLocalGame() {
       round: G.roundNumber,
       phase: G.phase,
       gameSeed: G.gameSeed,
-      hiddenHerdMode: G.hiddenHerdMode || false,
       seatOrder: G.seatOrder,
       drawsDone: G.drawsDone || {},
       buyOrder: G.buyOrder || [],
@@ -2764,7 +2751,6 @@ async function reconstructG(state, cfg) {
   // mode ever changes the width again, it MUST be restored here — the reconstructed rows
   // are already that width, and a mismatch misaligns the brick offset and breaks
   // isCardCovered on rejoin.
-  G.hiddenHerdMode = cfg.hiddenHerdMode || false;
   G.phase       = state.phase;
   G.currentAct  = state.act;
   G.roundNumber = state.round;
@@ -5175,15 +5161,8 @@ async function scoreRound() {
     if (!player.busted && player.roundCows !== 0) {
       player.herd = Math.max(0, player.herd + player.roundCows);
       const prefix = playerIdx === 0 ? 'player' : `opp-${playerIdx}`;
-      // Hidden Herd mode: don't reveal opponents' running totals (or even that they
-      // scored) via the log or the bump animation — only the cows-this-round count.
-      const concealHerd = G.hiddenHerdMode && playerIdx !== 0;
-      if (concealHerd) {
-        addLog(`${player.name} adds ${player.roundCows} cows to their herd.`, 'log-score');
-      } else {
-        addLog(`${player.name} adds ${player.roundCows} cows to herd (total: ${player.herd}).`, 'log-score');
-        triggerHerdBump(prefix);
-      }
+      addLog(`${player.name} adds ${player.roundCows} cows to herd (total: ${player.herd}).`, 'log-score');
+      triggerHerdBump(prefix);
     }
   });
 
@@ -6077,13 +6056,6 @@ function applyDebugScenario(name) {
       G.pyramid = buildPyramid();
       oneCardPyramid(G.pyramid);
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
-    },
-
-    // Same as act3_one_card but with Hidden Herd mode on — opponents' herds show as
-    // "?" until the showdown reveal. Tests the hidden-herd showdown reveal path.
-    act3_one_card_hidden() {
-      SCENARIOS.act3_one_card();
-      G.hiddenHerdMode = true;
     },
 
     // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
