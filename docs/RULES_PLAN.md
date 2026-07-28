@@ -113,9 +113,9 @@ every rule preserved (40 checked against the rendered page, 0 missing).
 
 | | before | after |
 |---|---:|---:|
-| Text | 1,989 w (~11 panels) | 1,016 w (~5.6 panels) |
+| Text | 1,989 w (~11 panels) | 1,025 w (~5.7 panels) |
 | Visuals | ~3.8 panels | ~3.2 panels |
-| **Total** | **~15 panels** | **~8.8 panels** |
+| **Total** | **~15 panels** | **~9.2 panels** |
 
 Against a cross fold booklet's 8 panels that is *in range* — it needs one more tightening pass or a
 slightly smaller card-anatomy block, where before it was nearly double the budget.
@@ -125,8 +125,16 @@ Clarifications + Variants → **Fine Print**; 5+ Player Rules → Setup step 3 p
 
 Cut outright: the Objective's 3-step round overview (it duplicated Sequence of Play directly
 below it), 2 of the 3 Store diagrams (~0.6 panel each; the table carries every other player count),
-the 10-thumbnail starter-deck grid (composition is stated in the setup step), and Strategy Tips
-(not rules). Quick Reference went 206 → 64 words: at this length the document is close to being its
+and Strategy Tips (not rules).
+
+The 10-thumbnail starter-deck grid was cut and then **restored** — cutting it broke setup. The
+replacement text ("4 River, 4 Rattlesnake, 2 Cactus") gave the suit counts but not *which* cards,
+and it exposed that the page had never stated how to tell a starter from a Store card at all; the
+grid had been carrying that job implicitly. Checked against the art: **starters have no cost in the
+bottom-left and no Act hats in the bottom-right, Store cards have both.** Setup step 1 now says so,
+and the grid stays as verification — the thumbnails visibly show empty bottom corners, so rule and
+picture reinforce each other. Costs ~0.4 panel; in print it wraps 5×2 smaller, as it already does
+on mobile. Quick Reference went 206 → 64 words: at this length the document is close to being its
 own quick reference, so it keeps only the round order and both tie ladders as a back panel.
 
 ### The two paths that were considered
