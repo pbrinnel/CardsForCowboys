@@ -3,13 +3,13 @@
 Supersedes the ranked fix list in [`RULES_PAGE_AUDIT.md`](RULES_PAGE_AUDIT.md), which was written
 before the printed-insert constraint existed. The audit is still the scorecard; this is the plan.
 
-**Status:** 22 ✅ / 1 ⚠️ / 0 ❌ of 23 checks. Fixes 1–6, the full sweep, the annotated card
+**Status:** 23 ✅ / 0 ⚠️ / 0 ❌ of 23 checks — the uncovering diagram closed the last one. Fixes 1–6, the full sweep, the annotated card
 anatomy, and the parity cut are all shipped. The one open item is the **uncovering diagram** —
 the covering/reveal rule is still taught in words only, and it needs art.
 
-**Format decision: parity.** One ruleset, identical in print and on the web — see
-[§2 "Resolved"](#resolved-parity-achieved-by-cutting-the-web-page-july-2026). `rules.html` is now
-**1,025 words / 6 sections**, ≈9.2 print panels against a cross fold booklet's 8.
+**Format decision: parity.** One ruleset, identical in print and on the web. `rules.html` is now
+**1,061 words / 6 sections**, ≈**9.5 print panels** against a cross fold booklet's 8 — see
+"Re-measured July 2026" below for where that goes and how to close the gap.
 
 ---
 
@@ -106,6 +106,54 @@ at 100×100mm:
 
 **A cross fold booklet is 8 panels — about half of what the full rules now need.** Every fold
 option is out for the complete ruleset.
+
+### Re-measured July 2026, after the anatomy rebuild and the footprint trims
+
+Measured off the rendered page, then re-estimated at **print** width (86×86mm live) rather than
+scaled from screen pixels — these blocks *reflow* (cards per row changes) rather than shrink.
+
+| Visual | ≈ panels |
+|---|---:|
+| Card anatomy (35mm card + key beside) | 0.58 |
+| Store diagram + act key | 0.58 |
+| Starter grid (10 cards, 5×2) | 0.56 |
+| Setup table (8 rows × 5 cols) | 0.53 |
+| Suits (3 backs + labels) | 0.48 |
+| Symbols (6 entries, 2 × 3) | 0.42 |
+| Uncovering demo | 0.35 |
+| **Visuals** | **3.50** |
+| Prose, 876 w at ~180 w/panel | 4.87 |
+| ~12 headings × 8mm | 1.12 |
+| **Total** | **≈ 9.5 panels** |
+
+**Still ~1.5 over the cross fold booklet's 8**, and *not* the improvement the trims implied.
+Three things cancelled out:
+
+1. The symbols block really did shrink — a full panel down to **0.42**. That worked.
+2. The **uncovering demo was added** (+0.35), which didn't exist at the last estimate.
+3. Two earlier estimates were **too optimistic**, and re-measuring corrected them upward: suits
+   0.30 → **0.48**, starter grid 0.40 → **0.56**.
+
+Headings are also a real cost that earlier passes folded into prose: ~1.1 panels across 12 of them.
+
+### Closing the last ~1.5 panels
+
+Ranked by saving per unit of harm. None of these drops a rule.
+
+1. **Tighten Sequence of Play** — 402 words, the biggest single block. To ~320 saves **~0.45**.
+2. **Suits row → a text line** — the suit is already region 1 on the anatomy card, and its "shows
+   on the back" point is one sentence. Dropping the three back images saves **~0.35**, at the cost
+   of never showing what a back looks like.
+3. **Setup table → 2–4 players only**, with 5–8P as a sentence. Saves **~0.25**.
+4. **Starter grid at 5×2 smaller** — saves **~0.15**, and PB has already ruled that setup clarity
+   wins here, so this is the last one to touch.
+
+1 + 3 lands ≈ **8.8**. 1 + 2 + 3 lands ≈ **8.4**. Getting under 8 needs all four, or accepting a
+9th panel.
+
+⚠️ These are still screen-derived estimates with a band of roughly ±1 panel. **A proof print at
+100% is the only thing that settles it**, and it should happen before any more cutting — there is a
+real chance the layout already fits and further trimming would be damage for nothing.
 
 ### Resolved: parity, achieved by cutting the web page (July 2026)
 
