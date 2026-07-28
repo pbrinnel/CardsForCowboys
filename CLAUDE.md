@@ -28,6 +28,8 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `history.html` | Game history + leaderboard; "Live Now" list reads the slim `liveSummary/` node |
 | `aboutthecreators.html` | About page |
 | `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
+| `print-proof.html` | **Print layout proof for the physical rules insert.** `noindex`'d working file, not linked from the site. Renders the ruleset into real print panels at real mm/pt so content fit can be tested before committing to a format. Buttons switch panel size (poker 63.5×88.9 / 50mm cross fold / 100mm reference) and body type (6–9pt), and JS flags any panel whose content exceeds the live area — **measuring width as well as height**, since a too-wide Store diagram once passed a height-only check while running off the side. Ships cut/fold/trim guides generated from `--cols`. Current decision: **poker accordion, 8 panels, 7pt, 3mm margins** — the only format on the shortlist that holds the full ruleset. |
+| `proofs/` | Rendered PNGs of the above (~407dpi, headless Chrome). Regenerate rather than hand-edit. |
 | `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 

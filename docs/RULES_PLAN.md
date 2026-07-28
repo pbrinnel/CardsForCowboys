@@ -7,6 +7,19 @@ before the printed-insert constraint existed. The audit is still the scorecard; 
 anatomy, and the parity cut are all shipped. The one open item is the **uncovering diagram** —
 the covering/reveal rule is still taught in words only, and it needs art.
 
+**FORMAT DECIDED (July 2026): poker accordion — 8 panels of 63.5×88.9mm, 7pt, 3mm margins.**
+All 8 panels fit with 2.6–24.6mm of slack. Proof + exports: [`print-proof.html`](../print-proof.html),
+[`proofs/`](../proofs/). Everything below is the working that got there.
+
+Formats measured and rejected, all against the full ruleset:
+
+| Format | Panels | Result |
+|---|---:|---|
+| Cross fold, 100mm sheet → 50×50mm panels | 8 | 1.86× over even at 6pt |
+| Poker bifold | 4 | 2.01× over at 7pt |
+| Poker Z fold | 6 | 1.34× over at 7pt |
+| **Poker accordion** | 8 | **fits at 7pt** |
+
 **Format decision: parity.** One ruleset, identical in print and on the web. `rules.html` is now
 **1,061 words / 6 sections**, ≈**9.5 print panels** against a cross fold booklet's 8 — see
 "Re-measured July 2026" below for where that goes and how to close the gap.
