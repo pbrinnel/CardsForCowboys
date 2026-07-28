@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Print proof — 100×100mm cross fold booklet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   PRINT PROOF — cross fold booklet, 100×100mm panels, printed both sides.
+   Working file, not part of the site. noindex'd.
+
+   Everything here is in mm and pt so what you see is what prints. The panels are
+   in READING order 1–8; the printer's imposition will reorder them on the sheet.
+   This tests CONTENT FIT, which is the open question — not the fold.
+
+   Body type is 8pt / 1.3, which is about as small as rules stay comfortable.
+   Change --body-pt below to test other sizes; every block scales with it.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  --panel: 100mm;
+  --margin: 7mm;
+  --body-pt: 8pt;
+  --ink: #1e1610;
+  --paper: #e9e0c6;
+  --rule: #b87838;
+  --accent: #8a5a22;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #6b6257;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--ink);
+  padding: 10mm;
+}
+
+.sheet-label {
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  font-size: 11pt;
+  margin: 6mm 0 3mm;
+}
+.legend {
+  color: #fff; font-family: system-ui, sans-serif; font-size: 9pt;
+  line-height: 1.5; margin-bottom: 4mm; max-width: 210mm;
+}
+.legend b { color: #ffd08a; }
+
+.sheet {
+  display: grid;
+  grid-template-columns: var(--panel) var(--panel);
+  grid-template-rows: var(--panel) var(--panel);
+  gap: 0;
+  width: calc(var(--panel) * 2);
+  border: 0.4mm solid #333;
+  margin-bottom: 8mm;
+}
+
+.panel {
+  width: var(--panel);
+  height: var(--panel);
+  padding: var(--margin);
+  background: var(--paper);
+  outline: 0.2mm dashed rgba(30,22,16,0.35);
+  outline-offset: -0.2mm;
+  overflow: hidden;
+  position: relative;
+  font-size: var(--body-pt);
+  line-height: 1.3;
+}
+
+/* Panel number tag — sits OUTSIDE the live area so it costs no space. */
+.panel::after {
+  content: attr(data-n);
+  position: absolute;
+  right: 1.5mm; bottom: 1mm;
+  font-family: system-ui, sans-serif;
+  font-size: 6pt;
+  color: rgba(30,22,16,0.4);
+}
+
+/* Flagged by JS when the content is taller than the live area. */
+.panel.overflowing { outline: 0.8mm solid #c0392b; outline-offset: -0.8mm; }
+.overflow-tag {
+  position: absolute; left: 0; top: 0;
+  background: #c0392b; color: #fff;
+  font-family: system-ui, sans-serif; font-size: 6pt;
+  padding: 0.6mm 1.5mm;
+}
+
+h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: calc(var(--body-pt) + 3pt);
+  letter-spacing: 0.3pt;
+  border-bottom: 0.5mm solid var(--rule);
+  padding-bottom: 0.8mm;
+  margin-bottom: 1.8mm;
+  text-transform: uppercase;
+}
+h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: calc(var(--body-pt) + 0.5pt);
+  margin: 2mm 0 1mm;
+}
+p { margin-bottom: 1.4mm; }
+ul, ol { margin: 0 0 1.4mm 4mm; }
+li { margin-bottom: 0.9mm; }
+strong { font-weight: bold; }
+.small { font-size: calc(var(--body-pt) - 1pt); }
+
+.callout {
+  border: 0.4mm solid var(--accent);
+  border-left-width: 1.2mm;
+  background: rgba(138,90,34,0.09);
+  padding: 1.2mm 1.6mm;
+  margin: 1.4mm 0;
+}
+
+/* ── Card anatomy ── */
+.anatomy { display: flex; gap: 2.5mm; align-items: flex-start; margin: 1.5mm 0; }
+.anatomy-card { position: relative; width: 30mm; flex: 0 0 30mm; }
+.anatomy-card img { width: 100%; display: block; border: 0.3mm solid var(--ink); }
+.anno {
+  position: absolute; left: var(--x); top: var(--y);
+  transform: translate(-50%,-50%);
+  width: 4mm; height: 4mm; border-radius: 50%;
+  background: var(--ink); color: var(--paper);
+  border: 0.4mm solid var(--paper);
+  font-size: 5.5pt; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+}
+.anatomy ol { margin: 0 0 0 3.5mm; font-size: calc(var(--body-pt) - 0.5pt); }
+.anatomy li { margin-bottom: 1.1mm; }
+
+/* ── Suits ── */
+.suits { display: flex; gap: 2mm; justify-content: space-between; margin: 1.5mm 0; }
+.suit { text-align: center; width: 24mm; }
+.suit img { width: 20mm; height: 28mm; object-fit: cover; border: 0.3mm solid var(--ink); display: block; margin: 0 auto 0.8mm; }
+.suit span { font-size: calc(var(--body-pt) - 1.5pt); line-height: 1.25; display: block; }
+
+/* ── Symbols ── */
+.symbols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm; margin: 1.5mm 0; }
+.sym { display: flex; gap: 1.5mm; align-items: center; border: 0.3mm solid var(--ink); padding: 0.8mm; }
+.sym img { width: 7mm; height: 7mm; object-fit: contain; flex: 0 0 7mm; }
+.sym p { margin: 0; font-size: calc(var(--body-pt) - 1.5pt); line-height: 1.2; }
+
+/* ── Starter grid ── */
+.starters { display: flex; flex-wrap: wrap; gap: 1mm; margin: 1.5mm 0; }
+.starters img { width: 14.4mm; height: 20mm; object-fit: cover; border: 0.3mm solid var(--ink); }
+
+/* ── Setup table ── */
+table { border-collapse: collapse; width: 100%; font-size: calc(var(--body-pt) - 1.5pt); margin: 1.5mm 0; }
+th, td { border: 0.2mm solid rgba(30,22,16,0.4); padding: 0.5mm 0.8mm; text-align: center; }
+thead th { background: var(--ink); color: var(--paper); }
+tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
+
+/* ── Store diagram (same brick geometry, print scale) ── */
+.pyr { display: flex; flex-direction: column; align-items: center; margin: 1.5mm 0 1mm; }
+.prow { display: flex; gap: 0.7mm; }
+.prow + .prow { margin-top: -3.4mm; }
+.prow.off { transform: translateX(3.85mm); }
+.pc {
+  width: 7mm; height: 10mm; border: 0.3mm solid var(--ink); border-radius: 0.4mm;
+  box-shadow: 0 0.4mm 0.5mm rgba(0,0,0,0.4);
+}
+.b3 .pc { background: #241610; background-image: repeating-linear-gradient(45deg,transparent,transparent .8mm,rgba(255,255,255,.16) .8mm,rgba(255,255,255,.16) 1.3mm); }
+.b2 .pc { background: #7d5636; background-image: repeating-linear-gradient(-45deg,transparent,transparent .8mm,rgba(255,255,255,.18) .8mm,rgba(255,255,255,.18) 1.3mm); }
+.b1 .pc { background: #c19464; background-image: repeating-linear-gradient(0deg,transparent,transparent .8mm,rgba(0,0,0,.18) .8mm,rgba(0,0,0,.18) 1.3mm); }
+.pc.up { background: var(--paper) !important; background-image: none !important; }
+.pc.gone { background: none !important; background-image: none !important; border-style: dashed; box-shadow: none; }
+.pc.mark { outline: 0.4mm solid var(--accent); outline-offset: 0.2mm; }
+.bandkey { display: flex; gap: 2.5mm; justify-content: center; font-size: calc(var(--body-pt) - 2pt); margin-top: 0.8mm; }
+.bandkey span { display: inline-flex; align-items: center; gap: 0.8mm; }
+.sw { width: 2.6mm; height: 2.6mm; border: 0.3mm solid var(--ink); display: inline-block; }
+
+/* ── Uncovering demo ── */
+.reveal { display: flex; gap: 2mm; align-items: center; justify-content: center; margin: 1.5mm 0; }
+.reveal figcaption { font-size: calc(var(--body-pt) - 2pt); text-align: center; margin-top: 0.8mm; line-height: 1.2; max-width: 32mm; }
+.arrow { font-size: 11pt; color: var(--accent); }
+
+/* ── Cover panel ── */
+.cover { display: flex; flex-direction: column; justify-content: center; height: 100%; text-align: center; }
+.cover h1 {
+  font-family: 'Playfair Display', Georgia, serif; font-weight: 900;
+  font-size: 17pt; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.5pt;
+  margin-bottom: 2mm;
+}
+.cover .tag { font-size: calc(var(--body-pt) + 0.5pt); font-style: italic; margin-bottom: 3mm; }
+.cover .goal { border: 0.4mm solid var(--accent); background: rgba(138,90,34,0.09); padding: 2mm; font-weight: bold; }
+.cover .meta { margin-top: 3mm; font-size: calc(var(--body-pt) - 1pt); }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .sheet-label, .legend { display: none; }
+  .sheet { border: none; margin: 0; page-break-after: always; }
+  .panel { outline: none; }
+  @page { size: 200mm 200mm; margin: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Cross fold booklet proof — 100×100mm panels, 7mm margins, 8pt body.</b><br>
+  Panels are in reading order 1–8; the printer's imposition will reorder them on the sheet.
+  This tests <b>content fit</b>, not the fold. A panel outlined in <b>red</b> has more content
+  than fits — that's the thing to fix. Everything is sized in mm/pt, so print at 100% and it
+  matches.
+</div>
+
+<div class="sheet-label">SIDE A — panels 1–4</div>
+<div class="sheet">
+
+  <!-- 1 — COVER -->
+  <div class="panel" data-n="1">
+    <div class="cover">
+      <h1>Cards for Cowboys</h1>
+      <p class="tag">A push-your-luck deck builder</p>
+      <p class="goal">Build the biggest Herd of Cows.</p>
+      <p class="meta">2–8 players · 20–40 min<br>Full rules: cardsforcowboys.com/rules</p>
+    </div>
+  </div>
+
+  <!-- 2 — READING THE CARDS -->
+  <div class="panel" data-n="2">
+    <h2>Reading the Cards</h2>
+    <p>Every card is laid out the same way. Four places to look:</p>
+    <div class="anatomy">
+      <div class="anatomy-card">
+        <img src="assets/cards/All-Cards/Card_90.jpg" alt="">
+        <span class="anno" style="--x:74%;--y:8%">1</span>
+        <span class="anno" style="--x:15%;--y:45%">2</span>
+        <span class="anno" style="--x:31%;--y:92%">3</span>
+        <span class="anno" style="--x:60%;--y:93%">4</span>
+      </div>
+      <ol>
+        <li><strong>Suit</strong> — top-right. Shows on the back too, so you know the risk before you draw.</li>
+        <li><strong>What it does</strong> — the middle. Any mix of $, Cows, Bandits, Jail or an Explosive.</li>
+        <li><strong>Cost</strong> — bottom-left. What you pay to buy it. Always a plain $, never in a circle.</li>
+        <li><strong>Act</strong> — bottom-right. Hats. Only used when you build the Store.</li>
+      </ol>
+    </div>
+    <p class="callout"><strong>Starter cards have no cost and no hats</strong> — both bottom
+      corners are empty. That's how you tell your 10 starters from the Store cards.</p>
+  </div>
+
+  <!-- 3 — SUITS + SYMBOLS -->
+  <div class="panel" data-n="3">
+    <h2>Suits &amp; Symbols</h2>
+    <div class="suits">
+      <div class="suit"><img src="assets/backs/River Back.jpg" alt=""><span><strong>River</strong><br>Safe. No Bandits.</span></div>
+      <div class="suit"><img src="assets/backs/Cactus Back.jpg" alt=""><span><strong>Cactus</strong><br>Up to 1 Bandit.</span></div>
+      <div class="suit"><img src="assets/backs/Rattlesnake Back.jpg" alt=""><span><strong>Rattlesnake</strong><br>1–2 Bandits, best rewards.</span></div>
+    </div>
+    <h3>What the middle can hold</h3>
+    <div class="symbols">
+      <div class="sym"><img src="assets/symbols/$1-01.png" alt=""><p><strong>$</strong><br>Money to spend this round.</p></div>
+      <div class="sym"><img src="assets/symbols/1 Cow-01.png" alt=""><p><strong>Cow</strong><br>Goes to your Herd.</p></div>
+      <div class="sym"><img src="assets/symbols/1 Bandit-01.png" alt=""><p><strong>Bandit</strong><br>3rd in a round busts you.</p></div>
+      <div class="sym"><img src="assets/symbols/2 Bandits-01.png" alt=""><p><strong>Double Bandit</strong><br>Counts as 2.</p></div>
+      <div class="sym"><img src="assets/symbols/-1 Bandit-01.png" alt=""><p><strong>Jail</strong><br>Cancels 1 Bandit.</p></div>
+      <div class="sym"><img src="assets/symbols/One-Time Use-01.png" alt=""><p><strong>Explosive</strong><br>One-time use, on your turn.</p></div>
+    </div>
+  </div>
+
+  <!-- 4 — SETUP (steps + starters) -->
+  <div class="panel" data-n="4">
+    <h2>Setup</h2>
+    <ol>
+      <li>Each player takes an identical <strong>10-card starter deck</strong>. Shuffle it face-down as your <strong>draw pile</strong>.</li>
+      <li>Split the <strong>54 Store cards</strong> into three <strong>Act decks</strong> by the hats (18 per Act). Shuffle each separately.</li>
+      <li>Build the Store <strong>once</strong>, face-down, back to front: <strong>Act 3 back, Act 2 middle, Act 1 front</strong>. Each Act is 2 rows (2–4 players) or 3 rows (5–8).</li>
+      <li><strong>Stagger every other row by half a card</strong>, so two cards cover the one above. Flip the <strong>front row</strong> face-up.</li>
+    </ol>
+    <div class="starters">
+      <img src="assets/cards/All-Cards/Card_91.jpg" alt=""><img src="assets/cards/All-Cards/Card_92.jpg" alt=""><img src="assets/cards/All-Cards/Card_93.jpg" alt=""><img src="assets/cards/All-Cards/Card_94.jpg" alt=""><img src="assets/cards/All-Cards/Card_33.jpg" alt="">
+      <img src="assets/cards/All-Cards/Card_34.jpg" alt=""><img src="assets/cards/All-Cards/Card_61.jpg" alt=""><img src="assets/cards/All-Cards/Card_62.jpg" alt=""><img src="assets/cards/All-Cards/Card_63.jpg" alt=""><img src="assets/cards/All-Cards/Card_64.jpg" alt="">
+    </div>
+    <p class="small">Your 10 starters — every player's is the same.</p>
+  </div>
+</div>
+
+<div class="sheet-label">SIDE B — panels 5–8</div>
+<div class="sheet">
+
+  <!-- 5 — STORE SHAPE -->
+  <div class="panel" data-n="5">
+    <h2>The Store</h2>
+    <div class="pyr">
+      <div class="prow b3"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+      <div class="prow b3 off"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+      <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+      <div class="prow b2 off"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+      <div class="prow b1"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+      <div class="prow b1 off"><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i></div>
+    </div>
+    <div class="bandkey">
+      <span><i class="sw" style="background:#241610"></i>Act 3</span>
+      <span><i class="sw" style="background:#7d5636"></i>Act 2</span>
+      <span><i class="sw" style="background:#c19464"></i>Act 1 (face-up)</span>
+    </div>
+    <p class="small" style="text-align:center">4 players — 9 per row × 6 rows</p>
+    <table>
+      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
+        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
+        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
+        <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
+        <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
+        <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
+        <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
+      </tbody>
+    </table>
+    <p class="small">5–8 players shuffle <strong>two</strong> copies of each Act deck together.</p>
+  </div>
+
+  <!-- 6 — DRAW + BUY -->
+  <div class="panel" data-n="6">
+    <h2>Sequence of Play</h2>
+    <h3>1. Draw</h3>
+    <ul>
+      <li>Everyone draws at the same time, one card at a time. You <strong>must</strong> draw at least one; after that you <strong>may</strong> stop whenever you like.</li>
+      <li>Run out? Shuffle your discard into a new draw pile and cut one card top to bottom. Both piles empty — stop drawing.</li>
+    </ul>
+    <p class="callout"><strong>Bust.</strong> The moment you have <strong>3 Bandits</strong>, you bust: score nothing, no buy, everything you drew goes to discard.</p>
+    <h3>2. Buy</h3>
+    <ul>
+      <li>Didn't bust? Add the Cows you drew to your <strong>Herd</strong>. Busted players sit this phase out.</li>
+      <li>You <strong>must</strong> buy or burn one card — no passing. <strong>Buy</strong> any face-up card you can afford with the $ you drew; it and your drawn cards go to discard. Or <strong>burn</strong> a face-up card out of the game.</li>
+      <li>Then discard and start a new round.</li>
+    </ul>
+  </div>
+
+  <!-- 7 — UNCOVERING, ORDER, SHOWDOWN -->
+  <div class="panel" data-n="7">
+    <p class="callout"><strong>Always reveal.</strong> As soon as a card leaves the Store, turn face-up anything behind it no longer covered.</p>
+    <div class="reveal">
+      <figure>
+        <div class="pyr">
+          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+          <div class="prow b1 off"><i class="pc up mark"></i><i class="pc up mark"></i><i class="pc up"></i></div>
+        </div>
+        <figcaption>Two cards cover the one behind.</figcaption>
+      </figure>
+      <div class="arrow">→</div>
+      <figure>
+        <div class="pyr">
+          <div class="prow b2"><i class="pc"></i><i class="pc up mark"></i><i class="pc"></i></div>
+          <div class="prow b1 off"><i class="pc gone"></i><i class="pc gone"></i><i class="pc up"></i></div>
+        </div>
+        <figcaption>Both gone → it flips face-up.</figcaption>
+      </figure>
+    </div>
+    <h3>Who goes first</h3>
+    <ol>
+      <li>Most <strong>$</strong> this round — that player chooses who buys first.</li>
+      <li>Tied? Most Cows this round.</li>
+      <li>Still tied? Most cards drawn.</li>
+      <li>Still tied? Drawn-card cost by position, 1st vs 1st.</li>
+      <li>Still tied? Random draw.</li>
+    </ol>
+    <p>Play continues clockwise, skipping busted players. Same every round.</p>
+  </div>
+
+  <!-- 8 — SHOWDOWN + FINE PRINT -->
+  <div class="panel" data-n="8">
+    <h2>The Showdown</h2>
+    <p class="callout"><strong>The Store empties once, and that ends the game.</strong> When the final card is bought or burned, the buy phase stops — anyone yet to take a turn misses it. If you didn't bust, you still score the Cows you drew.</p>
+    <p>Then everyone — including anyone who just busted — lays out their whole deck and adds
+      <strong>every Cow they own</strong> to their Herd. <strong>Most Cows wins.</strong></p>
+    <p class="small"><strong>Tied?</strong> Most $ in your deck → most cards in your deck → share the win.</p>
+    <h3>Fine print</h3>
+    <ul class="small">
+      <li>You may check card <em>backs</em> in your draw pile. Never look through your discard.</li>
+      <li><strong>Burn</strong> always means removing a <em>Store</em> card. To consume your own card you <strong>use</strong> an Explosive.</li>
+      <li><strong>Draw 4s stack</strong> — owe 4, draw a Draw 4, now owe 7. Busting cancels the rest.</li>
+      <li><strong>Hidden Herd (variant):</strong> keep Herd totals secret until the Showdown.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// Flag any panel whose content is taller than its live area. This is the whole point
+// of the proof: red outline = does not fit at this type size.
+function check() {
+  document.querySelectorAll('.panel').forEach(p => {
+    p.querySelectorAll('.overflow-tag').forEach(t => t.remove());
+    p.classList.remove('overflowing');
+    const over = p.scrollHeight - p.clientHeight;
+    if (over > 1) {
+      p.classList.add('overflowing');
+      const tag = document.createElement('div');
+      tag.className = 'overflow-tag';
+      tag.textContent = 'OVER by ' + Math.round(over / 3.7795) + 'mm';
+      p.appendChild(tag);
+    }
+  });
+}
+window.addEventListener('load', check);
+window.addEventListener('resize', check);
+</script>
+</body>
+</html>
