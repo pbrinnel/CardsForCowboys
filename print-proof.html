@@ -19,6 +19,13 @@
    Change --body-pt below to test other sizes; every block scales with it.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
+  /* Store-diagram card size. The widest Store is 9 cards across plus a half-card
+     brick offset, so this has to be derived from panel width, not fixed: at 7mm
+     the diagram was 68.6mm inside a 57.5mm panel and silently clipped. */
+  --pc-w: 5mm;
+  --pc-h: 7.1mm;
+  --pc-gap: 0.5mm;
+
   /* Default: poker accordion — 8 panels of 63.5×88.9mm, 3mm margins, 7pt.
      The only format on the menu that holds the full ruleset (629mm of content
      against 663mm of live panel height). Switch with the buttons up top. */
@@ -65,15 +72,47 @@ body {
 .controls button.on { background: #ffd08a; color: #1e1610; border-color: #ffd08a; font-weight: bold; }
 #verdict { margin-left: 1em; font-weight: bold; }
 
+/* ── Cut and fold guides ──
+   Solid = cut, dashed = fold. Kept visually distinct on purpose: on an accordion
+   strip the only cut is the outer rectangle, and every internal line is a fold —
+   confusing the two ruins the piece. Crop marks sit OUTSIDE the trim so the blade
+   has something to line up on without a rule printing across the artwork. */
 .sheet {
   display: grid;
   grid-template-columns: repeat(var(--cols, 2), var(--panel-w));
   grid-auto-rows: var(--panel-h);
   gap: 0;
   width: calc(var(--panel-w) * var(--cols, 2));
-  border: 0.4mm solid #333;
-  margin-bottom: 8mm;
+  outline: 0.35mm solid #000;      /* CUT line — the trim edge */
+  outline-offset: 0;
+  position: relative;
+  margin: 0 0 14mm 6mm;
 }
+
+.foldline {
+  position: absolute;
+  top: -3mm; bottom: -3mm;
+  width: 0;
+  border-left: 0.3mm dashed rgba(0,0,0,0.55);
+  pointer-events: none;
+}
+.foldline::after {
+  content: "FOLD";
+  position: absolute; left: 0.8mm; bottom: -3.6mm;
+  font-family: system-ui, sans-serif; font-size: 5pt; letter-spacing: 0.4pt;
+  color: rgba(0,0,0,0.6);
+}
+.cropmark { position: absolute; background: #000; pointer-events: none; }
+.cropmark.h { width: 4mm; height: 0.35mm; }
+.cropmark.v { width: 0.35mm; height: 4mm; }
+
+.guidekey {
+  font-family: system-ui, sans-serif; font-size: 8pt; color: #fff;
+  display: flex; gap: 1.5em; align-items: center; margin: 0 0 3mm 6mm;
+}
+.guidekey i { display: inline-block; width: 14mm; vertical-align: middle; margin-right: 0.4em; }
+.guidekey .cut { border-top: 0.5mm solid #fff; }
+.guidekey .fold { border-top: 0.5mm dashed #fff; }
 
 .panel {
   width: var(--panel-w);
@@ -155,8 +194,8 @@ strong { font-weight: bold; }
 
 /* ── Suits ── */
 .suits { display: flex; gap: 2mm; justify-content: space-between; margin: 1.5mm 0; }
-.suit { text-align: center; width: 24mm; }
-.suit img { width: 18mm; height: 25mm; object-fit: cover; border: 0.3mm solid var(--ink); display: block; margin: 0 auto 0.8mm; }
+.suit { text-align: center; flex: 1 1 0; min-width: 0; }
+.suit img { width: 17mm; height: 23.6mm; object-fit: cover; border: 0.3mm solid var(--ink); display: block; margin: 0 auto 0.8mm; }
 .suit span { font-size: calc(var(--body-pt) - 1.5pt); line-height: 1.25; display: block; }
 
 /* ── Symbols ── */
@@ -177,16 +216,18 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
 /* ── Store diagram (same brick geometry, print scale) ── */
 .pyr { display: flex; flex-direction: column; align-items: center; margin: 1.5mm 0 1mm; }
-.prow { display: flex; gap: 0.7mm; }
-.prow + .prow { margin-top: -3.4mm; }
-.prow.off { transform: translateX(3.85mm); }
+.prow { display: flex; gap: var(--pc-gap); }
+.prow + .prow { margin-top: calc(var(--pc-h) * -0.34); }
+.prow.off { transform: translateX(calc((var(--pc-w) + var(--pc-gap)) / 2)); }
 .pc {
-  width: 7mm; height: 10mm; border: 0.3mm solid var(--ink); border-radius: 0.4mm;
-  box-shadow: 0 0.4mm 0.5mm rgba(0,0,0,0.4);
+  width: var(--pc-w); height: var(--pc-h);
+  border: 0.25mm solid var(--ink); border-radius: 0.3mm;
+  box-shadow: 0 0.3mm 0.4mm rgba(0,0,0,0.4);
+  flex: 0 0 var(--pc-w);
 }
-.b3 .pc { background: #241610; background-image: repeating-linear-gradient(45deg,transparent,transparent .8mm,rgba(255,255,255,.16) .8mm,rgba(255,255,255,.16) 1.3mm); }
-.b2 .pc { background: #7d5636; background-image: repeating-linear-gradient(-45deg,transparent,transparent .8mm,rgba(255,255,255,.18) .8mm,rgba(255,255,255,.18) 1.3mm); }
-.b1 .pc { background: #c19464; background-image: repeating-linear-gradient(0deg,transparent,transparent .8mm,rgba(0,0,0,.18) .8mm,rgba(0,0,0,.18) 1.3mm); }
+.b3 .pc { background: #241610; background-image: repeating-linear-gradient(45deg,transparent,transparent .6mm,rgba(255,255,255,.16) .6mm,rgba(255,255,255,.16) 1mm); }
+.b2 .pc { background: #7d5636; background-image: repeating-linear-gradient(-45deg,transparent,transparent .6mm,rgba(255,255,255,.18) .6mm,rgba(255,255,255,.18) 1mm); }
+.b1 .pc { background: #c19464; background-image: repeating-linear-gradient(0deg,transparent,transparent .6mm,rgba(0,0,0,.18) .6mm,rgba(0,0,0,.18) 1mm); }
 .pc.up { background: var(--paper) !important; background-image: none !important; }
 .pc.gone { background: none !important; background-image: none !important; border-style: dashed; box-shadow: none; }
 .pc.mark { outline: 0.4mm solid var(--accent); outline-offset: 0.2mm; }
@@ -242,17 +283,15 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
   .sheet {
     position: relative;
-    border: none;
-    margin: 6mm auto 0;
+    margin: 8mm auto 6mm;
     break-after: avoid;          /* keep the ruler with its sheet */
     page-break-after: avoid;
   }
   .panel { outline: none; }
 
-  /* Fold guides for the cross fold: the sheet's two centre lines. */
-  .sheet::before, .sheet::after { content: ""; position: absolute; background: rgba(0,0,0,0.3); }
-  .sheet::before { left: 0; right: 0; top: 50%; height: 0.2mm; }
-  .sheet::after { top: 0; bottom: 0; left: 50%; width: 0.2mm; }
+  .guidekey { color: #000; }
+  .guidekey .cut { border-top-color: #000; }
+  .guidekey .fold { border-top-color: #000; }
 
   /* The ruler rides along under its own sheet, then forces the page break. */
   .printbar { margin: 5mm auto 0; width: 150mm; break-after: page; page-break-after: always; }
@@ -286,6 +325,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 </div>
 
 <div class="sheet-label">SIDE A — panels 1–4 (front of the strip)</div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
 <div class="sheet">
 
   <!-- 1 — COVER -->
@@ -374,6 +414,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   </div>
 
 <div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
 <div class="sheet">
 
   <!-- 5 — STORE SHAPE -->
@@ -473,12 +514,13 @@ function check() {
   document.querySelectorAll('.panel').forEach(p => {
     p.querySelectorAll('.overflow-tag').forEach(t => t.remove());
     p.classList.remove('overflowing');
-    const over = p.scrollHeight - p.clientHeight;
+    const overW = p.scrollWidth - p.clientWidth;
+    const over = Math.max(p.scrollHeight - p.clientHeight, overW);
     if (over > 1) {
       p.classList.add('overflowing');
       const tag = document.createElement('div');
       tag.className = 'overflow-tag';
-      tag.textContent = 'OVER by ' + Math.round(over / 3.7795) + 'mm';
+      tag.textContent = (overW > 1 ? 'TOO WIDE by ' : 'OVER by ') + Math.round(over / 3.7795) + 'mm';
       p.appendChild(tag);
     }
   });
@@ -487,7 +529,7 @@ function report() {
   const panels = [...document.querySelectorAll('.panel')];
   let over = 0, worst = 0;
   panels.forEach(p => {
-    const d = p.scrollHeight - p.clientHeight;
+    const d = Math.max(p.scrollHeight - p.clientHeight, p.scrollWidth - p.clientWidth);
     if (d > 0) { over++; worst = Math.max(worst, d); }
   });
   const el = document.getElementById('verdict');
@@ -497,7 +539,29 @@ function report() {
     : '✗ ' + over + ' of 8 overflow — worst by ' + mm + 'mm';
   el.style.color = over === 0 ? '#8fe388' : '#ff8a80';
 }
-function apply() { check(); report(); }
+function guides() {
+  document.querySelectorAll('.sheet').forEach(sheet => {
+    sheet.querySelectorAll('.foldline, .cropmark').forEach(e => e.remove());
+    const cols = getComputedStyle(document.documentElement).getPropertyValue('--cols').trim() || '2';
+    const n = parseInt(cols, 10);
+    const pw = getComputedStyle(document.documentElement).getPropertyValue('--panel-w').trim();
+    // one fold between each pair of panels; the outer edges are cuts, not folds
+    for (let i = 1; i < n; i++) {
+      const f = document.createElement('div');
+      f.className = 'foldline';
+      f.style.left = 'calc(' + pw + ' * ' + i + ')';
+      sheet.appendChild(f);
+    }
+    // trim marks just outside each corner, so the blade has a target off the artwork
+    [['top','left'],['top','right'],['bottom','left'],['bottom','right']].forEach(([v,h]) => {
+      const a = document.createElement('div'); a.className = 'cropmark h';
+      a.style[v] = '-0.35mm'; a.style[h] = '-5mm'; sheet.appendChild(a);
+      const b = document.createElement('div'); b.className = 'cropmark v';
+      b.style[v] = '-5mm'; b.style[h] = '-0.35mm'; sheet.appendChild(b);
+    });
+  });
+}
+function apply() { check(); report(); guides(); }
 document.querySelector('.controls').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const group = b.dataset.w ? '[data-w]' : '[data-pt]';
