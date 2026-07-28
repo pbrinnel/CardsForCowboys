@@ -545,7 +545,24 @@ player = {
 
 ## Game Mode / Setup Flags
 
-**One mode ships today: Hidden Herd** (`hiddenHerdMode`). Quick Draw (`quickStartMode`) and
+**No mode is offered at setup today.** Hidden Herd (`hiddenHerdMode`) was removed from the
+`gamesetup.html` Mode section in July 2026 — the whole Mode block went with it, since Hidden Herd
+was the only entry left. **The mode itself is deliberately still wired end to end** and is the live
+worked example for the 3-layer path below: `host.js` payload → `buildPlayersConfig` → `G.hiddenHerdMode`
+in every `startGame` branch and `reconstructG` → `spectatorState`/`trajLogHeader` → the
+`renderPlayerZone` / `scoreRound` concealment. Two consequences worth knowing:
+
+- **`spectate.html` keeps its Hidden Herd badge**, so games played before the removal still display
+  the mode they were played under. Don't "clean up" that badge — it is historical-record rendering,
+  not dead code.
+- **The only way to enable it now is the `act3_one_card_hidden` debug scenario**, which is why that
+  scenario is kept. It is also the only way to exercise the concealment path, so run it after
+  touching `renderPlayerZone` or `scoreRound`.
+- `gamesetup.html` `startGame()` calls `sessionStorage.removeItem('hidden_herd_mode')` rather than
+  simply not writing the key: sessionStorage is per-tab and survives navigation, so a value left by
+  an older build would otherwise silently re-enable the mode.
+
+Quick Draw (`quickStartMode`) and
 Pioneer Mode (`pioneerMode`) were **removed in the July 2026 single-Store rework** — Quick Draw
 "skipped Act 1", which no longer means anything, and Pioneer was a Store-width mode when width was
 a constant; width is now per-player-count. Their whole stack is gone: checkboxes, `host.js` payload
