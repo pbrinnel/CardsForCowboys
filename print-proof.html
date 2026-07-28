@@ -140,7 +140,7 @@ strong { font-weight: bold; }
 /* ── Suits ── */
 .suits { display: flex; gap: 2mm; justify-content: space-between; margin: 1.5mm 0; }
 .suit { text-align: center; width: 24mm; }
-.suit img { width: 20mm; height: 28mm; object-fit: cover; border: 0.3mm solid var(--ink); display: block; margin: 0 auto 0.8mm; }
+.suit img { width: 18mm; height: 25mm; object-fit: cover; border: 0.3mm solid var(--ink); display: block; margin: 0 auto 0.8mm; }
 .suit span { font-size: calc(var(--body-pt) - 1.5pt); line-height: 1.25; display: block; }
 
 /* ── Symbols ── */
@@ -151,11 +151,11 @@ strong { font-weight: bold; }
 
 /* ── Starter grid ── */
 .starters { display: flex; flex-wrap: wrap; gap: 1mm; margin: 1.5mm 0; }
-.starters img { width: 14.4mm; height: 20mm; object-fit: cover; border: 0.3mm solid var(--ink); }
+.starters img { width: 12.2mm; height: 17mm; object-fit: cover; border: 0.3mm solid var(--ink); }
 
 /* ── Setup table ── */
-table { border-collapse: collapse; width: 100%; font-size: calc(var(--body-pt) - 1.5pt); margin: 1.5mm 0; }
-th, td { border: 0.2mm solid rgba(30,22,16,0.4); padding: 0.5mm 0.8mm; text-align: center; }
+table { border-collapse: collapse; width: 100%; font-size: calc(var(--body-pt) - 2pt); margin: 1.2mm 0; }
+th, td { border: 0.2mm solid rgba(30,22,16,0.4); padding: 0.3mm 0.8mm; text-align: center; }
 thead th { background: var(--ink); color: var(--paper); }
 tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
@@ -187,12 +187,12 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 .cover { display: flex; flex-direction: column; justify-content: center; height: 100%; text-align: center; }
 .cover h1 {
   font-family: 'Playfair Display', Georgia, serif; font-weight: 900;
-  font-size: 17pt; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.5pt;
+  font-size: 15pt; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.5pt;
   margin-bottom: 2mm;
 }
-.cover .tag { font-size: calc(var(--body-pt) + 0.5pt); font-style: italic; margin-bottom: 3mm; }
+.cover .tag { font-size: calc(var(--body-pt) + 0.5pt); font-style: italic; margin-bottom: 2mm; }
 .cover .goal { border: 0.4mm solid var(--accent); background: rgba(138,90,34,0.09); padding: 2mm; font-weight: bold; }
-.cover .meta { margin-top: 3mm; font-size: calc(var(--body-pt) - 1pt); }
+.cover .meta { margin-top: 2mm; font-size: calc(var(--body-pt) - 1pt); }
 
 @media print {
   body { background: #fff; padding: 0; }
@@ -223,6 +223,11 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <p class="tag">A push-your-luck deck builder</p>
       <p class="goal">Build the biggest Herd of Cows.</p>
       <p class="meta">2–8 players · 20–40 min<br>Full rules: cardsforcowboys.com/rules</p>
+      <h3 style="margin-top:3.5mm">Every player starts with these 10</h3>
+      <div class="starters" style="justify-content:center;max-width:67mm;margin-left:auto;margin-right:auto">
+        <img src="assets/cards/All-Cards/Card_91.jpg" alt=""><img src="assets/cards/All-Cards/Card_92.jpg" alt=""><img src="assets/cards/All-Cards/Card_93.jpg" alt=""><img src="assets/cards/All-Cards/Card_94.jpg" alt=""><img src="assets/cards/All-Cards/Card_33.jpg" alt="">
+        <img src="assets/cards/All-Cards/Card_34.jpg" alt=""><img src="assets/cards/All-Cards/Card_61.jpg" alt=""><img src="assets/cards/All-Cards/Card_62.jpg" alt=""><img src="assets/cards/All-Cards/Card_63.jpg" alt=""><img src="assets/cards/All-Cards/Card_64.jpg" alt="">
+      </div>
     </div>
   </div>
 
@@ -273,15 +278,22 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <h2>Setup</h2>
     <ol>
       <li>Each player takes an identical <strong>10-card starter deck</strong>. Shuffle it face-down as your <strong>draw pile</strong>.</li>
-      <li>Split the <strong>54 Store cards</strong> into three <strong>Act decks</strong> by the hats (18 per Act). Shuffle each separately.</li>
+      <li>Split the <strong>54 Store cards</strong> into three <strong>Act decks</strong> by the hats (18 per Act). Shuffle each separately. <em>5–8 players shuffle two copies of each Act together.</em></li>
       <li>Build the Store <strong>once</strong>, face-down, back to front: <strong>Act 3 back, Act 2 middle, Act 1 front</strong>. Each Act is 2 rows (2–4 players) or 3 rows (5–8).</li>
       <li><strong>Stagger every other row by half a card</strong>, so two cards cover the one above. Flip the <strong>front row</strong> face-up.</li>
     </ol>
-    <div class="starters">
-      <img src="assets/cards/All-Cards/Card_91.jpg" alt=""><img src="assets/cards/All-Cards/Card_92.jpg" alt=""><img src="assets/cards/All-Cards/Card_93.jpg" alt=""><img src="assets/cards/All-Cards/Card_94.jpg" alt=""><img src="assets/cards/All-Cards/Card_33.jpg" alt="">
-      <img src="assets/cards/All-Cards/Card_34.jpg" alt=""><img src="assets/cards/All-Cards/Card_61.jpg" alt=""><img src="assets/cards/All-Cards/Card_62.jpg" alt=""><img src="assets/cards/All-Cards/Card_63.jpg" alt=""><img src="assets/cards/All-Cards/Card_64.jpg" alt="">
-    </div>
-    <p class="small">Your 10 starters — every player's is the same.</p>
+    <table>
+      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
+        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
+        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
+        <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
+        <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
+        <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
+        <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -305,19 +317,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <span><i class="sw" style="background:#c19464"></i>Act 1 (face-up)</span>
     </div>
     <p class="small" style="text-align:center">4 players — 9 per row × 6 rows</p>
-    <table>
-      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
-      <tbody>
-        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
-        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
-        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
-        <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
-        <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
-        <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
-        <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
-      </tbody>
-    </table>
-    <p class="small">5–8 players shuffle <strong>two</strong> copies of each Act deck together.</p>
+
   </div>
 
   <!-- 6 — DRAW + BUY -->
@@ -357,6 +357,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
         <figcaption>Both gone → it flips face-up.</figcaption>
       </figure>
     </div>
+
     <h3>Who goes first</h3>
     <ol>
       <li>Most <strong>$</strong> this round — that player chooses who buys first.</li>
