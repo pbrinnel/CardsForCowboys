@@ -194,13 +194,56 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 .cover .goal { border: 0.4mm solid var(--accent); background: rgba(138,90,34,0.09); padding: 2mm; font-weight: bold; }
 .cover .meta { margin-top: 2mm; font-size: calc(var(--body-pt) - 1pt); }
 
+/* ── Scale check ──
+   The single most common way a test print goes wrong is the browser quietly
+   scaling to fit the printable area. This bar is exactly 100mm, the same as one
+   panel edge, so a ruler settles it in two seconds. */
+.printbar { width: calc(var(--panel) * 2); margin: 0 0 8mm; }
+.ruler {
+  position: relative; height: 6mm; width: 100mm;
+  border: 0.4mm solid #fff; border-top: none;
+  background: rgba(255,255,255,0.12);
+}
+.ruler .tick { position: absolute; top: 0; width: 0.4mm; height: 2.5mm; background: #fff; }
+.ruler .t0 { left: 0; } .ruler .t1 { left: 25mm; } .ruler .t2 { left: 50mm; }
+.ruler .t3 { left: 75mm; } .ruler .t4 { left: calc(100mm - 0.4mm); }
+.ruler-label {
+  color: #fff; font-family: system-ui, sans-serif; font-size: 8pt;
+  margin-top: 1.5mm; max-width: 150mm; line-height: 1.4;
+}
+
 @media print {
+  /* US Letter portrait = 215.9 x 279.4mm. The 200mm sheet clears the width by
+     ~8mm a side, which beats the ~5mm unprintable margin on most home printers,
+     and leaves ~79mm below the sheet for the scale ruler on the same page.
+     Margins MUST be set to None in the print dialog - CSS cannot override the
+     browser's default printer margins on its own. */
+  @page { size: letter portrait; margin: 0; }
+
   body { background: #fff; padding: 0; }
   .sheet-label, .legend { display: none; }
-  .sheet { border: none; margin: 0; page-break-after: always; }
+
+  .sheet {
+    position: relative;
+    border: none;
+    margin: 6mm auto 0;
+    break-after: avoid;          /* keep the ruler with its sheet */
+    page-break-after: avoid;
+  }
   .panel { outline: none; }
-  @page { size: 200mm 200mm; margin: 0; }
+
+  /* Fold guides for the cross fold: the sheet's two centre lines. */
+  .sheet::before, .sheet::after { content: ""; position: absolute; background: rgba(0,0,0,0.3); }
+  .sheet::before { left: 0; right: 0; top: 50%; height: 0.2mm; }
+  .sheet::after { top: 0; bottom: 0; left: 50%; width: 0.2mm; }
+
+  /* The ruler rides along under its own sheet, then forces the page break. */
+  .printbar { margin: 5mm auto 0; width: 150mm; break-after: page; page-break-after: always; }
+  .ruler { border-color: #000; background: none; }
+  .ruler .tick { background: #000; }
+  .ruler-label { color: #000; }
 }
+
 </style>
 </head>
 <body>
@@ -296,6 +339,10 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     </table>
   </div>
 </div>
+  <div class="printbar">
+    <div class="ruler"><span class="tick t0"></span><span class="tick t1"></span><span class="tick t2"></span><span class="tick t3"></span><span class="tick t4"></span></div>
+    <div class="ruler-label">↑ This bar must measure exactly <strong>100&nbsp;mm</strong> with a ruler. If it doesn't, the print was scaled — set Scale to 100%, not "Fit to page".</div>
+  </div>
 
 <div class="sheet-label">SIDE B — panels 5–8</div>
 <div class="sheet">
@@ -385,6 +432,10 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     </ul>
   </div>
 </div>
+  <div class="printbar">
+    <div class="ruler"><span class="tick t0"></span><span class="tick t1"></span><span class="tick t2"></span><span class="tick t3"></span><span class="tick t4"></span></div>
+    <div class="ruler-label">↑ This bar must measure exactly <strong>100&nbsp;mm</strong> with a ruler. If it doesn't, the print was scaled — set Scale to 100%, not "Fit to page".</div>
+  </div>
 
 <script>
 // Flag any panel whose content is taller than its live area. This is the whole point
