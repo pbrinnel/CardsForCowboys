@@ -3,15 +3,20 @@
 Supersedes the ranked fix list in [`RULES_PAGE_AUDIT.md`](RULES_PAGE_AUDIT.md), which was written
 before the printed-insert constraint existed. The audit is still the scorecard; this is the plan.
 
-**Status:** 11 ✅ / 9 ⚠️ / 3 ❌ of 23 checks. Fixes 1–6 shipped (objective block, contents nav,
-money terminology, edition-relative sentences, showdown tiebreak, version stamp), plus the
-colour-blind-safe act bands and the Draw-4 chaining rule.
+**Status:** 22 ✅ / 1 ⚠️ / 0 ❌ of 23 checks. Fixes 1–6, the full sweep, the annotated card
+anatomy, and the parity cut are all shipped. The one open item is the **uncovering diagram** —
+the covering/reveal rule is still taught in words only, and it needs art.
+
+**Format decision: parity.** One ruleset, identical in print and on the web — see
+[§2 "Resolved"](#resolved-parity-achieved-by-cutting-the-web-page-july-2026). `rules.html` is now
+**1,025 words / 6 sections**, ≈9.2 print panels against a cross fold booklet's 8.
 
 ---
 
-## 1. The measurement
+## 1. The original measurement (superseded — see §2 "Resolved")
 
-Current `rules.html`, counted in the browser:
+`rules.html` as it stood *before* the sweep and the parity cut, counted in the browser. Kept
+because the per-section breakdown is what showed where the words actually were:
 
 | Section | Words | Visuals |
 |---|---:|---|
