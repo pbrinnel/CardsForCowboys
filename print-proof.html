@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
-<title>Print proof — 100×100mm cross fold booklet</title>
+<title>Print proof — poker accordion, 8 panels</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
 /* ─────────────────────────────────────────────────────────────────────────────
-   PRINT PROOF — cross fold booklet, 100×100mm panels, printed both sides.
+   PRINT PROOF — poker accordion, 8 panels of 63.5×88.9mm, printed both sides.
    Working file, not part of the site. noindex'd.
 
    Everything here is in mm and pt so what you see is what prints. The panels are
@@ -19,10 +19,14 @@
    Change --body-pt below to test other sizes; every block scales with it.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --panel-w: 100mm;
-  --panel-h: 100mm;
-  --margin: 7mm;
-  --body-pt: 8pt;
+  /* Default: poker accordion — 8 panels of 63.5×88.9mm, 3mm margins, 7pt.
+     The only format on the menu that holds the full ruleset (629mm of content
+     against 663mm of live panel height). Switch with the buttons up top. */
+  --panel-w: 63.5mm;
+  --panel-h: 88.9mm;
+  --margin: 3mm;
+  --body-pt: 7pt;
+  --cols: 4;
   --ink: #1e1610;
   --paper: #e9e0c6;
   --rule: #b87838;
@@ -134,8 +138,8 @@ strong { font-weight: bold; }
 }
 
 /* ── Card anatomy ── */
-.anatomy { display: flex; gap: 2.5mm; align-items: flex-start; margin: 1.5mm 0; }
-.anatomy-card { position: relative; width: 30mm; flex: 0 0 30mm; }
+.anatomy { display: flex; gap: 2mm; align-items: flex-start; margin: 1.5mm 0; }
+.anatomy-card { position: relative; width: 26mm; flex: 0 0 26mm; }
 .anatomy-card img { width: 100%; display: block; border: 0.3mm solid var(--ink); }
 .anno {
   position: absolute; left: var(--x); top: var(--y);
@@ -146,7 +150,7 @@ strong { font-weight: bold; }
   font-size: 5.5pt; font-weight: bold;
   display: flex; align-items: center; justify-content: center;
 }
-.anatomy ol { margin: 0 0 0 3.5mm; font-size: calc(var(--body-pt) - 0.5pt); }
+.anatomy ol { margin: 0 0 0 3mm; font-size: calc(var(--body-pt) - 0.5pt); }
 .anatomy li { margin-bottom: 1.1mm; }
 
 /* ── Suits ── */
@@ -163,7 +167,7 @@ strong { font-weight: bold; }
 
 /* ── Starter grid ── */
 .starters { display: flex; flex-wrap: wrap; gap: 1mm; margin: 1.5mm 0; }
-.starters img { width: 12.2mm; height: 17mm; object-fit: cover; border: 0.3mm solid var(--ink); }
+.starters img { width: 10mm; height: 14mm; object-fit: cover; border: 0.3mm solid var(--ink); }
 
 /* ── Setup table ── */
 table { border-collapse: collapse; width: 100%; font-size: calc(var(--body-pt) - 2pt); margin: 1.2mm 0; }
@@ -230,7 +234,8 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
      and leaves ~79mm below the sheet for the scale ruler on the same page.
      Margins MUST be set to None in the print dialog - CSS cannot override the
      browser's default printer margins on its own. */
-  @page { size: letter portrait; margin: 0; }
+  /* The strip is 254mm wide, so it needs the 11in edge. Landscape, margins None. */
+  @page { size: letter landscape; margin: 0; }
 
   body { background: #fff; padding: 0; }
   .sheet-label, .legend, .controls { display: none; }
@@ -263,12 +268,12 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 <div class="controls">
   <span>Format:</span>
   <button data-w="50"   data-h="50"   data-margin="4" data-cols="2">Cross fold · 100mm sheet → 50×50 panels</button>
-  <button data-w="63.5" data-h="88.9" data-margin="3" data-cols="4">Poker · 63.5×88.9 panels</button>
-  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2" class="on">200mm sheet → 100mm panels <em>(not on the menu — reference only)</em></button>
+  <button data-w="63.5" data-h="88.9" data-margin="3" data-cols="4" class="on">Poker accordion · 63.5×88.9 panels</button>
+  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2">200mm sheet → 100mm panels <em>(not on the menu — reference only)</em></button>
   <span style="margin-left:1em">Body type:</span>
   <button data-pt="6">6pt</button>
-  <button data-pt="7">7pt</button>
-  <button data-pt="8" class="on">8pt</button>
+  <button data-pt="7" class="on">7pt</button>
+  <button data-pt="8">8pt</button>
   <button data-pt="9">9pt</button>
   <span id="verdict"></span>
 </div>
@@ -280,7 +285,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   matches.
 </div>
 
-<div class="sheet-label">SIDE A — panels 1–4</div>
+<div class="sheet-label">SIDE A — panels 1–4 (front of the strip)</div>
 <div class="sheet">
 
   <!-- 1 — COVER -->
@@ -291,7 +296,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <p class="goal">Build the biggest Herd of Cows.</p>
       <p class="meta">2–8 players · 20–40 min<br>Full rules: cardsforcowboys.com/rules</p>
       <h3 style="margin-top:3.5mm">Every player starts with these 10</h3>
-      <div class="starters" style="justify-content:center;max-width:67mm;margin-left:auto;margin-right:auto">
+      <div class="starters" style="justify-content:center;max-width:56mm;margin-left:auto;margin-right:auto">
         <img src="assets/cards/All-Cards/Card_91.jpg" alt=""><img src="assets/cards/All-Cards/Card_92.jpg" alt=""><img src="assets/cards/All-Cards/Card_93.jpg" alt=""><img src="assets/cards/All-Cards/Card_94.jpg" alt=""><img src="assets/cards/All-Cards/Card_33.jpg" alt="">
         <img src="assets/cards/All-Cards/Card_34.jpg" alt=""><img src="assets/cards/All-Cards/Card_61.jpg" alt=""><img src="assets/cards/All-Cards/Card_62.jpg" alt=""><img src="assets/cards/All-Cards/Card_63.jpg" alt=""><img src="assets/cards/All-Cards/Card_64.jpg" alt="">
       </div>
@@ -368,7 +373,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <div class="ruler-label">↑ This bar must measure exactly <strong>100&nbsp;mm</strong> with a ruler. If it doesn't, the print was scaled — set Scale to 100%, not "Fit to page".</div>
   </div>
 
-<div class="sheet-label">SIDE B — panels 5–8</div>
+<div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
 <div class="sheet">
 
   <!-- 5 — STORE SHAPE -->
