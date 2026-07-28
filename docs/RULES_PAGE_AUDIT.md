@@ -4,15 +4,11 @@ Audited against [`RULEBOOK_WRITING_STANDARDS.md`](RULEBOOK_WRITING_STANDARDS.md)
 Target: [`rules.html`](../rules.html) as of commit `3b8ea3c`.
 
 **Score at audit time: 3 ✅ / 10 ⚠️ / 10 ❌ of 23.**
-**Current: 22 ✅ / 1 ⚠️ / 0 ❌** — after fixes 1–6, the full sweep, the card anatomy, and the
-parity cut (1,989 → 1,016 words). The one remaining ⚠️ is the **uncovering diagram**: the
-covering/reveal rule is still taught in words only.
-The three ❌ left are all *additions* — callout styling, a quick-reference summary, a worked
-scoring example. None is a defect in what the page already says.
-
-The original verdict was that the page was strong on *reference* and weak on *teaching*: no on-ramp
-for a first-time reader, no navigation for a mid-game lookup. Both are now addressed. What remains
-is polish (⚠️) and the three missing additions.
+**Current: 22 ✅ / 1 ⚠️ / 0 ❌** — after fixes 1–6, the full sweep, the card anatomy, the parity
+cut and the print pass. `rules.html` is **985 words / 5 sections**. The uncovering diagram shipped;
+the one open ⚠️ is the **quick-reference summary**, removed by choice (see Format below).
+The original verdict was that the page was strong on *reference* and weak on *teaching* — no
+on-ramp for a first-time reader, no navigation for a mid-game lookup. Both are addressed.
 
 ---
 
@@ -62,7 +58,7 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 | Diagrams for setup, component anatomy, icons | ✅ | **Closed July 2026.** Setup and icons were always strong; the act bands were made colour-blind-safe (lightness L\* ≈ 20/43/66 **plus** hatch direction 45° / -45° / horizontal — verified under a full greyscale filter; hues stay brown because blue/yellow/red are the suit colours). Component anatomy now ships as an annotated diagram: `Card_43` for suit / Bandits / Cows / cost / Act hats and `Card_70` for the circled-$-gain vs corner-$-cost ambiguity. Numbered markers positioned in **percent** of the image so they stay locked to their feature at any width — leader lines would break at every size and in print. |
 | Callouts for interrupt/forgettable rules | ✅ | **Fixed July 2026 (full sweep).** `.rules-callout` added and used three times, for exactly the rules that interrupt the sequence or get forgotten: **bust at 3 Bandits**, **always reveal uncovered cards**, **the last card ends the round**. Distinguished by border weight, inset and fill — not hue — so it survives greyscale. |
 | Navigable table of contents | ✅ | **Fixed July 2026 (fix 2).** Every section carries an `id` (plus the three phase `h3`s); a `.rules-toc` contents panel lists all 13 targets, inline on narrow screens and `position: fixed` beside the 760px column at ≥1240px. It sits *after* the Objective in the DOM so it can't push the goal below the fold on a phone; on wide screens it's fixed, so DOM order doesn't affect where it renders. The four in-text cross-references are now real links. |
-| Quick-reference summary | ✅ | **Fixed July 2026 (full sweep).** New `#quick-reference` section: each round in 4 steps, buy-order ties, game end and herd ties, plus an "easy to forget" block. Pure restatement — the phase sections stay authoritative. |
+| Quick-reference summary | ⚠️ | Added in the full sweep, then **removed on PB's call** once the printed insert was settled: the accordion has no panel for it, and at 985 words across 5 sections the document is close to being its own quick reference. Deliberate, not an oversight. Revisit only if returning players report hunting for the turn order. |
 | Version number | ✅ | **Fixed (fix 6).** "Rules v3.1 · last updated 27 July 2026" above the footer CTA. Major tracks `GAME_V` in `src/play.js`; minor is a rules-page revision within that game version. A comment in the markup tells the next editor to bump both. |
 
 ---
@@ -72,7 +68,7 @@ All six are now closed. Kept as a record of the failure modes to watch for.
 | Item | | Finding |
 |---|---|---|
 | Every component explained | ✅ | **Fixed July 2026 (full sweep).** Setup opens with a "What you need" list: 54 Store cards (18 per Act, marked by the hats) and 10 starter cards per player (4 River, 4 Rattlesnake, 2 Cactus). Counts verified against the card data, not invented. |
-| Edge-case examples are non-obvious ones | ⚠️ | **Upgraded from ❌ July 2026** — the page now has exactly one worked example, and it is the right kind: Draw-4 chaining in Card Clarifications, with the arithmetic spelled out (owe 4 → draw a Draw 4 → owe 7). Everything else still has none. Worst gap remains the covering/reveal rule, which is purely verbal — "so two cards cover the one above" ([:60](../rules.html)), "reveal any cards underneath that are no longer covered" ([:152](../rules.html)) — with no diagram of the *uncovering* and no treatment of the end-of-row card that only one card covers. That is the spatial edge case every source says must be shown. |
+| Edge-case examples are non-obvious ones | ✅ | **Closed July 2026.** Two now: the Draw-4 chaining arithmetic, and the showdown scoring example. The covering/reveal rule — the worst gap, taught in words only — now has a before/after diagram built from the same `.pyramid-row`/`.pcard` as the Store diagrams, so the brick stagger shown is the real geometry rather than a redrawing. |
 | Worked scoring example | ✅ | **Fixed July 2026 (full sweep).** Worked example under the Showdown: 14 Cows banked from rounds + 9 printed across the deck = 23, and it states that Cows on cards you never drew still count. |
 | Tie-breaking stated | ✅ | **Fixed July 2026 (fix 5).** Buy-order ties were always five levels deep — the best-written block on the page — but the *game-winning* tie had no rule at all, and the digital game just showed "It's a Tie!". There is now an **If Herds Are Tied** ladder that mirrors the buy-order one so players reuse one mental model: most **$** across your collection → most **cards**; still level = share the win. Implemented as `resolveShowdownWinners` in `src/play.js`. Deliberately stops at two steps (PB's call) rather than adding the buy-order ladder's card-by-card walk and random pick. |
 | First-player rule | ✅ | **Fixed July 2026 (full sweep).** Now explicit: "Whoever is chosen buys first. Play then continues clockwise from them, skipping anyone who busted. The same rule picks the first player every round, including the first." |
