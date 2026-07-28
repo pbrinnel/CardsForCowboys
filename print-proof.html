@@ -57,6 +57,7 @@ body {
   font: inherit; padding: 0.25em 0.6em; cursor: pointer;
   background: #3d372f; color: #fff; border: 1px solid #7a7065; border-radius: 3px;
 }
+.controls button em { font-style: italic; opacity: 0.75; }
 .controls button.on { background: #ffd08a; color: #1e1610; border-color: #ffd08a; font-weight: bold; }
 #verdict { margin-left: 1em; font-weight: bold; }
 
@@ -260,10 +261,10 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 <body>
 
 <div class="controls">
-  <span>Folded panel:</span>
-  <button data-w="50"   data-h="50"   data-margin="4" data-cols="2">50×50 cross fold</button>
-  <button data-w="63.5" data-h="88.9" data-margin="4" data-cols="4">Poker 63.5×88.9</button>
-  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2" class="on">100×100 cross fold</button>
+  <span>Format:</span>
+  <button data-w="50"   data-h="50"   data-margin="4" data-cols="2">Cross fold · 100mm sheet → 50×50 panels</button>
+  <button data-w="63.5" data-h="88.9" data-margin="3" data-cols="4">Poker · 63.5×88.9 panels</button>
+  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2" class="on">200mm sheet → 100mm panels <em>(not on the menu — reference only)</em></button>
   <span style="margin-left:1em">Body type:</span>
   <button data-pt="6">6pt</button>
   <button data-pt="7">7pt</button>
