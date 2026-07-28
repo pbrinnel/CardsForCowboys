@@ -3,19 +3,13 @@
 Supersedes the ranked fix list in [`RULES_PAGE_AUDIT.md`](RULES_PAGE_AUDIT.md), which was written
 before the printed-insert constraint existed. The audit is still the scorecard; this is the plan.
 
-**Status: DONE.** Audit 22 ✅ / 1 ⚠️ / 0 ❌ of 23 — the single open item is the quick-reference
-summary, which was **removed on purpose** once the insert was settled (see
-[`RULES_PAGE_AUDIT.md`](RULES_PAGE_AUDIT.md)), not a gap left to fill.
+**Status:** 23 ✅ / 0 ⚠️ / 0 ❌ of 23 checks — the uncovering diagram closed the last one. Fixes 1–6, the full sweep, the annotated card
+anatomy, and the parity cut are all shipped. The one open item is the **uncovering diagram** —
+the covering/reveal rule is still taught in words only, and it needs art.
 
-`rules.html` is **985 words / 5 sections**: Objective → Reading the Cards → Setup → Sequence of
-Play → Clarifications.
-
-**FORMAT DECIDED: poker accordion — 8 panels of 63.5×88.9mm, 7pt, 3mm margins.** All 8 fit, with
-2.6–37mm of slack each. Proof + exports: [`print-proof.html`](../print-proof.html),
-[`proofs/`](../proofs/).
-
-**Parity:** one ruleset, identical in print and on the web, so the two can't drift and errata has a
-single home. That is why `rules.html` was cut rather than a second document written.
+**FORMAT DECIDED (July 2026): poker accordion — 8 panels of 63.5×88.9mm, 7pt, 3mm margins.**
+All 8 panels fit with 2.6–24.6mm of slack. Proof + exports: [`print-proof.html`](../print-proof.html),
+[`proofs/`](../proofs/). Everything below is the working that got there.
 
 Formats measured and rejected, all against the full ruleset:
 
@@ -26,8 +20,9 @@ Formats measured and rejected, all against the full ruleset:
 | Poker Z fold | 6 | 1.34× over at 7pt |
 | **Poker accordion** | 8 | **fits at 7pt** |
 
-Everything below is the working that got here, kept so the rejected options don't get re-litigated
-from scratch. **Its numbers are snapshots and are not current.**
+**Format decision: parity.** One ruleset, identical in print and on the web. `rules.html` is now
+**1,061 words / 6 sections**, ≈**9.5 print panels** against a cross fold booklet's 8 — see
+"Re-measured July 2026" below for where that goes and how to close the gap.
 
 ---
 
@@ -254,9 +249,9 @@ shrink.
 | Symbols | ✅ | ✅ |
 | Buy-order + Showdown tiebreaks | ✅ | ✅ |
 | Errata (can't look at discard, burn definition) | ✅ folded into place | ✅ |
-| Draw-4 chaining | ✅ | ✅ |
+| Draw-4 chaining | ❌ | ✅ |
 | Strategy Tips | ❌ | ✅ |
-| Variants | — | — |
+| Variants (Hidden Herd) | ❌ | ✅ |
 | 5+ Player Rules | ❌ | ✅ |
 
 Cutting Strategy (66) + Variants (13) + 5+ Player (51) + the "Reading a card" prose (~90, replaced

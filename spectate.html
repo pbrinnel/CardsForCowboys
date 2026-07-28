@@ -68,6 +68,7 @@
       border-radius: 2px;
       font-family: Georgia, serif;
     }
+    #spec-modes .mode-badge.hidden-herd { background: #7a3a8f; }
     #spec-modes .mode-badge.pioneer { background: #8a5a1a; }
 
     /* ── Layout ── */
@@ -500,6 +501,12 @@ function renderSpectatorState(state) {
       const b = document.createElement('span');
       b.className = 'mode-badge pioneer';
       b.textContent = 'Pioneer';
+      modesEl.appendChild(b);
+    }
+    if (state.hiddenHerdMode) {
+      const b = document.createElement('span');
+      b.className = 'mode-badge hidden-herd';
+      b.textContent = 'Hidden Herd';
       modesEl.appendChild(b);
     }
   }

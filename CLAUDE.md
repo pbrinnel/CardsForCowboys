@@ -528,6 +528,7 @@ G = {
   playerOrder: [slotIdx],  // Firebase slot index for each G.players[i]
   gameSeed: number,
   buyOrder: [playerIdx],   // G.players indices in buy sequence this round
+  hiddenHerdMode: bool,    // conceal opponents' herd totals until showdown (gamesetup checkbox)
 }
 
 // Player object
@@ -544,51 +545,31 @@ player = {
 
 ## Game Mode / Setup Flags
 
-**No modes ship today.** `gamesetup.html` has no Mode section at all — the whole block was removed
-with Hidden Herd (July 2026). Three modes have now been retired:
+**One mode ships today: Hidden Herd** (`hiddenHerdMode`). Quick Draw (`quickStartMode`) and
+Pioneer Mode (`pioneerMode`) were **removed in the July 2026 single-Store rework** — Quick Draw
+"skipped Act 1", which no longer means anything, and Pioneer was a Store-width mode when width was
+a constant; width is now per-player-count. Their whole stack is gone: checkboxes, `host.js` payload
+fields, `G.*Mode`, the draft flow (`runQuickStartDraft`/`showDraftPackAndWait`/`aiDraftPick`/
+`seededDraftShuffle`), the MP draft protocol (`pushDraftPick`/`getDraftPick`/`forceDraftPick`/
+`waitForDraftRoundPicks` + the `draftPick` node), the draft overlay markup + CSS.
 
-| Mode | Removed | Why |
-|---|---|---|
-| Quick Draw (`quickStartMode`) | July 2026 Store rework | "Skipped Act 1", which stopped meaning anything once the Store became one structure |
-| Pioneer (`pioneerMode`) | July 2026 Store rework | A Store-*width* mode, back when width was a constant; width is now per-player-count |
-| Hidden Herd (`hiddenHerdMode`) | July 2026 | Cut on PB's call along with its rules entry — one fewer thing to explain |
+The `quickStartMode`/`pioneerMode` `.validate` entries were deliberately LEFT in
+`database.rules.json`'s `traj` shape — an allowed-but-never-written field is harmless, and removing
+them buys nothing while risking a rules/code mismatch.
 
-Each removal took out the full stack: the gamesetup checkbox + handler + `sessionStorage` write,
-the `host.js` payload field, `G.*Mode` in every `startGame` branch and `reconstructG`, the
-`buildPlayersConfig` surface, the `spectatorState`/`trajLogHeader` fields, the spectate mode badge,
-and any debug scenario. Quick Draw also took the whole draft flow and its MP protocol node.
+Modes are toggled by checkboxes on `gamesetup.html` and flow through a fixed 3-layer path. To add a
+new one, mirror `hiddenHerdMode` at each layer:
 
-The retired `.validate` entries were deliberately LEFT in `database.rules.json`'s `traj` shape —
-an allowed-but-never-written field is harmless, and removing them buys nothing while risking a
-rules/code mismatch and a redeploy.
+1. **`gamesetup.html`** — checkbox + handler set a JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
+2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})` payload so all MP clients agree (the game node is the source of truth in MP).
+3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return; `startGame` sets `G.<flag>Mode` in all branches (MP cfg, tutorial, AI/sessionStorage) AND the inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode. Plus `trajLogHeader` records it — **a new flag there needs a matching `.validate` in `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P trajectory write fails — AND the rules must be DEPLOYED (`firebase deploy --only database`), not just edited: the Pioneer Mode flag sat undeployed ~a week and every trajectory header was silently rejected (audit C9).**
 
-### Adding a mode back
-
-There is no live exemplar to copy any more, so the path is written out. Modes flow through a fixed
-3-layer path:
-
-1. **`gamesetup.html`** — re-add a `.section-label` + `.mode-row` block; the checkbox handler sets a
-   JS flag, written to `sessionStorage['<flag>_mode']` in `startGame()`.
-2. **`src/host.js`** — read the sessionStorage flag and include it in the `set(gameRef, {...})`
-   payload so all MP clients agree (the game node is the source of truth in MP).
-3. **`src/play.js`** — MP layer surfaces `data.<flag>Mode` in `buildPlayersConfig`'s return;
-   `startGame` sets `G.<flag>Mode` in **all** branches (MP cfg, tutorial, AI/sessionStorage) AND the
-   inline rejoin block; **rejoin must also set it in `reconstructG`** or a refresh loses the mode.
-   Plus `trajLogHeader` records it — **a new flag there needs a matching `.validate` in
-   `database.rules.json`'s `traj` shape (`$other:false` rejects unlisted fields) or every 2-4P
-   trajectory write fails — AND the rules must be DEPLOYED (`firebase deploy --only database`), not
-   just edited: the Pioneer Mode flag sat undeployed ~a week and every trajectory header was
-   silently rejected (audit C9).**
-
-**A width-changing mode is special:** `reconstructG` no longer restores any width flag, because
+**A width-changing mode is now special:** `reconstructG` no longer restores any width flag, because
 width derives from `numPlayers`. If a future mode changes the Store width again it MUST be restored
 in `reconstructG` before the first render — the rebuilt rows are already that width, and a mismatch
 misaligns the brick offset and breaks `isCardCovered` on rejoin.
 
-**A UI-concealment mode is also special** (the shape Hidden Herd had): concealment is UI-only. The
-real value still syncs to Firebase `spectatorState`/`liveSummary` — it has to, for the reveal and
-for rejoin — so spectators and anyone reading Firebase can still see it, and local AI reads the true
-value regardless. Don't sell such a mode as hiding information from a determined opponent.
+**Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
 ---
 

@@ -104,8 +104,9 @@ async function startHosting() {
   const gameSeed = generateSeed();
   const slots = {};
   defs.forEach((d, i) => { slots[i] = { name: d.name || '', isHuman: d.isHuman, personality: d.personality || null }; });
+  const hiddenHerdMode = sessionStorage.getItem('hidden_herd_mode') === '1';
 
-  await set(gameRef, { status: 'waiting', numPlayers, gameSeed, slots, createdAt: Date.now() });
+  await set(gameRef, { status: 'waiting', numPlayers, gameSeed, slots, hiddenHerdMode, createdAt: Date.now() });
 
   onDisconnect(gameRef).remove();
 
