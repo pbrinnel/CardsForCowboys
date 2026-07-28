@@ -65,6 +65,7 @@
       <h2>Contents</h2>
       <ol>
         <li><a href="#objective">Objective</a></li>
+        <li><a href="#symbols">Reading the Cards</a></li>
         <li><a href="#setup">Setup</a></li>
         <li><a href="#sequence">Sequence of Play</a>
           <ul>
@@ -73,11 +74,94 @@
             <li><a href="#showdown">The Showdown</a></li>
           </ul>
         </li>
-        <li><a href="#symbols">Reading the Cards</a></li>
         <li><a href="#errata">Fine Print</a></li>
         <li><a href="#quick-reference">Quick Reference</a></li>
       </ol>
     </nav>
+
+    <!-- READING THE CARDS — placed BEFORE Setup on purpose. Setup step 1 identifies starters by
+         "no cost, no Act hats" and the phases talk in Bandits / Cows / $ / Explosives, so the
+         vocabulary has to be taught before it is used. This is the "component interpretation"
+         slot from docs/RULEBOOK_WRITING_STANDARDS.md §A, which sits between components and play.
+         Within the section the order follows the card itself: the map, then the two regions that
+         need explaining (suit, then what fills the middle). -->
+    <section id="symbols">
+      <h2>Reading the Cards</h2>
+      <p>Every card is laid out the same way. Four places to look:</p>
+
+      <!-- Markers are positioned as PERCENTAGES of the card image via --x/--y, so they stay
+           locked to their region at any width. If the art is re-cropped, re-check them. -->
+      <div class="card-anatomy">
+        <figure class="anatomy-fig">
+          <div class="anatomy-card">
+            <img src="assets/cards/All-Cards/Card_90.jpg"
+                 alt="A River card giving $2 and 3 Cows, costing $9, from Act 3">
+            <span class="anno" style="--x:74%; --y:8%">1</span>
+            <span class="anno" style="--x:15%; --y:45%">2</span>
+            <span class="anno" style="--x:31%; --y:92%">3</span>
+            <span class="anno" style="--x:60%; --y:93%">4</span>
+          </div>
+        </figure>
+        <ol class="anatomy-key">
+          <li><strong>Suit</strong> &mdash; top-right. River, Cactus or Rattlesnake. It shows on the
+            card <em>back</em> too, so you know the risk before you draw.</li>
+          <li><strong>What it does</strong> &mdash; the middle. Any mix of $, Cows, Bandits, Jail or
+            an Explosive. This is what you get when you draw it.</li>
+          <li><strong>Cost</strong> &mdash; bottom-left. What you pay to buy it from the Store.
+            Always a plain $, never in a circle.</li>
+          <li><strong>Act</strong> &mdash; bottom-right. One, two or three cowboy hats. Only used
+            when you build the Store during <a href="#setup">Setup</a>.</li>
+        </ol>
+      </div>
+
+      <p class="rules-callout"><strong>Starter cards have no cost and no hats</strong> &mdash; both
+        bottom corners are empty. That's how you tell your 10 starters from the Store cards.</p>
+
+      <h3>The three suits</h3>
+      <div class="cacti-row">
+        <div class="cacti-item">
+          <img src="assets/backs/River Back.jpg" alt="River card back">
+          <span><strong>River</strong> &mdash; safe. Never has Bandits.</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/backs/Cactus Back.jpg" alt="Cactus card back">
+          <span><strong>Cactus</strong> &mdash; up to 1 Bandit.</span>
+        </div>
+        <div class="cacti-item">
+          <img src="assets/backs/Rattlesnake Back.jpg" alt="Rattlesnake card back">
+          <span><strong>Rattlesnake</strong> &mdash; 1&ndash;2 Bandits, best rewards.</span>
+        </div>
+      </div>
+
+      <h3>What the middle can hold</h3>
+      <div class="symbols-grid">
+        <div class="symbol-row">
+          <img src="assets/symbols/$1-01.png" alt="Dollar symbol">
+          <p><strong>$</strong><br>Money to spend this round.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/symbols/1 Cow-01.png" alt="Cow symbol">
+          <p><strong>Cow</strong><br>Goes to your Herd. How you win.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/symbols/1 Bandit-01.png" alt="Bandit symbol">
+          <p><strong>Bandit</strong><br>Your 3rd in a round busts you.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/symbols/2 Bandits-01.png" alt="Double Bandit symbol">
+          <p><strong>Double Bandit</strong><br>Counts as 2.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/symbols/-1 Bandit-01.png" alt="Jail symbol">
+          <p><strong>Jail</strong><br>Cancels 1 Bandit.</p>
+        </div>
+        <div class="symbol-row">
+          <img src="assets/symbols/One-Time Use-01.png" alt="Explosive symbol">
+          <p><strong>Explosive</strong><br>One-time use. Does nothing when drawn; use it on your
+            turn and it leaves your deck for good.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- SETUP -->
     <section id="setup">
@@ -181,6 +265,28 @@
       <p class="rules-callout"><strong>Always reveal.</strong> As soon as a card leaves the Store,
         turn face-up anything behind it that is no longer covered.</p>
 
+      <!-- Uncovering demo. Reuses the Store diagram's .pyramid-row/.pcard so the geometry is
+           literally the same brick stagger, not a redrawn approximation. Because rows are
+           offset half a card, each card is covered by TWO in front of it — which is the bit
+           prose kept failing to convey. -->
+      <div class="reveal-demo">
+        <figure class="reveal-step">
+          <div class="pyramid-grid">
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up marked"></div><div class="pcard face-up marked"></div><div class="pcard face-up"></div></div>
+          </div>
+          <figcaption>Two face-up cards cover the one behind them.</figcaption>
+        </figure>
+        <div class="reveal-arrow" aria-hidden="true">&rarr;</div>
+        <figure class="reveal-step">
+          <div class="pyramid-grid">
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard face-up revealed"></div><div class="pcard"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard gone"></div><div class="pcard gone"></div><div class="pcard face-up"></div></div>
+          </div>
+          <figcaption>Once <em>both</em> are gone it flips face-up, and you can buy it.</figcaption>
+        </figure>
+      </div>
+
       <h4>Who goes first</h4>
       <ol>
         <li>Most <strong>$</strong> this round &mdash; that player chooses who buys first.</li>
@@ -193,12 +299,13 @@
       <p>Play continues clockwise from whoever was chosen, skipping busted players. Same rule every
         round, including the first.</p>
 
-      <p class="rules-callout"><strong>The last card ends the round.</strong> When the final Store
-        card is bought or burned, the round stops. Anyone yet to take a turn misses it &mdash; but
-        if you didn't bust, you still score the Cows you drew.</p>
-
       <h3 id="showdown">3. The Showdown</h3>
-      <p>Everyone &mdash; including anyone who just busted &mdash; lays out their whole deck
+
+      <p class="rules-callout"><strong>The Store empties once, and that ends the game.</strong> The
+        moment the final card is bought or burned, the buy phase stops there &mdash; anyone yet to
+        take a turn misses it. If you didn't bust, you still score the Cows you drew.</p>
+
+      <p>Then everyone &mdash; including anyone who just busted &mdash; lays out their whole deck
         face-up and adds <strong>every Cow they own</strong> to their Herd.
         <strong>Most Cows wins.</strong></p>
 
@@ -212,100 +319,6 @@
         <li>Still tied? Most <strong>cards</strong> in your deck.</li>
       </ol>
       <p>Anyone still level shares the win.</p>
-    </section>
-
-    <!-- READING THE CARDS — anatomy diagram + suits + symbol glossary, merged. -->
-    <section id="symbols">
-      <h2>Reading the Cards</h2>
-
-      <!-- Card anatomy. Markers are positioned as PERCENTAGES of the card image via --x/--y,
-           so they stay locked to their feature at any width. If the card art is ever
-           re-cropped or replaced, these need re-checking against the new image. -->
-      <div class="card-anatomy">
-        <figure class="anatomy-fig">
-          <div class="anatomy-card">
-            <img src="assets/cards/All-Cards/Card_43.jpg"
-                 alt="A Rattlesnake card worth 5 Cows with 2 Bandits, costing $4, from Act 2">
-            <span class="anno" style="--x:76%; --y:9%">1</span>
-            <span class="anno" style="--x:22%; --y:27%">2</span>
-            <span class="anno" style="--x:20%; --y:62%">3</span>
-            <span class="anno" style="--x:33%; --y:92%">4</span>
-            <span class="anno" style="--x:74%; --y:94%">5</span>
-          </div>
-          <figcaption>A card that scores</figcaption>
-          <ol class="anatomy-key">
-            <li><strong>Suit</strong> &mdash; how risky the card is to draw.</li>
-            <li><strong>2 Bandits</strong> &mdash; your 3rd busts you.</li>
-            <li><strong>5 Cows</strong> &mdash; to your Herd if you don't bust.</li>
-            <li><strong>Cost $4</strong> &mdash; what you pay to buy it.</li>
-            <li><strong>Act 2</strong> &mdash; only used during <a href="#setup">Setup</a>.</li>
-          </ol>
-        </figure>
-
-        <figure class="anatomy-fig">
-          <div class="anatomy-card">
-            <img src="assets/cards/All-Cards/Card_70.jpg"
-                 alt="A River Explosive card giving $2 when used, costing $3, from Act 1">
-            <span class="anno" style="--x:33%; --y:23%">1</span>
-            <span class="anno" style="--x:26%; --y:63%">2</span>
-            <span class="anno" style="--x:33%; --y:92%">3</span>
-          </div>
-          <figcaption>A card that pays</figcaption>
-          <ol class="anatomy-key">
-            <li><strong>Explosive</strong> &mdash; one-time use. Does nothing when drawn; use it on
-              your turn and it leaves your deck for good.</li>
-            <li><strong>$2 in a circle</strong> &mdash; money you <em>gain</em>.</li>
-            <li><strong>$3 in the corner</strong> &mdash; what it <em>costs</em>. Same symbol,
-              opposite meaning &mdash; the circle is the tell.</li>
-          </ol>
-        </figure>
-      </div>
-
-      <h3>Suits</h3>
-      <div class="cacti-row">
-        <div class="cacti-item">
-          <img src="assets/backs/River Back.jpg" alt="River card back">
-          <span><strong>River</strong> &mdash; safe. Never has Bandits.</span>
-        </div>
-        <div class="cacti-item">
-          <img src="assets/backs/Cactus Back.jpg" alt="Cactus card back">
-          <span><strong>Cactus</strong> &mdash; up to 1 Bandit.</span>
-        </div>
-        <div class="cacti-item">
-          <img src="assets/backs/Rattlesnake Back.jpg" alt="Rattlesnake card back">
-          <span><strong>Rattlesnake</strong> &mdash; 1&ndash;2 Bandits, best rewards.</span>
-        </div>
-      </div>
-      <p class="setup-note">The suit shows on the back as well as the front, so you always know the
-        risk of the card you're about to draw.</p>
-
-      <h3>Symbols</h3>
-      <div class="symbols-grid">
-        <div class="symbol-row">
-          <img src="assets/symbols/$1-01.png" alt="Dollar symbol">
-          <p><strong>$</strong> &mdash; money to spend this round.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/1 Cow-01.png" alt="Cow symbol">
-          <p><strong>Cow</strong> &mdash; goes to your Herd. Cows are how you win.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/1 Bandit-01.png" alt="Bandit symbol">
-          <p><strong>Bandit</strong> &mdash; your 3rd in a round busts you.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/2 Bandits-01.png" alt="Double Bandit symbol">
-          <p><strong>Double Bandit</strong> &mdash; counts as 2.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/-1 Bandit-01.png" alt="Jail symbol">
-          <p><strong>Jail</strong> &mdash; cancels 1 Bandit.</p>
-        </div>
-        <div class="symbol-row">
-          <img src="assets/symbols/One-Time Use-01.png" alt="Explosive symbol">
-          <p><strong>Explosive</strong> &mdash; one-time use, see above.</p>
-        </div>
-      </div>
     </section>
 
     <!-- FINE PRINT — errata + card clarifications + variants, merged. -->

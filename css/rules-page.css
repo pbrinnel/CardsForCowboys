@@ -188,16 +188,21 @@ html { scroll-behavior: smooth; }
    keep attached in print, whereas a marker positioned in PERCENT of the image stays
    locked to its feature at any size. The marker is legible without colour (dark disc,
    light ring, white numeral), so it survives greyscale like the act bands. */
+/* One card, its key beside it. Two children: the <figure> and the <ol>. */
 .card-anatomy {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1.5rem 2rem;
-  margin: 1rem 0 1.5rem;
+  grid-template-columns: minmax(130px, 175px) 1fr;
+  gap: 1rem 1.5rem;
+  align-items: start;
+  margin: 1rem 0 1.25rem;
+}
+@media (max-width: 560px) {
+  .card-anatomy { grid-template-columns: 1fr; }
 }
 .anatomy-fig { margin: 0; }
 .anatomy-card {
   position: relative;
-  max-width: 200px;
+  max-width: 165px;
   margin: 0 auto 0.5rem;
 }
 .anatomy-card img {
@@ -234,7 +239,39 @@ html { scroll-behavior: smooth; }
   margin-bottom: 0.6rem;
 }
 .rules-page .anatomy-key { margin: 0 0 0 1.3rem; }
-.rules-page .anatomy-key li { font-size: 0.88rem; line-height: 1.45; margin-bottom: 0.3rem; }
+.rules-page .anatomy-key li { font-size: 0.84rem; line-height: 1.4; margin-bottom: 0.25rem; }
+
+/* ── Uncovering demo ──
+   Before/after pair reusing .pyramid-row/.pcard, so the stagger is the real geometry.
+   `.gone` needs !important: the act-band rules are (0,4,0) compound selectors and would
+   otherwise repaint the background over an empty slot. */
+.reveal-demo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 1.25rem;
+}
+.reveal-step { margin: 0; }
+.rules-page .reveal-step figcaption {
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #3a2a1a;
+  max-width: 13rem;
+  margin: 0.45rem auto 0;
+}
+.reveal-arrow { font-size: 1.4rem; color: #8a5a22; }
+.pcard.marked,
+.pcard.revealed { outline: 2px solid #8a5a22; outline-offset: 1px; }
+.pcard.gone {
+  background: none !important;
+  background-image: none !important;
+  border-style: dashed;
+  border-color: rgba(30, 22, 16, 0.4);
+  box-shadow: none;
+}
 
 /* ── Callouts ──
    For rules that INTERRUPT the normal sequence, or that players reliably forget:
@@ -316,36 +353,40 @@ html { scroll-behavior: smooth; }
 }
 
 /* ── Symbol rows ── */
+/* Multi-column, not a single tall stack: as a one-per-row list this section cost a whole
+   print panel on its own. Each entry is short enough to sit in a narrow column. */
 .symbols-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
   margin: 1rem 0;
 }
 
+/* Icons were 72px, which made this a one-per-row list the height of a whole print
+   panel. A glossary entry only needs the icon recognisable, not large. */
 .symbol-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
   background: #e9e0c6;
   border: 2px solid #1e1610;
   box-shadow: 2px 2px 0 #1e1610;
 }
 
 .symbol-row img {
-  width: 72px;
-  height: 72px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   object-fit: contain;
 }
 
-.symbol-row p { margin: 0; font-size: 0.95rem; }
+.symbol-row p { margin: 0; font-size: 0.8rem; line-height: 1.35; }
 
 /* ── Card backs / suit row ── */
 .cacti-row {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.25rem;
   justify-content: center;
   margin: 1rem 0;
   flex-wrap: wrap;
@@ -359,15 +400,15 @@ html { scroll-behavior: smooth; }
 }
 
 .cacti-item img {
-  width: 150px;
-  height: 210px;
+  width: 84px;
+  height: 118px;
   border: 2px solid #1e1610;
   box-shadow: 3px 3px 0 #1e1610;
   object-fit: cover;
 }
 
 .cacti-item span {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #1e1610;
   text-align: center;
   max-width: 170px;
@@ -577,14 +618,13 @@ nav a.active { color: #e9e0c6; text-decoration: underline; }
   .rules-page h1 { font-size: 1.8rem; }
   .rules-page h2 { font-size: 1.3rem; }
   .rules-page h3 { font-size: 1.05rem; }
-  .symbol-row img { width: 56px; height: 56px; }
-  .cacti-item img { width: 120px; height: 168px; }
-  .symbol-row p { font-size: 0.85rem; }
+  .symbol-row img { width: 36px; height: 36px; }
+  .cacti-item img { width: 72px; height: 101px; }
 }
 
 @media (max-width: 400px) {
   .rules-page { padding: 1rem 0.75rem 1.5rem; }
-  .symbol-row img { width: 44px; height: 44px; }
-  .cacti-item img { width: 96px; height: 134px; }
-  .cacti-item span { font-size: 0.7rem; }
+  .symbol-row img { width: 32px; height: 32px; }
+  .cacti-item img { width: 64px; height: 90px; }
+  .cacti-item span { font-size: 0.72rem; }
 }
