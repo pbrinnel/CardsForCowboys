@@ -19,7 +19,8 @@
    Change --body-pt below to test other sizes; every block scales with it.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --panel: 100mm;
+  --panel-w: 100mm;
+  --panel-h: 100mm;
   --margin: 7mm;
   --body-pt: 8pt;
   --ink: #1e1610;
@@ -61,17 +62,17 @@ body {
 
 .sheet {
   display: grid;
-  grid-template-columns: var(--panel) var(--panel);
-  grid-template-rows: var(--panel) var(--panel);
+  grid-template-columns: repeat(var(--cols, 2), var(--panel-w));
+  grid-auto-rows: var(--panel-h);
   gap: 0;
-  width: calc(var(--panel) * 2);
+  width: calc(var(--panel-w) * var(--cols, 2));
   border: 0.4mm solid #333;
   margin-bottom: 8mm;
 }
 
 .panel {
-  width: var(--panel);
-  height: var(--panel);
+  width: var(--panel-w);
+  height: var(--panel-h);
   padding: var(--margin);
   background: var(--paper);
   outline: 0.2mm dashed rgba(30,22,16,0.35);
@@ -208,7 +209,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
    The single most common way a test print goes wrong is the browser quietly
    scaling to fit the printable area. This bar is exactly 100mm, the same as one
    panel edge, so a ruler settles it in two seconds. */
-.printbar { width: calc(var(--panel) * 2); margin: 0 0 8mm; }
+.printbar { width: calc(var(--panel-w) * var(--cols, 2)); margin: 0 0 8mm; }
 .ruler {
   position: relative; height: 6mm; width: 100mm;
   border: 0.4mm solid #fff; border-top: none;
@@ -260,8 +261,9 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
 <div class="controls">
   <span>Folded panel:</span>
-  <button data-panel="50" data-margin="4">50mm (sheet 100×100)</button>
-  <button data-panel="100" data-margin="7" class="on">100mm (sheet 200×200)</button>
+  <button data-w="50"   data-h="50"   data-margin="4" data-cols="2">50×50 cross fold</button>
+  <button data-w="63.5" data-h="88.9" data-margin="4" data-cols="4">Poker 63.5×88.9</button>
+  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2" class="on">100×100 cross fold</button>
   <span style="margin-left:1em">Body type:</span>
   <button data-pt="6">6pt</button>
   <button data-pt="7">7pt</button>
@@ -492,12 +494,15 @@ function report() {
 function apply() { check(); report(); }
 document.querySelector('.controls').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  const group = b.dataset.panel ? '[data-panel]' : '[data-pt]';
+  const group = b.dataset.w ? '[data-w]' : '[data-pt]';
   document.querySelectorAll('.controls ' + group).forEach(x => x.classList.remove('on'));
   b.classList.add('on');
-  if (b.dataset.panel) {
-    document.documentElement.style.setProperty('--panel', b.dataset.panel + 'mm');
-    document.documentElement.style.setProperty('--margin', b.dataset.margin + 'mm');
+  if (b.dataset.w) {
+    const R = document.documentElement.style;
+    R.setProperty('--panel-w', b.dataset.w + 'mm');
+    R.setProperty('--panel-h', b.dataset.h + 'mm');
+    R.setProperty('--margin', b.dataset.margin + 'mm');
+    R.setProperty('--cols', b.dataset.cols);
   } else {
     document.documentElement.style.setProperty('--body-pt', b.dataset.pt + 'pt');
   }
