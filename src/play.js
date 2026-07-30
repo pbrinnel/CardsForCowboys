@@ -2622,7 +2622,12 @@ async function startGame() {
     const debugScenario = sessionStorage.getItem('debug_scenario');
     if (debugScenario) {
       sessionStorage.removeItem('debug_scenario');
-      applyDebugScenario(debugScenario);
+      if (!applyDebugScenario(debugScenario)) {
+        // Unknown name — always stop here. Falling through would start a real, record-writing
+        // game on an empty Store (this branch skips setupStore) and would not be flagged isDebug.
+        setMessage(`Unknown debug scenario "${debugScenario}" — debug.html and applyDebugScenario have drifted apart. No game started.`);
+        return;
+      }
       render();
       startRound();
       return;
@@ -5960,38 +5965,49 @@ function applyDebugScenario(name) {
   const DEBUG_SEED = 12345;
 
   // Returns a deck with `specialId` first, then 9 starter cards
-  function debugDeck(specialId, slotIdx) {
-    const special = STORE_CARDS.find(c => c.id === specialId);
+  function debugDeck(specialId) {
+    const special = specialId ? getCardById(specialId) : null;
     const starters = STARTER_TEMPLATES.slice(0, 9).map(t => createCardInstance(t));
-    return special ? [createCardInstance(special), ...starters] : starters;
+    return special ? [special, ...starters] : starters;
   }
 
-  // Leaves only the top 3 rows of the pyramid (~6 cards for 4P) — a few buys from game end.
-  // Cards are taken bottom-up, so near-end state = bottom rows already cleared.
-  function nearEndPyramid(pyramid) {
-    const keepRows = 3; // rows 0, 1, 2 (apex down)
-    for (let r = keepRows; r < pyramid.length; r++) {
-      for (const slot of pyramid[r]) { slot.removed = true; slot.faceUp = true; }
-    }
-    revealUncovered(pyramid);
-  }
-
-  // Removes every pyramid slot except the last card of the bottom row, leaving exactly
-  // one available card. Buying it empties the pyramid → showdown (in Act 3).
-  function oneCardPyramid(pyramid) {
-    const bottom = pyramid[pyramid.length - 1];
-    const keepCol = bottom.length - 1;
+  // Leaves `keep` cards in the BACKMOST row (row 0 = the Act 3 tier) and clears everything
+  // in front of them — the real end-of-game shape, since play eats the Store front-to-back.
+  // Row 0 is uncovered once the rows below are gone, so all `keep` cards are buyable and
+  // storeStage() reads 3. (The old version kept the front 3 ROWS, which was ~6 cards on the
+  // retired triangle Store but is 27 on the single Store — nowhere near a showdown.)
+  function nearEndPyramid(pyramid, keep = 6) {
     for (let r = 0; r < pyramid.length; r++) {
       for (let c = 0; c < pyramid[r].length; c++) {
-        const slot = pyramid[r][c];
-        if (r === pyramid.length - 1 && c === keepCol) {
-          slot.removed = false; slot.faceUp = true;
-        } else {
-          slot.removed = true; slot.faceUp = true;
-        }
+        pyramid[r][c].removed = !(r === 0 && c < keep);
+        pyramid[r][c].faceUp = true;
       }
     }
     revealUncovered(pyramid);
+  }
+
+  // Exactly one card left, in the back row. Buying it empties the Store → showdown.
+  function oneCardPyramid(pyramid) {
+    nearEndPyramid(pyramid, 1);
+  }
+
+  // Back-fills a per-round herd ramp so the end-of-game herd chart (src/herd-chart.js) has a
+  // real series to draw. scoreRound only writes the CURRENT round, so a scenario that jumps
+  // straight to round N must supply rounds 1..N-1 itself — without this the chart renders a
+  // full N-round axis with nothing plotted. One staggered bust per player gives the ✕ marks
+  // (and the flat segment they explain) something to land on.
+  function seedHerdHistory(players, rounds) {
+    players.forEach((p, i) => {
+      const bustRound = 2 + (i % 3);        // staggered so the ✕ marks don't overlap
+      const scoring = Math.max(1, rounds - 2);  // rounds 1..N-1, minus the one that busted
+      let herd = 0;
+      p.bustRounds = [bustRound];
+      p.herdHistory = [];
+      for (let r = 1; r < rounds; r++) {
+        if (r !== bustRound) herd = Math.min(p.herd, herd + Math.round(p.herd / scoring));
+        p.herdHistory[r - 1] = herd;
+      }
+    });
   }
 
   // Returns a deck: [copy_next (card_20), donor card, ...padding starters]
@@ -6009,10 +6025,14 @@ function applyDebugScenario(name) {
     initAiRng(1, DEBUG_SEED);
   }
 
-  function makeSpecialScenario(specialCardId, act, extraNames) {
+  // NOTE: there is no `act` argument. The Store is built ONCE with all three act tiers
+  // (single-Store rework, July 2026), so every scenario starts at storeStage() 1 with the
+  // Act 1 tier on offer — there is no way to start "in Act 2". The old `act` parameter was
+  // inert and its callers' "Act N" labels were fiction; both are gone.
+  function makeSpecialScenario(specialCardId, extraNames) {
     const numPlayers = extraNames ? extraNames.length + 1 : 2;
     const players = [createPlayer('You', true, 0)];
-    players[0].deck = debugDeck(specialCardId, 0);
+    players[0].deck = debugDeck(specialCardId);
     const aiNames = extraNames || ['Cowboy AI'];
     for (let i = 0; i < aiNames.length; i++) {
       players.push(createPlayer(aiNames[i], false, i + 1));
@@ -6028,51 +6048,72 @@ function applyDebugScenario(name) {
   const AI7 = ['Buffalo Bill', 'Jesse James', 'Wild Mary', 'Doc Holliday',
                'Annie Oakley', 'Black Bart', 'Calamity Jane'];
 
-  // 20 bandit-free cards (mixed suits/values) → a deck nobody can bust on, so every
-  // seat can draw its whole deck into hand. Used by the 8-player stress scenario.
+  // 20 bandit-free cards (mixed suits/values, all LIVE) → a deck nobody can bust on, so
+  // every seat can draw its whole deck into hand. Used by the 8-player stress scenario.
   const NO_BANDIT_POOL = [
     'starter_91', 'starter_92', 'starter_93', 'starter_94', 'starter_61', 'starter_33',
     'card_79', 'card_80', 'card_48', 'card_49', 'card_28', 'card_29',
-    'card_87', 'card_88', 'card_55', 'card_90', 'card_52', 'card_53', 'card_26', 'card_27',
+    'card_88', 'card_90', 'card_52', 'card_53', 'card_26', 'card_70', 'card_74', 'card_54',
   ];
   function noBanditDeck() {
     return NO_BANDIT_POOL.map(id => getCardById(id)).filter(Boolean);
   }
 
-  // 20 bandit-free, money-free (cows only) cards. Paired with an expensive Act 3
-  // store, an AI holding these never reaches its dollar target (dollarBuffer), so it
-  // keeps drawing to the hard 7-card hand cap in aiShouldDraw instead of banking early.
+  // 20 bandit-free, money-free (cows only) cards, all LIVE. An AI holding these banks $0 all
+  // round, so it never reaches its dollar target (dollarBuffer) and keeps drawing to the hard
+  // hand cap in aiShouldDraw (cfg.maxDraw — 10 for every Hard bot, incl. the default rancher)
+  // instead of stopping early. The money-free deck alone does this; it does NOT depend on the
+  // Store being expensive (the front row on offer is the CHEAP Act 1 tier, cost 2-5).
   const NO_MONEY_POOL = [
     'card_79', 'card_80', 'card_48', 'card_49', 'card_28', 'card_29',
-    'card_87', 'card_88', 'card_56', 'card_58', 'card_59', 'card_32',
-    'card_28', 'card_29', 'card_56', 'card_58', 'card_87', 'card_88', 'card_32', 'card_48',
+    'card_88', 'card_58', 'card_59', 'card_32', 'card_28', 'card_29',
+    'card_58', 'card_88', 'card_32', 'card_48', 'card_79', 'card_59', 'card_49', 'card_80',
   ];
   function noMoneyDeck() {
     return NO_MONEY_POOL.map(id => getCardById(id)).filter(Boolean);
   }
 
+  // 2P with a stacked human deck, drawn in the given order (the human deck is NOT shuffled
+  // at deal, so position N in the array is the Nth card you draw).
+  function stackedDeck(order) {
+    const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
+    players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
+    G = initState(2, players);
+    G.roundNumber = 1;
+    G.gameSeed = DEBUG_SEED;
+    G.pyramid = buildPyramid();
+    initAiRng(1, DEBUG_SEED);
+  }
+
+  // Shared setup for the two end-of-game scenarios: 4P, round 9, competitive herds, and a
+  // back-filled herdHistory so the showdown herd chart has a real series to draw.
+  function makeEndGame(rounds = 9) {
+    const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
+    const herds = [32, 29, 35, 28];
+    const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
+    players.forEach((p, i) => { p.herd = herds[i]; });
+    seedHerdHistory(players, rounds);
+    G = initState(4, players);
+    G.roundNumber = rounds;
+    G.gameSeed = DEBUG_SEED;
+    G.pyramid = buildPyramid();
+    for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+  }
+
   const SCENARIOS = {
+    // 6 cards left in the back (Act 3) row — a couple of rounds from the Store emptying.
     near_showdown() {
-      const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
-      const herds  = [32, 29, 35, 28];
-      const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
-      players.forEach((p, i) => { p.herd = herds[i]; });
-      G = initState(4, players);
-      G.roundNumber = 9;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      nearEndPyramid(G.pyramid);
-      for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+      makeEndGame();
+      nearEndPyramid(G.pyramid, 6);
     },
 
-    // Maximum-on-screen stress test: 8 players (you + 7 AI), Act 3 (full 56-card
-    // pyramid drawn from the most EXPENSIVE store pool, cost 5-11). Nobody can bust
-    // (bandit-free decks). The human holds a varied 20-card deck and draws it all
-    // manually. The AI seats hold money-free (cows only) decks: against the costly
-    // store their dollar target is unreachable, so they draw to the hard 7-card hand
-    // cap (aiShouldDraw) instead of banking at ~5. Exercises the 8P opponent rail,
-    // pyramid fit/scaling, and big hand fans all at once. (AI can't exceed 7 cards —
-    // that cap is core AI logic, so ~20 is human-only.)
+    // Maximum-on-screen stress test: 8 players (you + 7 AI) on a full 99-card Store
+    // (11 wide × 9 rows). Nobody can bust (bandit-free decks). The human holds a varied
+    // 20-card deck and draws it all manually. The AI seats hold money-free (cows only)
+    // decks, so they bank $0, never reach their dollar target, and draw to the hard hand
+    // cap in aiShouldDraw (cfg.maxDraw = 10 for the default rancher). Exercises the 8P
+    // opponent rail, pyramid fit/scaling, and big hand fans at once. (The cap is core AI
+    // logic, so a ~20-card hand is human-only.)
     stress_8p() {
       const players = [createPlayer('You', true, 0),
                        ...AI7.map((n, i) => createPlayer(n, false, i + 1))];
@@ -6085,28 +6126,34 @@ function applyDebugScenario(name) {
       for (let i = 1; i <= 7; i++) initAiRng(i, DEBUG_SEED);
     },
 
-    special_burn_to_use()        { makeSpecialScenario('card_77', 1); },
-    special_2cow_if_first()      { makeSpecialScenario('card_15', 1); },
-    special_burn_buy_first()     { makeSpecialScenario('card_14', 1); },
-    special_burn_to_use_card16() { makeSpecialScenario('card_16', 2); },
-    special_look3_rearrange()    { makeSpecialScenario('card_19', 2); },
-    special_copy_next()          { makeSpecialScenario('card_20', 2); },
-    special_burn_to_use_card22() { makeSpecialScenario('card_22', 2); },
-    special_extra_buy()          { makeSpecialScenario('card_21', 2); },
-    special_replay_discard()     { makeSpecialScenario('card_23', 2); },
-    special_dollar1_other()      { makeSpecialScenario('card_24', 2); },
-    special_swap_revealed()      { makeSpecialScenario('card_4',  2, AI3); },
-    special_look3_immediate()    { makeSpecialScenario('card_31', 3); },
+    // --- LIVE mechanics (cards that can still be dealt) ---
+    special_burn_to_use()        { makeSpecialScenario('card_77'); },  // Explosive $2, River
+    special_burn_to_use_card16() { makeSpecialScenario('card_16'); },  // Explosive $3, Rattlesnake
+    special_burn_to_use_card22() { makeSpecialScenario('card_22'); },  // Explosive $3, Rattlesnake
 
-    // Full Swap (card_4) test — 4P (card_4 is 4P-only), Act 2. You draw card_4 first (the
-    // human deck isn't shuffled at deal). Each opponent's discard is pre-seeded with a cow
-    // card so the discard-top swap source is testable immediately (opponents otherwise start
-    // round 1 with an empty discard); their hands fill from their own draws. So all three
-    // swap sources are exercisable: Store pyramid, opponent hand, opponent discard top.
+    // --- RETIRED mechanics: every card below is `deprecated: true` and can never be dealt.
+    // Kept as the pre-deletion regression harness (docs/DEAD_CODE_INVENTORY.md) — run the
+    // scenario, then delete it together with its mechanic. getCardById still resolves
+    // deprecated cards, which is why they run at all.
+    special_2cow_if_first()      { makeSpecialScenario('card_15'); },
+    special_burn_buy_first()     { makeSpecialScenario('card_14'); },
+    special_look3_rearrange()    { makeSpecialScenario('card_19'); },
+    special_copy_next()          { makeSpecialScenario('card_20'); },
+    special_extra_buy()          { makeSpecialScenario('card_21'); },
+    special_replay_discard()     { makeSpecialScenario('card_23'); },
+    special_dollar1_other()      { makeSpecialScenario('card_24'); },
+    special_swap_revealed()      { makeSpecialScenario('card_4', AI3); },
+    special_look3_immediate()    { makeSpecialScenario('card_31'); },
+
+    // RETIRED (card_4 is deprecated). Full Swap test — 4P, since card_4 was 4P-only. You draw
+    // card_4 first (the human deck isn't shuffled at deal). Each opponent's discard is
+    // pre-seeded with a cow card so the discard-top swap source is testable immediately
+    // (opponents otherwise start round 1 with an empty discard); their hands fill from their
+    // own draws. So all three swap sources are exercisable: Store, opponent hand, discard top.
     // Draw card_4, Stop, then use "Swap Card 4" on your buy turn.
     swap_card() {
       const players = [createPlayer('You', true, 0), ...AI3.map((n, i) => createPlayer(n, false, i + 1))];
-      players[0].deck = debugDeck('card_4', 0); // card_4 on top, drawn immediately
+      players[0].deck = debugDeck('card_4'); // card_4 on top, drawn immediately
       for (let i = 1; i < players.length; i++) {
         players[i].discard = [createCardInstance(getCardById('card_28'))]; // 3 cows → discard-top target
       }
@@ -6117,85 +6164,97 @@ function applyDebugScenario(name) {
       for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
 
-    // Act 3 store down to a single available card. Buy it to empty the pyramid and
-    // trigger the showdown immediately — quick way to test the showdown sequence.
-    act3_one_card() {
-      const names = ['Buffalo Bill', 'Jesse James', 'Wild Mary'];
-      const herds  = [32, 29, 35, 28];
-      const players = [createPlayer('You', true, 0), ...names.map((n, i) => createPlayer(n, false, i + 1))];
-      players.forEach((p, i) => { p.herd = herds[i]; });
-      G = initState(4, players);
-      G.roundNumber = 9;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
+    // Store down to a single available card, in the back (Act 3) row. Buy it to empty the
+    // Store and trigger the showdown immediately — the quick way to test the showdown
+    // sequence, the tiebreak ladder, and the end-of-game herd chart.
+    one_card_showdown() {
+      makeEndGame();
       oneCardPyramid(G.pyramid);
-      for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
     },
 
-    // Same as act3_one_card but with Hidden Herd mode on — opponents' herds show as
-    // "?" until the showdown reveal. Tests the hidden-herd showdown reveal path.
-    act3_one_card_hidden() {
-      SCENARIOS.act3_one_card();
+    // Same as one_card_showdown but with Hidden Herd mode on — opponents' herds show as
+    // "?" until the showdown reveal. Tests the hidden-herd concealment + reveal path.
+    // This is the ONLY way to enable Hidden Herd now that gamesetup no longer offers it
+    // (see CLAUDE.md "Game Mode / Setup Flags") — keep it.
+    one_card_showdown_hidden() {
+      SCENARIOS.one_card_showdown();
       G.hiddenHerdMode = true;
     },
 
-    // Draw into "Draw 4" while already holding 2 bandits, with a burn-to-use "-1 bandit"
-    // jail card as the very next (first forced) draw. Tests the activate-before-bust window:
-    // draw the 2 bandits, draw the Draw 4, then activate the jail card before the next draws.
-    // Tests buy-phase burn-to-use dollar activation.
+    // Tests buy-phase Explosive dollar activation.
     // Deck is stacked: draw starter ($1), starter ($1), then card_77 (burn_to_use +$2, $0 on draw).
     // Stop after drawing all three — you'll have $2 and card_77 in hand.
     // Can't afford a $4 cow card (card_79/80) yet; activate card_77 in buy phase to reach $4.
     buy_phase_burn_to_use() {
-      const order = [
+      stackedDeck([
         'starter_91',  // $1
         'starter_92',  // $1 → $2 total; not enough for $4 cards
         'card_77',     // burn_to_use +$2 (gives $0 on draw — hold it for buy phase)
-        'starter_93',  // padding
-        'starter_94',
-        'starter_91',
-        'starter_92',
-        'starter_93',
-        'starter_94',
-        'starter_91',
-      ];
-      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
-      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
-      G = initState(2, players);
-      G.roundNumber = 1;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      initAiRng(1, DEBUG_SEED);
+        'starter_93', 'starter_94', 'starter_91', 'starter_92', 'starter_93',
+        'starter_94', 'starter_91',
+      ]);
     },
 
     // Tests buy-phase activation with every dollar-producing card in hand at once.
-    // 4 activatable Explosive cards: card_77/78 (burn_to_use +$2 each) + card_16/22 (burn_to_use +$3 each).
-    // They give $0 on draw; you can activate up to +$10 in buy phase to unlock expensive
-    // cards. Act 2 pyramid has expensive cards worth unlocking.
+    // 4 activatable Explosives: card_77/78 (+$2 each) + card_16/22 (+$3 each) = up to +$10.
+    // They all give $0 on draw, so the only way to reach the back rows' expensive cards is
+    // to Use them during the buy phase.
     buy_phase_all_activatable() {
-      const order = [
-        'card_77',     // burn_to_use +$2 ($0 on draw)
-        'card_78',     // burn_to_use +$2 ($0 on draw)
-        'card_16',     // burn_to_use +$3 ($0 on draw)
-        'card_22',     // burn_to_use +$3 ($0 on draw)
-        'starter_91',
-        'starter_92',
-        'starter_93',
-        'starter_94',
-        'starter_91',
-        'starter_92',
-      ];
-      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
-      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
-      G = initState(2, players);
-      G.roundNumber = 1;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      initAiRng(1, DEBUG_SEED);
+      stackedDeck([
+        'card_77',     // Explosive +$2 ($0 on draw)
+        'card_78',     // Explosive +$2 ($0 on draw)
+        'card_16',     // Explosive +$3 ($0 on draw)
+        'card_22',     // Explosive +$3 ($0 on draw)  → up to +$10
+        'starter_91', 'starter_92', 'starter_93', 'starter_94', 'starter_91', 'starter_92',
+      ]);
     },
 
+    // Plain Draw 4 (card_54, LIVE). 4 mandatory draws resolved one at a time through the
+    // normal flow: "Stop" is hidden while forcedDraws > 0 and returns once it hits 0.
+    // Only 1 bandit total, so it always completes — this is the happy path, not a bust test.
+    draw4_basic() {
+      stackedDeck([
+        'card_54',    // 3 cows + Draw 4 → 4 mandatory draws
+        'starter_91', // forced 1: $1
+        'card_79',    // forced 2: 1 cow
+        'starter_92', // forced 3: $1
+        'card_30',    // forced 4: 4 cows + 1 bandit
+        'starter_93', 'starter_94', 'card_48', 'starter_91', 'starter_92',
+      ]);
+    },
+
+    // Draw-4 CHAINING — the live edge case (rules.html documents it). A Draw 4 pulled during
+    // another Draw 4's forced draws decrements once and THEN adds 4, so the obligation stacks
+    // instead of resetting. Watch the "N mandatory draws left" counter: 4 → 3 → 6.
+    draw4_chain() {
+      stackedDeck([
+        'card_54',    // Draw 4 → 4 forced
+        'starter_91', // forced 1 → 3 left
+        'card_54',    // forced 2 → decrements to 2, then +4 → 6 left
+        'starter_92', 'starter_93', 'starter_94', 'card_79', 'card_80', 'starter_91', 'starter_92',
+      ]);
+    },
+
+    // Cards 84/85 (LIVE, new in gameV 3): PASSIVE −1 Bandit + Draw 4 — not Explosives, so
+    // there is nothing to activate; the bandit comes off automatically on draw. Sit at 2
+    // bandits, draw card_84 to drop to 1 and owe 4, then chain into card_85 mid-obligation.
+    draw4_minus_bandit() {
+      stackedDeck([
+        'card_43',    // 2 bandits (one more busts you)
+        'card_84',    // −1 bandit → 1, and Draw 4
+        'card_30',    // forced 1: 4 cows + 1 bandit → back to 2
+        'starter_91', // forced 2
+        'card_85',    // forced 3: −1 bandit → 1, and chains +4 → 5 left
+        'starter_92', 'starter_93', 'starter_94', 'card_79', 'card_80',
+      ]);
+    },
+
+    // RETIRED (card_50 is deprecated). Draw into "Draw 4" holding 2 bandits with a
+    // burn-to-use "−1 bandit" jail card as the first forced draw — the activate-before-bust
+    // window (bug #12). Every live Explosive is now a pure dollar card, so nothing reachable
+    // exercises this any more; the mechanic is kept in case a jail card is ever un-deprecated.
     draw4_jail_2bandits() {
-      const order = [
+      stackedDeck([
         'card_17',    // 1 bandit
         'card_60',    // 1 bandit   → 2 bandits banked before Draw 4
         'card_54',    // Draw 4
@@ -6204,14 +6263,7 @@ function applyDebugScenario(name) {
         'starter_91', // safe $1
         'starter_94', // safe $1
         'card_43',    // 2 bandits — lethal on the last forced draw unless the jail card is used
-      ];
-      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
-      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
-      G = initState(2, players);
-      G.roundNumber = 1;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      initAiRng(1, DEBUG_SEED);
+      ]);
     },
 
     // Copy Next → burn_to_use jail (-1 bandit): both Copy Next card and the jail card
@@ -6317,7 +6369,7 @@ function applyDebugScenario(name) {
     // draws, so the jail card (card_50) at position 4 is critical — activate it between
     // draws to avoid busting on the second bandit before the 8 draws are done.
     copy_next_draw4() {
-      const order = [
+      stackedDeck([
         'card_20',    // Copy Next → arms copyNextActive
         'card_54',    // Draw 4 → 6 cows (doubled) + 8 forced draws
         'starter_91', // forced draw 1: safe $1
@@ -6328,14 +6380,7 @@ function applyDebugScenario(name) {
         'card_60',    // forced draw 6: 1 bandit (1 or 2 total depending on jail use)
         'starter_94', // forced draw 7: safe $1
         'starter_91', // forced draw 8: safe $1
-      ];
-      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
-      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
-      G = initState(2, players);
-      G.roundNumber = 1;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      initAiRng(1, DEBUG_SEED);
+      ]);
     },
 
     // Copy Next → Copy Next → regular card: chaining two Copy Nexts in a row.
@@ -6344,32 +6389,28 @@ function applyDebugScenario(name) {
     // the THIRD card drawn gets doubled. Demonstrates that chaining through a second
     // Copy Next re-arms the doubling for the next card.
     copy_next_chain() {
-      const order = [
+      stackedDeck([
         'card_20',    // first Copy Next → activates copyNextActive
         'card_20',    // second Copy Next consumed as donor → re-arms copyNextActive
         'card_79',    // 1 cow (regular) → drawn with multiplier=2 → 2 cows
-        'starter_91',
-        'starter_92',
-        'starter_93',
-        'starter_91',
-        'starter_92',
-        'starter_93',
-      ];
-      const players = [createPlayer('You', true, 0), createPlayer('Cowboy AI', false, 1)];
-      players[0].deck = order.map(id => getCardById(id)).filter(Boolean);
-      G = initState(2, players);
-      G.roundNumber = 1;
-      G.gameSeed = DEBUG_SEED;
-      G.pyramid = buildPyramid();
-      initAiRng(1, DEBUG_SEED);
+        'starter_91', 'starter_92', 'starter_93', 'starter_91', 'starter_92', 'starter_93',
+      ]);
     },
   };
 
   const fn = SCENARIOS[name];
-  if (!fn) { console.warn('Unknown debug scenario:', name); return; }
+  if (!fn) {
+    // Do NOT fall through. startGame's debug branch skips setupStore(), so continuing here
+    // starts an unplayable 0-row-Store game that is ALSO not flagged isDebug — meaning it
+    // writes gameHistory/liveSummary/traj records like a real game. Returning false makes
+    // the caller stop cleanly instead. This fires when debug.html and SCENARIOS drift apart.
+    console.error(`Unknown debug scenario "${name}". Known:`, Object.keys(SCENARIOS).sort().join(', '));
+    return false;
+  }
   fn();
   G.isDebug = true;
   addLog(`[DEBUG] Scenario: ${name}`, 'log-score');
+  return true;
 }
 
 // --- INIT ---
