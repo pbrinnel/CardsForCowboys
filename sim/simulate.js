@@ -164,21 +164,25 @@ function winMatrix(games, cardStat) {
 }
 
 // --- 4P round-robin: each personality as focal + 3 rotating opponents ---
-function field4P(games, cardStat) {
-  console.log(`\n=== 4P win% — ${games} games each, focal + 3 rotating opponents (baseline 25%) ===`);
+// Focal bot vs a rotating field, at ANY player count. Named for the count it takes, not a
+// fixed one — this was `field4P` with 4 hardcoded three ways, so `--players 5` silently
+// re-ran 4P and printed it under a "4P" heading.
+function fieldNP(players, games, cardStat) {
+  console.log(`\n=== ${players}P win% — ${games} games each, focal + ${players - 1} rotating opponents ` +
+    `(baseline ${pct(1 / players)}%) ===`);
   const rows = [];
   for (const focal of NAMES) {
     let wins = 0, busts = 0, draws = 0;
     for (let s = 0; s < games; s++) {
-      const opps = [0, 1, 2].map(k => NAMES[(s * 3 + k + 1) % NAMES.length]);
-      const seat = s % 4;
+      const opps = Array.from({ length: players - 1 }, (_, k) => NAMES[(s * 3 + k + 1) % NAMES.length]);
+      const seat = s % players;
       const lineup = opps.slice(); lineup.splice(seat, 0, focal);
       let events = null;
       if (cardStat) {
         events = [];
         engine.setBuyObserver(ev => events.push({ action: ev.action, row: ev.row, round: ev.round, id: ev.card.id, seat: ev.seat }));
       }
-      const r = engine.runGame(lineup.map(n => byName[n]), 4, s + 1, { detail: !!cardStat });
+      const r = engine.runGame(lineup.map(n => byName[n]), players, s + 1, { detail: !!cardStat });
       if (cardStat) engine.setBuyObserver(null);
       if (r.winners.includes(seat)) wins += 1 / r.winners.length;
       busts += r.busts[seat]; draws += r.drawRounds[seat];
@@ -277,7 +281,7 @@ function main() {
     matchup(o.matchup, o.players, o.games, cardStat);
   } else if (!o.cardsOnly) {
     if (o.players === 2) winMatrix(o.games, cardStat);
-    else field4P(o.games, cardStat);
+    else fieldNP(o.players, o.games, cardStat);
   } else {
     // cards-only: still need games to populate stats — run a quiet round-robin
     for (let i = 0; i < NAMES.length; i++)

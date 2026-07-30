@@ -41,7 +41,9 @@ function parseArgs() {
 
 function runBatch(numPlayers, numGames) {
   const cardStats = {};
-  for (const card of core.STORE_CARDS) cardStats[card.id] = { buyCount: 0, winnerBuyCount: 0 };
+  // LIVE cards only — deprecated ones can never be dealt, so including them just pads the
+  // output with 30 rows of nulls that read as 'nobody wants this card'.
+  for (const card of core.STORE_CARDS) if (!card.deprecated) cardStats[card.id] = { buyCount: 0, winnerBuyCount: 0 };
   let totalBuys = 0, totalWins = 0;
 
   for (let g = 0; g < numGames; g++) {
@@ -77,7 +79,7 @@ function main() {
   const runs = opts.all ? [2, 3, 4] : [opts.players];
 
   const combined = {};
-  for (const card of core.STORE_CARDS) combined[card.id] = { buyCount: 0, winnerBuyCount: 0 };
+  for (const card of core.STORE_CARDS) if (!card.deprecated) combined[card.id] = { buyCount: 0, winnerBuyCount: 0 };
   let totalGames = 0;
 
   for (const np of runs) {
@@ -94,7 +96,7 @@ function main() {
   const totalAllBuys    = Object.values(combined).reduce((s, c) => s + c.buyCount, 0);
   const baseline = totalWinnerBuys / Math.max(1, totalAllBuys);
 
-  const output = core.STORE_CARDS.map(card => {
+  const output = core.STORE_CARDS.filter(c => !c.deprecated).map(card => {
     const s = combined[card.id];
     const winnerRate = s.buyCount > 0 ? s.winnerBuyCount / s.buyCount : null;
     const lift = (winnerRate !== null && baseline > 0) ? +(winnerRate / baseline).toFixed(3) : null;

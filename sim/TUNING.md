@@ -177,11 +177,25 @@ sim and real humans diverge most.
   load-bearing bust governor for them; raising it makes them bust >50% and collapse. sheriff/banker
   stay 7 by design (Easy tier — they'd improve at cap 10, but we don't buff the easy tier). See
   `draw-cap-experiment.js`.
-- **Competitive coevolution (`evolve.js --coevolve`, June 2026)** could NOT out-design the existing
-  Hard genomes even with strong-opponent fitness + a Hall of Fame: 3/3 trials converged exactly to
-  the `enforcer` genome (only `maxDraw` 7→10). Takeaway: the 14-param space is **tapped out** — the
-  next real gain is logic/features, not more parameter search. Also robust: `denialWeight → 0` for
-  focal win-rate across all high-seed trials (denial is a board-interaction tool, not a self-win
-  booster — don't add it chasing win%).
+- ~~**Competitive coevolution (June 2026): the 14-param space is tapped out.**~~ **REFUTED
+  (July 2026).** That run concluded the space was exhausted — but it was searching around a
+  `banditPenalty` that was **~12× too low**, so "no better genome exists near here" was a
+  statement about a badly-miscalibrated neighbourhood, not about the space. Re-run after the fix:
+  - the champion beats the best shipped bot at 4P — **50.0% vs field, against `enforcer`'s
+    43.2% (+6.8pp)** — though it is slightly WORSE at 2P (72.3% vs 74.2%).
+  - **`banditPenalty` converged to 20.00** in the top genomes of the final generation, landing
+    independently on the value derived and measured above. Strong corroboration of the fix.
+  - `cowWeight` (10.00) and `act3CowBonus` (4.00) sat pinned at the TOP of their search ranges —
+    the bounds are binding, so the true optimum may lie outside them. **Widen the ranges before
+    the next run.**
+  - **Nothing from this run has been shipped.** The three trials did not converge tightly
+    (`banditPenalty` spread was 75% of its range) and the champion trades 2P strength for 4P.
+    Harvesting it properly is a separate, deliberate pass.
+- ~~**`denialWeight → 0` for focal win-rate.**~~ **ALSO REFUTED by the same re-run** — the
+  coevolved champions all want `denialWeight` ≈ **0.7–1.0**. Same root cause: when the AI is
+  squandering buys on trap cards, spending a turn on denial looks worthless; once it buys well,
+  denying the leader becomes a good use of a turn. Note this cuts against `enforcer`'s stated
+  identity ("wins through efficiency, not denial"), so adopting it is a character decision, not
+  just a numbers one.
 - banker is **intentionally** weak (Easy / designed-to-lose). Low `cowWeight`, high `act1DollarBonus`
   are features, not bugs.

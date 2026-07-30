@@ -703,6 +703,16 @@ misaligns the brick offset and breaks `isCardCovered` on rejoin.
 > (2 Cows, same cost). Only the Hard tier was corrected — Medium/Easy keep their genomes by
 > design, so the tier gap is now wider.
 >
+> **5-8P tiers measured for the FIRST time (July 2026)** — the shipped 5-8P mode had never had
+> AI win rates checked. The ordering holds at every count, so the difficulty picker is valid
+> there. Focal win% (baseline in brackets): **5P** [20%] enforcer 37.2 · drifter 36.0 · rancher
+> 35.4 · deputy 28.9 · prospector 26.0 ‖ outlaw 9.8 · wild_bill 9.0 ‖ sheriff 4.3 · banker 0.6 ·
+> greenhorn 0.0. **6P** [16.7%] enforcer 30.3 · rancher 30.0 · drifter 28.9 · deputy 26.1 ·
+> prospector 22.8. **8P** [12.5%] enforcer 27.3 · rancher 24.4 · deputy 22.5 · drifter 22.3 ·
+> prospector 17.3. The Hard bots' edge over baseline GROWS with player count (1.5x at 2P, 1.7x at
+> 4P, 2.2x at 8P) — more opponents means more chances for someone else to bust, and the
+> disciplined bots bust least.
+>
 > Two knobs were act-gated and now read **`storeStage()`** instead of `G.currentAct`:
 > `act1DollarBonus` / `act3CowBonus` in `scoreCardForAI`, and `actProgress` in `aiBuyTurn`'s denial
 > heuristic. Semantics are preserved (early Store = Act 1 cards on offer = economy lens).
