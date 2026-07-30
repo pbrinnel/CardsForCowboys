@@ -60,6 +60,7 @@ and a `window.location` button do not. Rules for a new page:
 | `src/lobby.js` | Join (guest) flow for lobby.html; sets `sessionStorage` keys for play.js. Atomic slot claim via `runTransaction`. |
 | `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js / host.js as ESM module |
 | `src/host.js` | Host (create) flow + inline waiting room on gamesetup.html. Exposes `window.CFC_startHosting()`. Game auto-launches only when all human slots fill. Replaces the old `src/creategame.js`. |
+| `src/herd-chart.js` | **End-of-game "Herd by Round" graph — ONE renderer, TWO surfaces** (showdown screen + spectate). Classic script exposing `window.CFC_HerdChart.render(el, {players, round, phase, youIndex, animate})`, same dual-use idiom as `sim/tiebreaker.js`. See the Herd Chart section below. |
 
 ### `css/` — Stylesheets
 | File | Purpose |
@@ -480,7 +481,9 @@ resolveShowdownWinners(ps)  ~5346 — SHOWDOWN TIEBREAK (July 2026). 3 steps, mi
                                     identical starter deck and it would almost always tie.
                                     MP-safe (collection contents + printed `dollars` are
                                     shared state). NOT mirrored in sim/ — see D0 note.
-showShowdownResult()        ~4426 — crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
+showShowdownResult()        ~4426 — ALSO mounts the herd chart into #showdown-chart (the one
+                                    mount point covering live showdown + gameOver rejoin).
+                                    Crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
 gameOver()                  ~4470 — REJOIN-ONLY now: rebuilds the showdown board statically (cards face-up, final herds) for a rejoin into an already-finished game, then calls showShowdownResult. (Animated live games go through startShowdown instead.)
 finalizeGame(topPlayers)    ~4505 — end-of-game bookkeeping only (MP cleanup, gameHistory log, AI review link). No result DOM.
 disbandGame()               ~4064
@@ -535,11 +538,75 @@ G = {
 player = {
   name, isHuman, slotIdx,
   hand: [CardInstance], deck: [CardInstance], discard: [CardInstance],
+  herdHistory: [n],     // herd AFTER each round; [roundNumber] = the Showdown point
+  bustRounds: [n],      // round numbers this player busted (herd-chart ✕ marks)
   roundDollars, roundCows, roundBandits, totalHerd,
   busted, stoppedDrawing, hasBuyBurnFirst, hasExtraBuy,
   _syncedDiscardCount,  // MP: synced from Firebase, used in renderPlayerZone
 }
 ```
+
+---
+
+## Herd Chart (end-of-game graph) — July 2026
+
+A "Herd by Round" line graph rendered by **[`src/herd-chart.js`](src/herd-chart.js)** on **two
+surfaces from one renderer**:
+
+- **playgame.html** — inside `#showdown-footer`, under `#showdown-winner-title` and **above the
+  action buttons**. Mounted from `showShowdownResult()`, which is the ONE mount point that covers
+  both the live showdown and `gameOver()` (rejoin into a finished game). The footer is `hidden`
+  for the entire reveal sequence, so the chart can never interrupt the showdown. It sits above the
+  buttons because Play Again / Game Setup / Back to Home are all exit doors — anything below them
+  is read by nobody.
+- **spectate.html** — top of `renderShowdown()`, above the per-player blocks. This also covers
+  history.html's **Review** link for free, since that just opens spectate on the persisted snapshot.
+
+**Why there is no adapter on either side:** `spectatorState.players` deliberately mirrors
+`G.players` field names, so both callers pass the objects they already hold. If a field is missing
+on one surface, fix `buildSpectatorState` — do NOT add a per-surface massaging step.
+
+### Data: `player.herdHistory` + `player.bustRounds`
+
+Written in **`scoreRound`**, OUTSIDE the `if (!player.busted && player.roundCows !== 0)` scoring
+guard — a busted or zero-cow player still needs a point, or the series goes ragged and the x-axis
+stops meaning "round". Uses **indexed assignment** (`herdHistory[G.roundNumber - 1] = herd`), not
+`push`: index↔round stays exact and the write is idempotent if `endBuyPhase` ever double-fires.
+
+The Showdown point is written **inside** `startShowdown`'s per-player loop (`herdHistory[G.roundNumber]`),
+not after it. That loop pushes a spectatorState per player, so appending after would leave every
+intermediate snapshot carrying final herds but no final graph point — a rejoiner landing there
+reconstructs an inconsistent chart.
+
+**Restored in THREE places — miss one and the chart silently empties with no error:**
+`reconstructG` (MP rejoin), the `loadLocalGame` restore in `startGame` (solo reload), and
+serialized by both `buildSpectatorState` and `saveLocalGame`. Always read as `sp.herdHistory || []`,
+**never** `!== undefined` — round 1 is an empty array and Firebase drops empty arrays (bug #11).
+
+No `gameV` bump (display-only, no rules/card change) and **no `database.rules.json` change** —
+`games/$gameCode` and `liveGames/$gameCode` are open-write with no shape validation, so there is no
+deploy step and no C9 risk. Do NOT add these fields to `liveSummary`; that node stays slim.
+
+### Renderer notes
+
+Colour is keyed by **`slotIdx`, not array index** — `G.players` is you-first while
+`spectatorState.players` is host slot order, so index colouring would paint the same game
+differently on your screen and a spectator's. Marker shape is a second, colour-independent channel
+and names are labelled directly at the end of each line (no legend) — eight hues alone are not
+distinguishable, and blue/yellow/red are already the suit colours. Busts are a red ✕, which also
+disambiguates a flat segment ("busted" vs "scored no cows").
+
+**Two traps, both already hit once:**
+- A `stroke-dasharray` **draw-in animation was tried and removed.** It needs `getTotalLength()`, and
+  when the rAF measured a path the browser had not finished laying out, the short length became a
+  dash *pattern* — lines rendered as stubs with the rest invisible. The reveal is a plain opacity
+  fade now; it needs no measurement and cannot fail that way.
+- The SVG has **no `min-width`.** An earlier one put the entire right-hand label column (player
+  names and final totals) behind a horizontal scrollbar on a phone. Type is sized in viewBox units
+  generous enough to stay legible when the whole chart scales down to ~375px instead.
+
+`render()` returns **false** when no series has data (games finished before this shipped); the
+spectate caller removes the container so old games don't show an empty frame.
 
 ---
 

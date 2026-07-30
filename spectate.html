@@ -332,6 +332,10 @@
   </div>
 </div>
 
+<!-- Shared with playgame.html's showdown screen. Classic script, so it runs BEFORE the
+     deferred module below and window.CFC_HerdChart is already defined. Keep it above. -->
+<script src="src/herd-chart.js"></script>
+
 <script type="module">
 import { db } from './src/firebase-config.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -408,6 +412,20 @@ function renderShowdown(state) {
   header.className = 'showdown-header';
   header.textContent = state.phase === 'showdown' ? 'Showdown' : 'Final Showdown';
   el.appendChild(header);
+
+  // Herd graph — summary first, then the per-player detail blocks. Same renderer the
+  // showdown screen uses; spectatorState player records mirror G.players field names,
+  // so state.players is passed straight through with no adapter. No animate: this
+  // function re-runs on every snapshot, and a restarting draw-in would flicker.
+  if (window.CFC_HerdChart) {
+    const chartEl = document.createElement('div');
+    el.appendChild(chartEl);
+    if (!window.CFC_HerdChart.render(chartEl, {
+      players: state.players, round: state.round, phase: state.phase,
+    })) {
+      chartEl.remove(); // game predates herdHistory — no empty frame
+    }
+  }
 
   const maxHerd = Math.max(...state.players.map(p => p.herd));
 

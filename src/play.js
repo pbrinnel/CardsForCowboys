@@ -964,6 +964,11 @@ function buildSpectatorState() {
       name: p.name,
       isHuman: p.isHuman,
       herd: p.herd,
+      // End-of-game herd graph. Also what makes the chart work for a spectator who
+      // opened the page mid-game and for the Review link on history.html — neither has
+      // seen the earlier rounds, so the snapshot is the only transport.
+      herdHistory: p.herdHistory || [],
+      bustRounds: p.bustRounds || [],
       roundDollars: p.roundDollars,
       roundCows: p.roundCows,
       roundBandits: p.roundBandits,
@@ -1363,6 +1368,12 @@ function createPlayer(name, isHuman, slotIdx = 0, personality = null) {
     discard: [],
     hand: [],
     herd: 0,
+    // End-of-game herd graph (src/herd-chart.js). herdHistory[r-1] = herd AFTER round r,
+    // written by scoreRound; index [G.roundNumber] is appended at the Showdown. bustRounds
+    // holds the round numbers this player busted, so the chart can mark the flat segments.
+    // Both are display-only and MP-safe (herd is shared state every client agrees on).
+    herdHistory: [],
+    bustRounds: [],
     roundDollars: 0,
     roundCows: 0,
     roundBandits: 0,
@@ -2529,6 +2540,8 @@ async function startGame() {
           const players = saved.players.map(sp => {
             const p = createPlayer(sp.name, sp.isHuman, sp.slotIdx, sp.personality);
             p.herd            = sp.herd            || 0;
+            p.herdHistory     = sp.herdHistory     || [];  // herd graph (see buildSpectatorState)
+            p.bustRounds      = sp.bustRounds      || [];
             p.roundDollars    = sp.roundDollars    || 0;
             p.roundCows       = sp.roundCows       || 0;
             p.roundBandits    = sp.roundBandits    || 0;
@@ -2668,6 +2681,10 @@ function saveLocalGame() {
         name: p.name, isHuman: p.isHuman, slotIdx: p.slotIdx,
         personality: p.personality || null,
         herd: p.herd,
+        // Herd graph — without these a solo player who reloads mid-game pushes a
+        // truncated history and loses the early rounds from their own Review chart.
+        herdHistory: p.herdHistory || [],
+        bustRounds: p.bustRounds || [],
         roundDollars: p.roundDollars, roundCows: p.roundCows, roundBandits: p.roundBandits,
         busted: p.busted, stoppedDrawing: p.stoppedDrawing,
         hasBuyBurnFirst: p.hasBuyBurnFirst || false,
@@ -2739,6 +2756,11 @@ async function reconstructG(state, cfg) {
     const p = createPlayer(def.name, def.isHuman, slotIdx, def.personality || sp?.personality);
     if (sp) {
       p.herd           = sp.herd           || 0;
+      // Herd graph. `|| []` and never `!== undefined`: round 1 has an empty array and
+      // Firebase silently drops empty arrays on write (bug #11). Losing these doesn't
+      // break the game, it just empties the end-of-game chart — a silent failure.
+      p.herdHistory    = sp.herdHistory    || [];
+      p.bustRounds     = sp.bustRounds     || [];
       p.roundDollars   = sp.roundDollars   || 0;
       p.roundCows      = sp.roundCows      || 0;
       p.roundBandits   = sp.roundBandits   || 0;
@@ -5185,6 +5207,15 @@ async function scoreRound() {
         triggerHerdBump(prefix);
       }
     }
+    // Herd-graph capture — OUTSIDE the scoring guard on purpose: a busted or zero-cow
+    // player still needs a point this round, or their series goes ragged and the x-axis
+    // stops meaning "round". Indexed assignment (not push) keeps index↔round exact and
+    // makes this idempotent if endBuyPhase ever double-fires (force-continue edge).
+    player.herdHistory[G.roundNumber - 1] = player.herd;
+    // player.busted is still set here — resetPlayerRound doesn't clear it until startRound.
+    if (player.busted && !player.bustRounds.includes(G.roundNumber)) {
+      player.bustRounds.push(G.roundNumber);
+    }
   });
 
   // Move all remaining drawn cards to each player's own discard
@@ -5306,6 +5337,13 @@ async function startShowdown() {
     player.herd   = player.herd + totalCows;
     const gained  = player.herd - oldHerd;
 
+    // Herd-graph final point, appended INSIDE this loop on purpose: the loop pushes a
+    // spectatorState per player, so appending after it would leave every intermediate
+    // snapshot carrying final herds but no final graph point — a rejoiner landing there
+    // would reconstruct an inconsistent chart. Index G.roundNumber sits one past the last
+    // round, which is what herd-chart.js reads as the Showdown column.
+    player.herdHistory[G.roundNumber] = player.herd;
+
     G.showdownTallies.push({ name: player.name, totalCows, gained, finalHerd: player.herd });
 
     // Build tally display
@@ -5411,6 +5449,21 @@ function showShowdownResult() {
   G.players.forEach((p, i) => {
     if (topPlayers.includes(p) && sections[i]) sections[i].classList.add('showdown-winner');
   });
+
+  // Herd graph — one mount point covers BOTH the live showdown and a rejoin into an
+  // already-finished game, because gameOver() funnels through here too. Guarded: if
+  // herd-chart.js failed to load, or this game predates herdHistory, the container
+  // just stays empty rather than showing a blank frame.
+  const chartEl = document.getElementById('showdown-chart');
+  if (chartEl && window.CFC_HerdChart) {
+    window.CFC_HerdChart.render(chartEl, {
+      players: G.players,
+      round: G.roundNumber,
+      phase: G.phase,
+      youIndex: 0,
+      animate: true, // mounts once here; spectate re-renders per snapshot so it doesn't
+    });
+  }
 
   document.getElementById('showdown-footer').classList.remove('hidden');
 
