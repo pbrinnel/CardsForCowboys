@@ -31,11 +31,17 @@
         "actsCompleted": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3"
         },
-        // Single-Store rework: the whole game is one Store, so rounds run 1..N with no
-        // per-act reset (2P is the longest at 30 cards / 2 per round = 15). Cap raised to
-        // 20 for headroom — the old 15 sat exactly on the 2P maximum.
+        // Rounds run 1..N for the whole game (no per-act reset since the single-Store
+        // rework). There is NO tight upper bound: a round only removes cards for players
+        // who did NOT bust, so a table that busts a lot stretches the game arbitrarily —
+        // if everyone busts, zero cards leave the Store that round. Real 2P human games
+        // have hit 22 and 23 rounds.
+        // Do NOT re-tighten this to a "cards / players" estimate. Two MP games were
+        // silently lost to a cap of 20 derived exactly that way; the client's write is
+        // fire-and-forget, so a rejection is invisible to the player. 200 is generous
+        // headroom that still rejects garbage.
         "totalRounds": {
-          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 20"
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 200"
         },
         // Game-content version of the build that produced this entry (see GAME_V in
         // play.js). Optional: entries written before July 2026 have no gameV. The

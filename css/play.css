@@ -290,12 +290,17 @@ body {
 }
 
 
-.back-link {
-  display: block;
-  margin-top: 1rem;
-  color: rgba(30,22,16,0.5);
-  font-size: 0.9rem;
+/* Showdown exit row. The overlay hides the page header, so these are the only
+   navigation controls on a finished game — they all get equal button weight and wrap
+   rather than shrink, so nothing gets pushed off a narrow screen. */
+.showdown-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  align-items: center;
 }
+.showdown-actions .btn { margin: 0; }
 
 
 .close-btn {

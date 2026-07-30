@@ -257,12 +257,18 @@
       <div id="showdown-players"></div>
       <div id="showdown-footer" class="hidden">
         <h2 id="showdown-winner-title" class="showdown-winner-title"></h2>
-        <button class="btn btn-large" onclick="restartGame()">Play Again</button>
-        <a href="gamesetup.html" class="btn btn-large">Game Setup</a>
-        <a id="gameover-review-link" class="btn btn-large hidden" target="_blank">Review Game</a>
+        <!-- The showdown overlay covers the header, so this row is the ONLY way out of a
+             finished game. "Back to Home" must stay a real button here, not a faint text
+             link — as fine print below the Kickstarter line it read as decoration and
+             players couldn't find the exit. -->
+        <div class="showdown-actions">
+          <button class="btn btn-large" onclick="restartGame()">Play Again</button>
+          <a href="gamesetup.html" class="btn btn-large">Game Setup</a>
+          <a href="index.html" class="btn btn-large">Back to Home</a>
+          <a id="gameover-review-link" class="btn btn-large hidden" target="_blank">Review Game</a>
+        </div>
         <p class="showdown-kickstarter">Like it? The physical game hits Kickstarter in 2027 &mdash;
           <a href="index.html#signup">get the launch date</a>.</p>
-        <a href="index.html" class="back-link">Back to Home</a>
       </div>
     </div>
   </div>
