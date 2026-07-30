@@ -12,8 +12,13 @@
 //      powered?). evolve.js can't answer this; it only tunes AI params.
 //
 // Unlike evolve.js (which SEARCHES for better params), simulate.js VALIDATES the current bots
-// and the card set. Deterministic: same seed → same game, so runs are reproducible.
-// 2–4 players only (the engine doesn't model 5–8P flat-row pyramids).
+// and the card set. Deterministic: same seed → same game, so runs are reproducible. 2–8 players.
+//
+// CARD BALANCE IS MEASURED AT 4P (product decision, July 2026). 4P is also the cleanest count to
+// measure: it deals ALL 18 live cards of every act in EVERY game, so availability is universal,
+// non-purchase is a genuine choice, and every card gets the maximum number of observations.
+// Other counts are a later check — at 2P only 10 of 18 per act appear, so buy rates there mix
+// desirability with which cards happened to be dealt.
 //
 // Usage:
 //   node sim/simulate.js                         # default: 2P win matrix + card table, 3000 games/pair
@@ -49,18 +54,58 @@ function parseArgs() {
   return o;
 }
 
-// Accumulate per store-card ownership/win stats from one game's collections.
-function tallyCards(stat, collections, winnerIdx) {
-  collections.forEach((ids, pIdx) => {
-    const owned = new Set(ids.filter(id => id.startsWith('card_')));
-    for (const id of ids) if (id.startsWith('card_')) {
-      stat.copies[id] = (stat.copies[id] || 0) + 1;            // total copies bought
+// Accumulate per store-card stats from one game.
+//
+// Two independent signals, deliberately kept separate:
+//   REVEALED PREFERENCE — was the card bought or burned? Every card dealt into the Store is
+//     eventually removed (that is the end condition), so buys + burns = times dealt, exactly.
+//     Burn share is therefore an unconfounded "the AI did not want this at this price" measure.
+//     It is the strongest signal at 4P, where all 18 act cards are dealt EVERY game, so
+//     availability is universal and non-purchase is a choice rather than an accident.
+//   OUTCOME VALUE — win% among (player,game) slots that owned >= 1 copy. Confounded (strong bots
+//     buy cows; expensive cards are only affordable to a player already having a good round), so
+//     it is read against a cost/act/round trend rather than raw — see sim/card-flags.js.
+//
+// Ownership is keyed on WHO BOUGHT the card, not who held it at the end.
+// This matters and is not a stylistic choice: activating an Explosive (`burn_to_use`) SPLICES it
+// out of hand and never pushes it to discard, so a used Explosive is absent from the final
+// collection. Collection-based ownership therefore silently conditioned those six cards'
+// win% on "bought it and never used it" — the opposite of how they are meant to be played.
+// Buy-event ownership is immune to that, and is the cleaner question anyway: given a player
+// bought this card, did they win?
+//
+// Ties are credited fractionally (1/winners.length), never handed to the lowest seat index.
+function tallyCards(stat, collections, winners, events) {
+  const share = 1 / winners.length;
+  const winnerSet = new Set(winners);
+
+  const buyersByCard = {};
+  for (const ev of (events || [])) {
+    const id = ev.id;
+    if (ev.action === 'buy') {
+      (buyersByCard[id] = buyersByCard[id] || new Set()).add(ev.seat);
+      stat.buys[id] = (stat.buys[id] || 0) + 1;
+      stat.rowSum[id]   = (stat.rowSum[id]   || 0) + ev.row;
+      stat.roundSum[id] = (stat.roundSum[id] || 0) + ev.round;
+    } else {
+      stat.burns[id] = (stat.burns[id] || 0) + 1;
     }
-    for (const id of owned) {
-      stat.owners[id] = (stat.owners[id] || 0) + 1;            // (player,game) slots owning >=1
-      if (pIdx === winnerIdx) stat.wins[id] = (stat.wins[id] || 0) + 1;
+  }
+  for (const id in buyersByCard) {
+    for (const seat of buyersByCard[id]) {
+      stat.owners[id] = (stat.owners[id] || 0) + 1;   // (buyer, game) slots
+      if (winnerSet.has(seat)) stat.wins[id] = (stat.wins[id] || 0) + share;
     }
+  }
+
+  // Copies still counted from final collections, for reference only.
+  collections.forEach(ids => {
+    for (const id of ids) if (id.startsWith('card_')) stat.copies[id] = (stat.copies[id] || 0) + 1;
   });
+}
+
+function newCardStat() {
+  return { copies: {}, owners: {}, wins: {}, buys: {}, burns: {}, rowSum: {}, roundSum: {} };
 }
 
 // Run `games` seeds of one lineup; return win counts + bust/herd + card stats.
@@ -71,12 +116,19 @@ function runSeries(lineup, players, games, cardStat) {
   const drawRounds = new Array(lineup.length).fill(0);
   const herdSum = new Array(lineup.length).fill(0);
   for (let s = 0; s < games; s++) {
+    let events = null;
+    if (cardStat) {
+      events = [];
+      engine.setBuyObserver(ev => events.push({ action: ev.action, row: ev.row, round: ev.round, id: ev.card.id, seat: ev.seat }));
+    }
     const r = engine.runGame(genomes, players, s + 1, { detail: !!cardStat });
-    wins[r.winner]++;
+    if (cardStat) engine.setBuyObserver(null);
+    const share = 1 / r.winners.length;
+    for (const w of r.winners) wins[w] += share;
     for (let i = 0; i < lineup.length; i++) {
       busts[i] += r.busts[i]; drawRounds[i] += r.drawRounds[i]; herdSum[i] += r.herds[i];
     }
-    if (cardStat) tallyCards(cardStat, r.collections, r.winner);
+    if (cardStat) tallyCards(cardStat, r.collections, r.winners, events);
   }
   return { wins, busts, drawRounds, herdSum, games };
 }
@@ -121,10 +173,16 @@ function field4P(games, cardStat) {
       const opps = [0, 1, 2].map(k => NAMES[(s * 3 + k + 1) % NAMES.length]);
       const seat = s % 4;
       const lineup = opps.slice(); lineup.splice(seat, 0, focal);
+      let events = null;
+      if (cardStat) {
+        events = [];
+        engine.setBuyObserver(ev => events.push({ action: ev.action, row: ev.row, round: ev.round, id: ev.card.id, seat: ev.seat }));
+      }
       const r = engine.runGame(lineup.map(n => byName[n]), 4, s + 1, { detail: !!cardStat });
-      if (r.winner === seat) wins++;
+      if (cardStat) engine.setBuyObserver(null);
+      if (r.winners.includes(seat)) wins += 1 / r.winners.length;
       busts += r.busts[seat]; draws += r.drawRounds[seat];
-      if (cardStat) tallyCards(cardStat, r.collections, r.winner);
+      if (cardStat) tallyCards(cardStat, r.collections, r.winners, events);
     }
     rows.push({ focal, wr: wins / games, bust: busts / draws });
   }
@@ -143,38 +201,64 @@ function matchup(lineup, players, games, cardStat) {
 }
 
 // --- card-balance table ---
-function cardTable(stat, csv) {
-  const rows = Object.keys(stat.owners).map(id => {
+function cardTable(stat, csv, players) {
+  const baseline = 1 / players;
+  const ids = new Set([...Object.keys(stat.buys), ...Object.keys(stat.burns)]);
+  const rows = [...ids].map(id => {
     const c = STORE_BY_ID[id] || {};
+    const buys = stat.buys[id] || 0, burns = stat.burns[id] || 0;
+    const dealt = buys + burns;   // every dealt card is removed — the Store always empties
+    const owners = stat.owners[id] || 0;
     return {
       id, act: c.act ?? '?', cost: c.cost ?? '?',
       cows: c.cows ?? 0, dollars: c.dollars ?? 0, bandits: c.bandits ?? 0,
       special: c.special || '',
+      dealt, buys, burns,
+      buyRate: dealt ? buys / dealt : 0,
+      meanRow:   buys ? stat.rowSum[id] / buys : NaN,
+      meanRound: buys ? stat.roundSum[id] / buys : NaN,
       copies: stat.copies[id] || 0,
-      owners: stat.owners[id],
-      winRate: (stat.wins[id] || 0) / stat.owners[id],
+      owners,
+      winRate: owners ? (stat.wins[id] || 0) / owners : NaN,
     };
-  }).sort((a, b) => b.winRate - a.winRate);
+  }).sort((a, b) => b.buyRate - a.buyRate);
 
-  console.log(`\n=== Card balance — win% when owned (sorted; ${rows.length} store cards seen) ===`);
+  console.log(`\n=== Card balance — ${players}P, ${rows.length} live store cards ===`);
+  console.log(`Sorted by BUY RATE (revealed preference). Win% baseline = ${pct(baseline)}.`);
   console.log('card'.padEnd(9) + 'act'.padStart(4) + 'cost'.padStart(5) +
-    'cow'.padStart(4) + '$'.padStart(3) + 'bndt'.padStart(5) + 'copies'.padStart(8) + ' win%   special');
+    'cow'.padStart(4) + '$'.padStart(3) + 'bnd'.padStart(4) +
+    'dealt'.padStart(7) + 'buy%'.padStart(7) + 'row'.padStart(6) + 'rnd'.padStart(6) +
+    'win%'.padStart(7) + '  special');
   for (const r of rows) {
     console.log(
       r.id.padEnd(9) + String(r.act).padStart(4) + String(r.cost).padStart(5) +
-      String(r.cows).padStart(4) + String(r.dollars).padStart(3) + String(r.bandits).padStart(5) +
-      String(r.copies).padStart(8) + pct(r.winRate).padStart(6) + '   ' + r.special);
+      String(r.cows).padStart(4) + String(r.dollars).padStart(3) + String(r.bandits).padStart(4) +
+      String(r.dealt).padStart(7) + pct(r.buyRate).padStart(7) +
+      (isNaN(r.meanRow) ? '    —' : r.meanRow.toFixed(1)).padStart(6) +
+      (isNaN(r.meanRound) ? '    —' : r.meanRound.toFixed(1)).padStart(6) +
+      (isNaN(r.winRate) ? '    —' : pct(r.winRate)).padStart(7) + '  ' + r.special);
   }
-  console.log('\nReads: win% = of all (player,game) slots that owned ≥1 copy, the share that won.');
-  console.log('High win% + high copies = strong & popular. High win% + low copies = sleeper.');
-  console.log('~baseline = 1/numPlayers; far below it on a popular card is a balance flag.');
+  console.log('\nReads:');
+  console.log('  buy%  = of the times this card was DEALT, the share BOUGHT rather than burned.');
+  console.log('          Unconfounded desirability-at-its-price: every dealt card is removed, so');
+  console.log('          buys + burns = dealt exactly. Low buy% = the AI does not want it.');
+  console.log('  row   = mean Store row it was bought from (higher = nearer the front//earlier).');
+  console.log('  rnd   = mean round it was bought. Late rounds mean fewer draws to use it.');
+  console.log('  win%  = of the players who BOUGHT it, the share that won (ties split');
+  console.log('          fractionally). Buyer-keyed, not collection-keyed, so a USED Explosive');
+  console.log('          still counts — it is spliced out of the collection when activated.');
+  console.log('          CONFOUNDED by cost and by who can afford it — read residuals, not raw:');
+  console.log('          pipe the CSV through sim/card-flags.js.');
 
   if (csv) {
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const file = path.join(__dirname, 'results', `cardbalance_${ts}.csv`);
-    const lines = ['id,act,cost,cows,dollars,bandits,special,copies,owners,winRate'];
+    const file = path.join(__dirname, 'results', `cardbalance_${players}P_${ts}.csv`);
+    const lines = ['id,act,cost,cows,dollars,bandits,special,dealt,buys,burns,buyRate,meanRow,meanRound,copies,owners,winRate'];
     for (const r of rows) lines.push(
-      [r.id, r.act, r.cost, r.cows, r.dollars, r.bandits, r.special, r.copies, r.owners, r.winRate.toFixed(4)].join(','));
+      [r.id, r.act, r.cost, r.cows, r.dollars, r.bandits, r.special, r.dealt, r.buys, r.burns,
+       r.buyRate.toFixed(4), isNaN(r.meanRow) ? '' : r.meanRow.toFixed(3),
+       isNaN(r.meanRound) ? '' : r.meanRound.toFixed(3),
+       r.copies, r.owners, isNaN(r.winRate) ? '' : r.winRate.toFixed(4)].join(','));
     fs.writeFileSync(file, lines.join('\n'));
     console.log(`\nCSV: ${file}`);
   }
@@ -184,9 +268,9 @@ function cardTable(stat, csv) {
 function main() {
   const o = parseArgs();
   if (o.list) { console.log('Personalities:', NAMES.join(', ')); return; }
-  if (o.players < 2 || o.players > 4) { console.error('players must be 2–4'); process.exit(1); }
+  if (o.players < 2 || o.players > 8) { console.error('players must be 2–8'); process.exit(1); }
 
-  const cardStat = { copies: {}, owners: {}, wins: {} };
+  const cardStat = newCardStat();
   console.log('Cards For Cowboys — personality simulation (engine: personality-engine.js, real shipped bots)');
 
   if (o.matchup) {
@@ -201,7 +285,7 @@ function main() {
         runSeries([NAMES[i], NAMES[j]], o.players, o.games, cardStat);
   }
 
-  cardTable(cardStat, o.csv);
+  cardTable(cardStat, o.csv, o.players);
 }
 
 main();

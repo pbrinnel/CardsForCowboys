@@ -3,11 +3,20 @@
 // one-game runner, shared by all sim tools (evolve.js, simulate.js, draw-cap-experiment.js).
 //
 // A 'genome' is a personality parameter object (see sim/personalities.js). The engine is
-// pure and seed-deterministic: runGame(genomes, numPlayers, seed) replays a full 3-act game
-// and returns { herds, winner, busts, drawRounds }. This is the SAME decision logic the live
-// game runs (play.js aiShouldDraw / scoreCardForAI / aiBuyTurn) — keep them in sync.
+// pure and seed-deterministic: runGame(genomes, numPlayers, seed) replays a full game and
+// returns { herds, winner, winners, tie, busts, drawRounds }. This is the SAME decision logic
+// the live game runs (play.js aiShouldDraw / scoreCardForAI / aiBuyTurn) — keep them in sync.
 //
-// 2–4 players only (buildPyramidSeeded uses the triangle formula; 5–8P flat rows not modeled).
+// SINGLE-STORE MODEL (July 2026 rework — see sim/CARD_REBALANCE_PLAN.md):
+//   • ONE Store built once at game start, three act tiers, eaten front-to-back.
+//   • Rounds run monotonically 1..N and the game ends when the Store EMPTIES — game length is
+//     emergent, not a fixed 3 acts × 5 rounds.
+//   • There is NO between-act deck merge/reshuffle: bought cards just cycle through discard,
+//     and bought bandits stay in the deck for the rest of the game.
+//   • `state.stage` (1|2|3) is the AI's "which act am I in" lens, derived from the frontmost
+//     live tier via core.storeStage(). It replaces the retired per-act `act` counter.
+//
+// 2–8 players supported (the geometry is uniform and count-parameterised).
 'use strict';
 
 const core = require('./game-core');
@@ -46,6 +55,29 @@ function calcBustProb(player, currentBandits, genome) {
   return (exactProb * genome.deckMemory + FLAT_PRIOR * (1 - genome.deckMemory)) * genome.lethalBias;
 }
 
+// Flat per-special scoring bonuses, shared by every personality (character comes from the
+// weights above, not from these). Exposed as a named object so a single-knob experiment can
+// sweep one without editing the function — see genome-sweep.js's sibling usage in
+// TUNING.md Workflow C. MUST match play.js scoreCardForAI's literals.
+const SPECIAL_BONUS = {
+  // burn_to_use = 2 is UNCHANGED, and that is a measured decision, not an oversight.
+  // The theory said it should be lower or negative: an Explosive is ONE-SHOT (it pays its $ once
+  // and is gone) yet was scored with the same `dollars * dollarWeight` as a permanent card AND
+  // handed a bonus on top, and R5 measured Explosives at -1.7 herd against their alternatives
+  // while the AI bought them 90% of the time.
+  // But sweeping this value over {2, 1, 0, -1, -2, -3} across all five Hard bots moved mean 4P
+  // win% by under 1pp — noise. Two reasons the theory does not cash out: (a) at cost 3 an
+  // Explosive is frequently the ONLY affordable card, and scoring cannot change a forced choice;
+  // (b) once banditPenalty was corrected the AI's whole buy distribution shifted, and much of the
+  // apparent Explosive over-buying went with it. Do not "fix" this without new evidence.
+  burn_to_use: 2,
+  draw4: 2,
+  replay_discard: 2,     // deprecated card — kept so a revival scores sanely
+  look3_rearrange: 1.5,  // deprecated
+  burn_buy_first: 1,     // deprecated
+  dollar1_other: -0.5,   // deprecated
+};
+
 function scoreCard(card, genome, act, allPlayers, thisPlayer) {
   let score = 0;
   score += (card.cows    || 0) * genome.cowWeight;
@@ -53,7 +85,7 @@ function scoreCard(card, genome, act, allPlayers, thisPlayer) {
   score -= (card.bandits || 0) * genome.banditPenalty;
   if (act === 1) score += (card.dollars || 0) * genome.act1DollarBonus;
   if (act === 3) score += (card.cows    || 0) * genome.act3CowBonus;
-  if (card.special === 'burn_to_use')         score += 2;
+  if (card.special === 'burn_to_use')         score += SPECIAL_BONUS.burn_to_use;
   if (card.special === 'draw4')                score += 2;
   if (card.special === 'replay_discard')       score += 2;
   if (card.special === 'look3_rearrange')      score += 1.5;
@@ -218,17 +250,24 @@ function drawFromDeckSeeded(player, rng) {
   return player.deck.shift();
 }
 
-function buildPyramidSeeded(act, numPlayers, rng) {
-  const pool = seededShuffle(core.getActPool(act, numPlayers), rng);
-  const numRows = core.getNumRows(numPlayers);
-  const needed = (numRows * (numRows + 1)) / 2;
-  const selected = pool.slice(0, Math.min(needed, pool.length));
+// Seeded mirror of core.buildPyramid: the WHOLE Store in one pass, act tiers shuffled
+// independently and laid Act 3 (row 0, back) → Act 2 → Act 1 (front, face-up).
+function buildPyramidSeeded(numPlayers, rng) {
+  const numRows = core.storeRows(numPlayers);
+  const width   = core.pyramidWidth(numPlayers);
+  const perTier = core.rowsPerTier(numPlayers) * width;
+
+  const selected = [];
+  for (const act of [3, 2, 1]) {
+    const pool = seededShuffle(core.getActPool(act, numPlayers), rng);
+    selected.push(...pool.slice(0, Math.min(perTier, pool.length)));
+  }
 
   const pyramid = [];
   let idx = 0;
   for (let row = 0; row < numRows; row++) {
     const rowArr = [];
-    for (let col = 0; col <= row; col++) {
+    for (let col = 0; col < width; col++) {
       if (idx < selected.length) {
         const card = core.createCardInstance(selected[idx]);
         const faceUp = (row === numRows - 1);
@@ -477,6 +516,7 @@ function processBuyer(player, policy, pyramid, act, players, ctx) {
   // unchanged.
   if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(pyramid)) {
     player.extraBuyUsed = true;
+    obsCtx.extra = true;
     const extraGenome = (policy && policy.__search) ? policy.defaultGenome : policy;
     const extraDecision = chooseBuy(player, extraGenome, pyramid, act, players);
     applyBuyDecision(player, extraDecision, pyramid);
@@ -493,14 +533,56 @@ function runBuyPhase(players, genomes, pyramid, act) {
   }
 }
 
+// ── OPTIONAL BUY/BURN INSTRUMENTATION ────────────────────────────────────────
+// Off by default, and a single null check when unset — the GA hot path is unaffected.
+//
+// Why it exists: by the time a game ends, WHICH Store cell a card came from and WHEN is gone —
+// the pyramid has been consumed and only each player's collection survives. Card-balance work
+// needs exactly that lost context, because under the single Store a card's ROW decides when it
+// becomes reachable, which confounds "strong card" with "conveniently placed card".
+//
+// Observation only: the callback must not mutate anything, or it breaks determinism.
+let buyObserver = null;
+function setBuyObserver(fn) { buyObserver = fn || null; }
+
+// Per-buyer context, set by continueGame right before it hands off to processBuyer. Kept beside
+// the observer rather than threaded through four signatures that no other caller needs.
+const obsCtx = { round: 0, stage: 0, seat: -1, extra: false };
+function setBuyContext(round, stage, seat) {
+  obsCtx.round = round; obsCtx.stage = stage; obsCtx.seat = seat; obsCtx.extra = false;
+}
+
+// Decision context for the observer, computed only when one is attached. Emitted BEFORE the
+// pyramid is mutated, so `cheapest` is the cheapest cost that was actually on offer to this
+// buyer, and `dollars` is their purchasing power (a buy does not deduct cost — round dollars
+// are a spending LIMIT, not a balance). Together these say whether a burn was a choice or a
+// shortfall, which is the difference between a card-pricing problem and an AI-risk problem.
+function emitBuyEvent(action, player, decision, pyramid, card) {
+  if (!buyObserver) return;
+  let cheapest = Infinity;
+  for (const a of core.getAvailablePyramidCards(pyramid)) {
+    const c = a.slot.card.cost || 0;
+    if (c < cheapest) cheapest = c;
+  }
+  buyObserver({
+    action, row: decision.row, col: decision.col, card,
+    dollars: player.roundDollars, cheapest: isFinite(cheapest) ? cheapest : 0,
+    hand: player.hand.length, busted: player.busted,
+    round: obsCtx.round, stage: obsCtx.stage, seat: obsCtx.seat, extra: obsCtx.extra,
+  });
+}
+
 function applyBuyDecision(player, decision, pyramid) {
   if (decision.action === 'buy') {
     const slot = pyramid[decision.row][decision.col];
+    emitBuyEvent('buy', player, decision, pyramid, slot.card);
     player.discard.push(slot.card);
     slot.removed = true;
     core.revealUncovered(pyramid);
   } else if (decision.action === 'burn') {
-    pyramid[decision.row][decision.col].removed = true;
+    const slot = pyramid[decision.row][decision.col];
+    emitBuyEvent('burn', player, decision, pyramid, slot.card);
+    slot.removed = true;
     core.revealUncovered(pyramid);
   }
 }
@@ -517,14 +599,24 @@ function scoreRound(players) {
   }
 }
 
-// Showdown: count all cards in each player's collection + the floor(dollars/2) bonus cows.
+// Showdown: add up the printed COWS on every card in each player's collection. Mirrors
+// play.js startShowdown exactly.
+//
+// ⚠️ DOLLARS DO NOT SCORE AT THE SHOWDOWN. There is no $-to-cows conversion anywhere in the
+// live game — dollars are purely purchasing power during play, and any left over are worth
+// nothing. This function used to add `floor(totalDollars / 2)` bonus cows, a rule the live game
+// has never had; it silently inflated every dollar-bearing card's measured value. Guarded now
+// by sim/test-scoring-parity.js. Dollars DO still break a tied final herd — that is
+// resolveShowdownWinners, a tiebreak, not scoring.
+//
+// The per-card Math.max(0, ...) clamp mirrors play.js's deliberate dead guard: no live card has
+// negative Cows, but the clamp stops a reintroduced negative-Cow card from silently subtracting.
+// Note it clamps PER CARD, not on the total — that is what play.js does.
 function applyShowdown(players) {
   for (const player of players) {
     const allCards = [...player.deck, ...player.discard, ...player.hand];
-    const totalCows    = allCards.reduce((s, c) => s + (c.cows    || 0), 0);
-    const totalDollars = allCards.reduce((s, c) => s + (c.dollars || 0), 0);
-    const bonusCows    = Math.floor(totalDollars / 2);
-    player.herd = Math.max(0, player.herd + totalCows + bonusCows);
+    const totalCows = allCards.reduce((s, c) => s + Math.max(0, c.cows || 0), 0);
+    player.herd = player.herd + totalCows;
   }
 }
 
@@ -535,9 +627,10 @@ function applyShowdown(players) {
 // wrapper: createInitialState → continueGame(…, 'endOfGame') → gameResult.
 //
 // State shape:
-//   { numPlayers, genomes, players[], act, round, phase, pyramid, buyOrder, buyCursor,
+//   { numPlayers, genomes, players[], stage, round, phase, pyramid, buyOrder, buyCursor,
 //     busts[], drawRounds[], seed, rng }
-// phase ∈ 'nextAct' | 'draw' | 'buy' | 'score' | 'showdown' | 'done'.
+// phase ∈ 'setup' | 'draw' | 'buy' | 'score' | 'showdown' | 'done'.
+// 'setup' runs ONCE (the Store is built once); it is not a per-act phase.
 //
 // The RNG lives IN the state (not a separate param) so cloneState captures it atomically.
 // Rollouts MUST replace the clone's rng with their own deterministically-seeded LCG (RNG
@@ -552,9 +645,9 @@ function createInitialState(genomes, numPlayers, seed) {
     numPlayers,
     genomes,                                       // default policies, one per seat
     players,
-    act: 0,
+    stage: 1,                                      // 1|2|3 — frontmost live act tier
     round: 0,
-    phase: 'nextAct',
+    phase: 'setup',
     pyramid: null,
     buyOrder: null,
     buyCursor: 0,
@@ -567,32 +660,42 @@ function createInitialState(genomes, numPlayers, seed) {
 
 // Advance `state` in place from its current phase to `horizon`.
 //   horizon 'endOfRound' — stop after the current round's scoring completes.
-//   horizon 'endOfAct'   — stop after the current act's 5th round completes.
-//   horizon 'endOfGame'  — run all 3 acts + showdown (state.phase ends 'done').
+//   horizon 'endOfStage' — stop after the round in which the Store's frontmost act tier
+//                          advances (or the Store empties). Replaces the retired 'endOfAct',
+//                          which is kept as an alias: with one Store there is no act boundary,
+//                          but a stage change is the same "the board moved on" granularity.
+//   horizon 'beforeBuy'  — stop with phase 'buy' and buyCursor 0, i.e. the draw phase is
+//                          resolved and the buy order is known but nobody has bought yet. This
+//                          is the pause point an analysis tool needs in order to substitute its
+//                          own decision for a buyer's (card-counterfactual.js). Provided as a
+//                          horizon rather than left to callers, because hand-replicating the
+//                          setup/draw phases desynchronises the RNG stream — a trap that has
+//                          already cost one debugging pass (see test-resume-reproduction.js's
+//                          freshToFirstBuy warning).
+//   horizon 'endOfGame'  — run to the showdown (state.phase ends 'done').
 // `policies` (one per seat) drive draw/buy decisions; defaults to the state's own genomes.
 // Returns the (mutated) state.
 function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
   const rng = state.rng;
   while (state.phase !== 'done') {
     switch (state.phase) {
-      case 'nextAct': {
-        if (state.act === 3) { state.phase = 'showdown'; break; }
-        state.act++;
-        // Between acts: merge and reshuffle all cards (seeded). Runs for act 1 too —
-        // it reshuffles the starter deck once more (matches the original act loop).
-        for (const player of state.players) {
-          const allCards = [...player.deck, ...player.discard, ...player.hand];
-          player.deck = seededShuffle(allCards, rng);
-          player.discard = [];
-          player.hand = [];
-        }
-        state.pyramid = buildPyramidSeeded(state.act, state.numPlayers, rng);
+      case 'setup': {
+        // Runs ONCE. No deck merge/reshuffle here: createPlayerSeeded already seeded-shuffled
+        // each starter deck, and the live game has no between-act reshuffle to mirror.
+        state.pyramid = buildPyramidSeeded(state.numPlayers, rng);
+        state.stage = core.storeStage(state.pyramid);
         state.round = 1;
         state.phase = 'draw';
         break;
       }
       case 'draw': {
-        runDrawPhase(state.players, policies, state.pyramid, state.act, rng);
+        // Nothing leaves the Store during a draw phase, so the stage is constant across it.
+        // `roundStartStage` is latched here because the buy phase overwrites state.stage per
+        // buyer — the 'endOfStage' horizon must compare against the stage the ROUND began on,
+        // not the one the last buyer saw.
+        state.stage = core.storeStage(state.pyramid);
+        state.roundStartStage = state.stage;
+        runDrawPhase(state.players, policies, state.pyramid, state.stage, rng);
         // Diagnostics: tally before the buy phase. A player with cards in hand drew this round.
         for (let i = 0; i < state.players.length; i++) {
           if (state.players[i].hand.length > 0) state.drawRounds[i]++;
@@ -601,6 +704,7 @@ function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
         state.buyOrder = computeBuyOrder(state.players);
         state.buyCursor = 0;
         state.phase = 'buy';
+        if (horizon === 'beforeBuy') return state;
         break;
       }
       case 'buy': {
@@ -609,22 +713,29 @@ function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
           if (core.isPyramidEmpty(state.pyramid)) break;
           const pIdx = state.buyOrder[state.buyCursor];
           const policy = policies[pIdx];
+          // Recomputed per buyer: buys/burns remove cards, so the frontmost tier can advance
+          // mid-phase. play.js calls storeStage() fresh inside scoreCardForAI for the same reason.
+          state.stage = core.storeStage(state.pyramid);
+          setBuyContext(state.round, state.stage, pIdx);   // no-op unless an observer is set
           // Only a __search seat needs the live state (to clone for rollouts); plain genomes
           // get ctx=null and take the byte-identical chooseBuy path.
           const ctx = (policy && policy.__search) ? { state, pIdx, policies } : null;
-          processBuyer(state.players[pIdx], policy, state.pyramid, state.act, state.players, ctx);
+          processBuyer(state.players[pIdx], policy, state.pyramid, state.stage, state.players, ctx);
           state.buyCursor++;
         }
         state.phase = 'score';
         break;
       }
       case 'score': {
+        const stageBefore = state.roundStartStage;
         scoreRound(state.players);
-        const finishedAct = (state.round === 5);
-        if (finishedAct) { state.phase = 'nextAct'; }
+        // The Store is built once and never rebuilt, so emptying it ends the GAME.
+        const emptied = core.isPyramidEmpty(state.pyramid);
+        if (emptied) { state.phase = 'showdown'; }
         else { state.round++; state.phase = 'draw'; }
         if (horizon === 'endOfRound') return state;
-        if (horizon === 'endOfAct' && finishedAct) return state;
+        const stageAdvanced = emptied || core.storeStage(state.pyramid) > stageBefore;
+        if ((horizon === 'endOfStage' || horizon === 'endOfAct') && stageAdvanced) return state;
         break;
       }
       case 'showdown': {
@@ -642,7 +753,7 @@ function continueGame(state, policies = state.genomes, horizon = 'endOfGame') {
 function cloneCard(c) {
   return {
     uid: c.uid, id: c.id, dollars: c.dollars, cows: c.cows, bandits: c.bandits,
-    cacti: c.cacti, cost: c.cost, special: c.special, act: c.act, minPlayers: c.minPlayers,
+    cacti: c.cacti, cost: c.cost, special: c.special, act: c.act,
   };
 }
 
@@ -691,7 +802,8 @@ function cloneState(state) {
     numPlayers: state.numPlayers,
     genomes: state.genomes,
     players: state.players.map(clonePlayer),
-    act: state.act,
+    stage: state.stage,
+    roundStartStage: state.roundStartStage,
     round: state.round,
     phase: state.phase,
     pyramid: state.pyramid ? clonePyramid(state.pyramid) : null,
@@ -706,13 +818,51 @@ function cloneState(state) {
 
 // ── GAME RESULT + RUNNER ─────────────────────────────────────────────────────────
 
+// Every card a player owns at the Showdown — what the live game lays face-up.
+function showdownCollection(player) {
+  return [...player.deck, ...player.discard, ...player.hand];
+}
+
+// Mirror of play.js resolveShowdownWinners. Deliberately mirrors the buy-order ladder so
+// players reuse ONE mental model: primary resource → wealth → volume.
+//   1. most Cows in Herd  2. most $ across the collection  3. most cards
+// STOPS at step 3 — players still level after "most cards" genuinely SHARE the win. Do NOT add
+// a Bandit step: only 4 of the 54 live Store cards carry any, so nearly all Bandits come from
+// the identical starter deck and it would almost always tie.
+// Counts PRINTED $ only; one-shot effects don't apply here.
+function resolveShowdownWinners(players) {
+  let top = players.map((p, i) => ({ p, i }));
+  let reason = 'most Cows';
+
+  const narrow = (scoreFn, label) => {
+    if (top.length <= 1) return;
+    const best = Math.max(...top.map(scoreFn));
+    const next = top.filter(x => scoreFn(x) === best);
+    if (next.length < top.length) reason = label;
+    top = next;
+  };
+
+  narrow(x => x.p.herd, 'most Cows');
+  narrow(x => showdownCollection(x.p).reduce((s, c) => s + (c.dollars || 0), 0), 'most $');
+  narrow(x => showdownCollection(x.p).length, 'most cards');
+
+  return { winners: top.map(x => x.i), reason };
+}
+
 function gameResult(state, opts = {}) {
   const players = state.players;
   const herds = players.map(p => p.herd);
-  const maxHerd = Math.max(...herds);
-  // Winner = highest herd; ties go to lower player index.
-  const winner = herds.indexOf(maxHerd);
-  const result = { herds, winner, busts: state.busts, drawRounds: state.drawRounds };
+  // Full live tiebreak ladder (cows → collection $ → card count). A genuine tie after all
+  // three steps is reported as one: `winners` holds every co-winner and `tie` is true.
+  // `winner` stays the single lowest-index co-winner for harnesses that tally one seat — those
+  // should prefer `winners` (credit 1/winners.length each) so ties aren't handed to seat 0.
+  const { winners, reason } = resolveShowdownWinners(players);
+  const winner = winners[0];
+  const result = {
+    herds, winner, winners, tie: winners.length > 1, winReason: reason,
+    rounds: state.round, stage: state.stage,
+    busts: state.busts, drawRounds: state.drawRounds,
+  };
   // opts.detail: per-player final card-id collections, for card-balance analysis
   // (simulate.js). Off by default so the GA hot path stays lean.
   if (opts.detail) {
@@ -729,10 +879,11 @@ function runGame(genomes, numPlayers, seed, opts = {}) {
 }
 
 module.exports = {
-  makeLCG, seededShuffle, calcBustProb, scoreCard, pyramidRevealBonus, getBestCost,
+  makeLCG, seededShuffle, calcBustProb, scoreCard, SPECIAL_BONUS, pyramidRevealBonus, getBestCost,
   shouldDraw, chooseBuy, drawFromDeckSeeded, buildPyramidSeeded, createPlayerSeeded,
   runDrawPhase, handleBust, computeBuyOrder, processBuyer, runBuyPhase, applyBuyDecision,
-  scoreRound, applyShowdown, runGame,
+  scoreRound, applyShowdown, showdownCollection, resolveShowdownWinners, runGame,
+  setBuyObserver,   // opt-in buy/burn instrumentation (store-sanity.js, card tally)
   // Resumable simulator core (B0) — shared with the search AI + trajectory value oracle.
   createInitialState, continueGame, cloneState, clonePlayer, clonePyramid, gameResult,
 };

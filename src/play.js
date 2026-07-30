@@ -3709,7 +3709,7 @@ const AI_PERSONALITIES = {
     maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      9,     // was 6 — closes the gap to evolved optimum
     dollarWeight:   0.5,
-    banditPenalty:  1.5,   // was 2 — willing to buy risky high-cow cards
+    banditPenalty:  20,   // was 1.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.4,   // somewhat adapts to standings
     denialBurn:     false,
     deckMemory:     0.6,
@@ -3758,7 +3758,7 @@ const AI_PERSONALITIES = {
     maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      6,     // was 2 — critical fix; denial work was wasted on bad buys
     dollarWeight:   1.5,   // was 2 — rebalanced
-    banditPenalty:  2.5,   // was 3 — mild loosening
+    banditPenalty:  14,   // was 2.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.3,
     denialBurn:     true,  // burns the card most valuable to the current leader
     deckMemory:     0.7,
@@ -3791,7 +3791,7 @@ const AI_PERSONALITIES = {
     maxDraw:        10,    // was 7 — disciplined thresholds; sweep shows +3.3pp 2P/+6.8pp 4P at flat bust
     cowWeight:      4.5,   // some cow sense but not sharp
     dollarWeight:   1.5,
-    banditPenalty:  2.5,
+    banditPenalty:  10,   // was 2.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.2,
     denialBurn:     false,
     deckMemory:     0.55,
@@ -3808,7 +3808,7 @@ const AI_PERSONALITIES = {
     maxDraw:        10,    // was 7 — disciplined thresholds; sweep shows +3.8pp 2P/+7.4pp 4P at +1.2pp bust
     cowWeight:      7.0,   // solid cow buying, no special tricks
     dollarWeight:   0.8,
-    banditPenalty:  2.0,
+    banditPenalty:  14,   // was 2.0 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.3,
     denialBurn:     false,
     deckMemory:     0.65,
@@ -3825,7 +3825,7 @@ const AI_PERSONALITIES = {
     maxDraw:        10,    // was 7 — coevolution + sweep: +3.7pp 2P/+5.8pp 4P at +1.5pp bust
     cowWeight:      9.5,   // near-optimal cow buying
     dollarWeight:   1.5,
-    banditPenalty:  1.2,
+    banditPenalty:  20,   // was 1.2 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.5,
     denialBurn:     false, // unlike outlaw — wins through efficiency, not denial
     deckMemory:     0.75,  // good tracking; paired with high lethalBias = precise fear

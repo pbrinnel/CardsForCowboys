@@ -18,7 +18,7 @@
 //   node admin/gen-sim-tierlist.js --all --games 10000 > sim/results/sim-tierlist.json
 //
 // Output JSON: { meta, cards[] } sorted by winnerLift desc. Each card:
-//   { id, act, cacti, cows, dollars, bandits, cost, special, minPlayers,
+//   { id, act, cacti, cows, dollars, bandits, cost, special,
 //     buyCount, winnerBuyCount, winnerRate, winnerLift, avgAiScore, aiScores }
 // winnerLift = winnerRate / baseline; > 1 means winners buy it more than average.
 // ============================================================
@@ -103,7 +103,7 @@ function main() {
     const avgScore = vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : 0;
     return {
       id: card.id, act: card.act, cacti: card.cacti, cows: card.cows, dollars: card.dollars,
-      bandits: card.bandits, cost: card.cost, special: card.special, minPlayers: card.minPlayers,
+      bandits: card.bandits, cost: card.cost, special: card.special,
       buyCount: s.buyCount, winnerBuyCount: s.winnerBuyCount,
       winnerRate: winnerRate !== null ? +winnerRate.toFixed(4) : null,
       winnerLift: lift, avgAiScore: avgScore, aiScores,

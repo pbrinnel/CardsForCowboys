@@ -58,7 +58,21 @@ same commit, and vice versa — a mismatch is a silent rejoin corruption, not a 
 - **`sim/`** models the pre-rework game entirely (old triangle Store, old card pool, acts).
   It is stale, not dead — see the AI note in CLAUDE.md and `sim/AI_DISTILLATION_PLAN.md`
   Phase D0.
-- **Debug scenarios** in `applyDebugScenario` that exercise the dead specials
-  (`copy_next_*`, `swap_card`, `buy_phase_*`, `draw4_jail_2bandits`) still work, because
-  `getCardById` resolves deprecated cards. They are the cheapest way to regression-test a
-  mechanic right before deleting it — use them, then delete them with their mechanic.
+- **Debug scenarios** in `applyDebugScenario` that exercise the dead specials still work,
+  because `getCardById` resolves deprecated cards. They are the cheapest way to
+  regression-test a mechanic right before deleting it — use them, then delete them with
+  their mechanic.
+
+  Since the July 2026 debug-page audit, `debug.html` groups them under **Retired
+  Mechanics** — dimmed, dashed-bordered, `RETIRED`-tagged, and clearly labelled as
+  unreachable in a real game. They are deliberately **left clickable**: making them
+  `disabled` would break the one job they still have (a last regression run before
+  deletion). 20 of the 32 scenarios are retired; the live set is only `burn_to_use` and
+  `draw4`.
+
+  Deleting a mechanic means deleting **its button in `debug.html` and its `SCENARIOS`
+  entry in `play.js` together**. A button pointing at a missing key is caught loudly now
+  (`applyDebugScenario` returns false and the caller aborts) rather than silently starting
+  an unplayable game that still writes gameHistory/traj records — but keeping the two in
+  step is still on you. Note `buy_phase_*` is NOT retired: those cards (77/78/16/22) are
+  live Explosives.

@@ -26,9 +26,9 @@ const core = require('./game-core');
 const { byName } = require('./personalities');
 
 // ── rollout seed: deterministic mix of the decision context ──────────────────
-function rolloutSeed(base, act, round, slot, cand, roll) {
+function rolloutSeed(base, stage, round, slot, cand, roll) {
   let h = ((base >>> 0) || 1);
-  h = Math.imul(h ^ (act   + 0x9e3779b1), 2654435761) >>> 0;
+  h = Math.imul(h ^ (stage + 0x9e3779b1), 2654435761) >>> 0;
   h = Math.imul(h ^ (round + 0x85ebca77), 2654435761) >>> 0;
   h = Math.imul(h ^ (slot  + 0xc2b2ae3d), 2654435761) >>> 0;
   h = Math.imul(h ^ (cand  + 0x27d4eb2f), 2654435761) >>> 0;
@@ -38,18 +38,22 @@ function rolloutSeed(base, act, round, slot, cand, roll) {
 }
 
 // ── value: herd margin at the horizon (§7) ───────────────────────────────────
-// At endOfGame the showdown has folded card cows + floor($/2) into herd → use real herds.
-// At a shorter horizon, estimate each player's final herd = banked herd + owned-card cows +
-// floor(owned $/2) (the showdown formula on current holdings; ignores future rounds — the
+// At endOfGame the showdown has already folded card cows into herd → use real herds.
+// At a shorter horizon, estimate each player's final herd = banked herd + printed cows on every
+// owned card (the showdown formula applied to current holdings; ignores future rounds — the
 // accepted horizon-value bias, §12).
+//
+// DOLLARS ARE DELIBERATELY ABSENT. They do not score at the showdown (see engine applyShowdown);
+// they are purchasing power only. This used to add floor($/2), matching the engine's phantom
+// dollar bonus, and so over-valued any state holding cash. A dollar's real (instrumental) worth
+// is whatever cows it converts into, which rolling out to endOfGame measures directly.
 function estFinalHerds(state) {
   if (state.phase === 'done') return state.players.map(p => p.herd);
   return state.players.map(p => {
-    let cows = 0, dollars = 0;
-    for (const c of p.deck)    { cows += (c.cows || 0); dollars += (c.dollars || 0); }
-    for (const c of p.discard) { cows += (c.cows || 0); dollars += (c.dollars || 0); }
-    for (const c of p.hand)    { cows += (c.cows || 0); dollars += (c.dollars || 0); }
-    return p.herd + cows + Math.floor(dollars / 2);
+    let cows = 0;
+    const add = c => { cows += Math.max(0, c.cows || 0); };   // per-card clamp, as play.js does
+    p.deck.forEach(add); p.discard.forEach(add); p.hand.forEach(add);
+    return p.herd + cows;
   });
 }
 function herdMarginValue(state, focalIdx) {
@@ -75,7 +79,7 @@ function enumerateBuyCandidates(focal, pyramid, avail, state, def, branchCap) {
   const burnRanked = avail
     .map(a => ({
       a,
-      leaderScore: leader ? engine.scoreCard(a.slot.card, def, state.act, state.players, leader) : 0,
+      leaderScore: leader ? engine.scoreCard(a.slot.card, def, state.stage, state.players, leader) : 0,
     }))
     .sort((x, y) => y.leaderScore - x.leaderScore);
   const burnBudget = Math.max(2, branchCap - buys.length);
@@ -94,7 +98,7 @@ function enumerateBuyCandidates(focal, pyramid, avail, state, def, branchCap) {
 // Deterministic tiebreak across equal-EV candidates: defaultGenome card score + reveal bonus,
 // nudging buy over burn. Keeps the search reproducible.
 function candidateTieScore(d, pyramid, def, state) {
-  const s = engine.scoreCard(d.card, def, state.act, state.players, null)
+  const s = engine.scoreCard(d.card, def, state.stage, state.players, null)
           + engine.pyramidRevealBonus(pyramid, d.row, d.col, def);
   return s + (d.action === 'buy' ? 1e-4 : 0);
 }
@@ -125,7 +129,7 @@ function applyFocalTurn(clone, focalIdx, decision, def) {
   engine.applyBuyDecision(player, decision, clone.pyramid);
   if (player.hasExtraBuy && !player.extraBuyUsed && !core.isPyramidEmpty(clone.pyramid)) {
     player.extraBuyUsed = true;
-    const extra = engine.chooseBuy(player, def, clone.pyramid, clone.act, clone.players);
+    const extra = engine.chooseBuy(player, def, clone.pyramid, clone.stage, clone.players);
     engine.applyBuyDecision(player, extra, clone.pyramid);
   }
   clone.buyCursor++;
@@ -173,7 +177,7 @@ function searchChooseBuy(state, focalIdx, policy, livePolicies) {
     let sum = 0;
     for (let r = 0; r < N; r++) {
       const clone = engine.cloneState(state);
-      clone.rng = engine.makeLCG(rolloutSeed(state.seed, state.act, state.round, focalIdx, ci, r));
+      clone.rng = engine.makeLCG(rolloutSeed(state.seed, state.stage, state.round, focalIdx, ci, r));
       if (policy.fairInfo) determinizeHiddenDecks(clone);  // sample hidden draw order (fair + MP-safe)
       applyFocalTurn(clone, focalIdx, d, def);
       engine.continueGame(clone, rolloutPolicies, horizon);
@@ -216,4 +220,8 @@ function makeSearchPolicy(opts = {}) {
 module.exports = {
   makeSearchPolicy, searchChooseBuy, rolloutSeed,
   estFinalHerds, herdMarginValue, enumerateBuyCandidates,
+  // Reused by card-counterfactual.js (R5): the same fair-info determinization and whole-turn
+  // application the search uses, so the counterfactual measures value under exactly the
+  // information model the bake-off validated.
+  determinizeHiddenDecks, applyFocalTurn,
 };

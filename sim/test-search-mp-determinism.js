@@ -35,8 +35,8 @@ function freshToFirstBuy(genomes, numPlayers, seed) {
     const all = [...p.deck, ...p.discard, ...p.hand];
     p.deck = engine.seededShuffle(all, st.rng); p.discard = []; p.hand = [];
   }
-  st.act = 1; st.round = 1;
-  st.pyramid = engine.buildPyramidSeeded(1, numPlayers, st.rng);
+  st.stage = 1; st.round = 1;
+  st.pyramid = engine.buildPyramidSeeded(numPlayers, st.rng);
   engine.runDrawPhase(st.players, genomes, st.pyramid, 1, st.rng);
   st.buyOrder = engine.computeBuyOrder(st.players);
   st.buyCursor = 0; st.phase = 'buy';

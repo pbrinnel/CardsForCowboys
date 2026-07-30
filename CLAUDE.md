@@ -30,6 +30,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
 | `print-proof.html` | **Print layout proof for the physical rules insert.** `noindex`'d working file, not linked from the site. Renders the ruleset into real print panels at real mm/pt so content fit can be tested before committing to a format. Buttons switch panel size (poker 63.5×88.9 / 50mm cross fold / 100mm reference) and body type (6–9pt), and JS flags any panel whose content exceeds the live area — **measuring width as well as height**, since a too-wide Store diagram once passed a height-only check while running off the side. Ships cut/fold/trim guides generated from `--cols`. Current decision: **poker accordion, 8 panels, 7pt, 3mm margins** — the only format on the shortlist that holds the full ruleset. |
 | `proofs/` | Rendered PNGs of the above (~407dpi, headless Chrome). Regenerate rather than hand-edit. |
+| `debug.html` | **Scenario launcher for dev.** `noindex`'d + `Disallow`'d in robots.txt, not linked from the site. Writes `sessionStorage['debug_scenario']`; `startGame` reads it and calls `applyDebugScenario`, which flags `G.isDebug` so the game writes **no** gameHistory / liveSummary / traj records. Three sections, and the split is load-bearing: **Structural** (end-of-game + 8P stress), **Live Mechanics** (only `burn_to_use` and `draw4` survive on undeprecated cards — everything a real game can deal), and **Retired Mechanics** (dimmed, dashed, `RETIRED`-tagged — cards that are `deprecated: true` and unreachable in a real game). Retired buttons are deliberately **still clickable**: per `docs/DEAD_CODE_INVENTORY.md` they are the regression harness you run once right before deleting the mechanic they cover, so `disabled` would defeat their only remaining purpose. Delete each button together with its mechanic. Every button must map to a `SCENARIOS` key — an unknown name now stops cleanly with a message instead of silently starting an unplayable, record-writing game. |
 | `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 
@@ -94,6 +95,12 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | `sim/simulate.js` | VALIDATES current bots: pairwise win matrix + per-card balance table (win% when owned). Replaces the retired RISK_PROFILES sim. |
 | `sim/draw-cap-experiment.js` | Focused single-knob A/B (sweeps `maxDraw` per bot). Copy as a template for one-parameter experiments. |
 | `sim/test-personality-sync.js` | Guard: fails if `personalities.js` drifts from play.js `AI_PERSONALITIES`. Run after any personality edit. |
+| `sim/test-card-sync.js` | Guard: fails if `game-core.js`'s card DB drifts from play.js `STORE_CARDS`/`STARTER_TEMPLATES` (stats + `deprecated` + 18-live-per-act). Run after any card edit on either side. Exists because card_84/85 rotted unnoticed through the July 2026 rework. Never hand-edit the sim card array — regenerate it from play.js. |
+| `sim/CARD_REBALANCE_PLAN.md` | **Post-rework card power re-ranking plan + RESULTS (§0).** R1-R5 done (July 2026). Holds the measured 4P card table, the causal (forced-buy) card values, and the re-measured tier bands. **⚠️ R6 decision: NO CARD CHANGES** — card stats/costs/acts are frozen (every one is printed art; the Act is the cowboy-hat symbol bottom-right). Balance flags are findings only; **AI scoring is the sole remaining balance lever.** Do not re-propose card edits. |
+| `sim/store-sanity.js` | R2 structural gate: rounds/game, buy-vs-burn share, per-row availability timing, bust rates, + hard assertions (row/width/total per count, act tiers exact, no deprecated card dealt, Store always fully consumed). Run after ANY Store-geometry change. |
+| `sim/card-flags.js` | R4 analysis: turns a `cardbalance_*.csv` into a ranked rebalance shortlist. Three views (same-cost cohorts / herd-equivalent pricing / pre-registered residual rule) + buy-vs-win divergence, which separates a mispriced CARD from a misjudging AI. Collapses the 17 duplicate stat-lines. |
+| `sim/card-counterfactual.js` | **R5 causal card value.** Forced-buy counterfactual: at each sampled buy decision it clones the state, forces every affordable candidate (plus a burn baseline), determinizes hidden decks (fair info) and rolls out to game end. Immune to the who-bought-it selection bias that confounds `simulate.js`'s win%. `--continuation search` re-runs it with the focal seat playing the shelved Monte-Carlo search, which is how you tell a mispriced CARD from a misjudging AI. |
+| `sim/genome-sweep.js` | Single-knob genome A/B: `--param <name> --values a,b,c --focal <bot>`. Generalises `draw-cap-experiment.js` to any numeric genome field. This is how the `banditPenalty` optimum was found — use it for a specific hypothesis, not for fishing (that is `evolve.js`). |
 | `sim/AI_PERSONALITIES.md` | Parameter glossary (per-param effects, tiers). |
 | `sim/game-core.js` | Card DB, pyramid, card effects (lower level; synced from play.js). |
 | `sim/tiebreaker.js` | Buy-order tiebreaker (shared by game + sim). |
@@ -246,12 +253,22 @@ the Store DOM drops the highlight class and the buy step lands in exactly that w
 **spectate.html** mirrors the brick offset in its own `renderPyramid` and now lets a too-wide Store
 scroll inside `#spec-pyramid-zone` (`overflow-x:auto`) — it has no `fitPyramid` equivalent.
 
-**⚠️ SIM NOT SYNCED:** `sim/` models the pre-rework game entirely (old triangle Store, old card
-pool, per-act setup). It was already stale before this rework and is now fully invalid. See
-`sim/AI_DISTILLATION_PLAN.md` Phase D0. **Also drifted (July 2026):** the live game now breaks a
-tied final Herd via `resolveShowdownWinners` (most $ → most cards); `sim/personality-engine.js`
-`gameResult` still reports a raw herd tie. Fold this into D0 — until then, sim win-rates count
-tied games differently from the real game.
+**SIM STRUCTURALLY RE-SYNCED (July 2026), NUMBERS NOT YET RE-MEASURED.** Plan + status:
+[`sim/CARD_REBALANCE_PLAN.md`](sim/CARD_REBALANCE_PLAN.md) (supersedes `AI_DISTILLATION_PLAN.md`
+Phase D0, which described only the June brick rework).
+
+Phase **R1 is done**: `sim/game-core.js` + `sim/personality-engine.js` now model the single Store
+(one build, act tiers, brick geometry, monotonic rounds ending on Store-empty, no between-act
+reshuffle), the 54-live/30-deprecated card pool, `storeStage()` in place of `G.currentAct`, and
+`resolveShowdownWinners`' full tiebreak ladder. The engine covers **2-8P** now, not 2-4P.
+New guard: **`node sim/test-card-sync.js`** fails if the two card DBs drift.
+
+**Still true — do not trust these yet:** every published sim NUMBER predates the rework. The
+Easy/Medium/Hard bands in the tier table below, `sim/results/sim-tierlist.json`, and every
+`cardbalance_*.csv` are **historical records, not baselines — do not diff new results against
+them.** `fixtures/golden-runGame.json` still freezes the retired triangle game, so
+`test-resume-reproduction.js`'s golden check fails **by design** until R2 regenerates it (all its
+other checks pass). Re-measurement is R2-R4 of the plan.
 
 ### 5-8 Player Support (SHIPPED June 2026 — full log: `docs/FIVE_TO_EIGHT_PLAYER_PLAN.md`)
 Rules identical to 2-4P; only setup/Store scale (see **Store Layout** above — 5-8P is 9 rows vs
@@ -512,7 +529,17 @@ applyOppHands()             ~4219  — applies the current bucket's pref (.colla
 ensureOpponentZone(i)       ~4232  — creates opp zone DOM only if not already present (detail starts WITHOUT .collapsed; applyOppHands sets it)
 toggleLog()                 ~4274
 preloadImages()             ~4283
-applyDebugScenario(name)    ~4302
+applyDebugScenario(name)    ~5964 — builds a debug game state from a SCENARIOS key. Returns
+                                    TRUE on success, FALSE for an unknown name — the caller MUST
+                                    stop on false. Falling through starts a 0-row-Store game that
+                                    is not flagged isDebug, so it writes real history/traj records.
+                                    Helpers: stackedDeck (2P, deck drawn in the given order — the
+                                    human deck is NOT shuffled at deal), makeSpecialScenario (no
+                                    `act` arg; there is no way to start "in Act 2"), makeEndGame
+                                    (4P round 9 + seedHerdHistory), nearEndPyramid(pyr, keep)
+                                    (keeps `keep` cards in the BACK row), seedHerdHistory
+                                    (back-fills herdHistory/bustRounds so the showdown herd chart
+                                    has a series — scoreRound only writes the current round).
 ```
 
 ---
@@ -622,9 +649,10 @@ in every `startGame` branch and `reconstructG` → `spectatorState`/`trajLogHead
 - **`spectate.html` keeps its Hidden Herd badge**, so games played before the removal still display
   the mode they were played under. Don't "clean up" that badge — it is historical-record rendering,
   not dead code.
-- **The only way to enable it now is the `act3_one_card_hidden` debug scenario**, which is why that
-  scenario is kept. It is also the only way to exercise the concealment path, so run it after
-  touching `renderPlayerZone` or `scoreRound`.
+- **The only way to enable it now is the `one_card_showdown_hidden` debug scenario** (renamed from
+  `act3_one_card_hidden` in the July 2026 debug-page audit), which is why that scenario is kept. It
+  is also the only way to exercise the concealment path, so run it after touching
+  `renderPlayerZone` or `scoreRound`.
 - `gamesetup.html` `startGame()` calls `sessionStorage.removeItem('hidden_herd_mode')` rather than
   simply not writing the key: sessionStorage is per-tab and survives navigation, so a value left by
   an older build would otherwise silently re-enable the mode.
@@ -661,16 +689,23 @@ misaligns the brick offset and breaks `isCardCovered` on rejoin.
 
 **Full reference:** [`sim/AI_PERSONALITIES.md`](sim/AI_PERSONALITIES.md)
 
-> **⚠️ Tiers are UNVERIFIED since July 2026.** Every win-rate below was measured on the pre-rework
-> game (old triangle Store, old card pool, per-act setup). The single-Store rework invalidated all
-> of it, and `sim/` was not re-synced. The bots still play — the Easy/Medium/Hard labels on
-> gamesetup are just no longer evidence-backed. Re-measure via `sim/AI_DISTILLATION_PLAN.md`
-> Phase D0 before tuning anything.
+> **Tiers RE-MEASURED July 2026** on the single-Store engine, after the `banditPenalty` fix
+> below. Numbers are `2P overall % / 4P focal %` from `node sim/simulate.js` (1500 games/pair)
+> and `--players 4` (2500 games/bot), ties split fractionally.
+>
+> **The `banditPenalty` correction (July 2026) is the largest AI gain ever measured on this
+> project — up to +18pp at 4P.** R5's forced-buy counterfactual showed a Bandit costs roughly
+> **5 Cows** of real value, while every Hard bot priced one at well under half a Cow. The AI was
+> taking `card_43`/`card_51` (5 Cows + 2 Bandits) **93-95% of the time it could afford them** —
+> the only two cards in the game that are causally worse than burning. It now takes them ~14%.
+> **The measured optimum is `banditPenalty ≈ 2.1 × cowWeight`** for every Hard bot independently,
+> which is also the analytic threshold at which the AI stops preferring `card_43` over `card_18`
+> (2 Cows, same cost). Only the Hard tier was corrected — Medium/Easy keep their genomes by
+> design, so the tier gap is now wider.
 >
 > Two knobs were act-gated and now read **`storeStage()`** instead of `G.currentAct`:
 > `act1DollarBonus` / `act3CowBonus` in `scoreCardForAI`, and `actProgress` in `aiBuyTurn`'s denial
-> heuristic. Semantics are preserved (early Store = Act 1 cards on offer = economy lens), so no
-> personality was retuned.
+> heuristic. Semantics are preserved (early Store = Act 1 cards on offer = economy lens).
 
 ### Difficulty tiers (MEASURED — `node sim/simulate.js`, June 2026)
 
@@ -687,16 +722,16 @@ tougher). Absolute gains are in `draw-cap-experiment.js`.
 
 | Tier | Personality | 2P / 4P win% | Character |
 |---|---|---|---|
-| **Hard** | `drifter` | 70 / 41 | Solid cow grinder, no tricks; `maxDraw 10` (upgraded) |
-| **Hard** | `enforcer` | 70 / 41 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target |
-| **Hard** | `deputy` | 68 / 38 | Disciplined draw (low bust) + denial + competent cow buying |
-| **Hard** | `prospector` | 65 / 35 | Hard's floor; `maxDraw 10` (upgraded) |
-| **Hard** | `rancher` | 64 / 34 | Cow-optimizing grinder; the benchmark |
-| **Medium** | `outlaw` | 43 / 16 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
-| **Medium** | `wild_bill` | 40 / 14 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
-| **Easy** | `banker` | 38 / 9 | Dollar-first, intentionally suboptimal (designed-to-lose). Boundary easy/medium |
-| **Easy** | `sheriff` | 37 / 10 | Conservative, methodical, low cowWeight |
-| **Easy** | `greenhorn` | 6 / 0 | Deliberately terrible — terrified of bandits, hoards dollars. The floor |
+| **Hard** | `drifter` | 72 / 39 | Solid cow grinder, no tricks; `maxDraw 10` (upgraded) |
+| **Hard** | `enforcer` | 74 / 43 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target |
+| **Hard** | `deputy` | 69 / 39 | Disciplined draw (low bust) + denial + competent cow buying |
+| **Hard** | `prospector` | 65 / 31 | Hard's floor; `maxDraw 10` (upgraded) |
+| **Hard** | `rancher` | 73 / 44 | Cow-optimizing grinder; the benchmark |
+| **Medium** | `outlaw` | 44 / 13 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
+| **Medium** | `wild_bill` | 38 / 10 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
+| **Easy** | `banker` | 26 / 2 | Dollar-first, intentionally suboptimal (designed-to-lose). **No longer near the easy/medium boundary** — re-measured July 2026 at 2P 27.8 / 4P 3.7. Dollars score nothing at the Showdown, so the dollar-first genome is far weaker than the old (buggy) sim reported |
+| **Easy** | `sheriff` | 37 / 7 | Conservative, methodical, low cowWeight |
+| **Easy** | `greenhorn` | 3 / 0 | Deliberately terrible — terrified of bandits, hoards dollars. The floor |
 
 ### Personality parameters (15 total)
 

@@ -153,6 +153,21 @@ sim and real humans diverge most.
 
 ## Tuning facts locked in (don't re-litigate without new evidence)
 
+- **`banditPenalty` ≈ 2.1 × `cowWeight` (July 2026, the biggest AI gain measured on this project:
+  up to +18pp at 4P).** Every Hard bot priced a Bandit at well under half a Cow; R5's forced-buy
+  counterfactual (`card-counterfactual.js`) showed one is worth about **5 Cows**. The AI was
+  buying `card_43`/`card_51` (5 Cows + 2 Bandits, cost 4) **93–95% of the time it could afford
+  them** — the only two cards in the game that are causally worse than burning — and now takes
+  them ~14%. All five Hard bots' optima landed independently on the same ~2.1× ratio, which is
+  also the analytic threshold where the AI stops preferring `card_43` over `card_18` (2 Cows,
+  same cost). Applied to the **Hard tier only**; Medium/Easy keep their genomes by design.
+  Found with `node sim/genome-sweep.js --param banditPenalty --values ... --focal <bot>`.
+- **The `burn_to_use` (Explosive) scoring bonus was investigated and deliberately LEFT at +2.**
+  The theory was strong — an Explosive is one-shot yet is scored like a permanent card *and* given
+  a bonus, and R5 measures Explosives at −1.7 herd against their alternatives while the AI buys
+  them 90% of the time. But sweeping it over {2, 1, 0, −1, −2, −3} across all five Hard bots moved
+  mean 4P win% by **under 1pp** — noise. At cost 3 an Explosive is often the *only* affordable
+  card, and scoring cannot change a forced choice. Don't "fix" it without new evidence.
 - `cowWeight` 9–10 is optimal; evolved AIs converge there.
 - `revealBonus` ≈ 0 and `act1DollarBonus` = 0 for top performers (dollars are currency, not score).
 - `maxDraw`: **all 5 Hard bots = 10** (rancher/deputy since the first pass; prospector/drifter/

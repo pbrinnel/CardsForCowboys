@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
   <title>Debug — Cards For Cowboys</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/a11y.css">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -28,6 +30,8 @@
       letter-spacing: 2px;
       text-transform: uppercase;
     }
+    .brand-link { color: inherit; text-decoration: none; }
+    .brand-link:hover { color: #e9b96a; }
     .subtitle {
       font-size: 0.85rem;
       color: rgba(233,224,198,0.45);
@@ -43,6 +47,20 @@
       margin-top: 1.75rem;
       border-bottom: 1.5px solid #3a2a1a;
       padding-bottom: 0.3rem;
+    }
+    .section-note {
+      font-size: 0.8rem;
+      color: rgba(233,224,198,0.5);
+      font-style: italic;
+      margin: -0.35rem 0 0.9rem;
+      max-width: 62ch;
+      line-height: 1.5;
+    }
+    .section-note code {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-style: normal;
+      font-size: 0.92em;
+      color: rgba(233,224,198,0.72);
     }
     .scenario-grid {
       display: grid;
@@ -76,6 +94,37 @@
       color: rgba(233,224,198,0.45);
       font-style: italic;
     }
+
+    /* Retired mechanics: visually demoted but deliberately STILL CLICKABLE. These are the
+       pre-deletion regression harness (docs/DEAD_CODE_INVENTORY.md) — you run them once
+       right before deleting the mechanic they cover, so `disabled` would defeat the point. */
+    .scenario-btn.retired {
+      background: #241b13;
+      border-color: #2f2418;
+      border-style: dashed;
+      box-shadow: none;
+      opacity: 0.58;
+    }
+    .scenario-btn.retired:hover {
+      opacity: 1;
+      border-color: #6c5636;
+      box-shadow: 2px 2px 0 #2f2418;
+      color: #c9b98f;
+    }
+    .scenario-btn.retired .label { color: #a08a63; font-weight: normal; }
+    .tag {
+      display: inline-block;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      border: 1px solid #6c5636;
+      color: #a08a63;
+      border-radius: 2px;
+      padding: 0.05rem 0.3rem;
+      margin-right: 0.4rem;
+      vertical-align: 1px;
+    }
     .back-link {
       display: inline-block;
       margin-top: 2.5rem;
@@ -87,134 +136,167 @@
   </style>
 </head>
 <body>
-  <h1>Debug Launcher</h1>
-  <p class="subtitle">Jumps directly into a game state — bypasses normal setup.</p>
+  <h1><a href="index.html" class="brand-link">Cards For Cowboys</a> — Debug Launcher</h1>
+  <p class="subtitle">Jumps directly into a game state — bypasses normal setup. Debug games are
+    flagged <code>isDebug</code>, so they write no history, liveSummary or trajectory records.</p>
 
-  <div class="section-title">Game Scenarios</div>
+  <div class="section-title">Structural / End of Game</div>
   <div class="scenario-grid">
     <button class="scenario-btn" onclick="launch('near_showdown')">
       <span class="label">Near Showdown</span>
-      <span class="desc">4P · Act 3 · last ~6 cards · competitive herds</span>
+      <span class="desc">4P · 6 cards left in the back row · competitive herds + seeded herd history</span>
     </button>
-    <button class="scenario-btn" onclick="launch('act3_one_card')">
+    <button class="scenario-btn" onclick="launch('one_card_showdown')">
       <span class="label">One Card → Showdown</span>
-      <span class="desc">4P · Act 3 · 1 card left · buy it to trigger showdown</span>
+      <span class="desc">4P · 1 card left · buy it to trigger the showdown, tiebreak ladder and herd chart</span>
     </button>
-    <button class="scenario-btn" onclick="launch('act3_one_card_hidden')">
+    <button class="scenario-btn" onclick="launch('one_card_showdown_hidden')">
       <span class="label">One Card → Showdown (Hidden Herd)</span>
-      <span class="desc">4P · Act 3 · 1 card left · hidden herd mode on</span>
+      <span class="desc">4P · 1 card left · Hidden Herd on — the only way to reach that mode now</span>
     </button>
     <button class="scenario-btn" onclick="launch('stress_8p')">
       <span class="label">8-Player Stress Test</span>
-      <span class="desc">8P · Act 3 · expensive store · bandit-free · AI draw to 7-card cap, you draw ~20</span>
+      <span class="desc">8P · full 99-card Store · bandit-free · AI draw to the 10-card cap, you draw ~20</span>
     </button>
   </div>
 
-  <div class="section-title">Special Cards</div>
+  <div class="section-title">Live Mechanics</div>
+  <p class="section-note">
+    The only two specials that survive on undeprecated cards: <code>burn_to_use</code>
+    (Explosive-for-$) and <code>draw4</code>. Everything a real game can actually deal is here.
+  </p>
   <div class="scenario-grid">
     <button class="scenario-btn" onclick="launch('special_burn_to_use')">
-      <span class="label">Burn to Use</span>
-      <span class="desc">Act 1 · card_77 · burn from hand to activate for $</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_2cow_if_first')">
-      <span class="label">2 Cows If First</span>
-      <span class="desc">Act 1 · card_15 · bonus cows if first card drawn</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_burn_buy_first')">
-      <span class="label">Burn → Buy Priority</span>
-      <span class="desc">Act 1 · card_14 · use for first buy priority</span>
+      <span class="label">Explosive $2 (card_77)</span>
+      <span class="desc">card_77 · River · Use from hand for $2</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_burn_to_use_card16')">
       <span class="label">Explosive $3 (card_16)</span>
-      <span class="desc">Act 2 · card_16 · Rattlesnake · use for $3</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_look3_rearrange')">
-      <span class="label">Look 3, Rearrange</span>
-      <span class="desc">Act 2 · card_19 · peek and reorder top 3</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_copy_next')">
-      <span class="label">Copy Next Card</span>
-      <span class="desc">Act 2 · card_20 · next card has double effect</span>
+      <span class="desc">card_16 · Rattlesnake · Use for $3</span>
     </button>
     <button class="scenario-btn" onclick="launch('special_burn_to_use_card22')">
       <span class="label">Explosive $3 (card_22)</span>
-      <span class="desc">Act 2 · card_22 · Rattlesnake · use for $3</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_extra_buy')">
-      <span class="label">Extra Buy</span>
-      <span class="desc">Act 2 · card_21 · use for extra turn in buy phase</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_replay_discard')">
-      <span class="label">Replay Discard</span>
-      <span class="desc">Act 2 · card_23 · burn to replay any discarded card</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_dollar1_other')">
-      <span class="label">$1 to Others</span>
-      <span class="desc">Act 2 · card_24 · gives $1 to each opponent</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_swap_revealed')">
-      <span class="label">Swap (Card 4)</span>
-      <span class="desc">Act 2 · card_4 · 4P · swap for any face-up card</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('swap_card')">
-      <span class="label">Swap (Card 4) — Full Test</span>
-      <span class="desc">Act 2 · 4P · card_4 + opponents seeded w/ cow cards in hand & discard (all 3 sources)</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('special_look3_immediate')">
-      <span class="label">Look 3, Immediate</span>
-      <span class="desc">Act 3 · card_31 · reveal top 3 immediately</span>
-    </button>
-    <button class="scenario-btn" onclick="launch('draw4_jail_2bandits')">
-      <span class="label">Draw 4 + Jail @ 2 Bandits</span>
-      <span class="desc">Act 2 · 2 bandits, then Draw 4 with a -1 bandit card next</span>
+      <span class="desc">card_22 · Rattlesnake · Use for $3</span>
     </button>
     <button class="scenario-btn" onclick="launch('buy_phase_burn_to_use')">
-      <span class="label">Buy Phase: Activate for $</span>
-      <span class="desc">Act 1 · draw $1+$1+card_77, stop without activating → use +$2 in buy phase</span>
+      <span class="label">Buy Phase: Use for $</span>
+      <span class="desc">draw $1+$1+card_77, stop without using → Use for +$2 in the buy phase</span>
     </button>
     <button class="scenario-btn" onclick="launch('buy_phase_all_activatable')">
       <span class="label">Buy Phase: All Activatable</span>
-      <span class="desc">Act 2 · all 4 dollar cards in hand (card_77/78 +$2, card_16/22 +$1) · up to +$6 in buy phase</span>
+      <span class="desc">all 4 Explosives in hand (card_77/78 +$2, card_16/22 +$3) · up to +$10</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('draw4_basic')">
+      <span class="label">Draw 4</span>
+      <span class="desc">card_54 · 4 mandatory draws · "Stop" hidden until the obligation clears</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('draw4_chain')">
+      <span class="label">Draw 4 → Draw 4 (chaining)</span>
+      <span class="desc">card_54 during forced draws · obligation stacks 4 → 3 → 6, not resets</span>
+    </button>
+    <button class="scenario-btn" onclick="launch('draw4_minus_bandit')">
+      <span class="label">−1 Bandit + Draw 4</span>
+      <span class="desc">card_84/85 · passive, not Explosives · sit at 2 bandits, drop to 1, chain</span>
     </button>
   </div>
 
-  <div class="section-title">Copy Next Interactions</div>
+  <div class="section-title">Retired Mechanics</div>
+  <p class="section-note">
+    Every card below is <code>deprecated: true</code> and can never be dealt — these mechanics
+    are <strong>unreachable in a real game</strong>. The code still runs (<code>getCardById</code>
+    resolves deprecated cards), and these buttons stay clickable on purpose: per
+    <code>docs/DEAD_CODE_INVENTORY.md</code> they are the regression harness you run once, right
+    before deleting the mechanic they cover. Delete each button with its mechanic.
+  </p>
   <div class="scenario-grid">
-    <button class="scenario-btn" onclick="launch('copy_next_jail')">
-      <span class="label">Copy Next → Jail (−1 Bandit)</span>
-      <span class="desc">Act 2 · card_20→card_50 · both become activatable; 2 bandits follow to test them</span>
+    <button class="scenario-btn retired" onclick="launch('special_2cow_if_first')">
+      <span class="label"><span class="tag">retired</span>2 Cows If First</span>
+      <span class="desc">card_15 · bonus cows if first card drawn</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_dollar')">
-      <span class="label">Copy Next → Burn-to-Use $2</span>
-      <span class="desc">Act 2 · card_20→card_77 · both activatable for $2 each → up to $4</span>
+    <button class="scenario-btn retired" onclick="launch('special_burn_buy_first')">
+      <span class="label"><span class="tag">retired</span>Use for Buy Priority</span>
+      <span class="desc">card_14 · also retires the 5-8P buyFirstClaim path</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_burn_to_use')">
-      <span class="label">Copy Next → Explosive $3</span>
-      <span class="desc">Act 2 · card_20→card_16 · Copy Next becomes 2nd Explosive copy for $3 each → up to $6</span>
+    <button class="scenario-btn retired" onclick="launch('special_look3_rearrange')">
+      <span class="label"><span class="tag">retired</span>Look 3, Rearrange</span>
+      <span class="desc">card_19 · peek and reorder top 3</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_priority')">
-      <span class="label">Copy Next → Buy Priority</span>
-      <span class="desc">Act 2 · card_20→card_14 · both burnable for buy priority</span>
+    <button class="scenario-btn retired" onclick="launch('special_look3_immediate')">
+      <span class="label"><span class="tag">retired</span>Look 3, Immediate</span>
+      <span class="desc">card_31 · reveal top 3 immediately</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_look3')">
-      <span class="label">Copy Next → Look 3 Rearrange</span>
-      <span class="desc">Act 2 · card_20→card_19 · both burnable for a separate peek+reorder</span>
+    <button class="scenario-btn retired" onclick="launch('special_copy_next')">
+      <span class="label"><span class="tag">retired</span>Copy Next Card</span>
+      <span class="desc">card_20 · next card has double effect</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_replay')">
-      <span class="label">Copy Next → Replay Discard</span>
-      <span class="desc">Act 2 · card_20→card_23 · discard seeded; both burnable for a separate replay</span>
+    <button class="scenario-btn retired" onclick="launch('special_extra_buy')">
+      <span class="label"><span class="tag">retired</span>Extra Buy</span>
+      <span class="desc">card_21 · Use for an extra buy/burn · owns buyAction seq 2</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_extra_buy')">
-      <span class="label">Copy Next → Extra Buy</span>
-      <span class="desc">Act 2 · card_20→card_21 · both burnable for a bonus buy/burn each</span>
+    <button class="scenario-btn retired" onclick="launch('special_replay_discard')">
+      <span class="label"><span class="tag">retired</span>Replay Discard</span>
+      <span class="desc">card_23 · Use &amp; Replay a discarded card</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_draw4')">
-      <span class="label">Copy Next → Draw 4</span>
-      <span class="desc">Act 2 · card_20→card_54 · 6 cows + 8 forced draws; jail at draw 3 to survive</span>
+    <button class="scenario-btn retired" onclick="launch('special_dollar1_other')">
+      <span class="label"><span class="tag">retired</span>$1 to Others</span>
+      <span class="desc">card_24 · owns the deferred cross-player grant (audit C5/C6)</span>
     </button>
-    <button class="scenario-btn" onclick="launch('copy_next_chain')">
-      <span class="label">Copy Next → Copy Next → card</span>
-      <span class="desc">Act 2 · card_20→card_20→card_79 · chain: 2nd Copy Next re-arms doubling for 3rd draw</span>
+    <button class="scenario-btn retired" onclick="launch('special_swap_revealed')">
+      <span class="label"><span class="tag">retired</span>Swap (Card 4)</span>
+      <span class="desc">card_4 · 4P · swap for any face-up card</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('swap_card')">
+      <span class="label"><span class="tag">retired</span>Swap (Card 4) — Full Test</span>
+      <span class="desc">4P · opponents seeded w/ cow cards in hand &amp; discard (all 3 sources)</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('draw4_jail_2bandits')">
+      <span class="label"><span class="tag">retired</span>Draw 4 + Jail @ 2 Bandits</span>
+      <span class="desc">card_50 jail · the activate-before-bust window (bug #12); Draw 4 itself is live</span>
+    </button>
+  </div>
+
+  <div class="section-title">Retired — Copy Next Interactions</div>
+  <p class="section-note">
+    All of these hang off <code>copy_next</code> (cards 7 and 20, both deprecated). Widest blast
+    radius of any dead mechanic — ~16 call sites across <code>playerDraw</code> and
+    <code>aiDrawPhase</code> — so run the set before removing it.
+  </p>
+  <div class="scenario-grid">
+    <button class="scenario-btn retired" onclick="launch('copy_next_dollar')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Explosive $2</span>
+      <span class="desc">card_20→card_77 · both usable for $2 each → up to $4</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_burn_to_use')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Explosive $3</span>
+      <span class="desc">card_20→card_16 · second Explosive copy for $3 each → up to $6</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_jail')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Jail (−1 Bandit)</span>
+      <span class="desc">card_20→card_50 · both activatable; 2 bandits follow to test them</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_priority')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Buy Priority</span>
+      <span class="desc">card_20→card_14 · both usable for buy priority</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_look3')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Look 3 Rearrange</span>
+      <span class="desc">card_20→card_19 · each gives a separate peek+reorder</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_replay')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Replay Discard</span>
+      <span class="desc">card_20→card_23 · discard seeded; each gives a separate replay</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_extra_buy')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Extra Buy</span>
+      <span class="desc">card_20→card_21 · a bonus buy/burn from each</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_draw4')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Draw 4</span>
+      <span class="desc">card_20→card_54 · 6 cows + 8 forced draws; jail at draw 3 to survive</span>
+    </button>
+    <button class="scenario-btn retired" onclick="launch('copy_next_chain')">
+      <span class="label"><span class="tag">retired</span>Copy Next → Copy Next → card</span>
+      <span class="desc">card_20→card_20→card_79 · 2nd Copy Next re-arms doubling for the 3rd draw</span>
     </button>
   </div>
 

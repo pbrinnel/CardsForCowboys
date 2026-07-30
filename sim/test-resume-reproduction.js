@@ -6,7 +6,7 @@
 //
 //   1. GOLDEN REGRESSION  — new runGame ≡ frozen golden (fixtures/golden-runGame.json) bit-for-bit.
 //   2. ROUND-GRANULAR      — stepping continueGame(endOfRound) to 'done' ≡ runGame.
-//   3. ACT-GRANULAR        — stepping continueGame(endOfAct) to 'done' ≡ runGame.
+//   3. STAGE-GRANULAR      — stepping continueGame(endOfStage) to 'done' ≡ runGame.
 //   4. CLONE INDEPENDENCE  — clone mid-game → finish clone ≡ runGame; AND the ORIGINAL,
 //                            finished after cloning, still ≡ runGame (no RNG bleed, no aliasing).
 //   5. MID-BUY RESUMPTION  — clone with buyCursor > 0 (the search's real use) finishes ≡ runGame.
@@ -28,20 +28,29 @@ function check(cond, msg) {
 }
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-// Compare two runGame-style results (herds/winner/busts/drawRounds[/collections]).
+// Compare two runGame-style results. `winners`/`tie` cover the showdown tiebreak ladder and
+// `rounds` covers game length — both are engine semantics under the single Store (length is
+// emergent from Store exhaustion), so a resume that silently changed either must fail here.
+// Compared only when the reference carries them, so an older golden still loads.
 function resultsEqual(a, b) {
-  return eq(a.herds, b.herds) && a.winner === b.winner &&
-         eq(a.busts, b.busts) && eq(a.drawRounds, b.drawRounds) &&
-         eq(a.collections || null, b.collections || null);
+  if (!(eq(a.herds, b.herds) && a.winner === b.winner &&
+        eq(a.busts, b.busts) && eq(a.drawRounds, b.drawRounds) &&
+        eq(a.collections || null, b.collections || null))) return false;
+  if (b.winners !== undefined && !eq(a.winners, b.winners)) return false;
+  if (b.tie     !== undefined && a.tie !== b.tie) return false;
+  if (b.rounds  !== undefined && a.rounds !== b.rounds) return false;
+  return true;
 }
 
-// Lineups spanning the card/special space (2–4P), used by the resume/clone checks.
+// Lineups spanning the bot space, used by the resume/clone checks. The 6P case covers the 9-row
+// Store + doubled act pool, which 2-4P never exercises.
 const CASES = [
   { players: 2, names: ['enforcer', 'rancher'] },
   { players: 2, names: ['wild_bill', 'outlaw'] },
   { players: 3, names: ['enforcer', 'outlaw', 'banker'] },
   { players: 4, names: ['enforcer', 'rancher', 'outlaw', 'wild_bill'] },
   { players: 4, names: ['deputy', 'drifter', 'prospector', 'banker'] },
+  { players: 6, names: ['enforcer', 'rancher', 'outlaw', 'wild_bill', 'deputy', 'drifter'] },
 ];
 const RESUME_SEEDS = 120;
 
@@ -128,17 +137,23 @@ function testCloneIndependence() {
 }
 
 // ── 5. MID-BUY RESUMPTION (the search's real clone point: phase 'buy', buyCursor > 0) ──
-// Mirror continueGame's pre-buy transitions (act-1 reshuffle → pyramid → draw) to obtain a
-// buy-PAUSED state, process some buyers, fork, and confirm both fork and original finish ≡ runGame.
+// Mirror continueGame's pre-buy transitions (setup → draw) to obtain a buy-PAUSED state,
+// process some buyers, fork, and confirm both fork and original finish ≡ runGame.
+//
+// ⚠️ This hand-mirrors continueGame's 'setup' and 'draw' phases and MUST stay in step with them,
+// including which RNG draws they consume — an extra or missing seededShuffle here desynchronises
+// the stream and every seed diverges from runGame. That is exactly what happened when the
+// single-Store port removed the between-act deck merge and this helper kept doing it.
 function freshToFirstBuy(genomes, np, seed) {
   const st = engine.createInitialState(genomes, np, seed);
-  for (const p of st.players) {
-    const all = [...p.deck, ...p.discard, ...p.hand];
-    p.deck = engine.seededShuffle(all, st.rng); p.discard = []; p.hand = [];
-  }
-  st.act = 1; st.round = 1;
-  st.pyramid = engine.buildPyramidSeeded(1, np, st.rng);
-  engine.runDrawPhase(st.players, genomes, st.pyramid, 1, st.rng);
+  // 'setup': build the ONE Store. NO deck reshuffle — there is no between-act merge any more,
+  // and createPlayerSeeded already seeded-shuffled each starter deck.
+  st.pyramid = engine.buildPyramidSeeded(np, st.rng);
+  st.round = 1;
+  // 'draw': stage is latched at the round start (nothing leaves the Store during draws).
+  st.stage = core.storeStage(st.pyramid);
+  st.roundStartStage = st.stage;
+  engine.runDrawPhase(st.players, genomes, st.pyramid, st.stage, st.rng);
   for (let i = 0; i < st.players.length; i++) {
     if (st.players[i].hand.length > 0) st.drawRounds[i]++;
     if (st.players[i].busted) st.busts[i]++;
@@ -158,7 +173,7 @@ function testMidBuyResume() {
       // exactly how the search applies a candidate before resuming the rollout.
       if (st.buyOrder.length > 0 && !core.isPyramidEmpty(st.pyramid)) {
         const pIdx = st.buyOrder[st.buyCursor];
-        engine.processBuyer(st.players[pIdx], genomes[pIdx], st.pyramid, st.act, st.players);
+        engine.processBuyer(st.players[pIdx], genomes[pIdx], st.pyramid, st.stage, st.players);
         st.buyCursor++;
       }
       // Fork from the mid-buy state (buyCursor possibly > 0), finish both.
@@ -180,7 +195,7 @@ function testMidBuyResume() {
 // The clone trap: copyNextCard/copyNextDonor alias cards in hand/discard. After clone they
 // must point at the CLONE's instances, not the originals.
 function testCloneCopyNext() {
-  const mk = (uid, special) => ({ uid, id: `card_${uid}`, dollars: 0, cows: 0, bandits: 0, cacti: 1, cost: 0, special: special || null, act: 2, minPlayers: 2 });
+  const mk = (uid, special) => ({ uid, id: `card_${uid}`, dollars: 0, cows: 0, bandits: 0, cacti: 1, cost: 0, special: special || null, act: 2 });
   const copyCard = mk(101, 'copy_next');
   const donorCard = mk(102, 'burn_to_use');
   const handCard = mk(103, null);
