@@ -8,20 +8,48 @@ const path = require('path');
 
 // ── PARAM RANGES & KEYS ──────────────────────────────────────────────────────
 
+// ⚠️ THESE RANGES ARE PART OF THE SEARCH, NOT BOOKKEEPING. `mutate()` CLAMPS to them, so any
+// shipped value outside a range is destroyed the first time that gene is mutated — the seed
+// enters generation 0 intact (seeding does not clamp) and is then dragged inside the box.
+// A too-narrow range therefore does not merely limit the search, it ACTIVELY DELETES the
+// best-known solution, and the GA reports "no improvement found" from a space that never
+// contained the answer.
+//
+// That is exactly what happened: `banditPenalty` was capped at 8 while the correct value is
+// 10-20 (R5 measured a Bandit at ~5 Cows; the optimum is ~2.1 x cowWeight). Every conclusion
+// drawn from this GA before July 2026 — including "the 14-param space is tapped out" — was
+// drawn from a box that excluded the single largest AI gain on the project. Ranges widened so
+// every shipped genome sits INTERIOR, with room to move.
+//
+// Rule when adding or retuning a personality: if a shipped value lands within ~20% of a
+// boundary, widen the boundary before trusting any GA result.
 const PARAM_RANGES = {
   bustThreshold2:  { min: 0.01, max: 0.60 },
   bustThreshold1:  { min: 0.05, max: 0.90 },
-  dollarBuffer:    { min: 0,    max: 5    },
-  cowWeight:       { min: 0,    max: 10   },
-  dollarWeight:    { min: 0,    max: 6    },
-  banditPenalty:   { min: 0,    max: 8    },
+  dollarBuffer:    { min: 0,    max: 5    },  // NB: wild_bill's 999 is an "ignore $ target"
+                                              // sentinel, not a magnitude; it clamps by design.
+  // cowWeight/dollarWeight/banditPenalty move TOGETHER — scoreCard is scale-invariant except
+  // for the flat SPECIAL_BONUS terms, so capping one distorts the ratios that actually decide
+  // buys. Widened as a set.
+  cowWeight:       { min: 0,    max: 20   },  // was 10; enforcer sits at 9.5 (95% of old range)
+  dollarWeight:    { min: 0,    max: 12   },  // was 6
+  banditPenalty:   { min: 0,    max: 40   },  // was 8; shipped optima are 10-20
   positionWeight:  { min: 0,    max: 2.5  },
+  // denialWeight and deckMemory are SEMANTICALLY bounded, not arbitrarily capped, so seeds
+  // sitting at 1.0 are fine and must not be "widened":
+  //   denialWeight — the engine only ever tests `>= 0.5`; it is a boolean (play.js ships it as
+  //                  the `denialBurn` flag). Values above 1 have no meaning.
+  //   deckMemory   — a blend weight between exact lethal-counting and a flat prior. 1.0 IS
+  //                  perfect deck memory; there is nothing beyond it.
   denialWeight:    { min: 0,    max: 1    },
   deckMemory:      { min: 0,    max: 1    },
-  lethalBias:      { min: 0.2,  max: 2.5  },
-  act1DollarBonus: { min: 0,    max: 3    },
-  act3CowBonus:    { min: 0,    max: 4    },
-  revealBonus:     { min: 0,    max: 4    },
+  lethalBias:      { min: 0.2,  max: 4    },  // was 2.5, where greenhorn sat exactly on the cap
+  // These two multiply card.dollars / card.cows, so they live in the SAME scale space as
+  // dollarWeight / cowWeight and had to grow with them. `act3CowBonus` sat pinned at its old
+  // ceiling of 4.00 in the July re-run — a binding bound, i.e. the optimum was outside the box.
+  act1DollarBonus: { min: 0,    max: 8    },  // was 3
+  act3CowBonus:    { min: 0,    max: 10   },  // was 4; pinned at the old max
+  revealBonus:     { min: 0,    max: 6    },  // was 4; greenhorn sat at 3.5, only 13% headroom
   affordMult:      { min: 1.0,  max: 2.5  },
 };
 const PARAM_KEYS = Object.keys(PARAM_RANGES);
@@ -30,6 +58,35 @@ const PARAM_KEYS = Object.keys(PARAM_RANGES);
 // The canonical personalities (synced to play.js) seed generation 0. The GA mutates
 // clones (PARAM_KEYS only — maxDraw is a fixed governor, not evolved).
 const { GENOMES: SEED_GENOMES, byName } = require('./personalities');
+
+// Fail loudly if a shipped genome lies outside the search box. `mutate()` clamps, so an
+// out-of-range seed survives generation 0 and is then dragged inside the box by the first
+// mutation that touches it — the GA quietly deletes the best-known solution and then reports
+// that it could not find an improvement. That is not hypothetical: `banditPenalty` was capped
+// at 8 while the correct value is 10-20, which is why this GA declared the parameter space
+// "tapped out" in June 2026 while sitting on the largest available gain.
+// EXEMPT: sentinels that encode "off"/"infinite" rather than a magnitude.
+const RANGE_EXEMPT = new Set(['wild_bill:dollarBuffer']);  // 999 = ignore the $ target entirely
+(function assertSeedsInRange() {
+  const bad = [];
+  for (const g of SEED_GENOMES) {
+    for (const key of PARAM_KEYS) {
+      const v = g[key];
+      if (v === undefined || RANGE_EXEMPT.has(`${g.name}:${key}`)) continue;
+      const { min, max } = PARAM_RANGES[key];
+      if (v < min || v > max) bad.push(`${g.name}.${key} = ${v} outside [${min}, ${max}]`);
+    }
+  }
+  if (bad.length) {
+    console.error('✗ GA search range does not contain the shipped genomes:');
+    bad.forEach(b => console.error('    ' + b));
+    console.error('\nmutate() clamps to PARAM_RANGES, so these values would be DESTROYED after seeding');
+    console.error('and every result below would come from a space that excludes the current best.');
+    console.error('Widen PARAM_RANGES (leave the shipped value interior, not on the boundary), or');
+    console.error('add a RANGE_EXEMPT entry if the value is a sentinel rather than a magnitude.');
+    process.exit(1);
+  }
+})();
 
 // maxDraw is a fixed governor (not evolved — see TUNING.md). Coevolution candidates use a
 // constant cap; the probe (ceiling-probe.js) found 10 optimal for the disciplined strong cluster

@@ -187,7 +187,23 @@ sim and real humans diverge most.
     independently on the value derived and measured above. Strong corroboration of the fix.
   - `cowWeight` (10.00) and `act3CowBonus` (4.00) sat pinned at the TOP of their search ranges —
     the bounds are binding, so the true optimum may lie outside them. **Widen the ranges before
-    the next run.**
+    the next run.** ✅ **DONE (July 2026)** — and the root cause turned out to be worse than a
+    binding bound, see the next entry.
+- ⚠️ **THE RANGE TRAP — read before trusting any GA result.** `evolve.js`'s `mutate()` **clamps to
+  `PARAM_RANGES`**, but generation-0 seeding does **not**. A shipped value outside its range
+  therefore enters the population intact and is then dragged inside the box by the first mutation
+  touching that gene: the GA **silently deletes the best-known solution** and then truthfully
+  reports that it found no improvement. `banditPenalty` was capped at **8** while the correct value
+  is **10–20**, so every GA conclusion before July 2026 came from a box that excluded the largest
+  gain on the project.
+  Ranges are now widened so every shipped genome is interior — `banditPenalty` 0–40, `cowWeight`
+  0–20, `dollarWeight` 0–12, `act3CowBonus` 0–10, `act1DollarBonus` 0–8, `lethalBias` 0.2–4,
+  `revealBonus` 0–6 — and **`evolve.js` asserts this at startup and exits 1** if any seed falls
+  outside (`RANGE_EXEMPT` covers sentinels like wild_bill's `dollarBuffer: 999`).
+  `denialWeight` and `deckMemory` stay capped at 1 on purpose: the first is a boolean the engine
+  only tests `>= 0.5`, the second is a blend weight where 1.0 already means perfect deck memory.
+  **Rule: if a shipped value lands within ~20% of a boundary, widen the boundary before believing
+  the run.**
   - **Nothing from this run has been shipped.** The three trials did not converge tightly
     (`banditPenalty` spread was 75% of its range) and the champion trades 2P strength for 4P.
     Harvesting it properly is a separate, deliberate pass.
