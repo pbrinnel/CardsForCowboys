@@ -732,14 +732,14 @@ tougher). Absolute gains are in `draw-cap-experiment.js`.
 
 | Tier | Personality | 2P / 4P win% | Character |
 |---|---|---|---|
-| **Hard** | `drifter` | 72 / 39 | Solid cow grinder, no tricks; `maxDraw 10` (upgraded) |
+| **Hard** | `drifter` | 74 / 43 | Cow grinder + denial. `maxDraw 10`; `denialBurn` turned ON July 2026 (+3.6pp 2P / +3.9pp 4P) — now the strongest bot at both counts |
 | **Hard** | `enforcer` | 74 / 43 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target |
-| **Hard** | `deputy` | 69 / 39 | Disciplined draw (low bust) + denial + competent cow buying |
-| **Hard** | `prospector` | 65 / 31 | Hard's floor; `maxDraw 10` (upgraded) |
-| **Hard** | `rancher` | 73 / 44 | Cow-optimizing grinder; the benchmark |
+| **Hard** | `deputy` | 69 / 38 | Disciplined draw (low bust) + denial + competent cow buying |
+| **Hard** | `prospector` | 64 / 31 | Hard's floor; `maxDraw 10` (upgraded) |
+| **Hard** | `rancher` | 72 / 43 | Cow-optimizing grinder; the benchmark |
 | **Medium** | `outlaw` | 44 / 13 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
-| **Medium** | `wild_bill` | 38 / 10 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
-| **Easy** | `banker` | 26 / 2 | Dollar-first, intentionally suboptimal (designed-to-lose). **No longer near the easy/medium boundary** — re-measured July 2026 at 2P 27.8 / 4P 3.7. Dollars score nothing at the Showdown, so the dollar-first genome is far weaker than the old (buggy) sim reported |
+| **Medium** | `wild_bill` | 38 / 11 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
+| **Easy** | `banker` | 25 / 2 | Dollar-first, intentionally suboptimal (designed-to-lose). **No longer near the easy/medium boundary** — re-measured July 2026 at 2P 27.8 / 4P 3.7. Dollars score nothing at the Showdown, so the dollar-first genome is far weaker than the old (buggy) sim reported |
 | **Easy** | `sheriff` | 37 / 7 | Conservative, methodical, low cowWeight |
 | **Easy** | `greenhorn` | 3 / 0 | Deliberately terrible — terrified of bandits, hoards dollars. The floor |
 

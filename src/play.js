@@ -3810,7 +3810,8 @@ const AI_PERSONALITIES = {
     dollarWeight:   0.8,
     banditPenalty:  14,   // was 2.0 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.3,
-    denialBurn:     false,
+    denialBurn:     true,  // R6: +3.6pp 2P / +3.9pp 4P (genome-sweep). Costs ~5 herd of its
+                           // own score but denies the leader — a relative-position trade.
     deckMemory:     0.65,
     lethalBias:     1.1,
     affordMult:     1.5,

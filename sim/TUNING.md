@@ -207,6 +207,32 @@ sim and real humans diverge most.
   - **Nothing from this run has been shipped.** The three trials did not converge tightly
     (`banditPenalty` spread was 75% of its range) and the champion trades 2P strength for 4P.
     Harvesting it properly is a separate, deliberate pass.
+- **Re-run #2 with the ranges actually widened (July 2026) — still NOT harvested, and here is
+  the honest reason.** The champion is strong at 4P (**55.7% vs field**, against the best shipped
+  bot's ~43%) but *weaker* at 2P (72.9% vs 74.4%), and **the three trials disagreed badly**:
+  4P-vs-anchors came out 39.3% / 36.0% / 32.0%, with spreads of 40% of range on `banditPenalty`,
+  81% on `act3CowBonus`, and 85% on both `positionWeight` and `denialWeight`. A champion picked
+  out of a non-converged run is a lucky seed, not a discovery. What the run DOES establish is
+  directional, and both directions were already harvested by single-knob sweeps that could be
+  validated at both player counts:
+  - `banditPenalty` settled at **23.96** — every trial far above the old cap of 8, independently
+    corroborating the shipped 20 (and hinting slightly higher may be better).
+  - `denialWeight` **0.85** in the champion — corroborating the drifter denial result above.
+  Before harvesting a whole genome: run more trials/generations until the spreads come down, and
+  decide explicitly whether 2P or 4P is the target, because the frontier trades them off.
+- **Denial is BOT-SPECIFIC, not universally good or worthless (measured July 2026,
+  `genome-sweep.js --param denialWeight --values 0,1` — the engine only tests `>= 0.5`, so 0-vs-1
+  IS the shippable A/B for play.js's `denialBurn` flag).** Per-bot, 2P / 4P:
+  - `drifter` **+3.6 / +3.9pp** → **SHIPPED ON.** Consistent at both counts; it is now the
+    strongest bot at both (2P 74.4%, 4P 42.9%).
+  - `prospector` −1.8 / +1.4pp and `deputy` +1.7 / −2.8pp (measured with denial OFF) → the sign
+    FLIPS between counts for both, so neither is shippable. `deputy` keeps denial ON as shipped.
+  - `enforcer` −1.2pp at 4P → correctly stays OFF.
+  **The mechanism, visible in the herd column: denial LOWERS your own herd every single time**
+  (drifter 62.6 → 57.6 at 2P) while raising win%. It buys relative position by spending a turn
+  that would otherwise have scored. That is why it helps a bot whose absolute ceiling is already
+  adequate and hurts one still building its engine — and why win% is the only metric that can
+  judge it.
 - ~~**`denialWeight → 0` for focal win-rate.**~~ **ALSO REFUTED by the same re-run** — the
   coevolved champions all want `denialWeight` ≈ **0.7–1.0**. Same root cause: when the AI is
   squandering buys on trap cards, spending a turn on denial looks worthless; once it buys well,
