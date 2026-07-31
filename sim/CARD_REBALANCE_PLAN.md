@@ -158,7 +158,36 @@ out under fair information. **3,026,064 rollouts**, 4P, pro (Hard) field, N=48 p
 Because the purchase is forced, this is immune to both R4 confounds (who bought it, and whether
 the AI judged the situation well).
 
-#### card_43 / card_51 are the only cards in the game worth LESS than nothing
+> **⚠️ RE-MEASURED under the corrected AI (July 2026). One headline claim below did NOT survive.**
+> Everything in this R5 section was first measured with the pre-fix AI. Re-running both passes
+> after the `banditPenalty` + drifter-denial changes:
+>
+> | | pre-fix AI | corrected AI |
+> |---|---|---|
+> | cow-bearing advantage | +1.08 | **+1.16** |
+> | dollar-only advantage | −0.85 | **−0.73** |
+> | Explosives advantage | −1.72 | **−1.13** |
+> | **card_43 vs burning** | **−1.59** | **+0.33** |
+> | **card_51 vs burning** | **−1.80** | **+0.18** |
+>
+> **"The only two cards worth less than nothing" is now FALSE — no live card is worse than
+> burning.** That claim was partly an artefact of the old AI *compounding* the mistake: having
+> bought 2 permanent Bandits it would go on buying more bandit-laden cards. A competent
+> continuation contains the damage, so the cards land marginally above burning.
+>
+> What survives, and is now the stronger statement: **card_43/51 are still the two worst cards in
+> the game by causal advantage (−2.34 / −2.45), and the cow/dollar gap is unchanged.** The
+> ~15pp group gap held under a materially better buyer, which is the robustness check that
+> matters for it. The four act-1 `2cow/cost5` cards remain the best in the game (+3.98 to +4.19).
+>
+> The R4 buy-rate shifts are also worth recording — they show exactly where the AI changed its
+> mind: `card_43/51` **−19pp**, `card_57` −15pp, and the bandit-negating `card_84/85` **+24/+23pp**
+> (once a Bandit is priced correctly, a card that REMOVES one is worth far more). `card_43`'s
+> *win%* fell 22.9 → 11.0 even as the AI bought it less — selection, not a change in the card:
+> with the Hard bots fixed, the remaining buyers are mostly the un-fixed Medium/Easy bots.
+
+#### card_43 / card_51 — the two worst cards in the game
+*(originally reported as "worth less than nothing" — see the correction above)*
 
 | card | print | advantage | vsBurn |
 |---|---|---|---|
