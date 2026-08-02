@@ -119,7 +119,7 @@ engine too.
 | `assets/` | Card images, card backs, symbols, photos |
 | `data/` | Card data CSV (designer reference) |
 | `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md`, `RULEBOOK_WRITING_STANDARDS.md` (compiled board-game-industry conventions for rules writing) + `RULES_PAGE_AUDIT.md` (`rules.html` scored against them — **live to-do list**, fix 1 of 10 done) |
-| `admin/` | Gitignored admin scripts (email tools) |
+| `admin/` | Firebase admin scripts (tracked; only `admin/firebase-backups/` is gitignored). All are `firebase login`–based — no database secret in any file. See the Admin Scripts section below. |
 | `test/` | Playwright tests |
 
 ---
@@ -1296,7 +1296,46 @@ firebase database:remove /traj/GAMECODE --project cards-for-cowboys
 firebase database:remove /decisionLog/GAMECODE --project cards-for-cowboys
 ```
 
-The game code appears in the URL (`?mp=GAMECODE`) and in `sessionStorage.getItem('mp_code')` in the browser console. The `gameHistory` push key can be found by dumping `/gameHistory --shallow` and identifying the entry by timestamp or by cross-referencing the game code in the entry's `code` field.
+The game code appears in the URL (`?mp=GAMECODE`) and in `sessionStorage.getItem('mp_code')` in the browser console. The `gameHistory` push key can be found by dumping `/gameHistory --shallow` and identifying the entry by timestamp or by cross-referencing the game code in the entry's **`gameCode`** field (added July 2026 — entries before then have no code and can't be matched).
+
+---
+
+## Admin Scripts (`admin/`)
+
+All are `firebase login`–based (no database secret anywhere) and take a `.sh` form plus a
+double-clickable `.command` wrapper. Run from the repo root.
+
+| Script | What it does |
+|---|---|
+| `get-bugs.sh` | Bug reports from `bugReports/`, newest first, with attached game context. |
+| `get-emails.sh` | Signups from `emailSignups/`, oldest first. Duplicates are NOT de-duped — the same address can appear twice (it has). |
+| `get-unfinished.sh` | **Games started but never completed**, last N days. `--days N` (default 7), `--mode ai\|mp`. |
+| `cleanup-games.sh` | Deletes finished/stale `games/`, `liveGames/`, `liveSummary/` nodes. `--days N` (default 14). Never touches `gameHistory` or `traj`. |
+
+### ⚠️ `liveSummary.status === 'finished'` does NOT mean the game was completed
+
+This is the trap `get-unfinished.sh` exists to work around, and it will mislead anyone reading the
+node directly. `status` is set to `'finished'` by **three** paths, only one of which is a real
+finish:
+
+1. `G.phase === 'gameover'` in the periodic push — a genuine Showdown.
+2. **`onDisconnect`** (`AI_SPEC.start`, ~play.js:1049-1050) — fires whenever the tab closes
+   mid-game. An abandoned game therefore reads `finished`.
+3. `AI_SPEC.finish()` / `MP.setLiveStatus('finished')`.
+
+**The only reliable "this game actually completed" signal is a `gameHistory` entry**, written once
+by `finalizeGame`. So: *in `liveSummary` but not in `gameHistory` ⇒ unfinished*. That is exactly
+what `get-unfinished.sh` computes. Never re-derive completion from `status`.
+
+Two further gotchas the script reports as notes rather than hiding:
+
+- **`liveSummary` is pruned at 14 days** by `cleanup-games.sh`, so a longer `--days` window
+  silently undercounts. (Confirmed: the June 6-7 bug-report games `2S5VM9`/`Z5EPD7`/`XZDCUX` are
+  already gone from `liveSummary` while still being referenced by open bug reports.)
+- **Tombstone nodes.** A `liveSummary/{code}` holding only `{status:'finished'}` — no `ts`, no
+  players — is an `onDisconnect` write that landed *after* `cleanup-games.sh` deleted the real
+  node. Harmless (the Live Now list filters on `ts`) but they accumulate; `cleanup-games.sh`
+  clears them. The script skips and counts them rather than reporting them as games.
 
 ---
 
