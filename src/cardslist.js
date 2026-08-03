@@ -27,11 +27,26 @@ function cardsFor(act, cacti) {
   const pool = act === 0
     ? STARTER_TEMPLATES
     : STORE_CARDS.filter(c => !c.deprecated && c.act === act);
-  return pool
-    .filter(c => c.cacti === cacti)
-    // Cheapest first, then by card number — a stable, scannable order. Starters have no cost,
-    // so they fall through to the number sort.
-    .sort((a, b) => (a.cost || 0) - (b.cost || 0) || cardNum(a) - cardNum(b));
+  return pool.filter(c => c.cacti === cacti).sort(byPrintedFace);
+}
+
+// Sort on what is PRINTED on the card, with the id only as a last-resort tiebreak. Several cards
+// share a face (card_70 / 77 / 78 are all the same $2 Explosive), and sorting by cost-then-id
+// scattered those duplicates through the column — Act 1 River read $2 Explosive, $1, $2 Explosive,
+// $2 Explosive. Because every field of the face is compared before the id, cards with the same
+// face necessarily sort adjacent, so each one reads as a run of copies rather than a coincidence.
+//
+// Cost leads because affording a card is the first question you ask of the Store. Inside a cost
+// tier it is best-first on each stat in turn: most Cows (the win condition), then most $, then
+// fewest Bandits (so Jail's -1 leads), then plain cards ahead of Explosives and Draw 4s.
+// Starters have no cost and fall straight through to the face comparison.
+function byPrintedFace(a, b) {
+  return (a.cost || 0) - (b.cost || 0)
+    || (b.cows || 0) - (a.cows || 0)
+    || (b.dollars || 0) - (a.dollars || 0)
+    || (a.bandits || 0) - (b.bandits || 0)
+    || String(a.special || '').localeCompare(String(b.special || ''))
+    || cardNum(a) - cardNum(b);
 }
 
 function cardNum(c) {
