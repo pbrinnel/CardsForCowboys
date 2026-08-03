@@ -690,7 +690,7 @@ body {
   animation: dustPuff 0.65s ease-out forwards;
 }
 
-/* --- Herd standings: the top herd's FIGURE goes amber, "−4" gap on everyone else ---
+/* --- Herd standings: the largest herd's FIGURE goes amber ---
    Deliberately static. The draw crown pops (crownPop) because it flips on every
    card drawn; the herd standing changes at most once per round, and giving both
    the same motion would make them read as one signal. No badge, no ring — the
@@ -698,8 +698,9 @@ body {
 
    Overrides --herd-color (the green magnitude ramp) rather than adding a channel:
    the leader is by definition the largest herd, so the tier SIZE still carries the
-   magnitude and only the hue is spent. Not hue-only overall — the leader is also
-   the one player with no "−n" beside them.
+   magnitude and only the hue is spent. The weight bump (700→900) is the one
+   non-colour channel; a "−n" gap on the other players used to be a second, but it
+   was cut as clutter, so do not lean on colour alone getting any weaker.
 
    PROVISIONAL COLOUR. A bright gold (#c9a227, matching the crown) measures 1.8:1
    on the tan zone and a goldenrod 2.5:1 — yellow simply cannot be both bright and
@@ -716,19 +717,6 @@ body {
      transitioning (tier changes still animate); drop colour and text-shadow. */
   transition: font-size 0.4s ease;
 }
-
-/* Muted, but this is information, not decoration — 0.7 alpha keeps it ~5:1 on
-   the tan zone background. Do not fade it further for the sake of "subtle". */
-.herd-gap {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: rgba(30,22,16,0.7);
-  letter-spacing: 0;
-  line-height: 1;
-  margin-left: 0.22rem;
-  white-space: nowrap;
-}
-.herd-gap:empty { display: none; }
 
 .round-stats {
   display: flex;

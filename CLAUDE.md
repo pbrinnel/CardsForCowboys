@@ -357,8 +357,8 @@ renderCardEl(card, faceUp)  ~1283
 getDrawLeaders()            ~1647 — 👑 buy-first race (volatile, per-draw); used by turn order bar
 getHerdLeaders()            ~1722 — largest-herd standing. Returns [] under Hidden Herd, at all-zero
                                     (round 1), and on a dead level; ties return every tied player.
-updateHerdStandings()       ~1742 — top herd's FIGURE turns gold (`.herd-top`) + muted "−4" gap on
-                                    everyone else. Trap: `.herd-number` transitions `color` over
+updateHerdStandings()       ~1742 — largest herd's FIGURE turns amber (`.herd-top`); nothing is
+                                    drawn on anyone else. Trap: `.herd-number` transitions `color` over
                                     0.4s for the green magnitude ramp, and that transition SWALLOWS
                                     any colour override — the computed value stays parked on the
                                     tier green with no error. Any future `.herd-number` colour state
