@@ -1715,6 +1715,47 @@ function updateTurnOrderBar() {
   bar.classList.toggle('hidden', G.numPlayers <= 1);
 }
 
+// Returns indices of the players with the largest herd, or [] when there is no
+// meaningful standing to show. Unlike getDrawLeaders (which tracks a volatile
+// per-round race), this only changes at scoring, so it is rendered quietly.
+// Ties show every tied player, mirroring the draw crown.
+function getHerdLeaders() {
+  if (!G || !G.players) return [];
+  // Hidden Herd conceals opponents' totals — a "who's ahead" marker would leak
+  // exactly that. Suppress for everyone (marking only yourself still reveals
+  // whether you lead). Reveal condition matches renderPlayerZone's concealHerd.
+  if (G.hiddenHerdMode && G.phase !== 'showdown') return [];
+
+  const herds = G.players.map(p => p.herd || 0);
+  const best  = Math.max(...herds);
+  if (best <= 0) return [];                       // round 1: everyone still on 0
+
+  const leaders = [];
+  herds.forEach((h, i) => { if (h === best) leaders.push(i); });
+  if (leaders.length === herds.length) return []; // dead level — nobody leads
+  return leaders;
+}
+
+// Top herd's figure turns amber (.herd-top), muted gap ("−4") on everyone else.
+// Deliberately static: the draw crown pops because it flips constantly, this
+// changes at most once per round, and animating both would make them read as
+// the same signal.
+function updateHerdStandings() {
+  const leaders = getHerdLeaders();
+  const best    = leaders.length ? G.players[leaders[0]].herd : 0;
+
+  for (let i = 0; i < G.numPlayers; i++) {
+    const prefix = i === 0 ? 'player' : 'opp-' + i;
+    const wrapEl = document.getElementById(prefix + '-herd-wrap');
+    const gapEl  = document.getElementById(prefix + '-herd-gap');
+    const isTop  = leaders.includes(i);
+    const gap    = leaders.length && !isTop ? best - (G.players[i].herd || 0) : 0;
+
+    if (wrapEl) wrapEl.classList.toggle('herd-top', isTop);
+    if (gapEl)  gapEl.textContent = gap > 0 ? '−' + gap : '';
+  }
+}
+
 function updateZoneStates() {
   const leaders = getDrawLeaders();
   const activeBuyerPlayerIdx =
@@ -1825,6 +1866,9 @@ function render() {
 
   // Zone state indicators (crown, bust, active buyer)
   updateZoneStates();
+
+  // Herd standings (top-herd highlight + gap-to-leader)
+  updateHerdStandings();
 
   // Turn order bar
   updateTurnOrderBar();
@@ -5775,8 +5819,9 @@ function ensureOpponentZone(i, container) {
         '</span>' +
         '<span class="herd-display">' +
           '<span>Herd</span>' +
-          '<span class="herd-number-wrap">' +
+          '<span class="herd-number-wrap" id="' + prefix + '-herd-wrap">' +
             '<strong id="' + prefix + '-herd" class="herd-number">0</strong>' +
+            '<span class="herd-gap" id="' + prefix + '-herd-gap"></span>' +
             '<span class="herd-dust" id="' + prefix + '-herd-dust"></span>' +
           '</span>' +
         '</span>' +

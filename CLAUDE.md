@@ -354,9 +354,17 @@ addLog(text, className)     ~1267
 ```
 cardImgSrc(card, faceUp)    ~1276
 renderCardEl(card, faceUp)  ~1283
-getDrawLeaders()            ~1303 — used by turn order bar
+getDrawLeaders()            ~1647 — 👑 buy-first race (volatile, per-draw); used by turn order bar
+getHerdLeaders()            ~1722 — largest-herd standing. Returns [] under Hidden Herd, at all-zero
+                                    (round 1), and on a dead level; ties return every tied player.
+updateHerdStandings()       ~1742 — top herd's FIGURE turns gold (`.herd-top`) + muted "−4" gap on
+                                    everyone else. Trap: `.herd-number` transitions `color` over
+                                    0.4s for the green magnitude ramp, and that transition SWALLOWS
+                                    any colour override — the computed value stays parked on the
+                                    tier green with no error. Any future `.herd-number` colour state
+                                    must also override `transition`.
 updateTurnOrderBar()        ~1339
-updateZoneStates()          ~1374 — greys out zones, manages pointer-events
+updateZoneStates()          ~1758 — greys out zones, manages pointer-events
 render()                    ~1403 — full DOM refresh; does NOT clear opp zones. Renders opponents in SEAT order (derived from G.seatOrder, same as updateTurnOrderBar) and sets each opp zone's inline CSS `order` to its seat position — so the right-hand rail matches the top turn-order bar. (Raw G.players index order is slot-claim order, NOT seat order; iterating 1..n directly mismatched the bar.)
 renderPlayerZone(player)    ~1482 — opponents fan their hand via layoutOpponentFan (local player hand untouched)
 layoutOpponentFan(handEl)   ~4659 — flat overlapping "fan" for an OPP hand: spreads across up to 3 rows (oldest top-left→newest bottom-right); rows added before any overlap, overlap tightens as count grows; newest card on top; no scrollbar. Measures handEl.clientWidth (works while collapsed); on a 0 read (pre-layout) borrows parent width and clamps W to ≥ cardW — NEVER a fixed 240px fallback (that overflowed the narrow 5-8P grid cells and overflow:hidden clipped the whole hand away). Card size must match `.opp-zone .hand .card` in play.css (52×73). 5-8P note: `.opp-grid .opp-zone .hand-row` stacks (deck-preview ON TOP of the fan) so the fan claims the full ~90px cell width instead of a ~2px sliver beside the 60px deck-preview; `.collapsible:not(.collapsed)` max-height bumped to 410px for the taller stacked layout (the `:not` keeps the `.collapsed{max-height:0}` collapse working).
@@ -696,7 +704,7 @@ width derives from `numPlayers`. If a future mode changes the Store width again 
 in `reconstructG` before the first render — the rebuilt rows are already that width, and a mismatch
 misaligns the brick offset and breaks `isCardCovered` on rejoin.
 
-**Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1626) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
+**Hidden Herd** specifically: when `G.hiddenHerdMode`, opponents' herd totals are concealed UI-side. `renderPlayerZone` (~1883) shows `?` for `prefix !== 'player'` until `G.phase === 'showdown'`; `scoreRound` (~4245) suppresses the opponent herd-bump animation and redacts the running total from the log (shows only cows-this-round). **`getHerdLeaders` returns `[]` under the mode for EVERY player, not just opponents** — marking only your own zone would still leak whether you lead, which is the fact the mode conceals. Any future "who's ahead" affordance needs the same all-or-nothing treatment. It is **UI-only concealment** — the real herd still syncs to Firebase `spectatorState`/`liveSummary` (needed for the showdown reveal and rejoin reconstruction), so spectators and a Firebase-savvy player can still read it. AI decision logic reads real opponent herd locally (unchanged; unavoidable since all clients run AI locally).
 
 ---
 

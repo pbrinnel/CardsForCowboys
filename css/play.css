@@ -690,6 +690,46 @@ body {
   animation: dustPuff 0.65s ease-out forwards;
 }
 
+/* --- Herd standings: the top herd's FIGURE goes amber, "−4" gap on everyone else ---
+   Deliberately static. The draw crown pops (crownPop) because it flips on every
+   card drawn; the herd standing changes at most once per round, and giving both
+   the same motion would make them read as one signal. No badge, no ring — the
+   number itself changes, so it never competes with the crown for the name slot.
+
+   Overrides --herd-color (the green magnitude ramp) rather than adding a channel:
+   the leader is by definition the largest herd, so the tier SIZE still carries the
+   magnitude and only the hue is spent. Not hue-only overall — the leader is also
+   the one player with no "−n" beside them.
+
+   PROVISIONAL COLOUR. A bright gold (#c9a227, matching the crown) measures 1.8:1
+   on the tan zone and a goldenrod 2.5:1 — yellow simply cannot be both bright and
+   legible on this background. #a05000 is the most chromatic option that still
+   beats the green ramp's own 4.07:1, so it reads as burnt amber rather than the
+   olive-gold first tried. Revisit alongside the '$'-for-buy-first swap. */
+.herd-number-wrap.herd-top .herd-number {
+  color: #a05000;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(201,162,39,0.45), 0 1px 1px rgba(30,22,16,0.25);
+  /* .herd-number transitions color/text-shadow over 0.4s for the green magnitude
+     ramp. That transition swallows this override — the computed colour stays
+     parked on the tier green — so the lead swap must be instant. Keep font-size
+     transitioning (tier changes still animate); drop colour and text-shadow. */
+  transition: font-size 0.4s ease;
+}
+
+/* Muted, but this is information, not decoration — 0.7 alpha keeps it ~5:1 on
+   the tan zone background. Do not fade it further for the sake of "subtle". */
+.herd-gap {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(30,22,16,0.7);
+  letter-spacing: 0;
+  line-height: 1;
+  margin-left: 0.22rem;
+  white-space: nowrap;
+}
+.herd-gap:empty { display: none; }
+
 .round-stats {
   display: flex;
   justify-content: space-around;
