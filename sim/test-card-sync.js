@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // sim/test-card-sync.js — guards the OTHER drift that silently rots card-balance work:
-// sim/game-core.js's card DB (what the sim deals) vs src/play.js's (what ships).
+// sim/game-core.js's card DB (what the sim deals) vs src/card-db.js's (what ships).
 //
 // Why this exists: through the July 2026 single-Store rework, card_84 / card_85 were reworked
 // live (`-1 cow` → `0 cow` + `draw4`) and the sim was never updated. Nothing failed; every
@@ -14,18 +14,20 @@ const fs = require('fs');
 const path = require('path');
 const core = require('./game-core');
 
-const PLAY = path.join(__dirname, '..', 'src', 'play.js');
+// The shipped card DB. Lived in src/play.js until August 2026, when it moved to src/card-db.js
+// so cardslist.html could share it — this guard follows the data, not the file it used to be in.
+const PLAY = path.join(__dirname, '..', 'src', 'card-db.js');
 
 // Stat fields that must match exactly. `img` is play.js-only (the sim is headless) and is
 // deliberately NOT compared. `minPlayers` is retired and must appear in neither DB.
 const STORE_FIELDS   = ['act', 'dollars', 'cows', 'bandits', 'cost', 'cacti', 'special', 'deprecated'];
 const STARTER_FIELDS = ['dollars', 'cows', 'bandits', 'cacti', 'count'];
 
-// Extract an array literal from play.js by bracket-matching (line comments stripped first —
+// Extract an array literal from card-db.js by bracket-matching (line comments stripped first —
 // both card arrays carry `// --- ACT n ---` section headers).
 function extractArray(src, decl) {
   const at = src.indexOf(decl);
-  if (at < 0) { console.error(`FAIL: could not find ${decl} in play.js`); process.exit(1); }
+  if (at < 0) { console.error(`FAIL: could not find ${decl} in src/card-db.js`); process.exit(1); }
   const from = src.indexOf('[', at);
   const noComments = src.slice(from).replace(/\/\/[^\n]*/g, '');
   let depth = 0, end = -1;
@@ -50,17 +52,17 @@ function diffSet(label, liveArr, simArr, fields) {
   const simById  = new Map(simArr.map(c => [c.id, c]));
 
   for (const id of liveById.keys()) {
-    if (!simById.has(id)) errors.push(`${label} ${id}: in play.js, MISSING from game-core.js`);
+    if (!simById.has(id)) errors.push(`${label} ${id}: in card-db.js, MISSING from game-core.js`);
   }
   for (const id of simById.keys()) {
-    if (!liveById.has(id)) errors.push(`${label} ${id}: in game-core.js, MISSING from play.js`);
+    if (!liveById.has(id)) errors.push(`${label} ${id}: in game-core.js, MISSING from card-db.js`);
   }
   for (const [id, live] of liveById) {
     const sim = simById.get(id);
     if (!sim) continue;
     for (const f of fields) {
       const a = norm(live[f], f), b = norm(sim[f], f);
-      if (a !== b) errors.push(`${label} ${id}.${f}: play.js=${a} vs game-core.js=${b}`);
+      if (a !== b) errors.push(`${label} ${id}.${f}: card-db.js=${a} vs game-core.js=${b}`);
     }
     if ('minPlayers' in live || 'minPlayers' in sim) {
       errors.push(`${label} ${id}: retired field \`minPlayers\` is still present`);
@@ -91,12 +93,12 @@ function main() {
   if (errors.length) {
     console.error(`✗ card sync FAILED (${errors.length}):`);
     errors.forEach(e => console.error('  ' + e));
-    console.error('\nFix: regenerate sim/game-core.js\'s STORE_CARDS from src/play.js (mechanically —');
-    console.error('do not hand-edit), or correct play.js if the sim is the one that is right.');
+    console.error('\nFix: regenerate sim/game-core.js\'s STORE_CARDS from src/card-db.js (mechanically —');
+    console.error('do not hand-edit), or correct card-db.js if the sim is the one that is right.');
     process.exit(1);
   }
   console.log(`✓ card sync OK — ${core.STORE_CARDS.length} store cards (${live.length} live, 18/act) ` +
-    `+ ${core.STARTER_TEMPLATES.length} starters match play.js.`);
+    `+ ${core.STARTER_TEMPLATES.length} starters match card-db.js.`);
 }
 
 main();

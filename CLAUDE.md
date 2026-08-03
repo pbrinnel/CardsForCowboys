@@ -24,6 +24,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `gamesetup.html` | **The "Table" screen.** Two states: (A) config — name, player count, per-seat AI/Human + difficulty, modes; (B) inline **host waiting room** (code, share, live slot list, Cancel). The game cannot start until every Human seat has joined (no "fill with AI" shortcut). Solo/all-AI games go straight to playgame; any Human seat creates the game in-place (via `src/host.js`) and shows state B. The former separate `creategame.html` page was merged in here (June 2026) — no more redundant second name prompt. |
 | `lobby.html` | **The "Join" screen** (online matchmaking). Name + code entry, invite-link mode (`?join=CODE`), rejoin (`?rejoin=CODE`), and the guest waiting room. |
 | `rules.html` | Standalone rules page. Audited July 2026 against `docs/RULEBOOK_WRITING_STANDARDS.md` — scorecard + remaining to-do list in `docs/RULES_PAGE_AUDIT.md`. Section `id`s + the `.rules-toc` contents panel are load-bearing: the panel is a `<nav>`, so it must keep its explicit `display`/`gap` resets or `css/style.css`'s bare `nav`/`nav ul` header rules turn it into a flex row. Store act bands are colour-blind-safe by **lightness + hatch angle**, never hue (blue/yellow/red are the suit colours) — see the comment block in `css/rules-page.css`. |
+| `cardslist.html` | **Public Cards List** (Aug 2026). Every card in the game — 10 starters + 54 live Store cards — as the in-game My Deck matrix widened to a page: rows are Acts (Starters first), columns are the three suits. Linked from the `.rules-footer` button on `rules.html`. Rendered by `src/cardslist.js` from `src/card-db.js`, so it is structurally incapable of listing a card the game doesn't deal. `deprecated: true` cards are excluded. Below 760px the matrix stacks (Act block → labelled full-width suit strips) via `.cl-col`'s `data-suit` — three side-by-side columns leave ~1 card of width each on a phone. |
 | `spectate.html` | Spectator view (reads `liveGames/` path) |
 | `history.html` | Game history + leaderboard; "Live Now" list reads the slim `liveSummary/` node |
 | `aboutthecreators.html` | About page |
@@ -56,7 +57,9 @@ and a `window.location` button do not. Rules for a new page:
 ### `src/` — App JavaScript
 | File | Purpose |
 |------|---------|
-| `src/play.js` | Entire game engine — MP layer (IIFE, top), card DB, game state, rendering, flow |
+| `src/play.js` | Entire game engine — MP layer (IIFE, top), game state, rendering, flow. **No longer holds the card DB** (see `src/card-db.js`). |
+| `src/card-db.js` | **THE shipped card database** — `CARD_IMG_PATH` / `BACK_IMG_PATH` / `CACTI_BACK` / `STARTER_TEMPLATES` / `STORE_CARDS` / `CARD_DB`. Classic script, loaded BEFORE `src/play.js` (playgame.html) and before `src/cardslist.js` (cardslist.html); top-level `const` in a classic script is shared global lexical scope, so both just reference the names. Split out of play.js in Aug 2026 so the Cards List page could render the real card set without loading the 6k-line engine. `getCardById` / `getActPool` stayed in play.js — they need `G` and `createCardInstance`. **`node sim/test-card-sync.js` reads THIS file** (not play.js) when checking the sim's copy for drift. |
+| `src/cardslist.js` | Renders `cardslist.html` from `src/card-db.js` — the Act×suit matrix plus the card-zoom overlay. Filters `deprecated`, sorts each cell by cost then card number. |
 | `src/tutorial.js` | Tutorial mode hooks (loaded before play.js) |
 | `src/lobby.js` | Join (guest) flow for lobby.html; sets `sessionStorage` keys for play.js. Atomic slot claim via `runTransaction`. |
 | `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js / host.js as ESM module |
@@ -69,6 +72,7 @@ and a `window.location` button do not. Rules for a new page:
 | `css/play.css` | Game UI styles |
 | `css/style.css` | Shared/general styles |
 | `css/rules-page.css` | Rules page styles |
+| `css/cards-list.css` | Cards List page styles (the Act×suit matrix, the zoom overlay, the ≤760px stacked reflow) |
 | `css/theme.css` | Theme variables / font imports |
 | `css/a11y.css` | Shared accessibility baseline (`:focus-visible` outline + `prefers-reduced-motion` collapse) — linked by ALL pages (July 2026 audit A1/A2). Add the link to any new page. |
 
@@ -95,7 +99,7 @@ tuning & validating the AI. The AI-tuning files share ONE deterministic engine +
 | `sim/simulate.js` | VALIDATES current bots: pairwise win matrix + per-card balance table (win% when owned). Replaces the retired RISK_PROFILES sim. |
 | `sim/draw-cap-experiment.js` | Focused single-knob A/B (sweeps `maxDraw` per bot). Copy as a template for one-parameter experiments. |
 | `sim/test-personality-sync.js` | Guard: fails if `personalities.js` drifts from play.js `AI_PERSONALITIES`. Run after any personality edit. |
-| `sim/test-card-sync.js` | Guard: fails if `game-core.js`'s card DB drifts from play.js `STORE_CARDS`/`STARTER_TEMPLATES` (stats + `deprecated` + 18-live-per-act). Run after any card edit on either side. Exists because card_84/85 rotted unnoticed through the July 2026 rework. Never hand-edit the sim card array — regenerate it from play.js. |
+| `sim/test-card-sync.js` | Guard: fails if `game-core.js`'s card DB drifts from **`src/card-db.js`**'s `STORE_CARDS`/`STARTER_TEMPLATES` (stats + `deprecated` + 18-live-per-act). Run after any card edit on either side. Exists because card_84/85 rotted unnoticed through the July 2026 rework. Never hand-edit the sim card array — regenerate it from card-db.js. (Read play.js until Aug 2026, when the card DB moved out of it.) |
 | `sim/CARD_REBALANCE_PLAN.md` | **Post-rework card power re-ranking plan + RESULTS (§0).** R1-R5 done (July 2026). Holds the measured 4P card table, the causal (forced-buy) card values, and the re-measured tier bands. **⚠️ R6 decision: NO CARD CHANGES** — card stats/costs/acts are frozen (every one is printed art; the Act is the cowboy-hat symbol bottom-right). Balance flags are findings only; **AI scoring is the sole remaining balance lever.** Do not re-propose card edits. |
 | `sim/store-sanity.js` | R2 structural gate: rounds/game, buy-vs-burn share, per-row availability timing, bust rates, + hard assertions (row/width/total per count, act tiers exact, no deprecated card dealt, Store always fully consumed). Run after ANY Store-geometry change. |
 | `sim/card-flags.js` | R4 analysis: turns a `cardbalance_*.csv` into a ranked rebalance shortlist. Three views (same-cost cohorts / herd-equivalent pricing / pre-registered residual rule) + buy-vs-win divergence, which separates a mispriced CARD from a misjudging AI. Collapses the 17 duplicate stat-lines. |
@@ -161,17 +165,28 @@ watchForDisband()           ~665  — watches for status='disbanded' (or null fo
 claimBuyFirst(act, round)   ~690  — 5-8P once-per-round priority claim (callers MUST pass G.currentAct/G.roundNumber — audit C2)
 ```
 
-### Card Database (lines ~752–900)
+### Card Database — **`src/card-db.js`, NOT play.js** (moved Aug 2026)
 ```
-STARTERS array                    — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
+STARTER_TEMPLATES array           — IDs 91-94 (River), 61-64 (Rattlesnake), 33-34 (Cactus)
 STORE_CARDS array                 — 84 entries: 54 LIVE (exactly 18 per act) + 30 `deprecated: true`.
                                     Deprecated cards are KEPT so getCardById resolves them for
                                     pre-gameV-3 spectate/rejoin/review; they can never be dealt.
                                     The old `minPlayers` (3+P / 4+P) tier is GONE.
+CARD_DB                           — id → template lookup, built from both arrays
+CARD_IMG_PATH/BACK_IMG_PATH/CACTI_BACK — art paths. `cacti` is NOT cosmetic: CACTI_BACK keys the
+                                    face-DOWN back image off it, so a wrong `cacti` renders the
+                                    wrong-coloured back behind a card (the card_84/85 River→Cactus
+                                    fix, Aug 2026).
+```
+Still in **play.js** (they need `G` / `createCardInstance`):
+```
 getCardById(id)                   — resolves live AND deprecated cards
 getActPool(act)                   — filters `act === act && !deprecated` (18 cards); for
                                     numPlayers>=5 returns that pool DOUBLED (36, second deck)
 ```
+**After ANY card edit run `node sim/test-card-sync.js`** — it now reads `src/card-db.js` and fails
+if `sim/game-core.js` drifts. Both files must be edited together, and the sim's array is
+regenerated from card-db.js, never hand-edited.
 
 ### Utilities (lines ~901–975)
 ```

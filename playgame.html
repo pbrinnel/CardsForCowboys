@@ -409,6 +409,9 @@
   <!-- Shared with spectate.html — classic script/global, same idiom as tiebreaker.js -->
   <script src="src/herd-chart.js"></script>
   <script src="src/tutorial.js"></script>
+  <!-- Card database. MUST load before play.js — play.js references STORE_CARDS /
+       STARTER_TEMPLATES / CARD_DB / CARD_IMG_PATH at top level. Shared with cardslist.html. -->
+  <script src="src/card-db.js"></script>
   <script src="src/play.js"></script>
 
   <script>

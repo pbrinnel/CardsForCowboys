@@ -79,8 +79,6 @@ const STORE_CARDS = [
   // River (Blue) – 1 cacti
   { id: 'card_72',   act: 3, dollars:  0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
   { id: 'card_73',   act: 3, dollars:  4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
-  { id: 'card_84',   act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 1, special: 'draw4' },
-  { id: 'card_85',   act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 1, special: 'draw4' },
   { id: 'card_86',   act: 3, dollars:  3, cows:  0, bandits:  0, cost:  6, cacti: 1, special: null },
   { id: 'card_88',   act: 3, dollars:  0, cows:  3, bandits:  0, cost:  7, cacti: 1, special: null },
   { id: 'card_89',   act: 3, dollars:  4, cows:  0, bandits:  0, cost:  8, cacti: 1, special: null },
@@ -97,6 +95,8 @@ const STORE_CARDS = [
   { id: 'card_29',   act: 3, dollars:  0, cows:  3, bandits:  0, cost:  6, cacti: 2, special: null },
   { id: 'card_30',   act: 3, dollars:  0, cows:  4, bandits:  1, cost:  7, cacti: 2, special: null },
   { id: 'card_32',   act: 3, dollars:  0, cows:  4, bandits:  0, cost:  9, cacti: 2, special: null },
+  { id: 'card_84',   act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 2, special: 'draw4' },
+  { id: 'card_85',   act: 3, dollars:  0, cows:  0, bandits: -1, cost:  5, cacti: 2, special: 'draw4' },
 
   // --- DEPRECATED (never dealt; retained so historical ids still resolve) ---
   // was Act 1

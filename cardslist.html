@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cards List — Every Card in Cards For Cowboys</title>
+  <meta name="description" content="Every card in Cards For Cowboys: the 10-card starter deck plus all 54 Store cards, grouped by Act and by suit.">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cards-list.css">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6VXL9NJ6KJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-6VXL9NJ6KJ');
+  </script>
+  <link rel="stylesheet" href="css/a11y.css">
+</head>
+<body>
+
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Cards For Cowboys</a>
+      <ul>
+        <li><a href="gamesetup.html">Play Digital Version</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="rules.html">Rules</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="cl-page">
+    <h1>Cards List</h1>
+    <p class="cl-lede">Every card in the game &mdash; the 10-card starter deck plus all 54 Store
+      cards. Rows are Acts, columns are the three suits. Tap any card to see it full size, and
+      see <a href="rules.html#symbols">Reading the Cards</a> for what the symbols mean.</p>
+
+    <!-- Built by src/cardslist.js from src/card-db.js — the same card data the game deals. -->
+    <div id="cards-list" class="cl-matrix"></div>
+
+    <p class="cl-note">Each Store card is unique at 2&ndash;4 players. At 5&ndash;8 players you
+      shuffle <strong>two</strong> copies of each Act deck together.</p>
+
+    <div class="cl-footer">
+      <a href="rules.html" class="btn btn-secondary">Back to Rules</a>
+      <a href="gamesetup.html" class="btn">Play Digital Version</a>
+    </div>
+  </main>
+
+  <!-- Card zoom. Clicking anywhere on the backdrop closes it; Escape is wired in cardslist.js. -->
+  <div id="cl-zoom" class="cl-zoom hidden" onclick="closeZoom()" role="dialog" aria-modal="true" aria-label="Card zoom">
+    <!-- No src= here on purpose: an empty src resolves to the page URL and fires a wasted
+         request for the HTML document. openZoom() sets it before the overlay is shown. -->
+    <img id="cl-zoom-img" alt="">
+    <p id="cl-zoom-cap" class="cl-zoom-cap"></p>
+    <button id="cl-zoom-close" type="button" class="cl-zoom-close">Close</button>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 Cards For Cowboys. All rights reserved.</p>
+    <p><a href="bugreport.html" class="footer-link">Report a Bug</a> &nbsp;&bull;&nbsp; <a href="privacy.html" class="footer-link">Privacy</a></p>
+  </footer>
+
+  <!-- Card database first — cardslist.js reads STORE_CARDS / STARTER_TEMPLATES / CARD_IMG_PATH
+       from it at top level. Same load order as playgame.html. -->
+  <script src="src/card-db.js"></script>
+  <script src="src/cardslist.js"></script>
+
+</body>
+</html>

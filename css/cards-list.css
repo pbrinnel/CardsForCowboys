@@ -1,0 +1,228 @@
+/* ── Cards List page (cardslist.html) ──
+   The in-game "My Deck" matrix widened to a full page: rows are Acts, columns are the three
+   suits. Rendered by src/cardslist.js from src/card-db.js. */
+
+.cl-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.cl-page h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-size: 2.2rem;
+  color: #1e1610;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.cl-lede {
+  text-align: center;
+  color: #3a2a1a;
+  max-width: 62ch;
+  margin: 0 auto 1.75rem;
+  font-size: 0.95rem;
+}
+.cl-lede a { color: #8a5a22; font-weight: bold; }
+
+/* ── The matrix ── */
+.cl-matrix {
+  border: 2.5px solid #1e1610;
+  background: #f4ecd8;
+  box-shadow: 4px 4px 0 #1e1610;
+}
+
+/* Sticky so the suit a column belongs to survives scrolling past two Acts. The site header is
+   not fixed, so top:0 is correct — nothing else can overlap it. */
+.cl-head {
+  display: flex;
+  background: #1e1610;
+  border-bottom: 2.5px solid #1e1610;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.cl-head .cl-rowlabel { border-right-color: rgba(184,120,56,0.5); }
+
+.cl-suithead {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  color: #e9e0c6;
+  font: bold 0.85rem Georgia, 'Times New Roman', serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+/* The suit glyphs are dark line art on transparent — knock them to solid cream for the dark bar. */
+.cl-suithead img { width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
+
+.cl-row { display: flex; border-bottom: 1.5px solid #b87838; }
+.cl-row:last-child { border-bottom: 0; }
+
+/* Row tints are LIGHTNESS steps inside the brown family, never hue — same rule as the Store act
+   bands in css/rules-page.css. Blue / yellow / red are the three suit colours, so tinting an Act
+   row any of them would read as "this Act is that suit". Every row is also labelled in text, so
+   the tint is decoration, not the signal. */
+.cl-row.act-1 { background: rgba(193,148,100,0.14); }
+.cl-row.act-2 { background: rgba(125,86,54,0.14); }
+.cl-row.act-3 { background: rgba(36,22,16,0.10); }
+
+.cl-rowlabel {
+  /* Wide enough for the three-hat Act 3 strip at a legible size — see .cl-hat. */
+  width: 132px;
+  flex-shrink: 0;
+  padding: 0.75rem 0.6rem;
+  border-right: 1.5px solid #b87838;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.cl-rowlabel strong { font-family: 'Playfair Display', Georgia, serif; font-size: 1.05rem; color: #1e1610; }
+.cl-rowlabel span { font-size: 0.7rem; color: #8a5a22; line-height: 1.35; }
+/* The Act hat art is a WIDE strip (397x77 — one, two or three hats side by side), not a square
+   glyph. Size it by HEIGHT and let width follow, or a square box with object-fit:contain squashes
+   it to a 5px-tall sliver that reads as "the icon is missing". */
+.cl-hat { height: 18px; width: auto; display: block; margin-bottom: 0.3rem; }
+
+.cl-suits { display: flex; flex: 1; min-width: 0; }
+
+.cl-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.75rem 0.6rem;
+  align-content: flex-start;
+  border-right: 1px dashed #c9a97a;
+}
+.cl-col:last-child { border-right: 0; }
+
+.cl-none { font-size: 0.75rem; font-style: italic; color: #8a7a62; margin: 0; }
+
+.cl-card {
+  padding: 0;
+  border: 2px solid #1e1610;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 #1e1610;
+  background: #e9e0c6;
+  cursor: zoom-in;
+  display: block;
+  line-height: 0;
+  transition: transform 0.07s, box-shadow 0.07s;
+}
+.cl-card img { width: 82px; height: 115px; display: block; border-radius: 2px; }
+.cl-card:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #1e1610; }
+
+.cl-note {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #3a2a1a;
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
+/* ── Footer CTA ── */
+.cl-footer {
+  text-align: center;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 2.5px solid #b87838;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Zoom overlay ── */
+.cl-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 10, 6, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  cursor: zoom-out;
+}
+.cl-zoom.hidden { display: none; }
+.cl-zoom img {
+  max-width: min(92vw, 420px);
+  /* vh first as the fallback, then svh — a bare vh on mobile is pinned to the LARGE viewport and
+     makes the page taller than the visible area (see bug #20 in CLAUDE.md). */
+  max-height: 74vh;
+  max-height: 74svh;
+  border: 3px solid #1e1610;
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 #1e1610;
+}
+.cl-zoom-cap {
+  color: #e9e0c6;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 40ch;
+  margin: 0;
+}
+.cl-zoom-close {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.9rem;
+  padding: 0.4rem 1.2rem;
+  background: #e9e0c6;
+  color: #1e1610;
+  border: 2.5px solid #1e1610;
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+}
+
+/* ── Narrow ──
+   Below 760px three side-by-side columns leave roughly one card of usable width each, which
+   turns Act 2's 11 Rattlesnakes into an 11-card-tall column beside two near-empty ones. Stack
+   instead: each Act becomes a block and each suit a full-width strip with its own heading
+   (the sticky column header is gone at this size, so the heading has to come back somewhere). */
+@media (max-width: 760px) {
+  .cl-page { padding: 1.5rem 1rem 2.5rem; }
+  .cl-page h1 { font-size: 1.8rem; }
+
+  .cl-head { display: none; }
+  .cl-matrix { box-shadow: 3px 3px 0 #1e1610; }
+
+  .cl-row { display: block; }
+  .cl-rowlabel {
+    width: auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+    border-right: 0;
+    border-bottom: 1.5px solid #b87838;
+    background: rgba(30, 22, 16, 0.06);
+  }
+  .cl-hat { height: 13px; width: auto; margin: 0; align-self: center; }
+
+  .cl-suits { display: block; }
+  .cl-col { border-right: 0; padding: 0.6rem 0.75rem 0.9rem; }
+  .cl-col::before {
+    content: attr(data-suit) " — " attr(data-suit-note);
+    flex-basis: 100%;
+    font: bold 0.75rem Georgia, 'Times New Roman', serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8a5a22;
+    border-bottom: 1px dashed #c9a97a;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .cl-page { padding: 1rem 0.75rem 2rem; }
+  .cl-card img { width: 72px; height: 101px; }
+}
