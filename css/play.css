@@ -702,11 +702,11 @@ body {
    non-colour channel; a "−n" gap on the other players used to be a second, but it
    was cut as clutter, so do not lean on colour alone getting any weaker.
 
-   PROVISIONAL COLOUR. A bright gold (#c9a227, matching the crown) measures 1.8:1
-   on the tan zone and a goldenrod 2.5:1 — yellow simply cannot be both bright and
-   legible on this background. #a05000 is the most chromatic option that still
-   beats the green ramp's own 4.07:1, so it reads as burnt amber rather than the
-   olive-gold first tried. Revisit alongside the '$'-for-buy-first swap. */
+   Do NOT "fix" this to a brighter gold. Matching the crown's #c9a227 measures
+   1.8:1 on the tan zone and a goldenrod 2.5:1 — yellow cannot be both bright and
+   legible on this background, which is why this is a burnt amber and not gold at
+   all. #a05000 is the most chromatic option that still beats the green ramp's own
+   4.07:1; an olive-gold at the same lightness was tried first and read muddy. */
 .herd-number-wrap.herd-top .herd-number {
   color: #a05000;
   font-weight: 900;
