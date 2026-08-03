@@ -257,6 +257,9 @@
       <div id="showdown-players"></div>
       <div id="showdown-footer" class="hidden">
         <h2 id="showdown-winner-title" class="showdown-winner-title"></h2>
+        <!-- Names the tiebreak rung when two Herds finished level. Empty (and collapsed)
+             whenever Cows alone decided it — see showdownTiebreakNote(). -->
+        <p id="showdown-winner-note" class="showdown-winner-note"></p>
         <!-- Herd graph. Inside the footer on purpose: the footer stays hidden for the whole
              reveal sequence and only unhides in showShowdownResult(), so the chart cannot
              interrupt the showdown wherever it sits. Above the actions row because those

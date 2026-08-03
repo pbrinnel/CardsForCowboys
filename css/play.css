@@ -217,6 +217,22 @@
   animation: showdownReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Which rung of the tiebreak ladder decided it. Parchment, not gold: the gold title
+   answers "who won", this answers "how", and two golds would compete.
+   Negative top margin pulls it under the title's own 0.9rem gap so the two read as one
+   block — the title keeps that margin for the (common) case where there is no note, and
+   `:empty` collapses this line entirely then. Rises in on tallyAppear (NOT the title's
+   showdownReveal — that lands on 6px letter-spacing, which is a display-type effect that
+   shreds a sentence), one beat later so it reads as a follow-up not a second headline. */
+.showdown-winner-note {
+  margin: -0.55rem 0 0.9rem;
+  font-size: 0.95rem;
+  color: rgba(233,224,198,0.92);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  animation: tallyAppear 0.5s ease-out 0.25s both;
+}
+.showdown-winner-note:empty { display: none; }
+
 @media (max-width: 480px) {
   .showdown-title { font-size: 1.9rem; letter-spacing: 3px; }
   .showdown-card-grid .card { width: 42px; height: 59px; }

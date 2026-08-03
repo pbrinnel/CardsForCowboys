@@ -31,7 +31,7 @@ When starting a new task, **check this file before reading raw source code.** Us
 | `bugreport.html` | Bug-report form → writes `bugReports/` in Firebase; auto-attaches game context from `localStorage['cfc_bug_context']` |
 | `print-proof.html` | **Print layout proof for the physical rules insert.** `noindex`'d working file, not linked from the site. Renders the ruleset into real print panels at real mm/pt so content fit can be tested before committing to a format. Buttons switch panel size (poker 63.5×88.9 / 50mm cross fold / 100mm reference) and body type (6–9pt), and JS flags any panel whose content exceeds the live area — **measuring width as well as height**, since a too-wide Store diagram once passed a height-only check while running off the side. Ships cut/fold/trim guides generated from `--cols`. Current decision: **poker accordion, 8 panels, 7pt, 3mm margins** — the only format on the shortlist that holds the full ruleset. |
 | `proofs/` | Rendered PNGs of the above (~407dpi, headless Chrome). Regenerate rather than hand-edit. |
-| `debug.html` | **Scenario launcher for dev.** `noindex`'d + `Disallow`'d in robots.txt, not linked from the site. Writes `sessionStorage['debug_scenario']`; `startGame` reads it and calls `applyDebugScenario`, which flags `G.isDebug` so the game writes **no** gameHistory / liveSummary / traj records. Three sections, and the split is load-bearing: **Structural** (end-of-game + 8P stress), **Live Mechanics** (only `burn_to_use` and `draw4` survive on undeprecated cards — everything a real game can deal), and **Retired Mechanics** (dimmed, dashed, `RETIRED`-tagged — cards that are `deprecated: true` and unreachable in a real game). Retired buttons are deliberately **still clickable**: per `docs/DEAD_CODE_INVENTORY.md` they are the regression harness you run once right before deleting the mechanic they cover, so `disabled` would defeat their only remaining purpose. Delete each button together with its mechanic. Every button must map to a `SCENARIOS` key — an unknown name now stops cleanly with a message instead of silently starting an unplayable, record-writing game. |
+| `debug.html` | **Scenario launcher for dev.** `noindex`'d + `Disallow`'d in robots.txt, not linked from the site. Writes `sessionStorage['debug_scenario']`; `startGame` reads it and calls `applyDebugScenario`, which flags `G.isDebug` so the game writes **no** gameHistory / liveSummary / traj records. Three sections, and the split is load-bearing: **Structural** (end-of-game, the three `showdown_tie_*` tiebreak-ladder scenarios, 8P stress), **Live Mechanics** (only `burn_to_use` and `draw4` survive on undeprecated cards — everything a real game can deal), and **Retired Mechanics** (dimmed, dashed, `RETIRED`-tagged — cards that are `deprecated: true` and unreachable in a real game). Retired buttons are deliberately **still clickable**: per `docs/DEAD_CODE_INVENTORY.md` they are the regression harness you run once right before deleting the mechanic they cover, so `disabled` would defeat their only remaining purpose. Delete each button together with its mechanic. Every button must map to a `SCENARIOS` key — an unknown name now stops cleanly with a message instead of silently starting an unplayable, record-writing game. |
 | `privacy.html` | Privacy policy (GDPR-aligned: controller, legal basis, retention, data-subject rights; contact: info@cardsforcowboys.com) |
 | `database.rules.json` | Firebase Realtime Database security rules |
 
@@ -521,6 +521,14 @@ resolveShowdownWinners(ps)  ~5346 — SHOWDOWN TIEBREAK (July 2026). 3 steps, mi
                                     identical starter deck and it would almost always tie.
                                     MP-safe (collection contents + printed `dollars` are
                                     shared state). NOT mirrored in sim/ — see D0 note.
+                                    Returns {winners, reason, margin, herdTied, herdTop};
+                                    `margin` = {best, runnerUp} on the DECIDING step only.
+showdownTiebreakNote(res,me) ~5340 — the one-line "why" under the winner title, or '' when
+                                    Cows alone decided it. Was log-only until Aug 2026 —
+                                    and the log sits BEHIND the showdown overlay, so a
+                                    tied game just looked like it crowned at random.
+                                    Wording tracks rules.html's "If Herds are tied" list.
+                                    Debug harness: the three showdown_tie_* scenarios.
 showShowdownResult()        ~4426 — ALSO mounts the herd chart into #showdown-chart (the one
                                     mount point covering live showdown + gameOver rejoin).
                                     Crowns the top-herd player's section inline (.showdown-winner + 🏆), sets the gold "X Wins!" title, reveals the action footer (Play Again / Review / Home), then calls finalizeGame. Merges what used to be the separate gameover-screen into the showdown screen (Option A, June 2026).
@@ -562,8 +570,24 @@ applyDebugScenario(name)    ~5964 — builds a debug game state from a SCENARIOS
                                     (4P round 9 + seedHerdHistory), nearEndPyramid(pyr, keep)
                                     (keeps `keep` cards in the BACK row), seedHerdHistory
                                     (back-fills herdHistory/bustRounds so the showdown herd chart
-                                    has a series — scoreRound only writes the current round).
+                                    has a series — scoreRound only writes the current round),
+                                    makeTiedShowdown(youDeck, aiDeck) (4P, the showdown_tie_*
+                                    scenarios — see below).
 ```
+**`makeTiedShowdown` — how a tie is made REPRODUCIBLE, not merely likely.** Three constraints,
+all load-bearing; break one and the scenario silently stops testing the rung it names:
+- **Cow-free decks.** The Showdown adds every Cow you own to your Herd, so one Cow anywhere
+  moves a herd off the tie. This is also what lets the scenario just *set* the herds.
+- **≤ 2 Bandits per deck.** Bust needs 3; a bust would end a draw early and skew nothing here,
+  but it makes the screen noisy and the scenario harder to read.
+- **Last Store card forced to card_32 (cost 9), every deck ≤ $8.** The first buyer therefore
+  *must* burn it, and a burn takes the card out of the game rather than into a collection —
+  which is the only reason the $ and card-count columns survive the final round exactly as
+  dealt. A card someone could afford would shift the very numbers the tiebreak compares.
+
+Each scenario varies exactly ONE column (`showdown_tie_dollars` $, `showdown_tie_cards` count,
+`showdown_tie_shared` nothing). Deliberate: with two columns differing, a ladder that skipped a
+rung would still crown the same player and the break would hide.
 
 ---
 

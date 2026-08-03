@@ -5311,20 +5311,50 @@ function showdownCollection(player) {
 function resolveShowdownWinners(players) {
   let top = players.slice();
   let reason = 'most Cows';
+  // The two numbers on the step that actually separated the winner, so the screen can
+  // show the player WHY they lost a game where both Herds read the same. Only set by
+  // the deciding step; a herd-decided game leaves it null.
+  let margin = null;
 
   const narrow = (scoreFn, label) => {
     if (top.length <= 1) return;
     const best = Math.max(...top.map(scoreFn));
     const next = top.filter(p => scoreFn(p) === best);
-    if (next.length < top.length) reason = label;
+    if (next.length < top.length) {
+      reason = label;
+      margin = { best, runnerUp: Math.max(...top.filter(p => scoreFn(p) !== best).map(scoreFn)) };
+    }
     top = next;
   };
+
+  const herdTop  = Math.max(...players.map(p => p.herd));
+  const herdTied = players.filter(p => p.herd === herdTop).length > 1;
 
   narrow(p => p.herd, 'most Cows');
   narrow(p => showdownCollection(p).reduce((s, c) => s + (c.dollars || 0), 0), 'most $');
   narrow(p => showdownCollection(p).length, 'most cards');
 
-  return { winners: top, reason };
+  return { winners: top, reason, margin, herdTied, herdTop };
+}
+
+// One line naming the rung of the ladder that decided a tied Showdown; '' when the Herds
+// alone settled it (the caller relies on the empty string — `:empty` collapses the element).
+// Without this the screen crowns one of two players both showing the same Herd and looks
+// broken: the ladder ran, but only the game log said so, and the log is behind the showdown
+// overlay where nobody reads it.
+// Wording tracks rules.html's "If Herds are tied" list — same rungs, same order.
+function showdownTiebreakNote(res, me) {
+  if (!res.herdTied) return '';
+
+  // Every rung is level among the remaining winners by construction — each narrow() step
+  // leaves only players equal on it — so naming all three is accurate however far it got.
+  if (res.winners.length > 1) return 'Level on Cows, $ and cards — the win is shared.';
+
+  const w    = res.winners[0];
+  const who  = w === me ? 'You win' : `${w.name} wins`;
+  const gap  = res.margin ? ` (${res.margin.best} to ${res.margin.runnerUp})` : '';
+  const tied = res.reason === 'most $' ? `Herds tied at ${res.herdTop}` : 'Herds and $ tied';
+  return `${tied} — ${who} on ${res.reason}${gap}.`;
 }
 
 // Crown the winning player's section inline on the showdown screen and reveal the
@@ -5333,10 +5363,10 @@ function showShowdownResult() {
   G.phase = 'gameOver';
   const me = G.players[0];
 
-  const { winners: topPlayers, reason: winReason } = resolveShowdownWinners(G.players);
-  if (topPlayers.length === 1 && winReason !== 'most Cows') {
-    addLog(`Herds tied — ${topPlayers[0].name} wins on ${winReason}.`);
-  }
+  const result = resolveShowdownWinners(G.players);
+  const topPlayers = result.winners;
+  const tiebreakNote = showdownTiebreakNote(result, me);
+  if (tiebreakNote) addLog(tiebreakNote, 'log-score');
 
   let title;
   if (topPlayers.length === 1 && topPlayers[0] === me) {
@@ -5350,6 +5380,11 @@ function showShowdownResult() {
   }
 
   document.getElementById('showdown-winner-title').textContent = title;
+
+  // Empty string collapses the element (`:empty { display:none }`) so a herd-decided
+  // game keeps the title sitting directly above the chart.
+  const noteEl = document.getElementById('showdown-winner-note');
+  if (noteEl) noteEl.textContent = tiebreakNote;
 
   // Crown the winning section(s) — sections render in G.players order.
   const sections = document.querySelectorAll('#showdown-players .showdown-player');
@@ -6002,6 +6037,32 @@ function applyDebugScenario(name) {
     for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
   }
 
+  // Shared setup for the three showdown-tiebreak scenarios. Reproducible, not merely likely:
+  //  • Every deck is COW-FREE, so the Showdown adds nothing to anyone's Herd and the herds stay
+  //    exactly where they are set here. Cows drawn in the final round would move them.
+  //  • Every deck is BANDIT-light (max 2), so nobody can bust out of the round.
+  //  • The one remaining Store card is forced to card_32 (cost 9) and no deck totals more than
+  //    $8, so the first buyer MUST burn it. Burning takes the card out of the game instead of
+  //    into a collection, which is what leaves the $ and card-count columns exactly as dealt —
+  //    a bought card would silently shift the very numbers the tiebreak compares.
+  // Change any deck below and you must re-check all three: total $ ≤ 8, zero cows, ≤ 2 bandits.
+  const rep = (id, n) => Array(n).fill(id);
+  function makeTiedShowdown(youDeck, aiDeck, herd = 30) {
+    const players = [createPlayer('You', true, 0), ...AI3.map((n, i) => createPlayer(n, false, i + 1))];
+    players.forEach((p, i) => {
+      p.herd = herd;
+      p.deck = (i === 0 ? youDeck : aiDeck).map(id => getCardById(id)).filter(Boolean);
+    });
+    seedHerdHistory(players, 9);
+    G = initState(4, players);
+    G.roundNumber = 9;
+    G.gameSeed = DEBUG_SEED;
+    G.pyramid = buildPyramid();
+    for (let i = 1; i <= 3; i++) initAiRng(i, DEBUG_SEED);
+    oneCardPyramid(G.pyramid);
+    G.pyramid[0][0].card = createCardInstance(getCardById('card_32')); // cost 9 — nobody can afford it
+  }
+
   const SCENARIOS = {
     // 6 cards left in the back (Act 3) row — a couple of rounds from the Store emptying.
     near_showdown() {
@@ -6081,6 +6142,35 @@ function applyDebugScenario(name) {
     one_card_showdown_hidden() {
       SCENARIOS.one_card_showdown();
       G.hiddenHerdMode = true;
+    },
+
+    // ── Showdown tiebreak: one scenario per rung of the ladder ──────────────────────
+    // Burn the last Store card to reach the Showdown; the line under the winner's title
+    // must name the rung that decided it (showdownTiebreakNote). All four Herds finish
+    // level at 30 in every one of these, so a blank note there is the bug.
+    // Each scenario varies exactly ONE column. That matters: if two columns differed, a
+    // ladder that skipped a rung would still crown the same player and the break would
+    // hide. Here a skipped rung moves the crown.
+
+    // Only the $ column differs (8 vs 6); card counts are 8 all round.
+    // → "Herds tied at 30 — You win on most $ (8 to 6)."
+    showdown_tie_dollars() {
+      makeTiedShowdown(rep('starter_91', 8),                              // $8, 8 cards
+                       [...rep('starter_91', 6), ...rep('starter_34', 2)]); // $6, 8 cards
+    },
+
+    // Only the card column differs (8 vs 4); everyone holds $8, so the ladder has to fall
+    // through the $ rung to get there.
+    // → "Herds and $ tied — You win on most cards (8 to 4)."
+    showdown_tie_cards() {
+      makeTiedShowdown(rep('starter_91', 8),   // $8, 8 cards
+                       rep('starter_61', 4));  // $8, 4 cards
+    },
+
+    // Nothing differs — the ladder runs out with all four players still level.
+    // → "Level on Cows, $ and cards — the win is shared." (title: "It's a Tie!")
+    showdown_tie_shared() {
+      makeTiedShowdown(rep('starter_91', 8), rep('starter_91', 8));
     },
 
     // Tests buy-phase Explosive dollar activation.
