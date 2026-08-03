@@ -235,6 +235,12 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 .bandkey span { display: inline-flex; align-items: center; gap: 0.8mm; }
 .sw { width: 2.6mm; height: 2.6mm; border: 0.3mm solid var(--ink); display: inline-block; }
 
+/* The Store diagram shares panel 4 with the four Setup steps, so it gets a smaller card
+   than the :root default. At 5mm the diagram is 30.5mm tall and the panel overruns by
+   ~4mm; 4mm brings it to 24.5mm and leaves ~1.7mm of slack. Scoped to panel 4 so the
+   uncovering demo on panel 7 — which has room — keeps the larger, clearer cards. */
+.panel[data-n="4"] .pyr { --pc-w: 4mm; --pc-h: 5.7mm; }
+
 /* ── Uncovering demo ── */
 .reveal { display: flex; gap: 2mm; align-items: center; justify-content: center; margin: 1.5mm 0; }
 .reveal figcaption { font-size: calc(var(--body-pt) - 2pt); text-align: center; margin-top: 0.8mm; line-height: 1.2; max-width: 32mm; }
@@ -385,7 +391,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     </div>
   </div>
 
-  <!-- 4 — SETUP (steps + starters) -->
+  <!-- 4 — SETUP (steps + Store diagram) -->
   <div class="panel" data-n="4">
     <h2>Setup</h2>
     <ol>
@@ -394,32 +400,6 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <li>Build the Store <strong>once</strong>, face-down, back to front: <strong>Act 3 back, Act 2 middle, Act 1 front</strong>. Each Act is 2 rows (2–4 players) or 3 rows (5–8).</li>
       <li><strong>Stagger every other row by half a card</strong>, so two cards cover the one above. Flip the <strong>front row</strong> face-up.</li>
     </ol>
-    <table>
-      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
-      <tbody>
-        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
-        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
-        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
-        <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
-        <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
-        <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
-        <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-  <div class="printbar">
-    <div class="ruler"><span class="tick t0"></span><span class="tick t1"></span><span class="tick t2"></span><span class="tick t3"></span><span class="tick t4"></span></div>
-    <div class="ruler-label">↑ This bar must measure exactly <strong>100&nbsp;mm</strong> with a ruler. If it doesn't, the print was scaled — set Scale to 100%, not "Fit to page".</div>
-  </div>
-
-<div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
-<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
-<div class="sheet">
-
-  <!-- 5 — STORE SHAPE -->
-  <div class="panel" data-n="5">
-    <h2>The Store</h2>
     <div class="pyr">
       <div class="prow b3"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
       <div class="prow b3 off"><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
@@ -434,7 +414,32 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <span><i class="sw" style="background:#c19464"></i>Act 1 (face-up)</span>
     </div>
     <p class="small" style="text-align:center">4 players — 9 per row × 6 rows</p>
+  </div>
+</div>
+  <div class="printbar">
+    <div class="ruler"><span class="tick t0"></span><span class="tick t1"></span><span class="tick t2"></span><span class="tick t3"></span><span class="tick t4"></span></div>
+    <div class="ruler-label">↑ This bar must measure exactly <strong>100&nbsp;mm</strong> with a ruler. If it doesn't, the print was scaled — set Scale to 100%, not "Fit to page".</div>
+  </div>
 
+<div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
+<div class="sheet">
+
+  <!-- 5 — STORE SIZE TABLE. No header by design: it is the continuation of the Setup panel
+       opposite, and the thead already names every column. -->
+  <div class="panel" data-n="5">
+    <table>
+      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
+        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
+        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
+        <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
+        <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
+        <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
+        <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- 6 — DRAW + BUY -->
@@ -454,7 +459,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     </ul>
   </div>
 
-  <!-- 7 — UNCOVERING, ORDER, SHOWDOWN -->
+  <!-- 7 — UNCOVERING, TURN ORDER -->
   <div class="panel" data-n="7">
     <p class="callout"><strong>Always reveal.</strong> As soon as a card leaves the Store, turn face-up anything behind it no longer covered.</p>
     <div class="reveal">
@@ -486,12 +491,13 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <p>Play continues clockwise, skipping busted players. Same every round.</p>
   </div>
 
-  <!-- 8 — SHOWDOWN + FINE PRINT -->
+  <!-- 8 — FINAL SCORING + FINE PRINT -->
   <div class="panel" data-n="8">
-    <h2>The Showdown</h2>
+    <h2>Final Scoring</h2>
     <p class="callout"><strong>The Store empties once, and that ends the game.</strong> When the final card is bought or burned, the buy phase stops — anyone yet to take a turn misses it. If you didn't bust, you still score the Cows you drew.</p>
-    <p>Then everyone — including anyone who just busted — lays out their whole deck and adds
-      <strong>every Cow they own</strong> to their Herd. <strong>Most Cows wins.</strong></p>
+    <p>Then, in one <strong>final showdown</strong>, everyone — including anyone who just busted —
+      lays out their whole deck and adds <strong>every Cow they own</strong> to their Herd.
+      <strong>Most Cows wins.</strong></p>
     <p class="small"><strong>Tied?</strong> Most $ in your deck → most cards in your deck → share the win.</p>
     <h3>Clarifications</h3>
     <ul class="small">

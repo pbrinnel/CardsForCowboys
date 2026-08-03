@@ -35,8 +35,10 @@
   </header>
 
   <!-- TYPOGRAPHIC CONVENTION — keep these consistent or the signals stop meaning anything:
-       • Capitalised game nouns: Cows, Bandits, Herd, Store, Act, Explosive, Jail, Showdown.
+       • Capitalised game nouns: Cows, Bandits, Herd, Store, Act, Explosive, Jail.
          Verbs stay lowercase: buy, burn, bust, draw, use.
+       • "showdown" is NOT one of them. The end-of-game phase is titled Final Scoring; body text
+         calls it a "final showdown" in lowercase, as flavour, not as a defined term.
        • <strong> marks a game term where it is being DEFINED, or a must/may that changes what
          a player is allowed to do. Not for general emphasis.
        • <p class="rules-callout"> is reserved for rules that interrupt the normal sequence or
@@ -54,8 +56,8 @@
 
       <p class="rules-goal"><strong>Your goal: build the biggest Herd of Cows.</strong></p>
 
-      <p>Play rounds until the Store runs out, then everyone lays out their whole deck for
-        <a href="#showdown">The Showdown</a> and counts their Cows. 2&ndash;8 players.</p>
+      <p>Play rounds until the Store runs out, then everyone lays out their whole deck for a
+        <a href="#showdown">final showdown</a> and counts their Cows. 2&ndash;8 players.</p>
     </section>
 
     <!-- Contents. The mid-game lookup index: a long scroll has no page numbers to orient by.
@@ -71,7 +73,7 @@
           <ul>
             <li><a href="#draw-phase">Draw Phase</a></li>
             <li><a href="#buy-phase">Buy Phase</a></li>
-            <li><a href="#showdown">The Showdown</a></li>
+            <li><a href="#showdown">Final Scoring</a></li>
           </ul>
         </li>
         <li><a href="#errata">Clarifications</a></li>
@@ -192,27 +194,10 @@
           cover the one above. Flip the <strong>front row</strong> face-up.</li>
       </ol>
 
-      <div class="table-scroll">
-        <table class="setup-table">
-          <thead>
-            <tr><th>Players</th><th>Cards per row</th><th>Rows</th><th>Cards per Act</th><th>Store total</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
-            <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
-            <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
-            <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
-            <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
-            <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
-            <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="setup-note">5&ndash;8 players shuffle <strong>two</strong> copies of each Act deck
-        together. Otherwise the rules are identical at every player count.</p>
-
-      <!-- ONE Store diagram, not three. The table carries every other player count, and at print
-           size each extra diagram costs about 0.6 of a panel. -->
+      <!-- ONE Store diagram, not three. The table below carries every other player count, and at
+           print size each extra diagram costs about 0.6 of a panel. Diagram sits directly under
+           the build steps and the table follows it — same reading order as print-proof.html's
+           panels 4 and 5, so the printed insert and this page teach setup in the same sequence. -->
       <div class="pyramid-demos">
         <div class="pyramid-demo">
           <div class="pyramid-grid">
@@ -231,6 +216,25 @@
         <span><i class="swatch act-band-2"></i> Act 2 (middle)</span>
         <span><i class="swatch act-band-1"></i> Act 1 (front, face-up)</span>
       </div>
+
+      <div class="table-scroll">
+        <table class="setup-table">
+          <thead>
+            <tr><th>Players</th><th>Cards per row</th><th>Rows</th><th>Cards per Act</th><th>Store total</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
+            <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
+            <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
+            <tr><td>5</td><td>8</td><td>9</td><td>24</td><td>72</td></tr>
+            <tr><td>6</td><td>9</td><td>9</td><td>27</td><td>81</td></tr>
+            <tr><td>7</td><td>10</td><td>9</td><td>30</td><td>90</td></tr>
+            <tr><td>8</td><td>11</td><td>9</td><td>33</td><td>99</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="setup-note">5&ndash;8 players shuffle <strong>two</strong> copies of each Act deck
+        together. Otherwise the rules are identical at every player count.</p>
     </section>
 
     <!-- SEQUENCE OF PLAY — all three phases in ONE section so the h3s nest under the h2. -->
@@ -298,15 +302,17 @@
       <p>Play continues clockwise from whoever was chosen, skipping busted players. Same rule every
         round, including the first.</p>
 
-      <h3 id="showdown">3. The Showdown</h3>
+      <!-- id stays "showdown" on purpose: renaming the heading to Final Scoring must not break
+           inbound links to rules.html#showdown. -->
+      <h3 id="showdown">3. Final Scoring</h3>
 
       <p class="rules-callout"><strong>The Store empties once, and that ends the game.</strong> The
         moment the final card is bought or burned, the buy phase stops there &mdash; anyone yet to
         take a turn misses it. If you didn't bust, you still score the Cows you drew.</p>
 
-      <p>Then everyone &mdash; including anyone who just busted &mdash; lays out their whole deck
-        face-up and adds <strong>every Cow they own</strong> to their Herd.
-        <strong>Most Cows wins.</strong></p>
+      <p>Then, in one <strong>final showdown</strong>, everyone &mdash; including anyone who just
+        busted &mdash; lays out their whole deck face-up and adds <strong>every Cow they own</strong>
+        to their Herd. <strong>Most Cows wins.</strong></p>
 
       <p class="rules-example"><strong>Example.</strong> Jo has <strong>14</strong> Cows banked from
         scoring rounds. She lays out her deck and counts <strong>9</strong> more printed across her
@@ -335,7 +341,7 @@
       </ul>
     </section>
 
-    <p class="rules-version">Rules v3.1 &middot; last updated 27 July 2026</p>
+    <p class="rules-version">Rules v3.1 &middot; last updated 2 August 2026</p>
 
     <div class="rules-footer">
       <a href="cardslist.html" class="btn btn-secondary">Cards List</a>
