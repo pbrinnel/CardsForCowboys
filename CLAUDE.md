@@ -1324,8 +1324,27 @@ double-clickable `.command` wrapper. Run from the repo root.
 |---|---|
 | `get-bugs.sh` | Bug reports from `bugReports/`, newest first, with attached game context. |
 | `get-emails.sh` | Signups from `emailSignups/`, oldest first. Duplicates are NOT de-duped — the same address can appear twice (it has). |
-| `get-unfinished.sh` | **Games started but never completed**, last N days. `--days N` (default 7), `--mode ai\|mp`. |
-| `cleanup-games.sh` | Deletes finished/stale `games/`, `liveGames/`, `liveSummary/` nodes. `--days N` (default 14). Never touches `gameHistory` or `traj`. |
+| `get-unfinished.sh` | **Games started but never completed**, last N days. `--days N` (default 7), `--mode ai\|mp`. Reads the live node **merged with the archive**, so any lookback stays accurate no matter how often cleanup has run. |
+| `cleanup-games.sh` | **Archives, then** removes stale `games/`, `liveGames/`, `liveSummary/` nodes. `--days N` (default 14). Never touches `gameHistory` or `traj`. |
+
+### Archiving — nothing is deleted without a copy first
+
+`cleanup-games.sh` writes two archives before it removes anything, and a failed backup
+**aborts the run before any deletion**:
+
+| Archive | Contents | Tracked? |
+|---|---|---|
+| `admin/archive/livesummary.json` | slim per-game records, cumulative, keyed by code | **committed** — tiny (~230 bytes/game) and the only record that ~92% of games ever existed |
+| `admin/firebase-backups/*.json` | full `games/` + `liveGames/` card state, timestamped | gitignored (~1.4 MB/run) |
+
+This exists because the pre-August-2026 script deleted `liveSummary` outright on the stated
+assumption that a `finished` status meant "already captured in gameHistory". It doesn't (see
+below) — of the first 194 records archived, only **7** had a `gameHistory` entry. The other 187
+would have been destroyed.
+
+`liveSummary` genuinely does need pruning — [history.html](history.html:546) `onValue`s the
+**whole collection**, so every visitor downloads every record — but pruning and discarding are
+different things. Archive, then prune.
 
 ### ⚠️ `liveSummary.status === 'finished'` does NOT mean the game was completed
 
@@ -1344,9 +1363,11 @@ what `get-unfinished.sh` computes. Never re-derive completion from `status`.
 
 Two further gotchas the script reports as notes rather than hiding:
 
-- **`liveSummary` is pruned at 14 days** by `cleanup-games.sh`, so a longer `--days` window
-  silently undercounts. (Confirmed: the June 6-7 bug-report games `2S5VM9`/`Z5EPD7`/`XZDCUX` are
-  already gone from `liveSummary` while still being referenced by open bug reports.)
+- **Records older than `--days` live in the archive, not Firebase.** `get-unfinished.sh` merges
+  both, so this is invisible — but anything else reading `liveSummary` directly sees only the
+  recent tail. (Games deleted before archiving existed are simply gone: the June 6-7 bug-report
+  games `2S5VM9`/`Z5EPD7`/`XZDCUX` were dropped by an early cleanup run and are unrecoverable,
+  while still being referenced by open bug reports.)
 - **Tombstone nodes.** A `liveSummary/{code}` holding only `{status:'finished'}` — no `ts`, no
   players — is an `onDisconnect` write that landed *after* `cleanup-games.sh` deleted the real
   node. Harmless (the Live Now list filters on `ts`) but they accumulate; `cleanup-games.sh`

@@ -52,23 +52,33 @@ fetch() { # fetch <path> <outfile>
 fetch /liveSummary "$TMPDIR_CFC/live.json"
 fetch /gameHistory "$TMPDIR_CFC/hist.json"
 
-python3 - "$TMPDIR_CFC/live.json" "$TMPDIR_CFC/hist.json" "$DAYS" "$MODE" <<'PYEOF'
-import json, sys, time
+python3 - "$TMPDIR_CFC/live.json" "$TMPDIR_CFC/hist.json" admin/archive/livesummary.json "$DAYS" "$MODE" <<'PYEOF'
+import json, os, sys, time
 from datetime import datetime, timezone
 
-live_path, hist_path, days, mode_filter = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4]
+live_path, hist_path, archive_path = sys.argv[1], sys.argv[2], sys.argv[3]
+days, mode_filter = int(sys.argv[4]), sys.argv[5]
 
 def load(path):
+    if not os.path.exists(path):
+        return {}
     with open(path) as f:
         txt = f.read().strip()
     if not txt or txt == "null":
         return {}
     return json.loads(txt) or {}
 
-live, hist = load(live_path), load(hist_path)
+hist = load(hist_path)
 
-if not live:
-    print("liveSummary is empty — no games recorded.")
+# cleanup-games.sh archives records here before removing them from Firebase, so the
+# two together are the full started-game log. Live wins on conflict (fresher).
+archive = load(archive_path)
+live = load(live_path)
+games = dict(archive)
+games.update(live)
+
+if not games:
+    print("No games recorded (liveSummary and archive are both empty).")
     sys.exit(0)
 
 now_ms = time.time() * 1000
@@ -83,7 +93,7 @@ codeless_in_window = sum(
 )
 
 started, unfinished, orphans = [], [], 0
-for code, v in live.items():
+for code, v in games.items():
     ts = v.get("ts", 0)
     if not ts:
         # A node holding only {status:'finished'} — an onDisconnect tombstone that
@@ -136,9 +146,12 @@ else:
 
 # --- Caveats, only printed when they can actually bite ---
 notes = []
-if days > 14:
-    notes.append(f"cleanup-games.sh prunes liveSummary at 14 days, so a {days}-day "
-                 "window may undercount older games.")
+if archive:
+    notes.append(f"merged {len(live)} live + {len(archive)} archived record(s) from "
+                 f"{archive_path}.")
+elif days > 14:
+    notes.append(f"no archive at {archive_path}, and cleanup-games.sh removes liveSummary "
+                 f"records at 14 days — so a {days}-day window may undercount older games.")
 if codeless_in_window:
     notes.append(f"{codeless_in_window} gameHistory entr(y/ies) in this window predate the "
                  "gameCode field and cannot be matched — they may show as unfinished.")

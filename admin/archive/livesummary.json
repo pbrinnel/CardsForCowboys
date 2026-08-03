@@ -1,0 +1,4428 @@
+{
+ "24GZZ6": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703131167
+ },
+ "24XKJV": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch II"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara II"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782953413410
+ },
+ "2CB4B5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780978124932
+ },
+ "2GGMSH": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "showdown",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 10,
+  "status": "finished",
+  "ts": 1782172693996
+ },
+ "2MA7SA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1784308351870
+ },
+ "2N4BJR": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782271052116
+ },
+ "3EBQLL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780890028996
+ },
+ "3FFKGK": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922177207
+ },
+ "3QSL4L": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782270737009
+ },
+ "3UH2T7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781700829541
+ },
+ "3VA3CW": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1782248750513
+ },
+ "3VMS53": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802374905
+ },
+ "3VU4KA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780888129504
+ },
+ "3XNS2J": {
+  "status": "finished"
+ },
+ "44GVBB": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781723897144
+ },
+ "46ZW6U": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802498195
+ },
+ "47FNLA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1781485437361
+ },
+ "4EL2VX": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781815718183
+ },
+ "4G6HUT": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781813813073
+ },
+ "4J8R3J": {
+  "act": 3,
+  "mode": "mp",
+  "numPlayers": 4,
+  "phase": "gameOver",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": true,
+    "name": "Galloping Gus"
+   },
+   {
+    "isHuman": false,
+    "name": "Tombstone Tom"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 11,
+  "status": "finished",
+  "ts": 1780882631299
+ },
+ "4MJTG8": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781814518310
+ },
+ "4SG29D": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781566617899
+ },
+ "4XABJP": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781720287941
+ },
+ "4ZVA3C": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781721763549
+ },
+ "56C3GL": {
+  "status": "finished"
+ },
+ "5776R5": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 4,
+  "status": "finished",
+  "ts": 1780922001179
+ },
+ "5DYFYT": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802552530
+ },
+ "5KD8C4": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1781800771120
+ },
+ "5MPNMY": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802501675
+ },
+ "5QKVEP": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782264609898
+ },
+ "5XPE8L": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781545448878
+ },
+ "5Y7EV9": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781700490339
+ },
+ "62FC9F": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Noella Nightshade"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782569772030
+ },
+ "6GVQBU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781723498779
+ },
+ "6L562Z": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781495168716
+ },
+ "6RWEE9": {
+  "act": 1,
+  "mode": "mp",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   }
+  ],
+  "round": 1,
+  "status": "active",
+  "ts": 1781482796688
+ },
+ "74Q8WA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781467952297
+ },
+ "75FJHK": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781814485202
+ },
+ "7A8C6Y": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "GuardTest"
+   },
+   {
+    "isHuman": false,
+    "name": "Bot"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781700974530
+ },
+ "7ANH9F": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922404534
+ },
+ "7CD8MQ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Noella Nightshade"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782442708938
+ },
+ "7DP2EL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "1"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780871042494
+ },
+ "7NFS5T": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780871816392
+ },
+ "82MXE2": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 7,
+  "status": "finished",
+  "ts": 1782271238584
+ },
+ "85B932": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 5,
+  "status": "active",
+  "ts": 1783730905645
+ },
+ "86RJ3K": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780927390198
+ },
+ "8GD37P": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782791886483
+ },
+ "8QM9H8": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802513745
+ },
+ "8ZPHRG": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "showdown",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   }
+  ],
+  "round": 10,
+  "status": "finished",
+  "ts": 1782170977495
+ },
+ "9A7FWC": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Reg"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782236961537
+ },
+ "9D4H3D": {
+  "act": 3,
+  "mode": "mp",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Mark"
+   },
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   }
+  ],
+  "round": 1,
+  "status": "active",
+  "ts": 1781458981936
+ },
+ "9DWNJ2": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802572460
+ },
+ "9RAXS7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780888203418
+ },
+ "9XQUGE": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780871382536
+ },
+ "9XVHQT": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780889544790
+ },
+ "A263XU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443296197
+ },
+ "A4Q35H": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1780889788950
+ },
+ "AJ7UXS": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782252577144
+ },
+ "ALVSQP": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781704120766
+ },
+ "ASAQGA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781485490942
+ },
+ "AWXKP8": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703811731
+ },
+ "B2DSUU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781876570847
+ },
+ "B3DQKL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781722196061
+ },
+ "BELT9C": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703935349
+ },
+ "BK9QJ2": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1782473537062
+ },
+ "BMLRXL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782252752740
+ },
+ "BUGH59": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781814413977
+ },
+ "BY25KU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703277060
+ },
+ "C3H6BU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781723600120
+ },
+ "CJ4NWG": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782238186304
+ },
+ "CJU9KF": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782678427643
+ },
+ "CVF23D": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   }
+  ],
+  "round": 5,
+  "status": "finished",
+  "ts": 1781918785276
+ },
+ "CWV246": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1781817212128
+ },
+ "D93ELH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782442168469
+ },
+ "DA6A9B": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802511995
+ },
+ "DAHMML": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782270519847
+ },
+ "DAZLB5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781813809885
+ },
+ "DC6H2S": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782251398834
+ },
+ "DFWTJV": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Ransom Stoddard"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781455822307
+ },
+ "DTP9UH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 6,
+  "status": "finished",
+  "ts": 1781800870355
+ },
+ "DV5NZB": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780951843150
+ },
+ "E77YDL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780890020700
+ },
+ "EDSPQF": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703114654
+ },
+ "EKCLVK": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Noella Nightshade"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1783304985572
+ },
+ "F4HST5": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "score",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 9,
+  "status": "finished",
+  "ts": 1782173487809
+ },
+ "F8BJB2": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   }
+  ],
+  "round": 4,
+  "status": "finished",
+  "ts": 1782442693180
+ },
+ "FBVHJC": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1783882749521
+ },
+ "FDKHVE": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780889968371
+ },
+ "G4UVR8": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   }
+  ],
+  "round": 5,
+  "status": "finished",
+  "ts": 1781668738367
+ },
+ "G586ZQ": {
+  "status": "finished"
+ },
+ "G6Q9H4": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782254071335
+ },
+ "G7NWVZ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1783133384462
+ },
+ "GJWCCH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781814951264
+ },
+ "GNGYTY": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782574030053
+ },
+ "HATVM5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781813814461
+ },
+ "HFFTY5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781570673252
+ },
+ "HGX7S7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781801064591
+ },
+ "HL4Q4N": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781800895620
+ },
+ "HMYPDU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782270158835
+ },
+ "HPNG2J": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Pecos"
+   },
+   {
+    "isHuman": false,
+    "name": "Dusty"
+   },
+   {
+    "isHuman": false,
+    "name": "Slim"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782441824116
+ },
+ "HSL7AU": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 6,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Tester"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782236814297
+ },
+ "HT3VW3": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781722849200
+ },
+ "HV7G9G": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 9,
+  "status": "finished",
+  "ts": 1784309141496
+ },
+ "HYWHXX": {
+  "status": "finished"
+ },
+ "J6249Q": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1780928269393
+ },
+ "J7JJMN": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781395431940
+ },
+ "J9W2HM": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1781539409225
+ },
+ "JDH46L": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780888823128
+ },
+ "JDMSU6": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1782251460493
+ },
+ "JDRNTE": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1780957143284
+ },
+ "JGJ97H": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus II"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid II"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443747224
+ },
+ "JX59C5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443277564
+ },
+ "JXE2Q3": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781801067495
+ },
+ "JYLWPA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Pecos"
+   },
+   {
+    "isHuman": false,
+    "name": "Dusty"
+   },
+   {
+    "isHuman": false,
+    "name": "Slim"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782441931103
+ },
+ "K2D88Q": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781719840384
+ },
+ "K2U5XQ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   }
+  ],
+  "round": 4,
+  "status": "finished",
+  "ts": 1781232710567
+ },
+ "KDJZBD": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782679018477
+ },
+ "L773RY": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781284353349
+ },
+ "LPLSPR": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Deadshot Dave"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Quickdraw Andrea"
+   },
+   {
+    "isHuman": false,
+    "name": "Deadshot Dave"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1782357102003
+ },
+ "LTY98W": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1782442950828
+ },
+ "LX8HTC": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781722949852
+ },
+ "M7D3WG": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781723059020
+ },
+ "M99S39": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443322167
+ },
+ "M9RBXA": {
+  "act": 3,
+  "mode": "mp",
+  "numPlayers": 2,
+  "phase": "gameOver",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cardboy"
+   },
+   {
+    "isHuman": true,
+    "name": "YEEEEEEEHAWWWWWWW"
+   }
+  ],
+  "round": 10,
+  "status": "finished",
+  "ts": 1781982472001
+ },
+ "MC7XB2": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "Tombstone Tom"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 5,
+  "status": "finished",
+  "ts": 1781495112234
+ },
+ "MCYFWB": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780931015452
+ },
+ "MK3TJ9": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 1"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 2"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 3"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 4"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 5"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 6"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 7"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782236572256
+ },
+ "MNKEPP": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780889618027
+ },
+ "MPMQAH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Pecos"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782441875025
+ },
+ "MW9GWM": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Deadshot Dave"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443722204
+ },
+ "MXS4MY": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780928318509
+ },
+ "N4VP6M": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802535405
+ },
+ "N5MUT7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781539756450
+ },
+ "N5ZESD": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781718608305
+ },
+ "N85437": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802580720
+ },
+ "NA8HGM": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780889630939
+ },
+ "NJ9SUS": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922421170
+ },
+ "NQ86QE": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703219164
+ },
+ "P38DHJ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782271371988
+ },
+ "P5NDKD": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781815698505
+ },
+ "PTVB94": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782252596370
+ },
+ "PX29MF": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780887622671
+ },
+ "Q3MK7P": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   }
+  ],
+  "round": 3,
+  "status": "finished",
+  "ts": 1782442542199
+ },
+ "Q6TZ8R": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922416195
+ },
+ "QL24UJ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Casey the Convict"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802576950
+ },
+ "QRMWU7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781723046635
+ },
+ "QW79FB": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Quickdraw Andrea"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Deadshot Dave"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443686642
+ },
+ "R37LYX": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Quickdraw Andrea"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1782443550140
+ },
+ "RTLEMC": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 1"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 2"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 3"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 4"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 5"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 6"
+   },
+   {
+    "isHuman": false,
+    "name": "AI 7"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782237063025
+ },
+ "RWDKJJ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781469000876
+ },
+ "RXLA99": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781529563133
+ },
+ "S635QA": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443774313
+ },
+ "S69MGL": {
+  "status": "finished"
+ },
+ "S8LPY5": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Rob the Rustler"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781456312825
+ },
+ "S9BQFH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780887693368
+ },
+ "SYCH3K": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781815723257
+ },
+ "SYPKVK": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781813815327
+ },
+ "SZ2F6W": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781705024621
+ },
+ "T2E479": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1783181127072
+ },
+ "T4SLKJ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781802533230
+ },
+ "T5EYRX": {
+  "act": 1,
+  "mode": "mp",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 1,
+  "status": "active",
+  "ts": 1781464328127
+ },
+ "TEGF68": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782443329650
+ },
+ "TS9PKH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922182603
+ },
+ "UDP48W": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 4,
+  "status": "finished",
+  "ts": 1781701450111
+ },
+ "UG6DHH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   },
+   {
+    "isHuman": false,
+    "name": "Lasso Lance"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "JJ Double-Cross"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782264197595
+ },
+ "US6JNB": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "A"
+   },
+   {
+    "isHuman": false,
+    "name": "B"
+   },
+   {
+    "isHuman": false,
+    "name": "C"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782442108860
+ },
+ "UVCZTF": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Me"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780922953244
+ },
+ "V25UXD": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Hellfire Hailey"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1782681653516
+ },
+ "V6HQ2B": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "showdown",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 8,
+  "status": "finished",
+  "ts": 1782790478402
+ },
+ "V7EXR7": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802504254
+ },
+ "VB4NKV": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "2"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780871050102
+ },
+ "VC2J7K": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1782569808173
+ },
+ "VDXK24": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "Gulch Gus"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781127021691
+ },
+ "VJA43X": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781554710043
+ },
+ "VPRAQN": {
+  "status": "finished"
+ },
+ "WEZATG": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781720273027
+ },
+ "WR7QEX": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "AI1"
+   },
+   {
+    "isHuman": false,
+    "name": "AI2"
+   },
+   {
+    "isHuman": false,
+    "name": "AI3"
+   },
+   {
+    "isHuman": false,
+    "name": "AI4"
+   },
+   {
+    "isHuman": false,
+    "name": "AI5"
+   },
+   {
+    "isHuman": false,
+    "name": "AI6"
+   },
+   {
+    "isHuman": false,
+    "name": "AI7"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782678856003
+ },
+ "WR8QNH": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780888825169
+ },
+ "WTDENB": {
+  "act": 3,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "showdown",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   }
+  ],
+  "round": 8,
+  "status": "finished",
+  "ts": 1782171919343
+ },
+ "WUE4Q5": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Nate the Drifter"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781703924547
+ },
+ "WYPWEX": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Me"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780921815771
+ },
+ "X4APZF": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782217820071
+ },
+ "X4L6LJ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "PB"
+   },
+   {
+    "isHuman": false,
+    "name": "Sixgun Sara"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Jesse the Kid"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781802506955
+ },
+ "XPYCW2": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   }
+  ],
+  "round": 2,
+  "status": "finished",
+  "ts": 1781462483590
+ },
+ "XUKHGG": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Arrowhead Archie"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   },
+   {
+    "isHuman": false,
+    "name": "Slick Simon"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780921921668
+ },
+ "Y5PMEY": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780889904717
+ },
+ "YUHTN9": {
+  "act": 3,
+  "mode": "mp",
+  "numPlayers": 2,
+  "phase": "gameOver",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": true,
+    "name": "YEEEEEEHAWWWWW"
+   }
+  ],
+  "round": 11,
+  "status": "finished",
+  "ts": 1781655680905
+ },
+ "YVCPJX": {
+  "act": 2,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "buy",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Rhonda"
+   },
+   {
+    "isHuman": false,
+    "name": "Texas Thomas"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1781456052739
+ },
+ "YVXH6B": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 2,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "You"
+   },
+   {
+    "isHuman": false,
+    "name": "Cowboy AI"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782441774277
+ },
+ "YYJBKQ": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Me"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780890246980
+ },
+ "YZYR7K": {
+  "status": "finished"
+ },
+ "ZA8F4V": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 8,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Iron Otis"
+   },
+   {
+    "isHuman": false,
+    "name": "Frontier Juliet"
+   },
+   {
+    "isHuman": false,
+    "name": "Briarpatch Brian"
+   },
+   {
+    "isHuman": false,
+    "name": "Zein of the Badlands"
+   },
+   {
+    "isHuman": false,
+    "name": "Sagebrush Susan"
+   },
+   {
+    "isHuman": false,
+    "name": "The Duke"
+   },
+   {
+    "isHuman": false,
+    "name": "Andrew the Anvil"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782254204562
+ },
+ "ZQ4DRT": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 4,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Cowboy"
+   },
+   {
+    "isHuman": false,
+    "name": "Alamo Aly"
+   },
+   {
+    "isHuman": false,
+    "name": "Noella Nightshade"
+   },
+   {
+    "isHuman": false,
+    "name": "One-Shot Mitch"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1782791897756
+ },
+ "ZVZLKL": {
+  "act": 1,
+  "mode": "ai",
+  "numPlayers": 3,
+  "phase": "draw",
+  "players": [
+   {
+    "isHuman": true,
+    "name": "Me"
+   },
+   {
+    "isHuman": false,
+    "name": "Sheriff"
+   },
+   {
+    "isHuman": false,
+    "name": "Outlaw"
+   }
+  ],
+  "round": 1,
+  "status": "finished",
+  "ts": 1780927527162
+ }
+}
