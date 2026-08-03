@@ -764,7 +764,7 @@ misaligns the brick offset and breaks `isCardCovered` on rejoin.
 > `act1DollarBonus` / `act3CowBonus` in `scoreCardForAI`, and `actProgress` in `aiBuyTurn`'s denial
 > heuristic. Semantics are preserved (early Store = Act 1 cards on offer = economy lens).
 
-### Difficulty tiers (MEASURED — `node sim/simulate.js`, June 2026)
+### Difficulty tiers (MEASURED — `node sim/simulate.js --games 6000`, re-measured Aug 2026)
 
 10 personalities, tiered by measured win-rate vs the field (2P overall % / 4P focal %). The
 `gamesetup.html` difficulty picker (`DIFFICULTY_TIERS`) maps Easy/Medium/Hard onto these bands;
@@ -777,13 +777,20 @@ Win% below is **vs the whole field** and therefore relative — the June 2026 Ha
 also makes deputy/rancher's vs-field % dip even though their genomes are unchanged (the field got
 tougher). Absolute gains are in `draw-cap-experiment.js`.
 
+The Aug 2026 `dollarWeight` retune (4 Hard bots at once) is the same effect again, and harder:
+`drifter`'s genome did **not** change yet its vs-field % fell 42.2→40.5 at 4P, and `deputy` reads
+−1.3pp despite being a genuine improvement. **When a multi-bot retune's vs-field numbers disagree
+with the single-knob sweeps that motivated it, settle it with an absolute head-to-head (new genome
+vs its own old self) — not by reverting.** All four cleared it: rancher 55.7%, deputy 53.9%,
+prospector 51.8%, enforcer 51.6%. See `sim/TUNING.md`.
+
 | Tier | Personality | 2P / 4P win% | Character |
 |---|---|---|---|
-| **Hard** | `drifter` | 74 / 43 | Cow grinder + denial. `maxDraw 10`; `denialBurn` turned ON July 2026 (+3.6pp 2P / +3.9pp 4P) — now the strongest bot at both counts |
-| **Hard** | `enforcer` | 74 / 43 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target |
-| **Hard** | `deputy` | 69 / 38 | Disciplined draw (low bust) + denial + competent cow buying |
-| **Hard** | `prospector` | 64 / 31 | Hard's floor; `maxDraw 10` (upgraded) |
-| **Hard** | `rancher` | 72 / 43 | Cow-optimizing grinder; the benchmark |
+| **Hard** | `rancher` | 74 / 44 | Cow-optimizing grinder; the benchmark. **Now the strongest at both counts** after the Aug 2026 `dollarWeight` 0.5→2.5 retune |
+| **Hard** | `enforcer` | 73 / 42 | Near-optimal cow buyer, calibrated aggression, precise fear; `maxDraw 10` (upgraded). Coevolution's convergence target. `dollarWeight` 1.5→3 |
+| **Hard** | `drifter` | 73 / 41 | Cow grinder + denial. `maxDraw 10`; `denialBurn` turned ON July 2026 (+3.6pp 2P / +3.9pp 4P). **`dollarWeight` deliberately NOT retuned** — measured flat over 0.8–1.75 at 20k games |
+| **Hard** | `deputy` | 68 / 37 | Disciplined draw (low bust) + denial + competent cow buying. `dollarWeight` 1.5→0.5 |
+| **Hard** | `prospector` | 66 / 34 | Hard's floor; `maxDraw 10` (upgraded). `dollarWeight` 1.5→0 — the largest cell in the Aug 2026 sweep |
 | **Medium** | `outlaw` | 44 / 13 | High-variance aggressor; busts ~44% of rounds — swingy, nets to mid |
 | **Medium** | `wild_bill` | 38 / 11 | Pure chaos; `dollarBuffer 999`, busts ~45% — swingy |
 | **Easy** | `banker` | 25 / 2 | Dollar-first, intentionally suboptimal (designed-to-lose). **No longer near the easy/medium boundary** — re-measured July 2026 at 2P 27.8 / 4P 3.7. Dollars score nothing at the Showdown, so the dollar-first genome is far weaker than the old (buggy) sim reported |

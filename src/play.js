@@ -3609,7 +3609,8 @@ const AI_PERSONALITIES = {
     dollarBuffer:   3,     // was 2 — draws more to reach better cards
     maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      9,     // was 6 — closes the gap to evolved optimum
-    dollarWeight:   0.5,
+    dollarWeight:   2.5,   // was 0.5 — Aug 2026: optimal $ weight TRACKS cowWeight (see TUNING.md).
+                           // Plateau 2.5-3 at both counts, cliff at 3.5; 2.5 keeps the margin.
     banditPenalty:  20,   // was 1.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.4,   // somewhat adapts to standings
     denialBurn:     false,
@@ -3658,7 +3659,7 @@ const AI_PERSONALITIES = {
     dollarBuffer:   1,     // was 0 — doesn't just stop at bare minimum
     maxDraw:        10,    // was 7 — disciplined thresholds let it overdraw $ safely (sim +win, flat bust)
     cowWeight:      6,     // was 2 — critical fix; denial work was wasted on bad buys
-    dollarWeight:   1.5,   // was 2 — rebalanced
+    dollarWeight:   0.5,   // was 1.5 — Aug 2026: low cowWeight ⇒ low $ weight (see TUNING.md)
     banditPenalty:  14,   // was 2.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.3,
     denialBurn:     true,  // burns the card most valuable to the current leader
@@ -3691,7 +3692,9 @@ const AI_PERSONALITIES = {
     dollarBuffer:   1.5,
     maxDraw:        10,    // was 7 — disciplined thresholds; sweep shows +3.3pp 2P/+6.8pp 4P at flat bust
     cowWeight:      4.5,   // some cow sense but not sharp
-    dollarWeight:   1.5,
+    dollarWeight:   0,     // was 1.5 — Aug 2026, the largest cell in the sweep (+5.1pp 4P /
+                           // +2.3pp 2P). At cowWeight 4.5 the flat SPECIAL_BONUS terms already
+                           // over-value the $ Explosives; stacking $ weight on top compounded it.
     banditPenalty:  10,   // was 2.5 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.2,
     denialBurn:     false,
@@ -3726,7 +3729,7 @@ const AI_PERSONALITIES = {
     dollarBuffer:   3.0,
     maxDraw:        10,    // was 7 — coevolution + sweep: +3.7pp 2P/+5.8pp 4P at +1.5pp bust
     cowWeight:      9.5,   // near-optimal cow buying
-    dollarWeight:   1.5,
+    dollarWeight:   3,     // was 1.5 — Aug 2026: plateau 3-3.5 at both counts, cliff at 4
     banditPenalty:  20,   // was 1.2 — R5: a Bandit costs ~5 Cows of real value; 2.1x cowWeight is the measured optimum
     positionWeight: 0.5,
     denialBurn:     false, // unlike outlaw — wins through efficiency, not denial

@@ -168,6 +168,62 @@ sim and real humans diverge most.
   them 90% of the time. But sweeping it over {2, 1, 0, −1, −2, −3} across all five Hard bots moved
   mean 4P win% by **under 1pp** — noise. At cost 3 an Explosive is often the *only* affordable
   card, and scoring cannot change a forced choice. Don't "fix" it without new evidence.
+- **A dollar-SATIETY parameter was built, measured, and REJECTED (Aug 2026).** The theory: a buy
+  does not deduct cost (`roundDollars` is a spending LIMIT, not a balance — see `emitBuyEvent`),
+  so every dollar above the cost of the card you take is wasted that round, and each dollar card
+  also displaces a cow in the draw. `dollarWeight` is flat, so it prices a $2 card identically
+  whether the buyer is starving for income or swimming in it — a diminishing return no flat weight
+  can express. Implemented as `dollarSat` = the collection dollar-density ($/card over
+  deck+hand+discard) at which dollars stop scoring, multiplying both the `dollarWeight` and
+  `act1DollarBonus` terms by `clamp(0,1, (sat − density) / (sat − 0.70))`, normalised against the
+  **0.70 $/card starter density** so a fresh deck always scores at full weight (which isolates
+  saturation from a plain weight cut, and makes the disabled cell bit-identical to shipped —
+  verified by hashing 1200 games at 2P/3P/4P).
+  **Result: nothing.** Swept `{0.85, 1.0, 1.2, 1.5, 2, 3}` × 5 Hard bots × {2P, 4P} @ 8k games:
+  rancher/enforcer/drifter/deputy all moved **under ±1pp** at both counts. Only `prospector`
+  responded (+2.3pp 4P / +0.9pp 2P) — and setting its `dollarWeight` to 0 instead is worth
+  **+4.9pp**, with saturation on top of that adding **0.0pp**. The knob is entirely absorbed by
+  the flat weight. Reverted; rebuild from this paragraph only if new evidence appears.
+  Two reasons it cannot cash out: (a) the strong bots never reach saturation — rancher/enforcer
+  finish at **0.65–0.67 $/card, BELOW the 0.70 starter baseline**, so the multiplier sits pinned
+  at 1 all game; (b) they are not wasting purchasing power anyway — mean unused dollars on a buy
+  turn is only **0.42–0.84**, and under 5% of buys leave $3+ unspent, because `dollarBuffer`
+  already stops the draw phase once the best card is affordable.
+- **Optimal `dollarWeight` TRACKS `cowWeight` — SHIPPED Aug 2026 for 4 of the 5 Hard bots.**
+  `genome-sweep.js --param dollarWeight` over `{0, .5, 1, 1.5, 2, 3, 5}` @ 8k games, then a fine
+  sweep to pick a value mid-plateau rather than on a cliff edge:
+
+  | bot | `cowWeight` | was | **now** | plateau | isolated Δ 4P / 2P |
+  |---|---|---|---|---|---|
+  | prospector | 4.5 | 1.5 | **0** | 0–1 | +5.1 / +2.3 |
+  | deputy | 6 | 1.5 | **0.5** | 0–0.5 | +1.2 / +1.1 |
+  | drifter | 7 | 0.8 | *0.8 (unchanged)* | flat | +0.7 / +0.2 — noise at 20k games |
+  | rancher | 9 | 0.5 | **2.5** | 2.5–3, cliff at 3.5 | +2.8 / +3.7 |
+  | enforcer | 9.5 | 1.5 | **3** | 3–3.5, cliff at 4 | +2.0 / +1.9 |
+
+  The direction REVERSES across the tier — low-`cowWeight` bots want less dollar weight, high-
+  `cowWeight` bots want more — which is why a single "cap the dollar cards" rule cannot work.
+  **Mechanism: the flat `SPECIAL_BONUS` constants.** They are absolute, so a `+2` is worth 0.44
+  cows to prospector (`cowWeight` 4.5) but only 0.21 to enforcer (9.5). Low-`cowWeight` bots are
+  therefore already over-valuing the bonus-bearing cards — and every live Explosive is a pure
+  dollar card — so stacking `dollarWeight` on top compounds it. Measured on prospector's buy mix
+  at 4P: at `dollarWeight 1.5` it spent **40.1% of buys on cards with dollars and no cows** (21.5%
+  Explosives); at 0 that falls to 29.9% (15.8%) and cow-cards rise 55.1% → 64.8%.
+
+  ⚠️ **The isolated Δs above did NOT add up when all four shipped together, and that is expected —
+  read this before trusting any single-knob sweep.** `genome-sweep.js` measures a focal bot against
+  an UNCHANGED field, so its Δ is "value of this change holding opponents fixed". Change four bots
+  at once and the field itself gets stronger, which drags every vs-field% down. Realised
+  `simulate.js` 4P: rancher 43.1→44.2, enforcer 42.0→42.2, deputy 37.8→**36.5**, prospector
+  31.4→34.2 — and **`drifter`, whose genome did not change at all, fell 42.2→40.5**. That drop is
+  the proof the field got tougher, not that drifter regressed.
+  **vs-field% is relative and cannot answer "did the AI get better".** The absolute check is each
+  new genome head-to-head against its own old self (2P, 30k games, seats alternated):
+  rancher **55.7%**, deputy **53.9%**, prospector 51.8%, enforcer 51.6% — all ≥50%, so all four
+  kept, including deputy despite its negative vs-field number. Do this head-to-head check any time
+  a multi-bot retune's vs-field numbers disagree with the sweeps that motivated it.
+  Tier ordering survives untouched (Hard floor 34.2 vs Medium ceiling 12.1), so
+  `gamesetup.html` `DIFFICULTY_TIERS` was not changed.
 - `cowWeight` 9–10 is optimal; evolved AIs converge there.
 - `revealBonus` ≈ 0 and `act1DollarBonus` = 0 for top performers (dollars are currency, not score).
 - `maxDraw`: **all 5 Hard bots = 10** (rancher/deputy since the first pass; prospector/drifter/
