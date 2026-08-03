@@ -98,7 +98,10 @@ for code, v in games.items():
     if not ts:
         # A node holding only {status:'finished'} — an onDisconnect tombstone that
         # landed after cleanup-games.sh removed the real node. Not a real game.
-        orphans += 1
+        # Only count the ones still in Firebase: archived ones are already cleared,
+        # so counting those too would overstate what a cleanup run has left to do.
+        if code in live:
+            orphans += 1
         continue
     if ts < cutoff:
         continue

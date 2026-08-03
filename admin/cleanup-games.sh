@@ -188,26 +188,51 @@ print(f"  livesummary -> {archive_path} ({added} new, {len(archive)} total recor
 PYEOF
 
 # --- Remove from Firebase ---
+# ONE multi-path update per collection ({"CODE":null,...}) rather than one CLI call
+# per code per collection. RTDB treats a null value as "delete this key", so this is
+# the same operation batched. The old per-code loop spawned a node process each time:
+# 194 games meant ~580 invocations and ~15 minutes. This is 3 calls and ~10 seconds.
 echo ""
 echo "Removing from Firebase..."
-DELETED=0
-ERRORS=0
 
-while IFS= read -r CODE; do
-  printf "  %-8s ... " "$CODE"
-  OK=true
-  # Both removes run regardless — one will be a no-op (wrong collection), errors suppressed
-  firebase database:remove /games/$CODE      --project "$PROJECT" -f 2>/dev/null || true
-  firebase database:remove /liveGames/$CODE  --project "$PROJECT" -f 2>/dev/null || true
-  firebase database:remove /liveSummary/$CODE --project "$PROJECT" -f 2>/dev/null || OK=false
-  if $OK; then
-    echo "deleted"
-    DELETED=$((DELETED + 1))
+python3 - "$TMPD/todelete.json" "$TMPD/nulls.json" <<'PYEOF'
+import json, sys
+
+with open(sys.argv[1]) as f:
+    codes = [e["code"] for e in json.load(f)]
+
+payload = {c: None for c in codes}
+# Guard: this file is fed to `database:update`, which WRITES whatever it contains.
+# Every value must be null, or a bug here would overwrite live game data instead of
+# deleting it. Refuse to emit anything else.
+assert payload and all(v is None for v in payload.values()), "payload must be deletions only"
+
+with open(sys.argv[2], "w") as f:
+    json.dump(payload, f)
+print(f"  {len(payload)} key(s) -> null")
+PYEOF
+
+ERRORS=0
+for NODE in games liveGames liveSummary; do
+  printf "  %-12s ... " "$NODE"
+  if firebase database:update "/$NODE" "$TMPD/nulls.json" --project "$PROJECT" -f \
+       >/dev/null 2>"$TMPD/err.txt"; then
+    echo "ok"
   else
-    echo "ERROR (liveSummary delete failed)"
+    echo "ERROR"
+    sed 's/^/    /' "$TMPD/err.txt"
     ERRORS=$((ERRORS + 1))
   fi
-done < <(echo "$TO_DELETE" | python3 -c "import json,sys; [print(e['code']) for e in json.load(sys.stdin)]")
+done
+
+if [ "$ERRORS" -eq 0 ]; then
+  DELETED=$COUNT
+else
+  DELETED=0
+  echo ""
+  echo "One or more collections failed. The archive is already written, so nothing is"
+  echo "lost — re-run to retry the removal."
+fi
 
 echo ""
 echo "Done. $DELETED removed from Firebase, $ERRORS errors."
