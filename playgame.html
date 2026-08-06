@@ -21,12 +21,16 @@
        zones tile side by side. Narrow layout is 100% unchanged.
     ────────────────────────────────────────────────────────────────── */
     /* Blank space fix: padding on .collapsible survives max-height:0 in content-box.
-       Add padding to the transition and zero it when collapsed. Applies at all widths. */
+       Add padding to the transition and zero it when collapsed. Applies at all widths.
+       Horizontal padding is KEPT (0 0.5rem, not 0): the collapsed state is now a peek
+       strip showing the top of the cards (see play.css), so dropping the side padding
+       would shunt that sliver flush to the zone edge, out of line with the expanded
+       state directly above it. Only the vertical padding caused the blank space. */
     .opp-zone .collapsible {
       transition: max-height 0.25s ease, opacity 0.25s ease, padding 0.25s ease;
     }
     .opp-zone .collapsible.collapsed {
-      padding: 0;
+      padding: 0 0.5rem;
     }
 
     /* Narrow (<1200px): the #main-col wrapper is invisible to layout — its children

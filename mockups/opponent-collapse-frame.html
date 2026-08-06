@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mockup frame</title>
+<link rel="stylesheet" href="../css/theme.css">
+<link rel="stylesheet" href="../css/play.css">
+<link rel="stylesheet" href="../css/a11y.css">
+<style>
+/* This page is loaded in a 375px-wide <iframe> so that play.css's real
+   @media (max-width: 768px) / (max-width: 400px) blocks actually fire.
+   Rendering it as a 375px column inside a 1280px page does NOT do that —
+   the header stays at desktop font sizes and wraps to two lines. */
+html, body { margin: 0; padding: 0; background: var(--parchment, #e6dcc0); }
+body { padding: 4px; font-family: Georgia, serif; }
+#opponents-zone { display: flex; flex-direction: column; gap: .5rem; margin: 0; }
+
+/* Static stand-in for layoutOpponentFan (JS-positioned in the real game). */
+.mk-fan { position: relative; height: 158px; }
+.mk-fan .card { position: absolute; width: 52px; height: 73px; }
+
+
+/* ═══ A — visible chevron in button chrome + first-run nudge ════════════ */
+body.optA .collapse-toggle {
+  color: rgba(30,22,16,.62);
+  font-size: .8rem; line-height: 1;
+  padding: .3rem .42rem;
+  border: 1px solid rgba(30,22,16,.32);
+  border-radius: 4px;
+  background: rgba(30,22,16,.05);
+  transition: background .15s ease, border-color .15s ease;
+}
+body.optA .ai-summary:active .collapse-toggle { background: rgba(30,22,16,.16); border-color: rgba(30,22,16,.5); }
+@keyframes mkNudge {
+  0%, 62%, 100% { transform: translateY(0); }
+  70% { transform: translateY(3px); }
+  78% { transform: translateY(-2px); }
+  86% { transform: translateY(1px); }
+}
+body.optA .collapse-toggle.nudge { animation: mkNudge 2.2s ease-in-out 2; }
+@media (prefers-reduced-motion: reduce) { body.optA .collapse-toggle.nudge { animation: none; } }
+
+
+/* ═══ B — peek strip: collapse to a sliver, not to zero ═════════════════ */
+body.optB .collapse-toggle { color: rgba(30,22,16,.62); font-size: .8rem; }
+body.optB .collapsible.collapsed {
+  max-height: 30px;               /* ~24px of card top, then the fade */
+  opacity: 1;
+  position: relative;
+}
+body.optB .collapsible.collapsed .player-info { display: none; }
+body.optB .collapsible.collapsed::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0; height: 18px;
+  background: linear-gradient(to bottom, rgba(233,224,198,0) 0%, rgba(233,224,198,.85) 60%, rgba(233,224,198,1) 100%);
+  pointer-events: none;
+}
+
+
+/* ═══ C — native <details>/<summary> ════════════════════════════════════ */
+body.optC details.opp-zone > summary {
+  list-style: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .4rem .5rem; cursor: pointer; user-select: none; gap: .5rem;
+}
+body.optC details.opp-zone > summary::-webkit-details-marker { display: none; }
+body.optC .collapse-toggle {
+  color: rgba(30,22,16,.62); font-size: .8rem; line-height: 1;
+  padding: .3rem .42rem; border: 1px solid rgba(30,22,16,.32);
+  border-radius: 4px; background: rgba(30,22,16,.05);
+}
+body.optC details[open] .collapse-toggle::before { content: '\25B2'; }
+body.optC details:not([open]) .collapse-toggle::before { content: '\25BC'; }
+body.optC details.opp-zone > .collapsible { padding: 0 .5rem .5rem; }
+body.optC summary:focus-visible { outline: 3px solid #c9a227; outline-offset: -3px; }
+</style>
+</head>
+<body>
+<div id="opponents-zone"></div>
+
+<script>
+const P = new URLSearchParams(location.search);
+const OPT = (P.get('opt') || 'NOW').toUpperCase();
+const ONE = P.get('one') === '1';          // zoom row: a single collapsed zone
+document.body.className = OPT === 'NOW' ? '' : 'opt' + OPT;
+
+const OPPS = [
+  { name: 'Buffalo Bill', herd: 29, deck: 7, discard: 0, d: 2, c: 1, b: 1, crown: false, open: true  },
+  { name: 'Jesse James',  herd: 35, deck: 7, discard: 0, d: 2, c: 2, b: 1, crown: true,  open: false },
+  { name: 'Wild Mary',    herd: 28, deck: 7, discard: 0, d: 3, c: 2, b: 2, crown: false, open: false }
+];
+const BACKS = ['River Back.jpg', 'Rattlesnake Back.jpg', 'Cactus Back.jpg'];
+const FACES = ['Card_91.jpg', 'Card_43.jpg', 'Card_18.jpg', 'Card_61.jpg', 'Card_33.jpg'];
+const LIST  = ONE ? [OPPS[1]] : OPPS;
+
+function card(src, x, y, z) {
+  return '<div class="card" style="left:' + x + 'px;top:' + y + 'px;z-index:' + z + '">' +
+         '<img src="../assets/cards/All-Cards/' + src + '" alt=""></div>';
+}
+function fan() {
+  let h = '';
+  FACES.forEach((f, i) => { h += card(f, (i % 3) * 58, ((i / 3) | 0) * 80, i + 1); });
+  return '<div class="hand mk-fan">' + h + '</div>';
+}
+function header(o) {
+  return '<div class="ai-summary-left">' +
+      '<span class="zone-label" style="margin:0">' + o.name +
+        (o.crown ? ' <span class="draw-crown" style="display:inline">👑</span>' : '') +
+      '</span>' +
+      '<span class="herd-display"><span>Herd</span>' +
+        '<span class="herd-number-wrap"><strong class="herd-number">' + o.herd + '</strong></span></span>' +
+      '<span class="deck-display">Deck: <strong>' + o.deck + '</strong></span>' +
+      '<span class="ai-inline-stats"><span class="sep">|</span>$<strong>' + o.d + '</strong>' +
+        '<span class="hud-stat-icon-wrap"><img src="../assets/symbols/hud-cow.png" class="hud-stat-icon" alt="Cows"><strong>' + o.c + '</strong></span>' +
+        '<span class="hud-stat-icon-wrap"><img src="../assets/symbols/hud-bandit.png" class="hud-stat-icon" alt="Bandits"><strong>' + o.b + '</strong></span>' +
+      '</span></div>';
+}
+function body_(o, i) {
+  return '<div class="player-info"><span class="discard-display">Discard: <strong>' + o.discard + '</strong></span></div>' +
+    '<div class="hand-row"><div class="mk-deck">' +
+      '<div class="card" style="position:relative;width:52px;height:73px">' +
+        '<img src="../assets/backs/' + BACKS[i % 3] + '" alt=""></div>' +
+      '<div class="deck-label">Deck (' + o.deck + ')</div></div>' + fan() + '</div>';
+}
+
+const host = document.getElementById('opponents-zone');
+LIST.forEach((o, idx) => {
+  const i = ONE ? 1 : idx;
+  const open = ONE ? false : o.open;
+  if (OPT === 'C') {
+    const d = document.createElement('details');
+    d.className = 'opp-zone';
+    if (open) d.open = true;
+    d.innerHTML = '<summary>' + header(o) + '<span class="collapse-toggle"></span></summary>' +
+                  '<div class="collapsible">' + body_(o, i) + '</div>';
+    host.appendChild(d);
+  } else {
+    const z = document.createElement('div');
+    z.className = 'opp-zone';
+    z.innerHTML = '<div class="ai-summary">' + header(o) +
+        '<span class="collapse-toggle">' + (open ? '▲' : '▼') + '</span></div>' +
+      '<div class="collapsible' + (open ? '' : ' collapsed') + '">' + body_(o, i) + '</div>';
+    z.querySelector('.ai-summary').addEventListener('click', () => {
+      const dt = z.querySelector('.collapsible'), tg = z.querySelector('.collapse-toggle');
+      tg.textContent = dt.classList.toggle('collapsed') ? '▼' : '▲';
+      report();
+    });
+    host.appendChild(z);
+  }
+});
+
+function nudge() {
+  document.querySelectorAll('.collapse-toggle').forEach(t => {
+    t.classList.remove('nudge'); void t.offsetWidth; t.classList.add('nudge');
+  });
+}
+/* Report real measurements up to the shell so its captions can't drift. */
+function report() {
+  const zones = [...document.querySelectorAll('.opp-zone')];
+  const closed = zones.filter(z => OPT === 'C' ? !z.open
+                                  : z.querySelector('.collapsible').classList.contains('collapsed'));
+  parent.postMessage({
+    mk: true, opt: OPT, one: ONE,
+    collapsedH: closed.length ? Math.round(closed[0].getBoundingClientRect().height) : null,
+    docH: Math.round(document.documentElement.scrollHeight)
+  }, '*');
+}
+addEventListener('load', () => { report(); if (OPT === 'A') setTimeout(nudge, 500); });
+addEventListener('message', e => { if (e.data === 'nudge' && OPT === 'A') nudge(); });
+</script>
+</body>
+</html>

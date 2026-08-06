@@ -2305,6 +2305,10 @@ async function startGame() {
   document.getElementById('showdown-screen').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   document.getElementById('opponents-zone').innerHTML = ''; // clear for fresh game
+  // Overrides are keyed by player INDEX, so "Play Again" would otherwise hand
+  // seat 2's collapse state to whoever lands in seat 2 next game.
+  oppHandsOverride.wide = {};
+  oppHandsOverride.mobile = {};
 
   if (MP.active) {
     const params = new URLSearchParams(location.search);
@@ -5818,24 +5822,35 @@ function hideCardHoverPreview() {
 // `.collapsed` class (max-height/opacity/padding/transition already styled);
 // this only decides which opponent zones carry it.
 const OPP_HANDS_MQ = window.matchMedia('(max-width: 768px)');
+// Per-bucket DEFAULT, used by any opponent the player has not touched yet.
 const oppHandsPref = { wide: 'open', mobile: 'closed' };
+// Per-bucket, per-opponent OVERRIDE (playerIdx -> 'open'|'closed'). A header
+// controls its own zone only. It used to flip every opponent at once while the
+// chevron sat inside one zone's header, which read as a per-zone control and
+// was not one; on mobile the common move is "peek at one player", not "reveal
+// the table". Overrides are per bucket for the same reason the default is:
+// what fits on a phone is not what fits on a desktop rail.
+const oppHandsOverride = { wide: {}, mobile: {} };
 function oppHandsBucket() { return OPP_HANDS_MQ.matches ? 'mobile' : 'wide'; }
-// Apply the current viewport bucket's preference to every opponent zone.
+function oppHandsState(i) {
+  const b = oppHandsBucket();
+  return oppHandsOverride[b][i] || oppHandsPref[b];
+}
+// Apply the current viewport bucket's state to every opponent zone.
 function applyOppHands() {
   if (typeof G === 'undefined' || !G || !G.numPlayers) return;
-  const collapsed = oppHandsPref[oppHandsBucket()] === 'closed';
   for (let j = 1; j < G.numPlayers; j++) {
     const detail = document.getElementById('opp-' + j + '-detail');
     const toggle = document.getElementById('opp-' + j + '-toggle');
     if (!detail) continue;
+    const collapsed = oppHandsState(j) === 'closed';
     detail.classList.toggle('collapsed', collapsed);
     if (toggle) toggle.textContent = collapsed ? '\u25bc' : '\u25b2';
   }
 }
-// Clicking any opponent header toggles all opponent hands for the current viewport only.
-function toggleOppZone() {
-  const b = oppHandsBucket();
-  oppHandsPref[b] = oppHandsPref[b] === 'open' ? 'closed' : 'open';
+// Clicking an opponent header toggles THAT opponent, for this viewport only.
+function toggleOppZone(i) {
+  oppHandsOverride[oppHandsBucket()][i] = oppHandsState(i) === 'open' ? 'closed' : 'open';
   applyOppHands();
 }
 OPP_HANDS_MQ.addEventListener('change', applyOppHands);

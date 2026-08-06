@@ -809,9 +809,38 @@ body.phase-draw #player-deck-preview {
   opacity: 0;
 }
 
+/* PEEK STRIP — opponent hands collapse to a sliver, never to nothing.
+   The cut-off edge of the cards is the signifier that the zone opens: it
+   survives on touch, where the cursor and :hover cues do not exist, and it
+   makes the collapsed state informative instead of a blank bar.
+   Costs ~22px per opponent (46px -> 68px), which is why it is scoped to
+   .opp-zone: the game log still collapses to 0 via the base rule above. */
+.opp-zone .collapsible.collapsed {
+  max-height: 30px;   /* ~24px of card, then the fade */
+  opacity: 1;         /* the base rule fades to 0 — a peek must stay visible */
+  position: relative; /* anchors the ::after fade */
+}
+/* Skip straight to the cards; "Discard: 0" would eat the whole sliver. */
+.opp-zone .collapsible.collapsed .player-info { display: none; }
+/* Fade the cut edge into the zone background so it reads as "continues
+   below" rather than as a clipping bug. Must track .opp-zone's #e9e0c6. */
+.opp-zone .collapsible.collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 18px;
+  background: linear-gradient(to bottom,
+    rgba(233,224,198,0) 0%, rgba(233,224,198,0.85) 60%, rgba(233,224,198,1) 100%);
+  pointer-events: none;
+}
+
+/* Shipped for months as rgba(233,224,198,0.5) on .opp-zone's #e9e0c6 —
+   identical RGB, so it composited to exactly the background: contrast
+   1.00:1, laid out correctly and completely invisible. Keep this ink-dark;
+   .log-summary sits on the same parchment and shared the same bug. */
 .collapse-toggle {
-  font-size: 0.65rem;
-  color: rgba(233,224,198,0.5);
+  font-size: 0.8rem;
+  color: rgba(30,22,16,0.62);
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;

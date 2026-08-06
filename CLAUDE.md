@@ -127,6 +127,7 @@ engine too.
 | `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md`, `RULEBOOK_WRITING_STANDARDS.md` (compiled board-game-industry conventions for rules writing) + `RULES_PAGE_AUDIT.md` (`rules.html` scored against them — **live to-do list**, fix 1 of 10 done) |
 | `admin/` | Firebase admin scripts (tracked; only `admin/firebase-backups/` is gitignored). All are `firebase login`–based — no database secret in any file. See the Admin Scripts section below. |
 | `test/` | Playwright tests |
+| `mockups/` | **Throwaway UI mockups — nothing ships, nothing links here.** Where a design gets compared before it touches `src/`/`css/`. See `mockups/README.md` for the convention. Created Aug 2026 to collect three that were floating loose (`demo/layout-demo.html` + two at the repo root); put new ones **here**, not at the root. Two rules that matter: load the **real** stylesheets (`../css/play.css`) — a from-scratch mockup proves nothing about the actual game — and render any mobile mockup in a **375px `<iframe>`**, because a 375px *column* in a desktop page does not match `@media (max-width:768px)`, so the mobile rules never fire and every measurement taken from it is wrong. |
 
 ---
 
@@ -557,8 +558,9 @@ showRules() / closeRules()  ~4087
 showDeck() / closeDeck()    ~4097  — My Deck modal (2-row × 3-col suit grid)
 showDeckPeek()              ~4147  — draw-phase ordered deck back preview
 showCardZoom()              ~4186
-toggleOppZone()             ~4219  — flips opponent-hand visibility for the CURRENT viewport bucket only (see oppHands note below)
-applyOppHands()             ~4219  — applies the current bucket's pref (.collapsed class + arrow) to every opp zone; called from render() and on matchMedia change
+toggleOppZone(i)            ~4219  — flips ONE opponent's hand, for the current viewport bucket only (see oppHands note below)
+oppHandsState(i)            ~4219  — that opponent's state: per-bucket override if set, else the bucket default
+applyOppHands()             ~4219  — writes each opponent's oppHandsState (.collapsed class + arrow) onto its zone; called from render() and on matchMedia change
 ensureOpponentZone(i)       ~4232  — creates opp zone DOM only if not already present (detail starts WITHOUT .collapsed; applyOppHands sets it)
 toggleLog()                 ~4274
 preloadImages()             ~4283
@@ -1027,7 +1029,51 @@ boundaries — the recommended next MP investment).
 
 **Fix in place:** `ensureOpponentZone(i, container)` (line ~4232) returns early if the zone already exists. `render()` must NOT remove opponent zone elements — only `startGame()` clears them. Do not regress this.
 
-**Opponent-hand default visibility (per-viewport):** opp hands default **expanded on wide / collapsed on mobile** (768px breakpoint), and the header click still toggles all of them. State is two session-only in-memory buckets — `oppHandsPref = {wide:'open', mobile:'closed'}` (NOT persisted; reload resets). `oppHandsBucket()` picks the bucket from `matchMedia('(max-width:768px)')`; `applyOppHands()` writes that bucket's pref onto every opp zone and runs from `render()` (synchronous → no flicker) and on the matchMedia `change` event; `toggleOppZone()` flips only the current bucket. Crossing the breakpoint just shows the other bucket's value — the two are independent. **Collapse reuses the existing `.collapsed` class** (its max-height/opacity/transition are in play.css and its `padding:0` is in playgame.html's inline `<style>`). **Do not** reimplement collapse via separate attribute-selector CSS — doing so orphans that inline `.collapsed { padding:0 }` rule and leaves an ~8px padding sliver in the "collapsed" state (a regression that already cost one debugging session — verify with a screenshot, not `getComputedStyle`, which reads unreliably mid-transition in preview).
+**Opponent-hand visibility — PEEK STRIP + per-opponent toggle (reworked Aug 2026).** Two layers of
+state, both session-only and never persisted:
+
+- **Per-viewport default** — `oppHandsPref = {wide:'open', mobile:'closed'}`, chosen by
+  `oppHandsBucket()` from `matchMedia('(max-width:768px)')`.
+- **Per-viewport, per-opponent override** — `oppHandsOverride = {wide:{}, mobile:{}}`, keyed by
+  **player index**. `oppHandsState(i)` returns the override if present, else the bucket default.
+  `toggleOppZone(i)` writes only opponent `i`. Crossing the breakpoint shows the other bucket's
+  values; the two are independent. **`startGame` clears both override maps** — they are keyed by
+  index, so "Play Again" would otherwise hand seat 2's state to whoever lands in seat 2 next game.
+
+`applyOppHands()` writes each opponent's state onto its zone and runs from `render()` (synchronous →
+no flicker) and on the matchMedia `change` event.
+
+**The header used to toggle every opponent at once** while the chevron sat inside one zone's header —
+it read as a per-zone control and was not one. It is now genuinely per-zone.
+
+**Collapsed ≠ hidden: opponent zones collapse to a 30px PEEK STRIP, not to zero.** The cut-off top
+edge of the cards *is* the signifier that the zone opens — it survives on touch, where `cursor:pointer`
+and `:hover` do not exist. Three rules in play.css, all scoped to `.opp-zone` so the **game log still
+collapses to 0** via the base `.collapsible.collapsed`:
+`max-height:30px` + `opacity:1` (the base rule fades to 0 — a peek must stay visible) + `position:relative`;
+`.player-info { display:none }` (otherwise "Discard: 0" eats the whole sliver); and an `::after`
+gradient fading the cut edge into `#e9e0c6` so it reads as "continues below" rather than as clipping.
+**The gradient hardcodes the zone background — change `.opp-zone`'s colour and you must change it too.**
+Cost is ~28px per opponent (74px vs 46px collapsed, measured at 375px).
+
+Collapse still reuses the existing `.collapsed` class (max-height/opacity/transition in play.css,
+padding in playgame.html's inline `<style>`). That inline rule is now **`padding: 0 0.5rem`, not
+`padding: 0`** — the horizontal padding has to stay or the peek strip shunts flush to the zone edge,
+out of line with the expanded state above it. **Do not** reimplement collapse via separate
+attribute-selector CSS — doing so orphans the inline padding rule and leaves a sliver of dead padding
+(a regression that already cost one debugging session).
+
+**Verify with a screenshot, never with `getComputedStyle` alone.** When the preview pane is
+backgrounded the page stops ticking, so CSS transitions park at their start value and report
+`playState: 'running'` forever — `max-height` reads 30px on a zone that is *not* collapsed, with no
+rule in the cascade producing that number. Force a paint (take a screenshot) before trusting any
+measurement of a transitioning property.
+
+**`.collapse-toggle` shipped invisible for months** — `rgba(233,224,198,0.5)` on `.opp-zone`'s
+`#e9e0c6`. Identical RGB, so it composited to *exactly* the background: contrast **1.00:1**, correctly
+laid out and impossible to see. Now `rgba(30,22,16,0.62)` at 0.8rem — **4.51:1**. The class is shared
+with the Game Log toggle, which sits on the same parchment and had the same bug; both are fixed by the
+one rule. Never give this class a light colour again.
 
 ---
 

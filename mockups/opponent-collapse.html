@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mockup — Opponent Collapse Signifier (A / B / C)</title>
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+/* Mockup chrome only. Nothing here ships.
+   Every phone is a real 375px <iframe> of mockup-collapse-frame.html, so
+   play.css's mobile media queries fire exactly as they do on a phone. */
+body {
+  margin: 0; padding: 1rem 1rem 3rem;
+  background: #241a12; min-height: 100vh; min-height: 100svh;
+  font-family: Georgia, serif;
+}
+.mk-wrap { max-width: 1250px; margin: 0 auto; }
+h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; color: #e9e0c6; margin: 0 0 .35rem; }
+.mk-intro { font-size: .82rem; color: rgba(233,224,198,.72); line-height: 1.55; margin: 0 0 1.5rem; max-width: 78ch; }
+code { background: rgba(0,0,0,.35); padding: 1px 5px; border-radius: 3px; font-size: .78rem; color: #d9cfae; }
+strong { color: #e9e0c6; }
+
+.mk-sechead {
+  color: #c9a227; font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem; margin: 0 0 .15rem;
+}
+.mk-secsub { color: rgba(233,224,198,.55); font-size: .76rem; margin: 0 0 .8rem; }
+
+/* ── Magnified collapsed-bar comparison ───────────────────────────────── */
+.mk-zoomgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 1.4rem; margin-bottom: 2.2rem; }
+.mk-zoomlabel { color: rgba(233,224,198,.75); font-size: .74rem; margin-bottom: .3rem; letter-spacing: .5px; }
+.mk-zoomlabel-now { color: #c84e18; }
+.mk-zoomclip {
+  overflow: hidden; border: 2px solid #0f0b07; border-radius: 6px;
+  background: #e6dcc0; height: 132px;
+}
+.mk-zoomclip iframe {
+  width: 375px; height: 200px; border: 0; display: block;
+  transform: scale(1.5); transform-origin: top left;
+}
+
+/* ── Full phones ──────────────────────────────────────────────────────── */
+.mk-row { display: flex; gap: 1.4rem; justify-content: center; flex-wrap: wrap; }
+.mk-col { width: 375px; flex: 0 0 375px; }
+.mk-title { color: #e9e0c6; font-family: 'Playfair Display', Georgia, serif; font-size: 1.02rem; margin: 0 0 .2rem; }
+.mk-title span { color: #c9a227; }
+.mk-sub { color: rgba(233,224,198,.62); font-size: .75rem; line-height: 1.5; margin: 0 0 .6rem; min-height: 4.5em; }
+.mk-phone {
+  border: 3px solid #0f0b07; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 10px 26px rgba(0,0,0,.5); background: #e6dcc0;
+}
+.mk-phone iframe { width: 375px; height: 660px; border: 0; display: block; }
+.mk-bar { display: flex; gap: .4rem; margin: .55rem 0 0; }
+.mk-btn {
+  flex: 1; font-family: Georgia, serif; font-size: .72rem; padding: .45rem;
+  background: #3a2a1a; color: #e9e0c6; border: 1px solid #6b5233;
+  border-radius: 4px; cursor: pointer;
+}
+.mk-btn:hover { background: #4a3622; }
+.mk-note { color: rgba(233,224,198,.52); font-size: .7rem; margin: .5rem 0 0; line-height: 1.5; }
+.mk-note.win  { color: #7fb069; }
+.mk-note.cost { color: #d98b4a; }
+
+@media (max-width: 1180px) { .mk-zoomgrid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="mk-wrap">
+
+  <h1>Opponent hands — collapse signifier mockup</h1>
+  <p class="mk-intro">
+    Every frame below is a real 375px phone viewport running <code>css/play.css</code>, so the mobile
+    media queries fire the same way they do on a handset. In each phone the top zone starts expanded and
+    the lower two collapsed — the real mobile default. Tap any header to toggle.
+    <strong>Today the chevron ships as <code>rgba(233,224,198,.5)</code> on <code>#e9e0c6</code>: identical RGB,
+    contrast 1.00:1, invisible.</strong>
+  </p>
+
+  <h2 class="mk-sechead">1. The collapsed bar at 1.5×</h2>
+  <p class="mk-secsub">This is the state a phone player actually sees. It has to say “tap me”.</p>
+  <div class="mk-zoomgrid">
+    <div>
+      <div class="mk-zoomlabel mk-zoomlabel-now">NOW — nothing at the right edge</div>
+      <div class="mk-zoomclip"><iframe src="opponent-collapse-frame.html?opt=NOW&one=1" scrolling="no" title="Current"></iframe></div>
+    </div>
+    <div>
+      <div class="mk-zoomlabel">A — button chrome</div>
+      <div class="mk-zoomclip"><iframe src="opponent-collapse-frame.html?opt=A&one=1" scrolling="no" title="Option A"></iframe></div>
+    </div>
+    <div>
+      <div class="mk-zoomlabel">B — peek strip</div>
+      <div class="mk-zoomclip"><iframe src="opponent-collapse-frame.html?opt=B&one=1" scrolling="no" title="Option B"></iframe></div>
+    </div>
+    <div>
+      <div class="mk-zoomlabel">C — native &lt;details&gt;</div>
+      <div class="mk-zoomclip"><iframe src="opponent-collapse-frame.html?opt=C&one=1" scrolling="no" title="Option C"></iframe></div>
+    </div>
+  </div>
+
+  <h2 class="mk-sechead">2. Live phones — tap the headers</h2>
+  <p class="mk-secsub">Same three opponents, same data, three treatments.</p>
+  <div class="mk-row">
+
+    <div class="mk-col">
+      <h3 class="mk-title"><span>A.</span> Button chrome + nudge</h3>
+      <p class="mk-sub">Chevron recoloured to ink and wrapped in a bordered pill, so it reads as pressable without hover. Bounces twice on first render — the one discovery cue that survives on touch.</p>
+      <div class="mk-phone"><iframe id="fA" src="opponent-collapse-frame.html?opt=A" scrolling="no" title="Option A phone"></iframe></div>
+      <div class="mk-bar"><button class="mk-btn" onclick="nudge()">▶ Replay first-run nudge</button></div>
+      <p class="mk-note win" id="noteA">No width cost; header stays one line.</p>
+    </div>
+
+    <div class="mk-col">
+      <h3 class="mk-title"><span>B.</span> Peek strip</h3>
+      <p class="mk-sub">Collapsed state keeps a ~24px sliver of the hand under a fade. The cut-off edge is itself the “more below” cue, and the collapsed state becomes informative instead of blank.</p>
+      <div class="mk-phone"><iframe id="fB" src="opponent-collapse-frame.html?opt=B" scrolling="no" title="Option B phone"></iframe></div>
+      <div class="mk-bar"><button class="mk-btn" onclick="document.getElementById('fB').contentWindow.location.reload()">↻ Reset states</button></div>
+      <p class="mk-note cost" id="noteB">Costs height on the screen with least to spare.</p>
+      <p class="mk-note" id="noteB7"></p>
+    </div>
+
+    <div class="mk-col">
+      <h3 class="mk-title"><span>C.</span> Native &lt;details&gt;</h3>
+      <p class="mk-sub">A real disclosure widget: keyboard-operable and announced as expanded/collapsed to screen readers. Both are absent today — the header is a bare <code>div</code> with an <code>onclick</code>.</p>
+      <div class="mk-phone"><iframe id="fC" src="opponent-collapse-frame.html?opt=C" scrolling="no" title="Option C phone"></iframe></div>
+      <div class="mk-bar"><button class="mk-btn" onclick="focusC()">⌨ Tab into the first header</button></div>
+      <p class="mk-note" id="noteC">Loses the 0.25s ease — <code>&lt;details&gt;</code> snaps open and shut.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* Captions are filled from what the frames actually measure, so they cannot
+   drift from what is on screen. */
+/* NOW comes from the baseline frame in the zoom row; A/B/C from the phones.
+   Everything is stated as a delta against what ships today. */
+const H = {};
+function delta(n) { return n === 0 ? 'no change' : (n > 0 ? '+' : '') + n + 'px'; }
+function paint() {
+  if (H.NOW == null) return;
+  const base = H.NOW;
+  if (H.A != null) document.getElementById('noteA').innerHTML =
+    'Collapsed bar <b>' + H.A + 'px</b> vs <b>' + base + 'px</b> today — ' + delta(H.A - base) +
+    '. No width cost; header stays one line.';
+  if (H.B != null) {
+    document.getElementById('noteB').innerHTML =
+      'Collapsed bar <b>' + H.B + 'px</b> vs <b>' + base + 'px</b> today — ' + delta(H.B - base) + ' each.';
+    document.getElementById('noteB7').innerHTML =
+      'At 7 opponents: ~<b>' + (H.B * 7) + 'px</b> of an 812px screen, vs ~' + (base * 7) + 'px today.';
+  }
+  if (H.C != null) document.getElementById('noteC').innerHTML =
+    'Collapsed bar <b>' + H.C + 'px</b> vs <b>' + base + 'px</b> today — ' + delta(H.C - base) +
+    '. Loses the 0.25s ease: <code>&lt;details&gt;</code> snaps open and shut.';
+}
+addEventListener('message', e => {
+  const d = e.data;
+  if (!d || !d.mk) return;
+  if (d.one && d.opt === 'NOW') H.NOW = d.collapsedH;   // today's baseline
+  else if (!d.one) H[d.opt] = d.collapsedH;
+  paint();
+});
+function nudge() {
+  document.getElementById('fA').contentWindow.postMessage('nudge', '*');
+}
+function focusC() {
+  const w = document.getElementById('fC').contentWindow;
+  w.focus();
+  const s = w.document.querySelector('summary');
+  if (s) s.focus();
+}
+</script>
+</body>
+</html>
