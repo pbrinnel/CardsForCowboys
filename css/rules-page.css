@@ -604,14 +604,11 @@ html { scroll-behavior: smooth; }
    running off the side — .btn is inline-flex, which does not centre reliably once it wraps. */
 .rules-footer .btn { margin: 0.35rem; }
 
-/* End-of-rules Kickstarter hook — readers who reach here are the high-intent audience */
-.rules-kickstarter {
-  margin-top: 1.25rem;
-  font-size: 0.95rem;
-  font-style: italic;
-  color: #3a2a1a;
-}
-.rules-kickstarter a { color: #8a5a22; font-weight: bold; }
+/* End-of-rules Kickstarter hook — readers who reach here are the high-intent audience, so
+   they get the signup field itself, not a link to the homepage. The form and its lead-in
+   line are entirely shared: css/signup.css. Nothing page-specific belongs here — the copy
+   is deliberately the same sentence on all three surfaces. */
+.rules-footer .signup-section { margin-top: 1.25rem; }
 
 /* Active nav link */
 nav a.active { color: #e9e0c6; text-decoration: underline; }

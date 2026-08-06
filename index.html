@@ -202,62 +202,11 @@
     }
     .footer-link { color: rgba(233,224,198,0.9); text-decoration: underline; }
     .footer-link:hover { color: #e9e0c6; }
-    /* Above-the-fold email capture (sits between the tagline and the deck fan —
-       the site's one conversion element; keep it visible without scrolling) */
-    .signup-section {
-      margin: 0 auto 0.9rem;
-    }
-    .signup-label {
-      font-size: 0.85rem;
-      color: #3a2a1a;
-      margin-bottom: 0.6rem;
-      font-style: italic;
-    }
-    .signup-row {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .signup-input {
-      padding: 0.55rem 0.9rem;
-      border: 2.5px solid #1e1610;
-      font-size: 0.95rem;
-      font-family: Georgia, serif;
-      background: #e9e0c6;
-      color: #1e1610;
-      width: 220px;
-    }
-    .signup-input:focus { outline: none; box-shadow: 0 0 0 2px #b87838; }
-    .signup-btn {
-      padding: 0.55rem 1.2rem;
-      background: transparent;
-      border: 2px solid #1e1610;
-      color: #1e1610;
-      font-size: 0.95rem;
-      font-family: Georgia, serif;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 2px 2px 0 #1e1610;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .signup-btn:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #1e1610; }
-    .signup-btn:disabled { opacity: 0.4; cursor: default; }
-    .signup-msg {
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-      font-style: italic;
-      min-height: 1.2em;
-    }
-    .signup-consent {
-      margin-top: 0.3rem;
-      font-size: 0.72rem;
-      line-height: 1.4;
-      color: rgba(58,42,26,0.75);
-      max-width: 32rem;
-    }
-    .signup-consent a { color: #8a5a22; }
+    /* Above-the-fold email capture sits between the tagline and the deck fan —
+       the site's one conversion element; keep it visible without scrolling.
+       The form's own styles are shared: css/signup.css. */
   </style>
+  <link rel="stylesheet" href="css/signup.css">
   <link rel="stylesheet" href="css/a11y.css">
 </head>
 <body>
@@ -266,16 +215,20 @@
     <p class="tagline">A Streamlined Deck Builder<br>No Draw Limits — But Watch Out for Those Bandits!</p>
     <p class="hero-physical">A physical tabletop card game &mdash; play the full game free online, right here.</p>
 
+    <!-- Shared signup component — markup, css/signup.css and src/signup.js must
+         stay in step. The id is kept only so old external links to #signup still
+         land somewhere sensible; nothing on the site links to it any more. -->
     <div class="signup-section" id="signup">
       <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
       <div class="signup-row">
-        <input id="signup-email" class="signup-input" type="email" placeholder="your@email.com">
-        <button id="signup-btn" class="signup-btn">Notify Me</button>
+        <input class="signup-input" type="email" placeholder="your@email.com"
+               autocomplete="email" aria-label="Email address">
+        <button class="signup-btn" type="button">Notify Me</button>
       </div>
       <p class="signup-consent">
         No spam. <a href="privacy.html">Privacy Policy</a>.
       </p>
-      <p id="signup-msg" class="signup-msg"></p>
+      <p class="signup-msg" role="status" aria-live="polite"></p>
     </div>
 
     <div class="deck-fan" aria-hidden="true">
@@ -314,38 +267,7 @@
     <a href="privacy.html" class="footer-link">Privacy</a>
   </footer>
 
-  <script type="module">
-    import { db } from './src/firebase-config.js';
-    import { ref, push, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-
-    const btn   = document.getElementById('signup-btn');
-    const input = document.getElementById('signup-email');
-    const msg   = document.getElementById('signup-msg');
-
-    btn.addEventListener('click', async () => {
-      const email = input.value.trim();
-      if (!email || !email.includes('@')) {
-        msg.style.color = '#c84e18';
-        msg.textContent = 'Please enter a valid email address.';
-        return;
-      }
-      btn.disabled = true;
-      msg.style.color = '#3a2a1a';
-      msg.textContent = 'Saving…';
-      try {
-        await push(ref(db, 'emailSignups'), { email, ts: Date.now() });
-        input.value = '';
-        msg.style.color = '#2a6e1a';
-        msg.textContent = "You're on the list — we'll be in touch!";
-      } catch (e) {
-        btn.disabled = false;
-        msg.style.color = '#c84e18';
-        msg.textContent = 'Something went wrong. Please try again.';
-      }
-    });
-
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
-  </script>
+  <script type="module" src="src/signup.js"></script>
 
   <script>
     (function() {

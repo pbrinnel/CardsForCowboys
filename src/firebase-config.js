@@ -2,7 +2,7 @@
 // Firebase Configuration - Cards For Cowboys
 // ============================================================
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
@@ -15,5 +15,8 @@ const firebaseConfig = {
   appId: "1:795777888512:web:560d415f8d34def96dc3e5"
 };
 
-const app = initializeApp(firebaseConfig);
+// Guarded: playgame.html loads this (via src/signup.js) alongside src/play.js,
+// which initializes the same default app on its own. Whichever runs first wins;
+// a second unguarded initializeApp would throw app/duplicate-app.
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getDatabase(app);

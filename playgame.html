@@ -243,6 +243,7 @@
       #pyramid-zone .card-cost { font-size: 0.65rem !important; }
     }
   </style>
+  <link rel="stylesheet" href="css/signup.css">
   <link rel="stylesheet" href="css/a11y.css">
 </head>
 <body>
@@ -275,8 +276,22 @@
           <a href="index.html" class="btn btn-large">Back to Home</a>
           <a id="gameover-review-link" class="btn btn-large hidden" target="_blank">Review Game</a>
         </div>
-        <p class="showdown-kickstarter">Like it? The physical game hits Kickstarter in 2027 &mdash;
-          <a href="index.html#signup">get the launch date</a>.</p>
+        <!-- Shared signup component — see css/signup.css. `signup-on-dark` repaints it
+             for the overlay. The field is here rather than a link to the homepage's
+             #signup anchor: this is peak intent, and sending them to another page to
+             find a form is how you lose them. -->
+        <div class="signup-section signup-on-dark">
+          <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
+          <div class="signup-row">
+            <input class="signup-input" type="email" placeholder="your@email.com"
+                   autocomplete="email" aria-label="Email address">
+            <button class="signup-btn" type="button">Notify Me</button>
+          </div>
+          <p class="signup-consent">
+            No spam. <a href="privacy.html" target="_blank">Privacy Policy</a>.
+          </p>
+          <p class="signup-msg" role="status" aria-live="polite"></p>
+        </div>
       </div>
     </div>
   </div>
@@ -416,6 +431,10 @@
        STARTER_TEMPLATES / CARD_DB / CARD_IMG_PATH at top level. Shared with cardslist.html. -->
   <script src="src/card-db.js"></script>
   <script src="src/play.js"></script>
+  <!-- Showdown signup field. A module, so it is deferred and cannot delay the game;
+       it initializes Firebase through the same guarded getApps()/getApp() path play.js
+       uses, so the two never collide over the default app. -->
+  <script type="module" src="src/signup.js"></script>
 
   <script>
     // ── Player-count class → drives pyramid column width in wide mode ─────────

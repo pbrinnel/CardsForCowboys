@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/rules-page.css">
+  <link rel="stylesheet" href="css/signup.css">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6VXL9NJ6KJ"></script>
   <script>
@@ -346,8 +347,21 @@
     <div class="rules-footer">
       <a href="cardslist.html" class="btn btn-secondary">Cards List</a>
       <a href="gamesetup.html" class="btn">Play Digital Version</a>
-      <p class="rules-kickstarter">Want the real cards on your table? Cards For Cowboys is coming to
-        Kickstarter in 2027 &mdash; <a href="index.html#signup">get the launch date</a>.</p>
+      <!-- Shared signup component — see css/signup.css. The reader who gets to the
+           bottom of the rules is the most convinced visitor the site has; give them
+           the field, not a trip to another page's anchor. -->
+      <div class="signup-section">
+        <p class="signup-label">Get the Kickstarter launch date &amp; updates on the Physical Version</p>
+        <div class="signup-row">
+          <input class="signup-input" type="email" placeholder="your@email.com"
+                 autocomplete="email" aria-label="Email address">
+          <button class="signup-btn" type="button">Notify Me</button>
+        </div>
+        <p class="signup-consent">
+          No spam. <a href="privacy.html">Privacy Policy</a>.
+        </p>
+        <p class="signup-msg" role="status" aria-live="polite"></p>
+      </div>
     </div>
   </main>
 
@@ -356,5 +370,6 @@
     <p><a href="bugreport.html" class="footer-link">Report a Bug</a> &nbsp;&bull;&nbsp; <a href="privacy.html" class="footer-link">Privacy</a></p>
   </footer>
 
+  <script type="module" src="src/signup.js"></script>
 </body>
 </html>

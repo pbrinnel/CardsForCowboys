@@ -106,7 +106,12 @@ const MP = (() => {
     const fbApp = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     fbMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
 
-    const app = fbApp.initializeApp(FIREBASE_CONFIG);
+    // Reuse an existing app rather than initializing a second one — matches the
+    // three other call sites in this file. playgame.html also loads src/signup.js,
+    // which pulls in src/firebase-config.js; whichever of the two gets there first
+    // wins and the other attaches to it. An unguarded initializeApp here threw
+    // app/duplicate-app and took MP init down with it.
+    const app = fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(FIREBASE_CONFIG);
     db = fbMod.getDatabase(app);
 
     fbRef       = (db_, path_) => fbMod.ref(db_, path_);

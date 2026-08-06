@@ -1,0 +1,119 @@
+/* ── Kickstarter email capture ─────────────────────────────────────────────
+   THE shared signup form. Used on index.html (above the fold), rules.html
+   (end of rules) and playgame.html (showdown). Wired up by src/signup.js.
+
+   Anywhere the site asks for a signup it puts the FIELD there, not a link to
+   the homepage's #signup anchor. A cross-page anchor made the reader navigate
+   away from the thing that just convinced them, and dropped them at the top
+   of a page they'd have to re-scan. If you add a fourth surface, copy the
+   markup block from rules.html and add this stylesheet + the module — do not
+   re-introduce a link to #signup.
+
+   Two palettes: the default is for the cream page background; add
+   `signup-on-dark` alongside `signup-section` for a dark backdrop such as the
+   showdown overlay.
+
+   ── Why every rule is scoped under `.signup-section` ──
+   Host pages style bare elements. rules.html has `.rules-page p` — a class
+   PLUS an element, specificity (0,1,1) — which out-specifies a lone
+   `.signup-label` (0,1,0) no matter what order the stylesheets load in. That
+   rendered the label and the fine-print consent line at full body size the
+   first time this component was dropped into the rules page. Scoping to
+   `.signup-section .signup-label` (0,2,0) wins on class count and makes the
+   component immune to that class of host rule generally, instead of needing a
+   per-page patch each time it lands somewhere new. Keep new rules scoped.
+────────────────────────────────────────────────────────────────────────── */
+
+.signup-section {
+  margin: 0 auto 0.9rem;
+}
+
+/* One sentence, identical on every surface — it is the homepage copy, reused
+   verbatim. `balance` only bites once it wraps (phones), where it evens the
+   two lines instead of leaving a stray word on its own. */
+.signup-section .signup-label {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #3a2a1a;
+  margin: 0 0 0.6rem;
+  font-style: italic;
+  text-wrap: balance;
+}
+
+.signup-section .signup-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.signup-section .signup-input {
+  padding: 0.55rem 0.9rem;
+  border: 2.5px solid #1e1610;
+  font-size: 0.95rem;
+  font-family: Georgia, serif;
+  background: #e9e0c6;
+  color: #1e1610;
+  width: 220px;
+}
+
+.signup-section .signup-input:focus { outline: none; box-shadow: 0 0 0 2px #b87838; }
+
+.signup-section .signup-btn {
+  padding: 0.55rem 1.2rem;
+  background: transparent;
+  border: 2px solid #1e1610;
+  color: #1e1610;
+  font-size: 0.95rem;
+  font-family: Georgia, serif;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #1e1610;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.signup-section .signup-btn:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #1e1610; }
+.signup-section .signup-btn:disabled { opacity: 0.4; cursor: default; }
+
+.signup-section .signup-msg {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-style: italic;
+  min-height: 1.2em;
+}
+
+/* State lives in a class, never an inline colour: the same message element has
+   to be legible on cream AND on the dark showdown overlay, and an inline
+   colour set by JS cannot vary by backdrop. */
+.signup-section .signup-msg.is-pending { color: #3a2a1a; }
+.signup-section .signup-msg.is-error   { color: #c84e18; }
+.signup-section .signup-msg.is-ok      { color: #2a6e1a; }
+
+.signup-section .signup-consent {
+  margin: 0.3rem auto 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(58,42,26,0.75);
+  max-width: 32rem;
+}
+
+.signup-section .signup-consent a { color: #8a5a22; }
+
+/* ── Dark backdrop variant (showdown overlay) ──
+   One class more specific than the defaults above, so it wins outright rather
+   than on source order. */
+.signup-section.signup-on-dark .signup-label   { color: rgba(233,224,198,0.9); }
+.signup-section.signup-on-dark .signup-input   { border-color: #e9e0c6; }
+.signup-section.signup-on-dark .signup-input:focus { box-shadow: 0 0 0 2px #e8c872; }
+.signup-section.signup-on-dark .signup-btn {
+  border-color: #e8c872;
+  color: #e8c872;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.6);
+}
+.signup-section.signup-on-dark .signup-btn:hover { box-shadow: 1px 1px 0 rgba(0,0,0,0.6); }
+.signup-section.signup-on-dark .signup-consent   { color: rgba(233,224,198,0.65); }
+.signup-section.signup-on-dark .signup-consent a { color: #e8c872; }
+.signup-section.signup-on-dark .signup-msg.is-pending { color: rgba(233,224,198,0.9); }
+.signup-section.signup-on-dark .signup-msg.is-error   { color: #f0a070; }
+.signup-section.signup-on-dark .signup-msg.is-ok      { color: #9fd67f; }

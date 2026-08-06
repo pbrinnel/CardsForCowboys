@@ -65,6 +65,7 @@ and a `window.location` button do not. Rules for a new page:
 | `src/firebase-config.js` | Firebase init, exports `db` — used by lobby.js / host.js as ESM module |
 | `src/host.js` | Host (create) flow + inline waiting room on gamesetup.html. Exposes `window.CFC_startHosting()`. Game auto-launches only when all human slots fill. Replaces the old `src/creategame.js`. |
 | `src/herd-chart.js` | **End-of-game "Herd by Round" graph — ONE renderer, TWO surfaces** (showdown screen + spectate). Classic script exposing `window.CFC_HerdChart.render(el, {players, round, phase, youIndex, animate})`, same dual-use idiom as `sim/tiebreaker.js`. See the Herd Chart section below. |
+| `src/signup.js` | **THE shared Kickstarter email-capture handler** (Aug 2026). ESM module; wires every `.signup-section` on the page, so a page may carry more than one. Writes `{email, ts}` to `emailSignups/` — that payload is exact, since the rule ends in `"$other": {".validate": false}`. Client-side regex **mirrors the server rule** (needs a dot in the domain), so `me@localhost` is rejected with a useful message instead of a server `permission_denied` surfacing as "Something went wrong". Sets a state CLASS (`is-pending`/`is-error`/`is-ok`), never an inline colour — the same message element has to be legible on cream *and* on the dark showdown overlay. See the Signup Component section below. |
 
 ### `css/` — Stylesheets
 | File | Purpose |
@@ -74,6 +75,7 @@ and a `window.location` button do not. Rules for a new page:
 | `css/rules-page.css` | Rules page styles |
 | `css/cards-list.css` | Cards List page styles (the Act×suit matrix, the zoom overlay, the ≤760px stacked reflow) |
 | `css/theme.css` | Theme variables / font imports |
+| `css/signup.css` | Shared Kickstarter signup-form styles (Aug 2026), extracted from index.html's inline block when the form went to three pages. Default palette is for the cream page; add `signup-on-dark` beside `signup-section` for a dark backdrop (the showdown). Loaded by index / rules / playgame. |
 | `css/a11y.css` | Shared accessibility baseline (`:focus-visible` outline + `prefers-reduced-motion` collapse) — linked by ALL pages (July 2026 audit A1/A2). Add the link to any new page. |
 
 ### `sim/` — Simulation & AI tooling
@@ -681,6 +683,53 @@ disambiguates a flat segment ("busted" vs "scored no cows").
 
 `render()` returns **false** when no series has data (games finished before this shipped); the
 spectate caller removes the container so old games don't show an empty frame.
+
+---
+
+## Signup Component (Kickstarter email capture) — Aug 2026
+
+**Rule: wherever the site asks for a signup, put the FIELD there. Never link to
+`index.html#signup`.** Three surfaces carry it — index.html (above the fold), rules.html (end of
+the rules) and playgame.html (showdown footer) — from **one** stylesheet
+([`css/signup.css`](css/signup.css)) and **one** module ([`src/signup.js`](src/signup.js)).
+
+The cross-page anchor it replaced was the whole problem: it made the most-convinced reader on the
+site navigate away from the thing that had just convinced them, and dropped them at the top of a
+page they then had to re-scan for a form. The rules and showdown hooks are now self-contained.
+
+To add a fourth surface: copy the markup block from `rules.html`, add both files to the page, and
+add `signup-on-dark` beside `signup-section` if the backdrop is dark. Nothing else is required —
+`src/signup.js` wires every `.signup-section` it finds on load.
+
+Four things that are load-bearing:
+
+- **The payload is exactly `{email, ts}`.** `database.rules.json`'s `emailSignups` shape ends with
+  `"$other": { ".validate": false }`, so adding a `page`/`source` field to attribute signups makes
+  **every** write fail with `permission_denied` until the rules are changed AND deployed
+  (`firebase deploy --only database` — see audit C9, where an undeployed field silently rejected
+  writes for a week).
+- **Message state is a CLASS, never an inline colour.** The old handler set `msg.style.color`
+  directly; that cannot work once the same component renders on the dark showdown overlay, where
+  the success green and the "Saving…" brown are both illegible. `is-pending`/`is-error`/`is-ok`
+  let `signup-on-dark` repaint them.
+- **The client-side regex mirrors the server rule** (`/^[^@\s]+@[^@\s]+\.[^@\s]+$/`). The old
+  `email.includes('@')` check passed addresses like `me@localhost` that the rule then rejected, so
+  the user got the generic "Something went wrong" for a fixable typo.
+- **`initializeApp` is guarded on BOTH sides.** playgame.html loads `src/signup.js` (→
+  `src/firebase-config.js`) alongside `src/play.js`, and both initialize the default Firebase app.
+  Both now use `getApps().length > 0 ? getApp() : initializeApp(...)`. `play.js`'s MP-init call
+  site (~line 109) was the only unguarded one left in that file — its three siblings already had
+  the guard — and unguarded it throws `app/duplicate-app`, which would take MP init down with it.
+  Verified: one `[DEFAULT]` app on a live showdown with both scripts loaded.
+
+**The label copy is ONE sentence, reused verbatim on all three surfaces** — "Get the Kickstarter
+launch date & updates on the Physical Version", the homepage's own line. Per-surface variants
+("Like it? …", "Want these cards on your table? …") were tried and removed: they bought nothing,
+and each one needed its own `.signup-label.<page>-kickstarter` compound-selector override to win
+back `font-size` from `.signup-label` (`css/signup.css` loads after both `css/rules-page.css` and
+`css/play.css`, so a bare class loses on source order). Keeping the copy identical deletes that
+whole class of problem — page CSS now only sets the margin above the block. Don't reintroduce
+bespoke per-page wording.
 
 ---
 
