@@ -1036,15 +1036,39 @@ state, both session-only and never persisted:
   `oppHandsBucket()` from `matchMedia('(max-width:768px)')`.
 - **Per-viewport, per-opponent override** — `oppHandsOverride = {wide:{}, mobile:{}}`, keyed by
   **player index**. `oppHandsState(i)` returns the override if present, else the bucket default.
-  `toggleOppZone(i)` writes only opponent `i`. Crossing the breakpoint shows the other bucket's
-  values; the two are independent. **`startGame` clears both override maps** — they are keyed by
-  index, so "Play Again" would otherwise hand seat 2's state to whoever lands in seat 2 next game.
+  Crossing the breakpoint shows the other bucket's values; the two are independent.
+  **`startGame` clears both override maps** — they are keyed by index, so "Play Again" would
+  otherwise hand seat 2's state to whoever lands in seat 2 next game.
 
 `applyOppHands()` writes each opponent's state onto its zone and runs from `render()` (synchronous →
 no flicker) and on the matchMedia `change` event.
 
-**The header used to toggle every opponent at once** while the chevron sat inside one zone's header —
-it read as a per-zone control and was not one. It is now genuinely per-zone.
+**Clicking a header toggles its whole VISUAL ROW** (`oppRowPeers(i)` → `toggleOppZone(i)`). Row
+membership is read from **live geometry** (zones whose `getBoundingClientRect().top` match within
+4px), not from `numPlayers`, so it keeps working across every layout the zones have without
+re-encoding those breakpoints:
+
+| Viewport | Players | Layout | Row = |
+|---|---|---|---|
+| ≥1200px | any | rail, `flex-direction:column` | **all opponents** (see below) |
+| <1200px | 2-4P | flex row | all opponents |
+| 768-1200px | 5-8P | `.opp-grid`, 4 cols | that row of ≤4 |
+| ≤768px | 5-8P | `.opp-grid`, 2 cols | that row of ≤2 |
+
+Two things in `oppRowPeers` are load-bearing:
+
+- **A stacked single column is treated as ONE group.** In the desktop rail every zone is its own
+  row, so a literal row match would move only the zone you clicked — which is what made compacting
+  the rail feel silly (3 clicks at 4P, 7 at 8P). This is the whole reason the function exists.
+- **The `stacked` test is global, not local.** With 7 opponents in 2 columns the last grid row holds
+  a single orphan cell; a "my row has only me ⇒ collapse everything" shortcut would sweep the entire
+  grid from that one cell. Verified: rows `[[1,2],[3,4],[5,6],[7]]`, and clicking 7 returns `[7]`.
+
+Geometry is read **before** any class changes — collapsing shifts every zone below it.
+
+**History:** the header originally toggled every opponent at once while the chevron sat inside one
+zone; then (Aug 2026) strictly per-opponent, which fixed the false affordance but made bulk
+collapsing N clicks; now row-grouped, which is both.
 
 **Collapsed ≠ hidden: opponent zones collapse to a 30px PEEK STRIP, not to zero.** The cut-off top
 edge of the cards *is* the signifier that the zone opens — it survives on touch, where `cursor:pointer`

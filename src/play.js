@@ -5848,9 +5848,39 @@ function applyOppHands() {
     if (toggle) toggle.textContent = collapsed ? '\u25bc' : '\u25b2';
   }
 }
-// Clicking an opponent header toggles THAT opponent, for this viewport only.
+// Which opponents move together when one header is clicked: everything sharing
+// the clicked zone's visual ROW. Read from live geometry rather than from the
+// player count, so it keeps working through every layout the zones have (rail /
+// flex row / 2-col / 4-col) without re-encoding those breakpoints here.
+//
+// The single-column case has to be special-cased. In the desktop rail each zone
+// IS its own row, so a literal row match would move nothing but the zone you
+// clicked — which is the thing that made compacting the rail feel silly (3
+// clicks at 4P, 7 at 8P). A stacked column is treated as one group instead.
+//
+// The global `stacked` test is why this is not just "filter by my own top":
+// with 7 opponents in 2 columns the last grid row holds a single orphan cell,
+// and a local test would see a row of one and collapse the entire grid.
+function oppRowPeers(i) {
+  const ids = [];
+  for (let j = 1; j < G.numPlayers; j++) {
+    if (document.getElementById('opp-zone-' + j)) ids.push(j);
+  }
+  if (ids.length < 2) return ids.length ? ids : [i];
+  const topOf = j => document.getElementById('opp-zone-' + j).getBoundingClientRect().top;
+  const tops = ids.map(topOf);
+  const SAME_ROW = 4;   // px tolerance: borders/shadows nudge tops a hair
+  const stacked = tops.every((t, a) => tops.every((u, b) => a === b || Math.abs(t - u) > SAME_ROW));
+  if (stacked) return ids;
+  const mine = topOf(i);
+  return ids.filter(j => Math.abs(topOf(j) - mine) <= SAME_ROW);
+}
+// Clicking an opponent header toggles its whole row, for this viewport only.
+// Geometry is read BEFORE any class changes — collapsing shifts the zones below.
 function toggleOppZone(i) {
-  oppHandsOverride[oppHandsBucket()][i] = oppHandsState(i) === 'open' ? 'closed' : 'open';
+  const bucket = oppHandsBucket();
+  const next = oppHandsState(i) === 'open' ? 'closed' : 'open';
+  oppRowPeers(i).forEach(j => { oppHandsOverride[bucket][j] = next; });
   applyOppHands();
 }
 OPP_HANDS_MQ.addEventListener('change', applyOppHands);
