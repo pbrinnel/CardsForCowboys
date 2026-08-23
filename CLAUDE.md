@@ -514,6 +514,20 @@ scoreRound()                ~3812 — Store empty ⇒ startShowdown() directly (
                                     July 2026 — one Store means no act transition)
 startShowdown()             ~3861 — final scoring + card flip animations; ends by calling showShowdownResult (no more "See Who Wins" button / separate game-over screen)
 showdownCollection(player)  ~5341 — deck + hand + discard (what the Showdown lays face-up)
+bustRateText(bustRounds,n)  ~5310 — "Busted 2 of 9 rounds (22%)", the `.tally-bust` line
+                                    under each player's Final Herd (Aug 2026). Denominator
+                                    is G.roundNumber (monotonic, so it IS the rounds played)
+                                    and is the SAME for every player, which is what makes
+                                    the column comparable. ONE form for everyone incl. a
+                                    clean game ("0 of 9 (0%)") — a "Never busted" variant
+                                    was tried and dropped, it breaks the scan down the
+                                    column. Never split the % from the fraction: the
+                                    fraction is what names its denominator. Tolerates the
+                                    Firebase object-with-numeric-keys array shape.
+                                    **Duplicated in spectate.html's renderShowdown** (that
+                                    page can't call play.js) — keep the wordings in step.
+                                    Rendered on THREE paths: startShowdown's tally,
+                                    gameOver's static rejoin rebuild, and spectate/Review.
 resolveShowdownWinners(ps)  ~5346 — SHOWDOWN TIEBREAK (July 2026). 3 steps, mirroring the
                                     buy-order ladder so players reuse one model:
                                     most Cows → most $ across collection → most cards.
@@ -671,8 +685,23 @@ Colour is keyed by **`slotIdx`, not array index** — `G.players` is you-first w
 `spectatorState.players` is host slot order, so index colouring would paint the same game
 differently on your screen and a spectator's. Marker shape is a second, colour-independent channel
 and names are labelled directly at the end of each line (no legend) — eight hues alone are not
-distinguishable, and blue/yellow/red are already the suit colours. Busts are a red ✕, which also
-disambiguates a flat segment ("busted" vs "scored no cows").
+distinguishable, and blue/yellow/red are already the suit colours.
+
+A bust is a ✕ **in the series colour** — the SHAPE is what marks the event, not the hue. It shipped
+as a single shared red, which reads as one player's marker, because brick red *is* slot 1's line
+colour: on a normal table every bust looked like it belonged to that player (Aug 2026). `bustEl`
+therefore takes the colour and sets `stroke` as a **presentation attribute**, and
+`.cfc-hc-bust line` in the injected CSS deliberately carries **no stroke colour** — a class rule
+beats a presentation attribute, so putting one back there silently repaints every ✕ the same
+colour again with nothing in the markup to explain it. The ✕ still disambiguates a flat segment
+("busted" vs "scored no cows").
+
+**Y axis: the top is the next multiple of 50 at or above the biggest herd** (`yAxisFor`, Aug 2026),
+then the step is chosen to divide that top evenly into ≤ 6 bands so the top gridline lands exactly
+on `yMax`. The old version picked a "nice" step from `max/4` and took `step * 4` as a **floor**,
+which overrode the data: every herd from 84 to 200 got a 200-tall axis, squashing a typical
+~80-cow game into the bottom 40%. The 50-unit floor is deliberate — a very low-scoring game sits
+in the lower band rather than being magnified.
 
 **Two traps, both already hit once:**
 - A `stroke-dasharray` **draw-in animation was tried and removed.** It needs `getTotalLength()`, and

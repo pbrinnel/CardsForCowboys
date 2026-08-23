@@ -5268,9 +5268,10 @@ async function startShowdown() {
     // Build tally display
     const tallyEl = document.getElementById(`showdown-tally-${i}`);
 
-    tallyEl.innerHTML = totalCows > 0
+    tallyEl.innerHTML = (totalCows > 0
       ? `<span class="tally-cows">+${totalCows} cows → Final Herd: ${player.herd}</span>`
-      : `<span class="tally-zero">No scoring cards → Final Herd: ${player.herd}</span>`;
+      : `<span class="tally-zero">No scoring cards → Final Herd: ${player.herd}</span>`)
+      + `<span class="tally-bust">${bustRateText(player.bustRounds, G.roundNumber)}</span>`;
     tallyEl.classList.remove('hidden');
 
     await delay(350);
@@ -5301,6 +5302,28 @@ async function startShowdown() {
 // Every card a player owns at the Showdown — what gets laid face-up on the table.
 function showdownCollection(player) {
   return [...player.deck, ...player.hand, ...player.discard];
+}
+
+// "Busted 2 of 9 rounds (22%)" — how often a player pushed their luck too far.
+// bustRounds carries one entry per busted round and G.roundNumber is monotonic for
+// the whole game, so the denominator is simply the rounds that were played.
+//
+// ONE form for everyone, including a clean game ("Busted 0 of 9 rounds (0%)"). A
+// "Never busted" special case was tried and dropped: it changes the shape of the
+// line between players, and the showdown stacks these in a row where the whole
+// point is scanning down the same figure. The fraction is what makes the % legible
+// — it names its own denominator — so the two must never be split up.
+//
+// Mirrored in spectate.html's renderShowdown (that page can't call into play.js);
+// keep the two wordings in step.
+function bustRateText(bustRounds, rounds) {
+  if (!rounds) return '';
+  // On a rejoin this came back through Firebase, which hands a sparse array back as an
+  // object with numeric keys — count the values rather than trusting .length.
+  const list = Array.isArray(bustRounds) ? bustRounds : Object.values(bustRounds || {});
+  const busts = list.filter(n => typeof n === 'number').length;
+  const plural = rounds === 1 ? 'round' : 'rounds';
+  return `Busted ${busts} of ${rounds} ${plural} (${Math.round((busts / rounds) * 100)}%)`;
 }
 
 // ── Showdown tiebreak ────────────────────────────────────────────────────────
@@ -5459,9 +5482,17 @@ function gameOver() {
       grid.appendChild(el);
     });
 
+    // No cow tally on this path — the per-player scoring loop is what builds that, and
+    // it already ran on the client that played the game. The bust rate is derivable from
+    // restored state alone, so a rejoiner still gets it.
+    const tally = document.createElement('div');
+    tally.className = 'showdown-tally';
+    tally.innerHTML = `<span class="tally-bust">${bustRateText(player.bustRounds, G.roundNumber)}</span>`;
+
     section.appendChild(nameEl);
     section.appendChild(herdEl);
     section.appendChild(grid);
+    section.appendChild(tally);
     playersDiv.appendChild(section);
   });
 

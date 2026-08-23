@@ -46,9 +46,11 @@ window.CFC_HerdChart = (() => {
     'triangleDown', 'plus', 'hexagon', 'pentagon',
   ];
 
-  const BUST_COLOR = '#a8322b'; // sibling of the bandit red in setBanditCount()
-
   const NS = 'http://www.w3.org/2000/svg';
+
+  // Y axis top is rounded up to the next multiple of this, so a 40-cow game is
+  // not drawn against a 200-cow axis.
+  const YMAX_UNIT = 50;
 
   // Chart box, in viewBox units. The SVG scales freely to the container width —
   // deliberately NO min-width. A min-width put the whole right-hand label column
@@ -86,11 +88,20 @@ window.CFC_HerdChart = (() => {
     return new Set(vals.filter(n => typeof n === 'number'));
   }
 
-  // Integer y ticks: pick the step first, then let it define the top of the axis.
-  function niceStep(raw) {
-    const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1))));
-    const n = raw / mag;
-    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
+  // Y axis: the top is the next multiple of YMAX_UNIT at or above the biggest
+  // herd on the board, so the axis is sized to the game that was actually played.
+  //
+  // It used to pick a "nice" step from max/4 and then take `step * 4` as a FLOOR,
+  // which quietly overrode the data: any herd from 51 to 200 landed on a step of
+  // 50 and got a 200-tall axis, squashing a normal game into the bottom quarter.
+  //
+  // The step is then chosen to divide that top evenly into at most 6 bands, so the
+  // top gridline always lands exactly on yMax and every tick is a whole number.
+  function yAxisFor(maxValue) {
+    const yMax = Math.max(YMAX_UNIT, Math.ceil(maxValue / YMAX_UNIT) * YMAX_UNIT);
+    const step = [10, 20, 25, 50, 100, 250, 500].find(c => yMax % c === 0 && yMax / c <= 6)
+      || yMax / 5;
+    return { yMax, step };
   }
 
   function markerEl(shape, x, y, r, fill) {
@@ -134,15 +145,21 @@ window.CFC_HerdChart = (() => {
     }
   }
 
-  // A bust is marked with a red X rather than a series marker: it is an event,
-  // not a data identity, so it reads the same on every line. It also explains a
+  // A bust is marked with an X instead of the series marker: it is an event, not
+  // a data identity, so the SHAPE channel is what changes. It also explains a
   // flat segment that would otherwise be ambiguous ("busted" vs "scored no cows").
-  function bustEl(x, y, round) {
+  //
+  // The X is drawn in the SERIES colour, not a shared red. A single red for every
+  // bust reads as one player's marker — brick red is slot 1's line colour — so on
+  // a typical table every bust looked like it belonged to that player. Stroke is
+  // set per-line here and deliberately NOT in the injected CSS: a class rule beats
+  // a presentation attribute, so a `stroke` there would silently win over this.
+  function bustEl(x, y, round, color, name) {
     const g = svgEl('g', { class: 'cfc-hc-bust' });
     const r = 4.6;
-    g.appendChild(svgEl('line', { x1: x - r, y1: y - r, x2: x + r, y2: y + r }));
-    g.appendChild(svgEl('line', { x1: x - r, y1: y + r, x2: x + r, y2: y - r }));
-    g.appendChild(svgEl('title', null, `Busted in round ${round}`));
+    g.appendChild(svgEl('line', { x1: x - r, y1: y - r, x2: x + r, y2: y + r, stroke: color }));
+    g.appendChild(svgEl('line', { x1: x - r, y1: y + r, x2: x + r, y2: y - r, stroke: color }));
+    g.appendChild(svgEl('title', null, `${name} busted in round ${round}`));
     return g;
   }
 
@@ -191,7 +208,9 @@ window.CFC_HerdChart = (() => {
 .cfc-hc-leader { stroke: rgba(30,22,16,0.3); stroke-width: 1; fill: none; }
 .cfc-hc-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
 .cfc-hc-line.showdown-leg { stroke-dasharray: 6 4; }
-.cfc-hc-bust line { stroke: ${BUST_COLOR}; stroke-width: 2.2; stroke-linecap: round; }
+/* No stroke COLOUR here — bustEl sets it per series (a class rule would beat that
+   presentation attribute and repaint every bust the same colour again). */
+.cfc-hc-bust line { stroke-width: 2.4; stroke-linecap: round; }
 .cfc-hc-sd-band { fill: rgba(30,22,16,0.05); }
 .cfc-hc-sd-rule { stroke: rgba(30,22,16,0.25); stroke-width: 1; stroke-dasharray: 3 3; }
 
@@ -253,8 +272,7 @@ window.CFC_HerdChart = (() => {
 
     const values = series.flatMap(s => s.points.filter(v => typeof v === 'number'));
     if (!values.length) return false;
-    const step = niceStep(Math.max(1, Math.max(...values)) / 4);
-    const yMax = Math.max(step * 4, Math.ceil(Math.max(...values) / step) * step);
+    const { yMax, step } = yAxisFor(Math.max(...values));
 
     const x = (i) => (nCols === 1 ? PAD_L + PLOT_W / 2 : PAD_L + (i * PLOT_W) / (nCols - 1));
     const y = (v) => PAD_T + PLOT_H - (v / yMax) * PLOT_H;
@@ -366,7 +384,7 @@ window.CFC_HerdChart = (() => {
         const px = x(pt.i), py = y(pt.v);
         const roundNo = pt.i + 1;
         if (pt.i !== sdIdx && s.busts.has(roundNo)) {
-          marksG.appendChild(bustEl(px, py, roundNo));
+          marksG.appendChild(bustEl(px, py, roundNo, color, s.name));
           return;
         }
         const m = markerEl(shape, px, py, pt.i === sdIdx ? 4.4 : 3.4, color);

@@ -283,6 +283,13 @@
       font-style: italic;
       margin-bottom: 0.5rem;
     }
+    /* Bust rate — muted context under the Final Herd line, matching .tally-bust
+       on the showdown screen. */
+    .showdown-player-block .sdp-bust {
+      font-size: 0.72rem;
+      color: rgba(30,22,16,0.55);
+      margin-bottom: 0.5rem;
+    }
     .showdown-card-grid { display: flex; flex-wrap: wrap; gap: 4px; }
     .showdown-card {
       width: 55px;
@@ -456,6 +463,25 @@ function renderShowdown(state) {
       const formula = parts.length ? parts.join(' + ') : 'No scoring cards';
       tallyEl.textContent = `${formula} → Final Herd: ${tally.finalHerd}`;
       block.appendChild(tallyEl);
+    }
+
+    // Bust rate. Outside the `if (tally)` guard on purpose: it comes from the player
+    // record (bustRounds + the round count), not from showdownTallies, so a snapshot
+    // taken before the scoring loop still shows it. Mirrors bustRateText() in play.js —
+    // keep the wording in step, INCLUDING the zero case: one form for every player so a
+    // column of these can be scanned down, and the fraction stays glued to the % it
+    // supplies the denominator for.
+    // Firebase hands back a sparse array as an object with numeric keys, so count the
+    // values rather than trusting .length (the same tolerance herd-chart.js applies).
+    const bustList = Array.isArray(p.bustRounds) ? p.bustRounds : Object.values(p.bustRounds || {});
+    const busts = bustList.filter(n => typeof n === 'number').length;
+    if (state.round) {
+      const bustEl = document.createElement('div');
+      bustEl.className = 'sdp-bust';
+      const plural = state.round === 1 ? 'round' : 'rounds';
+      bustEl.textContent =
+        `Busted ${busts} of ${state.round} ${plural} (${Math.round((busts / state.round) * 100)}%)`;
+      block.appendChild(bustEl);
     }
 
     const grid = document.createElement('div');

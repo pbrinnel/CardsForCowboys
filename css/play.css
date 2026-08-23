@@ -161,6 +161,12 @@
 .tally-bonus  { color: #b87838; font-weight: bold; }
 .tally-zero   { color: rgba(30,22,16,0.4); font-style: italic; }
 
+/* Bust rate. Sits under the Final Herd line — the place players are already reading
+   the summary of how the game went — so it is deliberately a step smaller and muted:
+   it is context for the herd figure, not a competing headline. (.showdown-tally is a
+   flex column, so this lands on its own line with no extra markup.) */
+.tally-bust   { font-size: 0.74rem; color: rgba(30,22,16,0.55); }
+
 .tally-total {
   font-size: 0.9rem;
   font-weight: bold;
