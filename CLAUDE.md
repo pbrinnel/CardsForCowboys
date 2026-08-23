@@ -1512,7 +1512,7 @@ double-clickable `.command` wrapper. Run from the repo root.
 | `get-bugs.sh` | Bug reports from `bugReports/`, newest first, with attached game context. |
 | `get-emails.sh` | Signups from `emailSignups/`, oldest first. Duplicates are NOT de-duped — the same address can appear twice (it has). |
 | `get-unfinished.sh` | **Games started but never completed**, last N days. `--days N` (default 7), `--mode ai\|mp`. Reads the live node **merged with the archive**, so any lookback stays accurate no matter how often cleanup has run. |
-| `cleanup-games.sh` | **Archives, then** removes stale `games/`, `liveGames/`, `liveSummary/` nodes. `--days N` (default 14). Never touches `gameHistory` or `traj`. |
+| `cleanup-games.sh` | **Archives, then** prunes stale `liveSummary/` records and the `games/`+`liveGames/` card state of games that never finished. `--days N` (default 14). **Completed games keep their card state** so Review links survive (below). Never touches `gameHistory` or `traj`. **Manual only** — there is no cron and no GitHub Action, so nothing expires until someone runs this and confirms the prompt. |
 
 ### Archiving — nothing is deleted without a copy first
 
@@ -1532,6 +1532,32 @@ would have been destroyed.
 `liveSummary` genuinely does need pruning — [history.html](history.html:546) `onValue`s the
 **whole collection**, so every visitor downloads every record — but pruning and discarding are
 different things. Archive, then prune.
+
+### Completed games keep their card state — Review links are permanent (Aug 2026)
+
+Cleanup used to delete `games/`/`liveGames/` for **every** stale code. `gameHistory` is never
+purged, so the finished-game row on `history.html` and its **Review** button live forever — and
+once the card state under one was gone, that button led to `spectate.html` sitting on *"Waiting
+for game to start…"* indefinitely. Not a 404, not "expired": it reads as a broken site. The
+Aug 2026 audit found ZARE7B (a real 22-round game, 2 days old) on exactly that path.
+
+The script now reads `gameHistory` and **retains the card state of any code with an entry**;
+`liveSummary` is still pruned for everything. The asymmetry is the whole point: `liveSummary` is
+the collection `history.html` reads *in full*, so it is the actual cost driver, while `games/` is
+only ever read one code at a time by `spectate.html`. At ~11 KB per completed game and a ~4%
+completion rate, retention is a few hundred KB.
+
+Three things to preserve if you touch it:
+
+- **A failed `gameHistory` fetch aborts the run.** Without that index every completed game looks
+  unfinished, and the script would delete precisely the state it is meant to protect — the same
+  fail-closed rule the backup step already follows.
+- **The `games`/`liveGames` payload may legitimately be empty** (every stale game completed).
+  `apply_nulls` skips the call rather than sending `database:update {}`.
+- **`gameCode` only exists on `gameHistory` entries from July 2026 onward** (5 older ones lack
+  it). Those can't be matched, so a pre-July-2026 completed game is indistinguishable from an
+  abandoned one and its state will be removed. The run prints the count as a caveat instead of
+  hiding it.
 
 ### ⚠️ `liveSummary.status === 'finished'` does NOT mean the game was completed
 
