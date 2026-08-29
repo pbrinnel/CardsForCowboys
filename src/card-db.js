@@ -80,7 +80,7 @@ const STORE_CARDS = [
   { id: 'card_5',    img: 'Card_5.jpg',   act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_16',   img: 'Card_16.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_22',   img: 'Card_22.jpg',  act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_38',   img: 'Card_38.jpg',  act: 2, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_38',   img: 'Card_38.jpg',  act: 2, dollars:  0, cows:  3, bandits:  0, cost:  5, cacti: 3, special: 'draw4' },
   { id: 'card_41',   img: 'Card_41.jpg',  act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
   { id: 'card_42',   img: 'Card_42.jpg',  act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
   { id: 'card_43',   img: 'Card_43.jpg',  act: 2, dollars:  0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },

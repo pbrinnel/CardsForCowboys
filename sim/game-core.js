@@ -63,7 +63,7 @@ const STORE_CARDS = [
   { id: 'card_5',    act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_16',   act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
   { id: 'card_22',   act: 2, dollars:  3, cows:  0, bandits:  0, cost:  3, cacti: 3, special: 'burn_to_use' },
-  { id: 'card_38',   act: 2, dollars:  2, cows:  0, bandits:  0, cost:  3, cacti: 3, special: null },
+  { id: 'card_38',   act: 2, dollars:  0, cows:  3, bandits:  0, cost:  5, cacti: 3, special: 'draw4' },
   { id: 'card_41',   act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
   { id: 'card_42',   act: 2, dollars:  2, cows:  1, bandits:  0, cost:  4, cacti: 3, special: null },
   { id: 'card_43',   act: 2, dollars:  0, cows:  5, bandits:  2, cost:  4, cacti: 3, special: null },

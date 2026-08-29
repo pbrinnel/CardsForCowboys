@@ -122,8 +122,8 @@ engine too.
 ### Other directories
 | Path | Purpose |
 |------|---------|
-| `assets/` | Card images, card backs, symbols, photos |
-| `data/` | Card data CSV (designer reference) |
+| `assets/` | Card images, card backs, symbols, photos. **`assets/cards/All-Cards/` has ONE house JPEG preset** — 375×525, progressive, **4:2:0**, sRGB ICC (3144 B), JFIF (no Adobe APP14), ~38 KB. All 94 files share one quantization-table pair, so a re-export is checkable in one line. Photoshop "Save As JPEG" does NOT match it (4:4:4 + Adobe APP14, ~85 KB — 8.0 MB for the set vs 3.7 MB); don't guess a quality number, lift `qtables` verbatim off a neighbouring card. See the Card Art Re-export section below. |
+| `data/` | Card data CSV (designer reference). Column **`FlavorTitle`** (added Aug 2026) holds the printed card name ("Picayune", "Stampede") — it is **art-only**, deliberately absent from both card DBs, so nothing in the engine reads it. |
 | `docs/` | Rules PDF, planning docs, `MP_PROTOCOL_AUDIT.md`, `DEAD_CODE_INVENTORY.md`, `RULEBOOK_WRITING_STANDARDS.md` (compiled board-game-industry conventions for rules writing) + `RULES_PAGE_AUDIT.md` (`rules.html` scored against them — **live to-do list**, fix 1 of 10 done) |
 | `admin/` | Firebase admin scripts (tracked; only `admin/firebase-backups/` is gitignored). All are `firebase login`–based — no database secret in any file. See the Admin Scripts section below. |
 | `test/` | Playwright tests |
@@ -982,6 +982,7 @@ to replay when its engine's `gameV` ≠ the trajectory's, so the benchmark never
 | 1 | baseline at trajectory launch (June 2026) |
 | 2 | June 2026 card rework: cards 5/16/22 `burn_for_2`→`burn_to_use` $3 (cost 3); card_4 `discard_to_player`→`swap_revealed` ($0, cost 6); `burn_for_2` mechanic removed |
 | 3 | **July 2026 single-Store rework.** 30 of 84 Store cards deprecated (54 live, 18/act); the 3+P/4+P `minPlayers` tier removed; cards 84/85 `-1 Bandit / -1 Cow` → `-1 Bandit + Draw 4`; ONE Store built at game start (act tiers, no mid-game setup, no between-act reshuffle); rounds monotonic 1..N; Quick Draw + Pioneer Mode removed. `gameHistory` entries now carry `gameV`; the leaderboard on history.html ranks `gameV >= 3` only. |
+| 4 | **Aug 2026 card_38 rework + full art re-export.** `card_38` ($2, cost 3, no special) → a second **Stampede**, stat-identical to `card_54` (3 Cows, cost 5, `special:'draw4'`, Act 2, Rattlesnake). Act 2 therefore ships **two** Draw-4 cards (38/54) alongside Act 3's 84/85 — four live `draw4` cards, up from three. Act tiers still 18/18/18, so no Store-geometry change. Designer's call from `data/Deck Buster Cards - Cards.csv`; the leaderboard's `MIN_RANKED_GAME_V = 3` still admits these games. |
 
 **Storage:** top-level `traj/{code}` (push list), **deliberately NOT under `games/{code}`** —
 `spectate.html` reads the whole game node, so co-locating would bloat every spectator read (the anti-pattern
@@ -1619,6 +1620,53 @@ Currently gitignored sensitive files: `get-emails.js`, `retrieve-emails.js`, `ex
 - [ ] No server-side code in this repo — it's static hosting on GitHub Pages. Keep it that way.
 - [ ] User input (game codes, player names) flows into Firebase paths. Validate/sanitize before use if expanding lobby logic.
 - [ ] Never log full Firebase paths containing user data to the browser console in production code.
+
+---
+
+## Card Art Re-export (the house JPEG preset) — Aug 2026
+
+`assets/cards/All-Cards/` is served to every player on every page that shows a card, so its total
+size is a real load cost: the full-quality Photoshop export of the same 94 cards is **8.0 MB vs
+3.7 MB**. Re-exported art must be pushed back through the house preset before it ships.
+
+**Do not guess a quality number.** All 94 shipped files share exactly ONE quantization-table pair,
+so lift it verbatim off any neighbouring card:
+
+```python
+from PIL import Image
+ref = Image.open('assets/cards/All-Cards/Card_83.jpg'); ref.load()   # preset donor
+im  = Image.open(src); im.load()
+im.save(out, 'JPEG', qtables=ref.quantization, subsampling=2, progressive=True,
+        icc_profile=im.info.get('icc_profile'), optimize=True)
+```
+
+The target signature, and the one-line way to check a whole batch — **`len(sigs)` must be 1**:
+
+| property | value |
+|---|---|
+| size / mode | 375×525 RGB |
+| subsampling | **2** (4:2:0) — Photoshop writes 0 (4:4:4) |
+| progressive | True |
+| ICC | 3144 bytes (sRGB), preserved |
+| markers | **JFIF**, no Adobe APP14 — Photoshop writes the opposite |
+| size | ~38 KB/card |
+
+Two things worth knowing before you worry about the output:
+
+- **4:2:0 softens saturated edges slightly, and matching that softening is the point** — the suit
+  marks on every already-shipped card carry it. Verify by cropping the same detail at ~6× NEAREST
+  from an *existing* card and from your output; they should look alike. Comparing your output to
+  the Photoshop original instead will always look like a regression.
+- **Card titles stay crisp regardless.** They are near-black on cream, so they live in the luma
+  channel, which 4:2:0 does not touch. Only chroma is subsampled.
+
+Landing within a couple of percent of the current directory total is the signal the preset matched
+(the Aug 2026 re-export came in at 3.71 MB against 3.65 MB shipped, +1.5%, and that delta was the
+newly added flavour titles, not a settings mismatch).
+
+**A suit change is never asset-only:** `cacti` in both card DBs drives `CACTI_BACK`, the face-DOWN
+back image, so a card whose suit changed needs the DB edit too or its front and back disagree.
+`node sim/test-card-sync.js` catches the drift.
 
 ---
 

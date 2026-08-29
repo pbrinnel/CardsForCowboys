@@ -716,7 +716,7 @@ const HISTORY = (() => {
 // {isHuman, personality} per seat. Research data — never read by clients.
 // ============================================================
 const TRAJ_SCHEMA_V = 1; // trajectory record format version
-const GAME_V        = 3; // bump on any rules / card-stat change (see CLAUDE.md version table)
+const GAME_V        = 4; // bump on any rules / card-stat change (see CLAUDE.md version table)
 
 // Stable content hash of the card-stat table — lets the offline reconstructor
 // refuse to replay a trajectory captured under a different card balance.
