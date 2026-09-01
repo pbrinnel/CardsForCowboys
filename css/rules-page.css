@@ -483,20 +483,31 @@ html { scroll-behavior: smooth; }
    hatch gradient. `:not(.face-up)` keeps the front row's cream face colour — .pcard.face-up
    is (0,2,0) and would otherwise lose to these (0,3,0) selectors.
 
-   COLOUR-BLIND SAFETY (July 2026): the bands are separated on TWO channels that
-   survive every form of colour vision deficiency, because neither one is hue.
-     1. LIGHTNESS — wide steps (roughly L* 20 / 43 / 66). The old ramp
-        (#4a2f1c/#6b4c32/#906a44) stepped only ~10 L* and read as one mud brown.
-     2. HATCH DIRECTION — 45° / -45° / horizontal. A genuine non-colour cue, so
-        the tiers still separate in greyscale or for a monochromat.
-   Hues stay inside the brown family ON PURPOSE. Blue, yellow and red are the
-   three SUIT colours (River / Cactus / Rattlesnake), so tinting a band any of
-   them would read as "this band is that suit". Don't "improve" these to a
-   rainbow. Act 1 must also stay clearly darker than the cream .face-up card
-   (#e9e0c6) or face-up and face-down stop being distinguishable. */
+   THREE DISTINCT HUES (Aug 2026, PB). The bands were three browns — an ordered
+   ramp, correct for ordinal data, but a same-hue ramp encodes MAGNITUDE, so a
+   reader still had to decode which brown was which against the key. Distinctness
+   now outranks staying on-theme: the tiers are three separately nameable colours.
+
+   ⚠️ BLUE, YELLOW AND RED REMAIN OFF-LIMITS. They are the three SUIT colours
+   (River / Cactus / Rattlesnake) and these cells are card BACKS, which in the
+   real game are printed in exactly those colours — a blue band would read as
+   "this whole band is River". Green and purple are chosen because they are the
+   two strong hues that carry no suit meaning. Don't "fix" them toward the page's
+   brown palette; that is the problem this replaced.
+
+   THREE channels of separation, so the tiers survive any colour vision deficiency:
+     1. HUE — green / purple / tan, nameable and unrelated.
+     2. LIGHTNESS — L* 22 / 31 / 65. Note Act 3 and Act 2 sit only ~9 apart, which
+        is why the next two channels are load-bearing rather than decorative.
+     3. HATCH DIRECTION — 45° / -45° / horizontal. A genuine non-colour cue that
+        works in greyscale and for a monochromat, and the ONLY thing separating
+        Act 3 from Act 2 there. Never drop a band's hatch.
+   Plus the bands are now labelled in place (.band-tag), so no channel is doing
+   this job alone. Act 1 must still stay clearly darker than the cream .face-up
+   card (#e9e0c6) or face-up and face-down stop being distinguishable. */
 :root {
-  --act-band-3: #241610;  /* back   — near-black brown */
-  --act-band-2: #7d5636;  /* middle */
+  --act-band-3: #1f3d2b;  /* back   — dark green */
+  --act-band-2: #57406e;  /* middle — purple */
   --act-band-1: #c19464;  /* front  — light tan */
 }
 
@@ -524,6 +535,38 @@ html { scroll-behavior: smooth; }
     rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 5px);
 }
 
+/* Band labels printed beside the diagram, so the colour never has to be decoded
+   against the key at all — the strongest channel of the four, and the only one
+   that works for a reader who ignores legends.
+
+   Placement maths: rows are 32px tall and overlap by -14px, so each row advances
+   18px and a 2-row band spans 50px. The tag hangs off the band's FIRST row, and
+   `top: 25px` is that band's vertical centre measured from its own row box —
+   the same 25px for every band, because the overlap is uniform.
+
+   .pyramid-grid reserves the label column with padding-right: the tags are
+   absolutely positioned (out of flow), so without that reservation the grid
+   centres as if they weren't there and the longest tag runs off the page at
+   375px. Keep the reservation >= the longest RENDERED tag ("Act 1 — front",
+   ~96px at 0.66rem) plus its 0.55rem margin — at 82px it cleared 375px only
+   because the centred grid happened to leave slack, which is not a margin of
+   safety. Re-measure if the wording changes. */
+.pyramid-grid { padding-right: 106px; }
+
+.pyramid-row .band-tag {
+  position: absolute;
+  left: 100%;
+  top: 25px;
+  transform: translateY(-50%);
+  margin-left: 0.55rem;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #3a2a1a;
+}
+
 .act-band-key {
   display: flex;
   gap: 1.25rem;
@@ -542,6 +585,13 @@ html { scroll-behavior: smooth; }
   border: 1.5px solid #1e1610;
   border-radius: 2px;
   display: inline-block;
+}
+/* The front row's card FACE, matching .pcard.face-up — the one state in the diagram
+   that is not an act band. No hatch: face-up cards show art, not a patterned back,
+   and the absence of hatch is itself the cue that separates them from every band. */
+.act-band-key .swatch.swatch-faceup {
+  background: #e9e0c6;
+  background-image: none;
 }
 /* The swatches are <i class="swatch act-band-N">, NOT .pyramid-row descendants, so
    they need their own selectors or they render transparent (the original bug here).

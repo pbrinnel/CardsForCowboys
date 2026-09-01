@@ -202,20 +202,26 @@
       <div class="pyramid-demos">
         <div class="pyramid-demo">
           <div class="pyramid-grid">
-            <div class="pyramid-row act-band-3"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+            <!-- .band-tag hangs off the FIRST row of each band (see css/rules-page.css) —
+                 it is centred on the whole 2-row band, not on the row it lives in. -->
+            <div class="pyramid-row act-band-3"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><span class="band-tag">Act 3 &mdash; back</span></div>
             <div class="pyramid-row act-band-3 brick-offset"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><span class="band-tag">Act 2</span></div>
             <div class="pyramid-row act-band-2 brick-offset"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-1"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+            <div class="pyramid-row act-band-1"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div><span class="band-tag">Act 1 &mdash; front</span></div>
             <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div></div>
           </div>
           <div class="pyramid-demo-label">4 Players &mdash; 9 per row &times; 6 rows (54 cards)</div>
         </div>
       </div>
+      <!-- Four entries, not three. The Act 1 label used to read "Act 1 (front, face-up)",
+           which conflated two different things: the Act 1 BAND is two rows, only the front
+           ROW of it is face-up. Face-up is its own state and needs its own swatch. -->
       <div class="act-band-key">
         <span><i class="swatch act-band-3"></i> Act 3 (back)</span>
         <span><i class="swatch act-band-2"></i> Act 2 (middle)</span>
-        <span><i class="swatch act-band-1"></i> Act 1 (front, face-up)</span>
+        <span><i class="swatch act-band-1"></i> Act 1 (front)</span>
+        <span><i class="swatch swatch-faceup"></i> Face-up &mdash; buyable now</span>
       </div>
 
       <div class="table-scroll">
