@@ -13,10 +13,11 @@
 
    Everything here is in mm and pt so what you see is what prints. The panels are
    in READING order 1–8; the printer's imposition will reorder them on the sheet.
-   This tests CONTENT FIT, which is the open question — not the fold.
+   This tests CONTENT FIT, which is the open question — the fold is now settled.
 
-   Body type is 8pt / 1.3, which is about as small as rules stay comfortable.
-   Change --body-pt below to test other sizes; every block scales with it.
+   Body type is 7pt / 1.3. Measured Aug 2026: 6pt and 7pt hold all 8 panels, 8pt
+   overflows 4 of them and 9pt overflows 6 — so 7pt is the ceiling, not a preference.
+   Change --body-pt with the buttons up top; every block scales with it.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
   /* Store-diagram card size. The widest Store is 9 cards across plus a half-card
@@ -26,9 +27,10 @@
   --pc-h: 7.1mm;
   --pc-gap: 0.5mm;
 
-  /* Default: poker accordion — 8 panels of 63.5×88.9mm, 3mm margins, 7pt.
-     The only format on the menu that holds the full ruleset (629mm of content
-     against 663mm of live panel height). Switch with the buttons up top. */
+  /* COMMITTED FORMAT (Aug 2026): poker accordion — 8 panels of 63.5×88.9mm, 3mm
+     margins, 7pt. The only format on the old shortlist that held the full ruleset,
+     and the shortlist is now closed: these four values are fixed, not a default.
+     Only --body-pt is still driven from the UI. */
   --panel-w: 63.5mm;
   --panel-h: 88.9mm;
   --margin: 3mm;
@@ -210,6 +212,10 @@ strong { font-weight: bold; }
 
 /* ── Setup table ── */
 table { border-collapse: collapse; width: 100%; font-size: calc(var(--body-pt) - 2pt); margin: 1.2mm 0; }
+/* A trailing margin inside a fixed-height panel is dead space that still counts against
+   the fit check (scrollHeight includes it), which is exactly how the merged Setup panel
+   came out 1mm over while its content measured 0.7mm clear. */
+.panel > :last-child { margin-bottom: 0; }
 th, td { border: 0.2mm solid rgba(30,22,16,0.4); padding: 0.3mm 0.8mm; text-align: center; }
 thead th { background: var(--ink); color: var(--paper); }
 tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
@@ -235,11 +241,18 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 .bandkey span { display: inline-flex; align-items: center; gap: 0.8mm; }
 .sw { width: 2.6mm; height: 2.6mm; border: 0.3mm solid var(--ink); display: inline-block; }
 
-/* The Store diagram shares panel 4 with the four Setup steps, so it gets a smaller card
-   than the :root default. At 5mm the diagram is 30.5mm tall and the panel overruns by
-   ~4mm; 4mm brings it to 24.5mm and leaves ~1.7mm of slack. Scoped to panel 4 so the
-   uncovering demo on panel 7 — which has room — keeps the larger, clearer cards. */
-.panel[data-n="4"] .pyr { --pc-w: 4mm; --pc-h: 5.7mm; }
+/* The Store diagram shares panel 4 with the four Setup steps AND — since the Aug 2026
+   merge — the Store-size table, so it gets a much smaller card than the :root default.
+   Diagram height is pc-h × 4.3 (six rows overlapping 34%), so it is the cheapest place
+   on this panel to buy millimetres:
+     5.0mm → 30.5mm (over by ~4mm, before the table existed)
+     5.7mm → 24.5mm (fitted before the table, over by 5.7mm after it)
+     4.2mm → 18.1mm (current — clears the table with ~1mm of slack)
+   Aspect ratio is held at pc-w/pc-h ≈ 0.70 so the cards stay card-shaped. This is a
+   schematic — it shows six staggered rows in three bands, nothing more; rules.html
+   carries the legible version. Scoped to panel 4 so the uncovering demo on panel 6
+   (panel 7 before the merge renumbered it) keeps its larger, clearer cards. */
+.panel[data-n="4"] .pyr { --pc-w: 2.95mm; --pc-h: 4.2mm; }
 
 /* ── Uncovering demo ── */
 .reveal { display: flex; gap: 2mm; align-items: center; justify-content: center; margin: 1.5mm 0; }
@@ -310,12 +323,13 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 </head>
 <body>
 
+<!-- FORMAT IS DECIDED (Aug 2026): 8-panel poker accordion, 63.5×88.9mm, 3mm margins.
+     The format switcher that used to live here (50mm cross fold / 100mm reference) is
+     gone with it — the alternatives were a shortlist, and the shortlist is closed. Panel
+     size now comes only from :root. Body type stays switchable: 7pt is the working choice,
+     not a settled one, and the verdict beside it is what makes this page a proof. -->
 <div class="controls">
-  <span>Format:</span>
-  <button data-w="50"   data-h="50"   data-margin="4" data-cols="2">Cross fold · 100mm sheet → 50×50 panels</button>
-  <button data-w="63.5" data-h="88.9" data-margin="3" data-cols="4" class="on">Poker accordion · 63.5×88.9 panels</button>
-  <button data-w="100"  data-h="100"  data-margin="7" data-cols="2">200mm sheet → 100mm panels <em>(not on the menu — reference only)</em></button>
-  <span style="margin-left:1em">Body type:</span>
+  <span>Body type:</span>
   <button data-pt="6">6pt</button>
   <button data-pt="7" class="on">7pt</button>
   <button data-pt="8">8pt</button>
@@ -397,7 +411,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <ol>
       <li>Each player takes an identical <strong>10-card starter deck</strong>. Shuffle it face-down as your <strong>draw pile</strong>.</li>
       <li>Split the <strong>54 Store cards</strong> into three <strong>Act decks</strong> by the hats (18 per Act). Shuffle each separately.</li>
-      <li>Build the Store <strong>once</strong>, face-down, back to front: <strong>Act 3 back, Act 2 middle, Act 1 front</strong>. Each Act is <strong>2 rows</strong>.</li>
+      <li>Build the Store <strong>once</strong>, face-down, back to front: <strong>Act 3 back, Act 2 middle, Act 1 front</strong>. Each Act is <strong>2 rows</strong> — <strong>6 rows</strong> at every player count; only the width changes.</li>
       <li><strong>Stagger every other row by half a card</strong>, so two cards cover the one above. Flip the <strong>front row</strong> face-up.</li>
     </ol>
     <div class="pyr">
@@ -411,9 +425,22 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <div class="bandkey">
       <span><i class="sw" style="background:#241610"></i>Act 3</span>
       <span><i class="sw" style="background:#7d5636"></i>Act 2</span>
-      <span><i class="sw" style="background:#c19464"></i>Act 1 (face-up)</span>
+      <span><i class="sw" style="background:#c19464"></i>Act 1 (front)</span>
     </div>
-    <p class="small" style="text-align:center">4 players — 9 per row × 6 rows</p>
+    <!-- Store-size table, merged up from what used to be panel 5 (Aug 2026). Only three
+         columns survive: Rows was 6 for every count and now lives in step 3, and Total
+         was just Per Act × 3. The "4 players — 9 per row" caption that sat here went with
+         them: the table's own 4-row says exactly that, and the panel needed the 4.2mm.
+         (The key said "Act 1 (face-up)", conflating the 2-row Act 1 band with the single
+         face-up front row — the same error fixed on rules.html.) -->
+    <table>
+      <thead><tr><th>Players</th><th>Per row</th><th>Per Act</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>5</td><td>10</td></tr>
+        <tr><td>3</td><td>7</td><td>14</td></tr>
+        <tr><td>4</td><td>9</td><td>18</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
   <div class="printbar">
@@ -425,21 +452,8 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 <div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
 <div class="sheet">
 
-  <!-- 5 — STORE SIZE TABLE. No header by design: it is the continuation of the Setup panel
-       opposite, and the thead already names every column. -->
+  <!-- 5 — DRAW + BUY -->
   <div class="panel" data-n="5">
-    <table>
-      <thead><tr><th>Players</th><th>Per row</th><th>Rows</th><th>Per Act</th><th>Total</th></tr></thead>
-      <tbody>
-        <tr><td>2</td><td>5</td><td>6</td><td>10</td><td>30</td></tr>
-        <tr><td>3</td><td>7</td><td>6</td><td>14</td><td>42</td></tr>
-        <tr><td>4</td><td>9</td><td>6</td><td>18</td><td>54</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 6 — DRAW + BUY -->
-  <div class="panel" data-n="6">
     <h2>Sequence of Play</h2>
     <h3>1. Draw</h3>
     <ul>
@@ -455,8 +469,8 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     </ul>
   </div>
 
-  <!-- 7 — UNCOVERING, TURN ORDER -->
-  <div class="panel" data-n="7">
+  <!-- 6 — UNCOVERING, TURN ORDER -->
+  <div class="panel" data-n="6">
     <p class="callout"><strong>Always reveal.</strong> As soon as a card leaves the Store, turn face-up anything behind it no longer covered.</p>
     <div class="reveal">
       <figure>
@@ -487,8 +501,8 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <p>Play continues clockwise, skipping busted players. Same every round.</p>
   </div>
 
-  <!-- 8 — FINAL SCORING + FINE PRINT -->
-  <div class="panel" data-n="8">
+  <!-- 7 — FINAL SCORING + FINE PRINT -->
+  <div class="panel" data-n="7">
     <h2>Final Scoring</h2>
     <p class="callout"><strong>The Store empties once, and that ends the game.</strong> When the final card is bought or burned, the buy phase stops — anyone yet to take a turn misses it. If you didn't bust, you still score the Cows you drew.</p>
     <p>Then, in one <strong>final showdown</strong>, everyone — including anyone who just busted —
@@ -501,6 +515,21 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <li><strong>Burn</strong> always means removing a <em>Store</em> card. To consume your own card you <strong>use</strong> an Explosive.</li>
       <li><strong>Draw 4s stack</strong> — owe 4, draw a Draw 4, now owe 7. Busting cancels the rest.</li>
     </ul>
+  </div>
+
+  <!-- 8 — BACK COVER. Freed when the Store table merged up onto the Setup panel. An
+       accordion is 4 panels per side and cannot be 7, so this is the panel the merge
+       released, and the outermost panel of the folded strip is the natural back face.
+       Deliberately sparse: it is the one panel nobody reads mid-game. -->
+  <div class="panel" data-n="8">
+    <div class="cover">
+      <h1>Cards for Cowboys</h1>
+      <p class="tag">A push-your-luck deck builder</p>
+      <p class="goal">Build the biggest Herd of Cows.</p>
+      <p class="meta" style="margin-top:3mm">Full rules, the card list and a free digital
+        version:<br><strong>cardsforcowboys.com</strong></p>
+      <p class="small" style="margin-top:3mm">2–4 players · 20–40 min</p>
+    </div>
   </div>
 </div>
   <div class="printbar">
@@ -535,9 +564,11 @@ function report() {
   });
   const el = document.getElementById('verdict');
   const mm = Math.round(worst / 3.7795);
+  // Count from the DOM, not a literal 8 — panels moved once already (the Store table
+  // merged onto Setup) and a hardcoded total silently lies after any such change.
   el.textContent = over === 0
-    ? '✓ all 8 panels fit'
-    : '✗ ' + over + ' of 8 overflow — worst by ' + mm + 'mm';
+    ? '✓ all ' + panels.length + ' panels fit'
+    : '✗ ' + over + ' of ' + panels.length + ' overflow — worst by ' + mm + 'mm';
   el.style.color = over === 0 ? '#8fe388' : '#ff8a80';
 }
 function guides() {
@@ -563,20 +594,13 @@ function guides() {
   });
 }
 function apply() { check(); report(); guides(); }
+// Body type is the only switchable axis left; panel geometry is fixed in :root now that
+// the accordion is committed to. guides() still reads --cols from :root, so it keeps working.
 document.querySelector('.controls').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  const group = b.dataset.w ? '[data-w]' : '[data-pt]';
-  document.querySelectorAll('.controls ' + group).forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('.controls [data-pt]').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
-  if (b.dataset.w) {
-    const R = document.documentElement.style;
-    R.setProperty('--panel-w', b.dataset.w + 'mm');
-    R.setProperty('--panel-h', b.dataset.h + 'mm');
-    R.setProperty('--margin', b.dataset.margin + 'mm');
-    R.setProperty('--cols', b.dataset.cols);
-  } else {
-    document.documentElement.style.setProperty('--body-pt', b.dataset.pt + 'pt');
-  }
+  document.documentElement.style.setProperty('--body-pt', b.dataset.pt + 'pt');
   apply();
 });
 window.addEventListener('load', apply);
