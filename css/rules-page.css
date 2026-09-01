@@ -600,8 +600,9 @@ html { scroll-behavior: smooth; }
   border-top: 2.5px solid #b87838;
 }
 
-/* Two buttons now (Cards List + Play). Flex so they sit level and wrap on a phone rather than
-   running off the side — .btn is inline-flex, which does not centre reliably once it wraps. */
+/* Three buttons now (Cards List + Print Proof + Play). Flex so they sit level and wrap on a phone
+   rather than running off the side — .btn is inline-flex, which does not centre reliably once it
+   wraps. */
 .rules-footer .btn { margin: 0.35rem; }
 
 /* End-of-rules Kickstarter hook — readers who reach here are the high-intent audience, so

@@ -106,6 +106,55 @@
       color: rgba(30,22,16,0.35);
     }
 
+    /* 5-8P disclosure. 5-8 player games are experimental (untested at the table, not in the
+       printed rules), so they are opt-in rather than sitting beside 2/3/4 as an equal choice.
+       The panel carries the caveat, and it is only reachable while the panel is open — which
+       is why collapsing resets a 5-8 selection back to 4 (see toggleExperimental). */
+    .exp-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: -0.9rem auto 1.6rem;
+      padding: 0.35rem 0.6rem;
+      background: transparent;
+      border: none;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 0.82rem;
+      color: rgba(30,22,16,0.62);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(30,22,16,0.3);
+    }
+    .exp-toggle:hover { color: #1e1610; text-decoration-color: rgba(30,22,16,0.7); }
+    .exp-caret { font-size: 0.7rem; transition: transform 0.15s; }
+    .exp-toggle[aria-expanded="true"] .exp-caret { transform: rotate(90deg); }
+    .exp-tag {
+      font-size: 0.56rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.15rem 0.4rem;
+      border: 1px solid rgba(30,22,16,0.4);
+      color: #3a2a1a;
+      text-decoration: none;
+    }
+    .exp-panel {
+      border: 2px dashed rgba(30,22,16,0.35);
+      padding: 1rem 0.9rem 0.4rem;
+      margin-bottom: 2rem;
+    }
+    .exp-warn {
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #3a2a1a;
+      text-align: left;
+      margin-bottom: 1rem;
+    }
+    .exp-panel .count-row { margin-bottom: 0.9rem; }
+    /* Dashed borders mark these counts as experimental wherever they appear, including
+       once selected — the panel caveat scrolls away, the button doesn't. */
+    .exp-panel .count-btn { border-style: dashed; }
+
     /* Player slots */
     .slots {
       display: flex;
@@ -348,23 +397,36 @@
       <div class="count-wrap">
         <button class="count-btn" id="count-4" onclick="selectCount(4)">4</button>
       </div>
-      <div class="count-break"></div>
-      <div class="count-wrap">
-        <button class="count-btn" id="count-5" onclick="selectCount(5)">5</button>
-      </div>
-      <div class="count-wrap">
-        <button class="count-btn" id="count-6" onclick="selectCount(6)">6</button>
-      </div>
-      <div class="count-wrap">
-        <button class="count-btn" id="count-7" onclick="selectCount(7)">7</button>
-      </div>
-      <div class="count-wrap">
-        <button class="count-btn" id="count-8" onclick="selectCount(8)">8</button>
+    </div>
+
+    <button type="button" class="exp-toggle" id="exp-toggle" aria-expanded="false"
+            aria-controls="exp-panel" onclick="toggleExperimental()">
+      <span class="exp-caret" aria-hidden="true">&#9656;</span>
+      <span id="exp-toggle-label">Show 5&ndash;8 player games</span>
+      <span class="exp-tag">Experimental</span>
+    </button>
+
+    <div id="exp-panel" class="exp-panel hidden">
+      <p class="exp-warn"><strong>5&ndash;8 players is experimental.</strong> It isn't part of the
+        printed rules and has had far less testing than 2&ndash;4. The Store doubles up
+        (two copies of each Act deck) and gets big enough to feel cramped on a phone.
+        Expect rough edges.</p>
+      <div class="count-row">
+        <div class="count-wrap">
+          <button class="count-btn" id="count-5" onclick="selectCount(5)">5</button>
+        </div>
+        <div class="count-wrap">
+          <button class="count-btn" id="count-6" onclick="selectCount(6)">6</button>
+        </div>
+        <div class="count-break"></div>
+        <div class="count-wrap">
+          <button class="count-btn" id="count-7" onclick="selectCount(7)">7</button>
+        </div>
+        <div class="count-wrap">
+          <button class="count-btn" id="count-8" onclick="selectCount(8)">8</button>
+        </div>
       </div>
     </div>
-    <p id="big-game-note" class="invite-note hidden" style="margin-top:0.5rem;">
-      5-8 player games use a second deck. Each extra player adds a row of 7 to the store.
-    </p>
 
     <!-- 2-player slots -->
     <div id="slots-2" class="slots">
@@ -619,7 +681,19 @@
       const dyn = document.getElementById('slots-dyn');
       if (n >= 5) { renderDynamicSlots(n); dyn.classList.remove('hidden'); }
       else { dyn.classList.add('hidden'); }
-      document.getElementById('big-game-note').classList.toggle('hidden', n < 5);
+    }
+
+    // Reveal/hide the experimental 5-8P counts. Collapsing while a 5-8 count is selected falls
+    // back to 4 — otherwise the game would start at a count whose only caveat is now off-screen.
+    function toggleExperimental() {
+      const btn = document.getElementById('exp-toggle');
+      const panel = document.getElementById('exp-panel');
+      const open = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', !open);
+      btn.setAttribute('aria-expanded', String(open));
+      document.getElementById('exp-toggle-label').textContent =
+        (open ? 'Hide' : 'Show') + ' 5–8 player games';
+      if (!open && playerCount >= 5) selectCount(4);
     }
 
     function setP2(type) {
