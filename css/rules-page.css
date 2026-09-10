@@ -39,6 +39,22 @@
   letter-spacing: 0.5px;
 }
 
+/* "— everyone at the same time" / "— one player at a time, in turn order" on the phase
+   headings. Deliberately subordinate to the heading it rides on: lighter weight, smaller,
+   and the sans face, so "1. Draw" is still what the eye lands on and the mode reads as a
+   caption rather than as part of the phase's name. Georgia is the page's BODY face — the
+   only other family loaded (rules.html pulls Playfair Display alone), so anything more
+   exotic here silently renders as Georgia anyway.
+   No `white-space: nowrap`: at 375px "2. Buy — one player at a time, in turn order" is
+   wider than the column, and nowrap would push it off the side instead of wrapping. */
+.rules-page h3 .phase-mode {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: normal;
+  font-size: 0.82rem;
+  letter-spacing: 0.3px;
+  color: #6b5030;
+}
+
 .rules-page h4 {
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: bold;
@@ -448,9 +464,14 @@ html { scroll-behavior: smooth; }
 }
 
 /* Brick stagger: shift alternate rows half a card (card 22px + 3px gap = 25px → 12.5px)
-   so two cards cover the one above, matching the in-game pyramidColCenter() offset. */
+   so two cards cover the one above, matching the in-game pyramidColCenter() offset.
+   --brick-shift is shared with .band-tag, which has to clear the SAME distance to sit
+   past the widest row — see the band-tag rule. Two hardcoded 12.5s would drift apart
+   the first time the card size changed, and the symptom (a clipped label) looks
+   nothing like its cause. */
+.pyramid-grid { --brick-shift: 12.5px; }
 .pyramid-row.brick-offset {
-  transform: translateX(12.5px);
+  transform: translateX(var(--brick-shift));
 }
 
 .pcard {
@@ -548,14 +569,26 @@ html { scroll-behavior: smooth; }
    absolutely positioned (out of flow), so without that reservation the grid
    centres as if they weren't there and the longest tag runs off the page at
    375px. Keep the reservation >= the longest RENDERED tag ("Act 1 — front",
-   ~96px at 0.66rem) plus its 0.55rem margin — at 82px it cleared 375px only
-   because the centred grid happened to leave slack, which is not a margin of
-   safety. Re-measure if the wording changes. */
-.pyramid-grid { padding-right: 106px; }
+   ~96px at 0.66rem) plus its 0.55rem margin and the --brick-shift below — at 82px
+   it cleared 375px only because the centred grid happened to leave slack, which is
+   not a margin of safety. Re-measure if the wording changes.
+
+   ⚠️ The tag hangs off a band's first row, which is NEVER the offset one, so
+   `left: 100%` lands at the NARROW row's right edge — --brick-shift short of the
+   staggered row below it. That row is transformed, and a transform makes a stacking
+   context, so it painted OVER the tag: every label lost its first letter ("ACT 3 —
+   BACK" read "CT 3 — BACK"). The fix is to anchor past the stagger, not to fight the
+   paint order — the 0.55rem then stays a real visual gap rather than being eaten.
+
+   Measured at 375px after the fix: the gap from the widest row is a true 8.8px on every
+   tag (it was −3.7px, i.e. overlapping), and the longest tag "Act 1 — front" clears the
+   119px reservation by only **1.3px**. That is genuinely tight — lengthen any tag and
+   re-measure, don't assume it still fits. */
+.pyramid-grid { padding-right: 119px; }
 
 .pyramid-row .band-tag {
   position: absolute;
-  left: 100%;
+  left: calc(100% + var(--brick-shift));
   top: 25px;
   transform: translateY(-50%);
   margin-left: 0.55rem;

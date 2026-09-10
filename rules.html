@@ -57,8 +57,17 @@
 
       <p class="rules-goal"><strong>Your goal: build the biggest Herd of Cows.</strong></p>
 
-      <p>Play rounds until the Store runs out, then everyone lays out their whole deck for a
-        <a href="#showdown">final showdown</a> and counts their Cows. 2&ndash;4 players.</p>
+      <!-- This sentence used to read "...lays out their whole deck for a final showdown and
+           counts their Cows", which made the deck count sound like the WHOLE score. It is not:
+           the Herd is banked round by round, and the showdown adds the deck's Cows on top of
+           that running total. Two numbers, not one — say "banked" and "on top of" explicitly.
+           The #showdown section and its Jo example are the long form of the same point; keep
+           all three in step. print-proof.html is maintained SEPARATELY (PB, Sep 2026) — do
+           not chase its wording to match this page, or vice versa. -->
+      <p>Each round you <strong>bank</strong> the Cows you drew into your Herd. When the Store runs
+        out, one <a href="#showdown">final showdown</a> adds every Cow in your whole deck
+        <em>on top of</em> everything you already banked &mdash; biggest Herd wins.
+        2&ndash;4 players.</p>
     </section>
 
     <!-- Contents. The mid-game lookup index: a long scroll has no page numbers to orient by.
@@ -244,7 +253,11 @@
     <section id="sequence">
       <h2>Sequence of Play</h2>
 
-      <h3 id="draw-phase">1. Draw</h3>
+      <!-- The .phase-mode tag on each heading answers the question new players ask first and
+           the prose kept answering late: is this phase everyone at once, or one at a time?
+           Draw is simultaneous, Buy is turn-based, and the two headings are the only place a
+           skimmer sees both facts side by side. -->
+      <h3 id="draw-phase">1. Draw <span class="phase-mode">&mdash; everyone at the same time</span></h3>
       <ul>
         <li>Everyone draws at the same time, one card at a time off your draw pile. You
           <strong>must</strong> draw at least one; after that you <strong>may</strong> stop whenever
@@ -257,10 +270,16 @@
         in front of you, you bust: score nothing, no buy, and everything you drew goes to your
         discard pile.</p>
 
-      <h3 id="buy-phase">2. Buy</h3>
+      <!-- Scoring the Cows you drew belongs HERE, not under Buy: it is the outcome of the draw
+           you just finished, and it happens whether or not you go on to buy anything. It sat in
+           the Buy list for a long time, which made the Herd look like something the buy phase
+           awarded you. -->
+      <p>Didn't bust? <strong>Add the Cows you drew to your Herd</strong> now &mdash; the Herd is a
+        running total that carries from round to round.</p>
+
+      <h3 id="buy-phase">2. Buy <span class="phase-mode">&mdash; one player at a time, in turn order</span></h3>
       <ul>
-        <li>If you didn't bust, add the Cows you drew to your <strong>Herd</strong>. Busted players
-          sit this phase out.</li>
+        <li>Busted players sit this phase out.</li>
         <li>On your turn you <strong>must</strong> buy or burn one card &mdash; no passing.
           <strong>Buy</strong> any face-up Store card you can afford with the $ you drew (cost is in
           the bottom-left corner); it and everything you drew go to your discard pile. Or
@@ -351,8 +370,13 @@
       <!-- print-proof.html is the working layout proof for the physical rules insert: it
            carries dev controls (panel size / body type / overflow verdict) and imposition
            labels, and it is noindex'd. Linked here on request — keep the label honest
-           ("Print Proof"), don't dress it up as a finished printable. -->
-      <a href="print-proof.html" class="btn btn-secondary">Print Proof</a>
+           ("Print Proof"), don't dress it up as a finished printable.
+           Opens in a NEW TAB: it is a side trip off the rules, not the next thing to read,
+           and a reader who is mid-rules should not lose their scroll position to it. The
+           other two footer buttons stay same-tab — they ARE onward destinations.
+           rel="noopener" is required with target="_blank": without it the opened page gets
+           a window.opener handle back to this one. -->
+      <a href="print-proof.html" class="btn btn-secondary" target="_blank" rel="noopener">Print Proof</a>
       <a href="gamesetup.html" class="btn">Play Digital Version</a>
       <!-- Shared signup component — see css/signup.css. The reader who gets to the
            bottom of the rules is the most convinced visitor the site has; give them

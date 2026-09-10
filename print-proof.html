@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
-<title>Print proof — poker accordion, 8 panels</title>
+<title>PRELIMINARY print proof — poker accordion, 8 panels</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -56,6 +56,27 @@ body {
   font-family: system-ui, sans-serif;
   font-size: 11pt;
   margin: 6mm 0 3mm;
+}
+
+/* ── PRELIMINARY / revision marking ──
+   Two surfaces, because the page has two audiences. On screen a reader needs to
+   know before they read anything that this is a work in progress; on paper a
+   reviewer needs to know WHICH revision is in their hand, or two printouts a week
+   apart are indistinguishable and feedback lands on the wrong one.
+
+   The printed stamp lives in the .guidekey row, which sits ABOVE the sheet and
+   OUTSIDE the trim — the same place a printer's slug goes. It is deliberately not
+   inside any panel: panel content is the product, and "PRELIMINARY" baked into a
+   panel is something someone has to remember to delete before the real print run.
+   Nothing inside the trim ever says preliminary; the paper around it does. */
+.proofbanner {
+  font-family: system-ui, sans-serif; font-size: 10pt; line-height: 1.45;
+  color: #1e1610; background: #ffd08a; border-left: 4px solid #8a5a22;
+  padding: 2.5mm 3mm; margin: 0 0 4mm; max-width: 210mm; border-radius: 3px;
+}
+.proofbanner strong { letter-spacing: 0.5pt; }
+.revstamp {
+  font-family: system-ui, sans-serif; font-weight: bold; letter-spacing: 0.4pt;
 }
 .legend {
   color: #fff; font-family: system-ui, sans-serif; font-size: 9pt;
@@ -165,6 +186,15 @@ h3 {
   margin: 2mm 0 1mm;
 }
 p { margin-bottom: 1.4mm; }
+/* The "— everyone at once" / "— one at a time" tag on a phase heading. Georgia (the body
+   face) at normal weight so it reads as a caption under the Playfair heading rather than as
+   part of the phase's name, and it scales with --body-pt like everything else on the panel. */
+h3 .mode {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: normal;
+  font-size: calc(var(--body-pt) - 1.5pt);
+  letter-spacing: 0;
+}
 ul, ol { margin: 0 0 1.4mm 4mm; }
 li { margin-bottom: 0.9mm; }
 strong { font-weight: bold; }
@@ -222,8 +252,24 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
 /* ── Store diagram (same brick geometry, print scale) ── */
 .pyr { display: flex; flex-direction: column; align-items: center; margin: 1.5mm 0 1mm; }
-.prow { display: flex; gap: var(--pc-gap); }
-.prow + .prow { margin-top: calc(var(--pc-h) * -0.34); }
+/* `position: relative` is LOAD-BEARING, not layout — it fixes the paint order, and it is
+   why rules.html's `.pyramid-row` carries it too.
+   The Store is a brick stack: each row must be painted ON TOP of the row above it, so the
+   front row (the face-up one) covers the back. That is just tree order — except that
+   `.prow.off` sets a `transform`, and a transform creates a STACKING CONTEXT. A transformed
+   element paints with the positioned descendants (CSS 2.1 Appendix E step 8), while a plain
+   non-positioned row paints its background back at step 4. So without this line EVERY offset
+   row floated above EVERY non-offset row: rows 1→2 looked right, then row 3 (purple) hid
+   behind row 2 (green) and row 5 (tan) hid behind row 4. Making all six rows positioned puts
+   them in the same paint layer, where tree order decides again.
+   Do not "clean up" this rule because nothing appears to be offset by it. */
+.prow { display: flex; gap: var(--pc-gap); position: relative; }
+/* -0.4375 = rules.html's -14px on its 32px card. The web diagram is the reference
+   rendering, so the overlap fraction is copied rather than eyeballed: a shallower
+   stagger here made the printed Store read as six loosely stacked rows instead of
+   the tight two-cards-cover-one geometry the Setup step describes.
+   Consequence for fit: six rows are now pc-h × 3.8125, not × 4.3. */
+.prow + .prow { margin-top: calc(var(--pc-h) * -0.4375); }
 .prow.off { transform: translateX(calc((var(--pc-w) + var(--pc-gap)) / 2)); }
 .pc {
   width: var(--pc-w); height: var(--pc-h);
@@ -231,9 +277,32 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   box-shadow: 0 0.3mm 0.4mm rgba(0,0,0,0.4);
   flex: 0 0 var(--pc-w);
 }
-.b3 .pc { background: #241610; background-image: repeating-linear-gradient(45deg,transparent,transparent .6mm,rgba(255,255,255,.16) .6mm,rgba(255,255,255,.16) 1mm); }
-.b2 .pc { background: #7d5636; background-image: repeating-linear-gradient(-45deg,transparent,transparent .6mm,rgba(255,255,255,.18) .6mm,rgba(255,255,255,.18) 1mm); }
-.b1 .pc { background: #c19464; background-image: repeating-linear-gradient(0deg,transparent,transparent .6mm,rgba(0,0,0,.18) .6mm,rgba(0,0,0,.18) 1mm); }
+/* Act bands — the SAME three hues as rules.html (css/rules-page.css, Aug 2026):
+   dark green / purple / tan, not the retired three-brown lightness ramp. Read that
+   file's comment block before changing any of this; the short version:
+     · BLUE, YELLOW AND RED ARE OFF-LIMITS. They are the suit colours (River /
+       Cactus / Rattlesnake) and these cells are card BACKS, printed in exactly
+       those colours — a blue band would read as "this band is River".
+     · Act 3 and Act 2 are only ~9 L* apart, so the 45° / -45° / horizontal hatch
+       is load-bearing, not decorative: it is the only separation in greyscale.
+       Never drop a band's hatch, on a card or on its key swatch.
+   ⚠️ PRINTING COST: green and purple ink. This was the open question the Aug 2026
+   note flagged; the diagram now matches the web rules, but the press decision is
+   still PB's — if it comes back to a limited palette, change BOTH files together.
+   Selectors cover the key swatches too, so a swatch can never lose its hatch
+   (that is what the old inline `style="background:…"` on the swatches did). */
+.b3 .pc, .sw.b3 {
+  background-color: #1f3d2b;
+  background-image: repeating-linear-gradient(45deg,transparent,transparent .6mm,rgba(255,255,255,.16) .6mm,rgba(255,255,255,.16) 1mm);
+}
+.b2 .pc, .sw.b2 {
+  background-color: #57406e;
+  background-image: repeating-linear-gradient(-45deg,transparent,transparent .6mm,rgba(255,255,255,.18) .6mm,rgba(255,255,255,.18) 1mm);
+}
+.b1 .pc, .sw.b1 {
+  background-color: #c19464;
+  background-image: repeating-linear-gradient(0deg,transparent,transparent .6mm,rgba(0,0,0,.18) .6mm,rgba(0,0,0,.18) 1mm);
+}
 .pc.up { background: var(--paper) !important; background-image: none !important; }
 .pc.gone { background: none !important; background-image: none !important; border-style: dashed; box-shadow: none; }
 .pc.mark { outline: 0.4mm solid var(--accent); outline-offset: 0.2mm; }
@@ -243,11 +312,15 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 
 /* The Store diagram shares panel 4 with the four Setup steps AND — since the Aug 2026
    merge — the Store-size table, so it gets a much smaller card than the :root default.
-   Diagram height is pc-h × 4.3 (six rows overlapping 34%), so it is the cheapest place
-   on this panel to buy millimetres:
+   Diagram height is pc-h × 3.8125 (six rows overlapping 43.75%), so it is the cheapest
+   place on this panel to buy millimetres. The ladder below is in the OLD 34%-overlap
+   multiplier (× 4.3) because that is what those measurements were taken at:
      5.0mm → 30.5mm (over by ~4mm, before the table existed)
      5.7mm → 24.5mm (fitted before the table, over by 5.7mm after it)
-     4.2mm → 18.1mm (current — clears the table with ~1mm of slack)
+     4.2mm → 18.1mm (fitted at 34% overlap, ~1mm of slack)
+   Matching rules.html's overlap (Sep 2026) took the same 4.2mm card down to 16.0mm,
+   so the panel now has ~3mm of slack. Deliberately NOT spent on a bigger card: the
+   slack is the fit margin for a body-type change, and 4.2mm still reads at print.
    Aspect ratio is held at pc-w/pc-h ≈ 0.70 so the cards stay card-shaped. This is a
    schematic — it shows six staggered rows in three bands, nothing more; rules.html
    carries the legible version. Scoped to panel 4 so the uncovering demo on panel 6
@@ -298,7 +371,9 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   @page { size: letter landscape; margin: 0; }
 
   body { background: #fff; padding: 0; }
-  .sheet-label, .legend, .controls { display: none; }
+  /* The on-screen banner is dropped; the .guidekey revision stamp is what carries
+     PRELIMINARY + the date onto the paper, in the margin outside the trim. */
+  .sheet-label, .legend, .controls, .proofbanner { display: none; }
 
   .sheet {
     position: relative;
@@ -328,6 +403,12 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
      gone with it — the alternatives were a shortlist, and the shortlist is closed. Panel
      size now comes only from :root. Body type stays switchable: 7pt is the working choice,
      not a settled one, and the verdict beside it is what makes this page a proof. -->
+<div class="proofbanner">
+  <strong>PRELIMINARY — WORK IN PROGRESS.</strong> Revision <span data-rev>—</span>.
+  This is a layout proof for the physical rules insert, not the finished insert. Wording,
+  diagrams and type size are all still being changed. The live rules are at
+  <strong>cardsforcowboys.com/rules</strong>.
+</div>
 <div class="controls">
   <span>Body type:</span>
   <button data-pt="6">6pt</button>
@@ -345,7 +426,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 </div>
 
 <div class="sheet-label">SIDE A — panels 1–4 (front of the strip)</div>
-<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span><span class="revstamp">PRELIMINARY · rev <span data-rev>&mdash;</span> · not for production</span></div>
 <div class="sheet">
 
   <!-- 1 — COVER -->
@@ -423,9 +504,9 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <div class="prow b1 off"><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i></div>
     </div>
     <div class="bandkey">
-      <span><i class="sw" style="background:#241610"></i>Act 3</span>
-      <span><i class="sw" style="background:#7d5636"></i>Act 2</span>
-      <span><i class="sw" style="background:#c19464"></i>Act 1 (front)</span>
+      <span><i class="sw b3"></i>Act 3</span>
+      <span><i class="sw b2"></i>Act 2</span>
+      <span><i class="sw b1"></i>Act 1 (front)</span>
     </div>
     <!-- Store-size table, merged up from what used to be panel 5 (Aug 2026). Only three
          columns survive: Rows was 6 for every count and now lives in step 3, and Total
@@ -449,21 +530,25 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   </div>
 
 <div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
-<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span><span class="revstamp">PRELIMINARY · rev <span data-rev>&mdash;</span> · not for production</span></div>
 <div class="sheet">
 
   <!-- 5 — DRAW + BUY -->
   <div class="panel" data-n="5">
     <h2>Sequence of Play</h2>
-    <h3>1. Draw</h3>
+    <!-- Each heading names its mode (simultaneous vs turn-based) — the first thing a table
+         needs to know and the thing prose kept getting to late. Scoring the drawn Cows moved
+         up under Draw, where it belongs: it is the result of the draw, not something the buy
+         phase hands you, and it happens whether or not you buy. -->
+    <h3>1. Draw <span class="mode">— everyone at once</span></h3>
     <ul>
       <li>Everyone draws at the same time, one card at a time. You <strong>must</strong> draw at least one; after that you <strong>may</strong> stop whenever you like.</li>
       <li>Run out? Shuffle your discard into a new draw pile and cut one card top to bottom. Both piles empty — stop drawing.</li>
     </ul>
     <p class="callout"><strong>Bust.</strong> The moment you have <strong>3 Bandits</strong>, you bust: score nothing, no buy, everything you drew goes to discard.</p>
-    <h3>2. Buy</h3>
+    <p>Didn't bust? <strong>Add the Cows you drew to your Herd</strong> — a running total.</p>
+    <h3>2. Buy <span class="mode">— one at a time, in turn order</span></h3>
     <ul>
-      <li>Didn't bust? Add the Cows you drew to your <strong>Herd</strong>. Busted players sit this phase out.</li>
       <li>You <strong>must</strong> buy or burn one card — no passing. <strong>Buy</strong> any face-up card you can afford with the $ you drew; it and your drawn cards go to discard. Or <strong>burn</strong> a face-up card out of the game.</li>
       <li>Then discard and start a new round.</li>
     </ul>
@@ -593,7 +678,17 @@ function guides() {
     });
   });
 }
-function apply() { check(); report(); guides(); }
+/* ── Revision date — CHANGE IT HERE, in one place ──
+   Bump this whenever the panels change in a way a reviewer would notice (wording,
+   diagrams, type size, panel order). It is written into every [data-rev] slot: the
+   on-screen banner and the printed slug above each of the two sheets. Three literal
+   dates in the markup would drift the first time someone edited only one of them.
+   ISO order (YYYY-MM-DD) so two printouts sort correctly side by side. */
+const REV = '2026-09-09';
+function stampRev() {
+  document.querySelectorAll('[data-rev]').forEach(el => { el.textContent = REV; });
+}
+function apply() { check(); report(); guides(); stampRev(); }
 // Body type is the only switchable axis left; panel geometry is fixed in :root now that
 // the accordion is committed to. guides() still reads --cols from :root, so it keeps working.
 document.querySelector('.controls').addEventListener('click', e => {
