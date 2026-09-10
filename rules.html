@@ -299,7 +299,15 @@
            though two cards could leave the Store at once, which is never true — you take
            exactly one per turn. The middle frame is the whole point of the change: one gone,
            still covered, nothing flips. Don't collapse it back to two to save width. -->
-      <!-- ⚠️ WHICH cards are marked is GEOMETRY, not decoration. Get it wrong and the demo
+      <!-- THE OUTLINE MARKS THE SUBJECT, AND THE SUBJECT NEVER CHANGES (PB, Sep 2026).
+           It is on back 2 in all three frames — the one card the captions are about — so
+           "it" always points at something the reader can see, and the state change (covered
+           → face-up) is legible on the card being tracked. It used to outline the two
+           COVERERS instead, which meant the captions' "it" / "the card behind" referred to
+           an unmarked card and the highlight changed meaning between frames. Do not move the
+           outline back onto the front row.
+
+           ⚠️ WHICH cards are marked is GEOMETRY, not decoration. Get it wrong and the demo
            contradicts the rule it teaches.
            With the front row staggered half a card RIGHT, front card j overlaps back cards
            j and j+1. So in a 3+3 excerpt:
@@ -318,19 +326,20 @@
       <div class="reveal-demo">
         <figure class="reveal-step">
           <div class="pyramid-grid">
-            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard face-up marked"></div><div class="pcard face-up marked"></div></div>
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard marked"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard face-up"></div><div class="pcard face-up"></div></div>
           </div>
-          <figcaption>Two face-up cards cover the one behind them.</figcaption>
+          <figcaption>The <strong>outlined</strong> card is covered by the two face-up cards in
+            front of it.</figcaption>
         </figure>
         <div class="reveal-arrow" aria-hidden="true">&rarr;</div>
         <figure class="reveal-step">
           <div class="pyramid-grid">
-            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard gone"></div><div class="pcard face-up marked"></div></div>
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard marked"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard gone"></div><div class="pcard face-up"></div></div>
           </div>
-          <figcaption>Someone buys one. The card behind is <em>still covered</em> by the other,
-            so it stays face-down.</figcaption>
+          <figcaption>Someone buys one of them. The outlined card is <em>still covered</em> by the
+            other, so it stays face-down.</figcaption>
         </figure>
         <div class="reveal-arrow" aria-hidden="true">&rarr;</div>
         <figure class="reveal-step">
@@ -338,8 +347,8 @@
             <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard face-up revealed"></div></div>
             <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard gone"></div><div class="pcard gone"></div></div>
           </div>
-          <figcaption>A later turn takes the second. Now it flips face-up, and you can buy
-            it.</figcaption>
+          <figcaption>A later turn takes the second. Only now does the outlined card flip face-up,
+            ready to buy.</figcaption>
         </figure>
       </div>
 

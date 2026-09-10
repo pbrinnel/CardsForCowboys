@@ -580,7 +580,10 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <!-- THREE frames, one card leaving per frame. Two frames (both coverers marked, then
          both gone) read as though two cards leave the Store at once; you take exactly one
          per turn. The middle frame — one gone, still covered — is the point. -->
-    <!-- ⚠️ WHICH cards are marked is GEOMETRY. Front row is staggered half a card RIGHT, so
+    <!-- The outline marks the SUBJECT — back 2, in all three frames — so the captions' "it"
+         points at something visible and the covered → face-up change reads on the card being
+         tracked. It used to outline the two coverers, which left "it" referring to nothing.
+         ⚠️ WHICH cards are marked is GEOMETRY. Front row is staggered half a card RIGHT, so
          front card j overlaps back cards j and j+1:
            back 0 ← front 0 only (overhang end card)  ·  back 1 ← front 0,1  ·  back 2 ← front 1,2
          Only back 2 (rear right) can have BOTH its coverers removed without incidentally
@@ -592,16 +595,16 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <div class="reveal">
       <figure>
         <div class="pyr">
-          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
-          <div class="prow b1 off"><i class="pc up"></i><i class="pc up mark"></i><i class="pc up mark"></i></div>
+          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc mark"></i></div>
+          <div class="prow b1 off"><i class="pc up"></i><i class="pc up"></i><i class="pc up"></i></div>
         </div>
-        <figcaption>Two cards cover it.</figcaption>
+        <figcaption>Two cards cover the outlined one.</figcaption>
       </figure>
       <div class="arrow">→</div>
       <figure>
         <div class="pyr">
-          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
-          <div class="prow b1 off"><i class="pc up"></i><i class="pc gone"></i><i class="pc up mark"></i></div>
+          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc mark"></i></div>
+          <div class="prow b1 off"><i class="pc up"></i><i class="pc gone"></i><i class="pc up"></i></div>
         </div>
         <figcaption>One taken — still covered.</figcaption>
       </figure>
@@ -611,7 +614,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
           <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc up mark"></i></div>
           <div class="prow b1 off"><i class="pc up"></i><i class="pc gone"></i><i class="pc gone"></i></div>
         </div>
-        <figcaption>Second taken — flips face-up.</figcaption>
+        <figcaption>Second taken — it flips face-up.</figcaption>
       </figure>
     </div>
 
