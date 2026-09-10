@@ -64,19 +64,32 @@ body {
    reviewer needs to know WHICH revision is in their hand, or two printouts a week
    apart are indistinguishable and feedback lands on the wrong one.
 
-   The printed stamp lives in the .guidekey row, which sits ABOVE the sheet and
-   OUTSIDE the trim — the same place a printer's slug goes. It is deliberately not
-   inside any panel: panel content is the product, and "PRELIMINARY" baked into a
-   panel is something someone has to remember to delete before the real print run.
-   Nothing inside the trim ever says preliminary; the paper around it does. */
+   ⚠️ THE PRINTED REVISION LINE GOES INSIDE THE TRIM (PB, Sep 2026) — on panel 8,
+   the back cover. It first went in the .guidekey slug above the sheet, which is
+   the printer's convention and keeps "PRELIMINARY" out of the product; but that
+   area is CUT AWAY, so the revision vanished the moment anyone trimmed and folded
+   a copy, which is precisely when a reviewer needs it. Surviving the cut beats
+   staying off the artwork. The cost is real and accepted: this line must be
+   deleted from panel 8 before a production run — it is not self-removing the way
+   a margin slug is.
+
+   Both the banner and the panel-8 line read from `const REV`; see that constant. */
 .proofbanner {
   font-family: system-ui, sans-serif; font-size: 10pt; line-height: 1.45;
   color: #1e1610; background: #ffd08a; border-left: 4px solid #8a5a22;
   padding: 2.5mm 3mm; margin: 0 0 4mm; max-width: 210mm; border-radius: 3px;
 }
 .proofbanner strong { letter-spacing: 0.5pt; }
-.revstamp {
-  font-family: system-ui, sans-serif; font-weight: bold; letter-spacing: 0.4pt;
+
+/* The panel-8 revision line. Small, uppercase and muted so it reads as a colophon
+   on the back cover rather than as a rule — it is the only WIP marker a folded
+   copy carries, so it has to be findable without competing with the title. */
+.revline {
+  font-size: calc(var(--body-pt) - 2pt);
+  text-transform: uppercase;
+  letter-spacing: 0.4pt;
+  color: rgba(30,22,16,0.55);
+  margin-top: 2.5mm;
 }
 .legend {
   color: #fff; font-family: system-ui, sans-serif; font-size: 9pt;
@@ -426,7 +439,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
 </div>
 
 <div class="sheet-label">SIDE A — panels 1–4 (front of the strip)</div>
-<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span><span class="revstamp">PRELIMINARY · rev <span data-rev>&mdash;</span> · not for production</span></div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
 <div class="sheet">
 
   <!-- 1 — COVER -->
@@ -530,7 +543,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   </div>
 
 <div class="sheet-label">SIDE B — panels 5–8 (back of the strip)</div>
-<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span><span class="revstamp">PRELIMINARY · rev <span data-rev>&mdash;</span> · not for production</span></div>
+<div class="guidekey"><span><i class="cut"></i>solid = CUT</span><span><i class="fold"></i>dashed = FOLD</span><span>corner ticks = trim marks</span></div>
 <div class="sheet">
 
   <!-- 5 — DRAW + BUY -->
@@ -593,9 +606,9 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
     <p>Then, in one <strong>final showdown</strong>, everyone — including anyone who just busted —
       lays out their whole deck and adds <strong>every Cow they own</strong> to their Herd.
       <strong>Most Cows wins.</strong></p>
-    <!-- Last rung is a table joke, not a mechanic — the ladder really does stop after "most
-         cards". The digital game can't play it and declares a tie instead; that is intended. -->
-    <p class="small"><strong>Tied?</strong> Most $ in your deck → most cards in your deck → whoever wants it more.</p>
+    <!-- Say "tie" plainly — the ladder really does stop after "most cards". "Share the win"
+         was a euphemism for it and a "whoever wants it more" joke was tried and dropped. -->
+    <p class="small"><strong>Tied?</strong> Most $ in your deck → most cards in your deck → it's a tie.</p>
     <h3>Clarifications</h3>
     <ul class="small">
       <li>You may check card <em>backs</em> in your draw pile. Never look through your discard.</li>
@@ -616,6 +629,13 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
       <p class="meta" style="margin-top:3mm">Full rules, the card list and a free digital
         version:<br><strong>cardsforcowboys.com</strong></p>
       <p class="small" style="margin-top:3mm">2–4 players · 20–40 min</p>
+      <!-- Revision line, INSIDE the trim (PB, Sep 2026). It first went in the .guidekey slug
+           above the sheet, which is the printer's convention — but that area is cut away, so
+           the moment anyone folded a copy the revision was gone and two printouts a week apart
+           were indistinguishable in the hand. This is the panel to carry it: a back cover is
+           where a printed piece states its edition, and it is the one panel nobody reads
+           mid-game. Text comes from `const REV`; see the note by that constant. -->
+      <p class="revline">Preliminary draft &middot; rev <span data-rev>&mdash;</span></p>
     </div>
   </div>
 </div>

@@ -78,12 +78,18 @@ them — the same fix is simply made twice, in each file's own voice and space b
 convention was proposed here and explicitly rejected.
 
 **PRELIMINARY / revision marking (Sep 2026).** `const REV` near the bottom of the script is the
-**one** place the date lives; it is written into every `[data-rev]` slot — the on-screen banner and
-the printed slug above each sheet. Bump it whenever a reviewer would notice the change. The printed
-stamp deliberately sits in the `.guidekey` row, **above the sheet and outside the trim** (a
-printer's slug), never inside a panel: panel content is the product, and "PRELIMINARY" baked into a
-panel is something someone must remember to delete before a real run. The `.proofbanner` is
-screen-only (it joins `.sheet-label, .legend, .controls` in the `@media print` hide list).
+**one** place the date lives; it is written into every `[data-rev]` slot. Bump it whenever a
+reviewer would notice the change. Two slots today:
+
+- `.proofbanner` — screen-only (it joins `.sheet-label, .legend, .controls` in the `@media print`
+  hide list).
+- `.revline` on **panel 8, the back cover — INSIDE the trim** (PB). It first went in the
+  `.guidekey` slug above the sheet, which is the printer's convention and keeps "PRELIMINARY" off
+  the artwork — but that area is **cut away**, so the revision vanished the moment anyone trimmed
+  and folded a copy, which is exactly when a reviewer needs it. Surviving the cut beat staying off
+  the product. ⚠️ The accepted cost: **this line must be deleted from panel 8 before a production
+  run** — unlike a margin slug it does not remove itself. Panel 8 has ~17mm of slack, so it is not
+  competing with anything.
 
 Keep it out of `robots.txt`: the `noindex,nofollow` meta is what de-indexes it, and a `Disallow` would stop crawlers reading that meta at all. Renders the ruleset into real print panels at real mm/pt so content fit can be tested before committing to a format. Buttons switch panel size (poker 63.5×88.9 / 50mm cross fold / 100mm reference) and body type (6–9pt), and JS flags any panel whose content exceeds the live area — **measuring width as well as height**, since a too-wide Store diagram once passed a height-only check while running off the side. Ships cut/fold/trim guides generated from `--cols`. Current decision: **poker accordion, 8 panels, 7pt, 3mm margins** — the only format on the shortlist that holds the full ruleset. |
 | `proofs/` | Rendered PNGs of the above (~407dpi, headless Chrome). Regenerate rather than hand-edit. |
