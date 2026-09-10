@@ -340,10 +340,15 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
    (panel 7 before the merge renumbered it) keeps its larger, clearer cards. */
 .panel[data-n="4"] .pyr { --pc-w: 2.95mm; --pc-h: 4.2mm; }
 
-/* ── Uncovering demo ── */
-.reveal { display: flex; gap: 2mm; align-items: center; justify-content: center; margin: 1.5mm 0; }
-.reveal figcaption { font-size: calc(var(--body-pt) - 2pt); text-align: center; margin-top: 0.8mm; line-height: 1.2; max-width: 32mm; }
-.arrow { font-size: 11pt; color: var(--accent); }
+/* ── Uncovering demo ──
+   THREE frames now, not two, so a card is seen leaving one per turn. Three of the old
+   5mm cards plus two arrows measured ~66mm inside a 57.5mm live width, so the demo gets
+   its own smaller card (aspect held at 0.70) and the captions lose their 32mm cap —
+   at 3 frames across, a caption can only have about a third of the panel. */
+.reveal { display: flex; gap: 1.2mm; align-items: flex-start; justify-content: center; margin: 1.5mm 0; }
+.reveal .pyr { --pc-w: 3.4mm; --pc-h: 4.85mm; margin: 0; }
+.reveal figcaption { font-size: calc(var(--body-pt) - 2.5pt); text-align: center; margin-top: 0.8mm; line-height: 1.15; max-width: 15mm; }
+.arrow { font-size: 9pt; color: var(--accent); align-self: center; }
 
 /* ── Cover panel ── */
 .cover { display: flex; flex-direction: column; justify-content: center; height: 100%; text-align: center; }
@@ -417,7 +422,9 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
      size now comes only from :root. Body type stays switchable: 7pt is the working choice,
      not a settled one, and the verdict beside it is what makes this page a proof. -->
 <div class="proofbanner">
-  <strong>PRELIMINARY — WORK IN PROGRESS.</strong> Revision <span data-rev>—</span>.
+  <!-- No "rev"/"revision" label before the date on either surface (PB): an ISO date already
+       reads as a date, and the abbreviation in front of it just looks odd. -->
+  <strong>PRELIMINARY — WORK IN PROGRESS.</strong> Last updated <span data-rev>—</span>.
   This is a layout proof for the physical rules insert, not the finished insert. Wording,
   diagrams and type size are all still being changed. The live rules are at
   <strong>cardsforcowboys.com/rules</strong>.
@@ -570,21 +577,41 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
   <!-- 6 — UNCOVERING, TURN ORDER -->
   <div class="panel" data-n="6">
     <p class="callout"><strong>Always reveal.</strong> As soon as a card leaves the Store, turn face-up anything behind it no longer covered.</p>
+    <!-- THREE frames, one card leaving per frame. Two frames (both coverers marked, then
+         both gone) read as though two cards leave the Store at once; you take exactly one
+         per turn. The middle frame — one gone, still covered — is the point. -->
+    <!-- ⚠️ WHICH cards are marked is GEOMETRY. Front row is staggered half a card RIGHT, so
+         front card j overlaps back cards j and j+1:
+           back 0 ← front 0 only (overhang end card)  ·  back 1 ← front 0,1  ·  back 2 ← front 1,2
+         Only back 2 (rear right) can have BOTH its coverers removed without incidentally
+         uncovering another card — so the demo takes front 1, then front 2, and flips back 2.
+         Marking front 0+1 and revealing back 1 (an earlier version) is WRONG: front 0 is
+         back 0's only coverer, so back 0 would flip too.
+         THREE frames, one card leaving each: two frames read as though two cards leave the
+         Store at once, and you take exactly one per turn. -->
     <div class="reveal">
       <figure>
         <div class="pyr">
           <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
-          <div class="prow b1 off"><i class="pc up mark"></i><i class="pc up mark"></i><i class="pc up"></i></div>
+          <div class="prow b1 off"><i class="pc up"></i><i class="pc up mark"></i><i class="pc up mark"></i></div>
         </div>
-        <figcaption>Two cards cover the one behind.</figcaption>
+        <figcaption>Two cards cover it.</figcaption>
       </figure>
       <div class="arrow">→</div>
       <figure>
         <div class="pyr">
-          <div class="prow b2"><i class="pc"></i><i class="pc up mark"></i><i class="pc"></i></div>
-          <div class="prow b1 off"><i class="pc gone"></i><i class="pc gone"></i><i class="pc up"></i></div>
+          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc"></i></div>
+          <div class="prow b1 off"><i class="pc up"></i><i class="pc gone"></i><i class="pc up mark"></i></div>
         </div>
-        <figcaption>Both gone → it flips face-up.</figcaption>
+        <figcaption>One taken — still covered.</figcaption>
+      </figure>
+      <div class="arrow">→</div>
+      <figure>
+        <div class="pyr">
+          <div class="prow b2"><i class="pc"></i><i class="pc"></i><i class="pc up mark"></i></div>
+          <div class="prow b1 off"><i class="pc up"></i><i class="pc gone"></i><i class="pc gone"></i></div>
+        </div>
+        <figcaption>Second taken — flips face-up.</figcaption>
       </figure>
     </div>
 
@@ -635,7 +662,7 @@ tbody tr:nth-child(even) td { background: rgba(30,22,16,0.06); }
            were indistinguishable in the hand. This is the panel to carry it: a back cover is
            where a printed piece states its edition, and it is the one panel nobody reads
            mid-game. Text comes from `const REV`; see the note by that constant. -->
-      <p class="revline">Preliminary draft &middot; rev <span data-rev>&mdash;</span></p>
+      <p class="revline">Preliminary draft &middot; <span data-rev>&mdash;</span></p>
     </div>
   </div>
 </div>

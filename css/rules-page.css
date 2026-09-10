@@ -270,6 +270,11 @@ html { scroll-behavior: smooth; }
   margin: 1rem 0 1.25rem;
 }
 .reveal-step { margin: 0; }
+/* The uncovering demo reuses .pyramid-grid for its geometry but has NO .band-tag, so the
+   119px label reservation is pure dead space here — it was padding each 72px frame out to
+   208px and shoving all three off-centre. Scope it away rather than narrowing the
+   reservation, which the tagged Store diagram genuinely needs. */
+.reveal-demo .pyramid-grid { padding-right: 0; }
 .rules-page .reveal-step figcaption {
   text-align: center;
   font-size: 0.78rem;

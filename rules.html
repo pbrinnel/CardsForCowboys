@@ -294,21 +294,52 @@
            literally the same brick stagger, not a redrawn approximation. Because rows are
            offset half a card, each card is covered by TWO in front of it — which is the bit
            prose kept failing to convey. -->
+      <!-- THREE frames, one card leaving per frame (PB, Sep 2026). It used to be two frames:
+           both coverers marked, then both gone and the card behind flipped. That read as
+           though two cards could leave the Store at once, which is never true — you take
+           exactly one per turn. The middle frame is the whole point of the change: one gone,
+           still covered, nothing flips. Don't collapse it back to two to save width. -->
+      <!-- ⚠️ WHICH cards are marked is GEOMETRY, not decoration. Get it wrong and the demo
+           contradicts the rule it teaches.
+           With the front row staggered half a card RIGHT, front card j overlaps back cards
+           j and j+1. So in a 3+3 excerpt:
+             back 0 ← front 0 only        (the overhang end card: ONE coverer)
+             back 1 ← front 0, front 1
+             back 2 ← front 1, front 2    ← the only back card whose BOTH coverers can be
+                                            removed without incidentally uncovering another
+           The demo therefore targets back 2 (rear right) and removes front 1 then front 2.
+           An earlier version marked front 0 and front 1 and revealed back 1 — but front 0 is
+           back 0's ONLY coverer, so back 0 should have flipped too and the picture was
+           quietly wrong. Re-derive this table before moving any mark.
+
+           THREE frames, one card leaving per frame (PB, Sep 2026): two frames read as though
+           two cards leave the Store at once, which is never true — you take exactly one per
+           turn. The middle frame is the point. Don't collapse it back to two to save width. -->
       <div class="reveal-demo">
         <figure class="reveal-step">
           <div class="pyramid-grid">
             <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up marked"></div><div class="pcard face-up marked"></div><div class="pcard face-up"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard face-up marked"></div><div class="pcard face-up marked"></div></div>
           </div>
           <figcaption>Two face-up cards cover the one behind them.</figcaption>
         </figure>
         <div class="reveal-arrow" aria-hidden="true">&rarr;</div>
         <figure class="reveal-step">
           <div class="pyramid-grid">
-            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard face-up revealed"></div><div class="pcard"></div></div>
-            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard gone"></div><div class="pcard gone"></div><div class="pcard face-up"></div></div>
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard gone"></div><div class="pcard face-up marked"></div></div>
           </div>
-          <figcaption>Once <em>both</em> are gone it flips face-up, and you can buy it.</figcaption>
+          <figcaption>Someone buys one. The card behind is <em>still covered</em> by the other,
+            so it stays face-down.</figcaption>
+        </figure>
+        <div class="reveal-arrow" aria-hidden="true">&rarr;</div>
+        <figure class="reveal-step">
+          <div class="pyramid-grid">
+            <div class="pyramid-row act-band-2"><div class="pcard"></div><div class="pcard"></div><div class="pcard face-up revealed"></div></div>
+            <div class="pyramid-row act-band-1 brick-offset"><div class="pcard face-up"></div><div class="pcard gone"></div><div class="pcard gone"></div></div>
+          </div>
+          <figcaption>A later turn takes the second. Now it flips face-up, and you can buy
+            it.</figcaption>
         </figure>
       </div>
 
@@ -368,7 +399,17 @@
       </ul>
     </section>
 
-    <p class="rules-version">Rules v3.1 &middot; last updated 2 August 2026</p>
+    <!-- TWO fields, two jobs — don't collapse them (convention set Sep 2026):
+           · "v3.N" tracks the RULES — bump it only when a player must DO something
+             differently. A card's stats, a phase's order, a tiebreak rung, what busts you.
+             It is what someone compares against a printed insert to see if their copy is
+             out of date, so bumping it for a reworded sentence makes it useless for that.
+           · "last updated" tracks the DOCUMENT and bumps for any change a reader would
+             notice, clarifications and diagrams included.
+         Sep 9 2026 was clarifications only — the Objective's banked-vs-showdown wording,
+         phase-mode captions, "it's a tie" replacing "shares the win", the three-frame
+         uncovering demo, band-tag placement. Legal play is identical, so v3.1 stands. -->
+    <p class="rules-version">Rules v3.1 &middot; last updated 9 September 2026</p>
 
     <div class="rules-footer">
       <a href="cardslist.html" class="btn btn-secondary">Cards List</a>
